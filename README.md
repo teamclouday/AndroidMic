@@ -1,2 +1,6 @@
-# AndroidMic
-Use your Android phone as a mic to PC
+# Android Microphone
+
+Use your Android phone as a microphone to Windows PC
+
+------
+

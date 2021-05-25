@@ -1,0 +1,30 @@
+﻿<Window x:Class="AndroidMic.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:AndroidMic"
+        mc:Ignorable="d"
+        Title="Android Microphone" Height="600" Width="800" ResizeMode="CanMinimize" Background="#94fffa" Closing="MainWindow_Closing">
+    <Grid>
+        <Border BorderBrush="Black" BorderThickness="1" Margin="50,50,400,50" Background="#FFC0FFEB" CornerRadius="10" Padding="10">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <TextBlock x:Name="LogBlock" TextWrapping="Wrap" FontSize="16">
+                </TextBlock>
+            </ScrollViewer>
+        </Border>
+        <Grid Margin="450,50,50,50">
+            <Button x:Name="ConnectButton" Cursor="Hand" Content="Connect" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                    Margin="0,0,0,50" FontSize="20" Padding="6" Background="#FFEFFFA8" Click="ConnectButton_Click"
+                    ToolTip="bluetooth connection" ToolTipService.ShowDuration="2000"/>
+            <ComboBox x:Name="AudioDeviceList" Cursor="Hand" HorizontalAlignment="Center" Margin="0,100,0,0"
+                      VerticalAlignment="Top" FontSize="18" Width="200" DropDownClosed="AudioDeviceList_DropDownClosed"
+                      ToolTip="select audio device" ToolTipService.ShowDuration="2000">
+                <ComboBoxItem IsSelected="True">Default</ComboBoxItem>
+            </ComboBox>
+            <Label Content="Audio Device" HorizontalAlignment="Center" Margin="0,60,0,0" VerticalAlignment="Top" Width="200" FontSize="18" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+
+        </Grid>
+
+    </Grid>
+</Window>

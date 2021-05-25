@@ -1,0 +1,2 @@
+rootProject.name = "Microphone"
+include ':app'
