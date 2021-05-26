@@ -2,6 +2,9 @@
 
 Use your Android phone as a microphone to Windows PC
 
+__Idea__  
+You have a Windows desktop PC but do not have a mic (or have a Sony bluetooth headset whose mic cannot be detected by Windows like me), you may need to buy a new cabled headset with a mic. However, you also have an Android phone which you use to chat with your friends everyday. So, why not use your Android phone as a mic for your PC?
+
 ------
 
 ### Requirements  
@@ -23,4 +26,21 @@ Use your Android phone as a microphone to Windows PC
 4. Use the corresponding microphone created by VAC (or VB)  
    ![sound config 1](Assets/sound_config2.png)  
 
-That's all!
+That's all!  
+
+------
+
+### Future Feature Plan  
+
+[ ] Volume control on Windows side  
+[ ] Audio visualization on Android side  
+[ ] Audio visualization on Windows side  
+[ ] USB serial port connection support  
+[ ] Make Android side able to run in background  
+[ ] Show notification when mic is in use on Android side  
+
+------
+
+### Releases
+
+Pre-built installers can be found [here](https://github.com/teamclouday/AndroidMic/releases)  
