@@ -2,3 +2,5 @@ AndroidMic/.vs/*
 AndroidMic/bin/*
 AndroidMic/obj/*
 AndroidMic/packages/*
+AndroidMic/publish/*
+*pfx

@@ -2,6 +2,9 @@
 using System.IO;
 using System.Windows;
 using System.Threading;
+using System.Diagnostics;
+using System.Net.Sockets;
+using InTheHand.Net;
 using InTheHand.Net.Sockets;
 using InTheHand.Net.Bluetooth;
 
@@ -20,29 +23,43 @@ namespace AndroidMic
         private readonly string mServerName = "Android Microhpone Host";
         private readonly int DEVICE_CHECK_EXPECTED = 123456;
         private readonly int DEVICE_CHECK_DATA = 654321;
-        private readonly int MAX_WAIT_TIME = 1500;
+        private readonly int MAX_WAIT_TIME = 2000;
+        private readonly int BUFFER_SIZE = 2000;
 
         private BluetoothListener mListener = null;
         private BluetoothClient mClient = null;
+        private NetworkStream mClientStream = null;
+        private BluetoothEndPoint mTargetDeviceID = null;
 
         public BthStatus Status { get; private set; } = BthStatus.DEFAULT;
         private bool isConnectionAllowed = false;
         private Thread mProcessThread = null;
+
         private readonly MainWindow mMainWindow;
+        private readonly AudioData mGlobalData;
 
-        public BluetoothHelper(MainWindow mainWindow) { mMainWindow = mainWindow; }
+        public BluetoothHelper(MainWindow mainWindow, AudioData globalData) 
+        { 
+            mMainWindow = mainWindow;
+            mGlobalData = globalData;
+        }
 
+        // start server
         public void StartServer()
         {
-            if (mListener != null) mListener.Stop();
-            mListener = new BluetoothListener(mServerUUID);
-            mListener.ServiceName = mServerName;
-            mListener.Start();
+            if (mListener == null)
+            {
+                mListener = new BluetoothListener(mServerUUID);
+                mListener.ServiceName = mServerName;
+                mListener.Start();
+            }
             Status = BthStatus.LISTENING;
+            Debug.WriteLine("[BluetoothHelper] server started");
             AddLog("Service started listening...");
             Accept();
         }
 
+        // stop server
         public void StopServer()
         {
             isConnectionAllowed = false;
@@ -52,6 +69,7 @@ namespace AndroidMic
                 Disconnect();
             }
             mProcessThread = null;
+            Thread.Sleep(500); // wait for accept callback to finish
             if (mListener != null)
             {
                 mListener.Server.Dispose();
@@ -60,8 +78,10 @@ namespace AndroidMic
             }
             Status = BthStatus.DEFAULT;
             AddLog("Service stopped");
+            Debug.WriteLine("[BluetoothHelper] server stopped");
         }
 
+        // start accepting clients
         private void Accept()
         {
             isConnectionAllowed = true;
@@ -69,6 +89,7 @@ namespace AndroidMic
                 mListener.BeginAcceptBluetoothClient(new AsyncCallback(AcceptCallback), mListener);
         }
 
+        // accepting callback
         private void AcceptCallback(IAsyncResult result)
         {
             if(!isConnectionAllowed)
@@ -78,23 +99,63 @@ namespace AndroidMic
             }
             if(result.IsCompleted)
             {
-                BluetoothClient client = ((BluetoothListener)result.AsyncState).EndAcceptBluetoothClient(result);
-                if(TestClient(client))
+                BluetoothClient client = null;
+                try
                 {
+                    client = ((BluetoothListener)result.AsyncState).EndAcceptBluetoothClient(result);
+                } catch(Exception e)
+                {
+                    Debug.WriteLine("[BluetoothHelper] AcceptCallback error: " + e.Message);
+                    return;
+                }
+                Debug.WriteLine("[BluetoothHelper] cliented detected, checking...");
+                if (TestClient(client))
+                {
+                    Debug.WriteLine("[BluetoothHelper] client valid");
+                    // stop alive thread
                     if (mProcessThread != null && mProcessThread.IsAlive)
                     {
                         isConnectionAllowed = false;
                         if (!mProcessThread.Join(MAX_WAIT_TIME)) mProcessThread.Abort();
                         Disconnect();
                     }
-                    mClient = client;
-                    AddLog("Device connected\nclient [Name]: " + mClient.RemoteMachineName + "\n client [Address]: " + mClient.RemoteEndPoint);
+                    // dispose stream
+                    if(mClientStream != null)
+                    {
+                        mClientStream.Dispose();
+                        mClientStream.Close();
+                    }
+                    // check for target device ID
+                    if(mTargetDeviceID == null)
+                    {
+                        Accept();
+                        return;
+                    }
+                    // accept client with same ID
+                    mClient = mListener.AcceptBluetoothClient();
+                    while(!mClient.RemoteEndPoint.Equals(mTargetDeviceID) && isConnectionAllowed)
+                    {
+                        mClient.Dispose();
+                        mClient.Close();
+                        mClient = mListener.AcceptBluetoothClient();
+                    }
+                    // set client stream
+                    mClientStream = mClient.GetStream();
+                    if (mClientStream.CanTimeout)
+                    {
+                        mClientStream.ReadTimeout = MAX_WAIT_TIME;
+                        mClientStream.WriteTimeout = MAX_WAIT_TIME;
+                    }
+                    isConnectionAllowed = true;
+                    AddLog("Device connected\nclient [Name]: " + mClient.RemoteMachineName + "\nclient [Address]: " + mClient.RemoteEndPoint);
+                    // start processing
                     mProcessThread = new Thread(new ThreadStart(Process));
                     mProcessThread.Start();
-                    Process();
+                    Debug.WriteLine("[BluetoothHelper] process started");
                 }
                 else
                 {
+                    Debug.WriteLine("[BluetoothHelper] client invalid");
                     if (client != null) client.Dispose();
                     Accept();
                 }
@@ -109,44 +170,70 @@ namespace AndroidMic
             try
             {
                 var stream = client.GetStream();
-                if(stream.CanTimeout)
+                if (stream.CanTimeout)
                 {
                     stream.ReadTimeout = MAX_WAIT_TIME;
                     stream.WriteTimeout = MAX_WAIT_TIME;
                 }
                 if (!stream.CanRead || !stream.CanWrite) return false;
+                // check received integer
                 if (stream.Read(receivedPack, 0, receivedPack.Length) == 0) return false;
                 else if (DecodeInt(receivedPack) != DEVICE_CHECK_EXPECTED)
                 {
                     int tmp = DecodeInt(receivedPack);
                     return false;
                 }
+                // send back integer for verification
                 stream.Write(sentPack, 0, sentPack.Length);
-            } catch(IOException)
+                // save valid target client ID
+                mTargetDeviceID = client.RemoteEndPoint;
+                stream.Flush();
+                stream.Dispose();
+                stream.Close();
+            } catch(IOException e)
             {
+                Debug.WriteLine("[BluetoothHelper] TestClient error: " + e.Message);
                 return false;
             }
+            // close current client
+            client.Dispose();
+            client.Close();
             return true;
         }
 
-        public void Process()
+        // receive audio data
+        private void Process()
         {
             Status = BthStatus.CONNECTED;
-            var stream = mClient.GetStream();
             while(isConnectionAllowed && IsClientValid())
             {
                 try
                 {
-
-                } catch(IOException)
+                    byte[] buffer = new byte[BUFFER_SIZE];
+                    int bufferSize = mClientStream.Read(buffer, 0, BUFFER_SIZE);
+                    if (bufferSize == 0)
+                    {
+                        Thread.Sleep(5);
+                        break;
+                    }
+                    mGlobalData.AddData(buffer, bufferSize);
+                    Debug.WriteLine("[BluetoothHelper] Process buffer received (" + bufferSize + " bytes)");
+                } catch(IOException e)
                 {
+                    Debug.WriteLine("[BluetoothHelper] Process error: " + e.Message);
                     break;
                 }
                 Thread.Sleep(1);
             }
+            isConnectionAllowed = false;
+            mClientStream.Dispose();
+            mClientStream.Close();
+            mClientStream = null;
+            AddLog("Device disconnected");
             Disconnect();
         }
 
+        // disconnect current client
         private void Disconnect()
         {
             if(mClient != null)
@@ -155,14 +242,20 @@ namespace AndroidMic
                 mClient.Dispose();
                 mClient = null;
             }
-            Accept(); // auto start accepting next client
+            Application.Current.Dispatcher.Invoke(new Action(() =>
+            {
+                mMainWindow.ConnectButton.Content = "Connect";
+            }));
+            Debug.WriteLine("[BluetoothHelper] client disconnected");
         }
 
+        // check if client is valid
         private bool IsClientValid()
         {
             return !(mClient == null || mClient.Connected == false);
         }
 
+        // decode integer from byte array
         public static int DecodeInt(byte[] array)
         {
             if (BitConverter.IsLittleEndian)
@@ -170,6 +263,7 @@ namespace AndroidMic
             return BitConverter.ToInt32(array, 0);
         }
 
+        // encode integer to byte array
         public static byte[] EncodeInt(int data)
         {
             byte[] array = BitConverter.GetBytes(data);
@@ -178,19 +272,14 @@ namespace AndroidMic
             return array;
         }
 
-        public static float DecodeFloat(byte[] array)
-        {
-            if (BitConverter.IsLittleEndian)
-                Array.Reverse(array);
-            return BitConverter.ToSingle(array, 0);
-        }
-
+        // check if bluetooth adapter is enabled
         public static bool CheckBluetooth()
         {
             if(!BluetoothRadio.IsSupported) return false;
             return true;
         }
 
+        // helper function to add log message
         private void AddLog(string message)
         {
             Application.Current.Dispatcher.Invoke(new Action(() =>

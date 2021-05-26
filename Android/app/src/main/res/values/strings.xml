@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Microphone</string>
+    <string name="app_name">Mic</string>
     <string name="turn_on_bth">Connect Bluetooth</string>
     <string name="turn_off_bth">Disconnect Bluetooth</string>
     <string name="turn_audio">Record Audio</string>

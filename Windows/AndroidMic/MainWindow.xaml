@@ -9,7 +9,8 @@
     <Grid>
         <Border BorderBrush="Black" BorderThickness="1" Margin="50,50,400,50" Background="#FFC0FFEB" CornerRadius="10" Padding="10">
             <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <TextBlock x:Name="LogBlock" TextWrapping="Wrap" FontSize="16">
+                <TextBlock x:Name="LogBlock" TextWrapping="Wrap" FontSize="16" MouseDown="LogBlock_MouseDown"
+                           ToolTip="double click to clear" ToolTipService.ShowDuration="2000">
                 </TextBlock>
             </ScrollViewer>
         </Border>

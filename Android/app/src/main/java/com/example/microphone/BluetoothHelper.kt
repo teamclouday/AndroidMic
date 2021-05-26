@@ -9,11 +9,14 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.util.Log
+import androidx.core.content.ContextCompat
+import android.Manifest
+import android.content.pm.PackageManager
 import java.io.*
 import java.lang.Exception
 import java.util.*
 
-class BluetoothHelper(private val mActivity: MainActivity)
+class BluetoothHelper(private val mActivity: MainActivity, private val mGlobalData : GlobalData)
 {
     private val mLogTag : String = "AndroidMicBth"
 
@@ -32,6 +35,7 @@ class BluetoothHelper(private val mActivity: MainActivity)
     {
         override fun onReceive(context: Context?, intent: Intent?) {
             val action = intent?.action ?: return
+            // check if server side is disconnected
             if(BluetoothAdapter.ACTION_STATE_CHANGED == action)
             {
                 val state = intent.getIntExtra(BluetoothAdapter.EXTRA_STATE, BluetoothAdapter.ERROR)
@@ -45,10 +49,15 @@ class BluetoothHelper(private val mActivity: MainActivity)
         }
     }
 
+    // init everything
     init
     {
         // check bluetooth adapter
         require(mAdapter != null) {"Bluetooth adapter is not found"}
+        // check permission
+        require(ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED){
+            "Bluetooth is not permitted"
+        }
         // enable adapter
         if(!mAdapter.isEnabled)
         {
@@ -67,14 +76,16 @@ class BluetoothHelper(private val mActivity: MainActivity)
     }
 
     // connect to target device
-    public fun connect() : Boolean
+    fun connect() : Boolean
     {
+        // create socket
         val socket = try {
             mTargetDevice?.createInsecureRfcommSocketToServiceRecord(mUUID)
         } catch (e : IOException) {
             Log.d(mLogTag, "connect [createInsecureRfcommSocketToServiceRecord]: ${e.message}")
             null
         } ?: return false
+        // connect to server
         try {
             socket.connect()
         } catch (e : IOException){
@@ -82,17 +93,30 @@ class BluetoothHelper(private val mActivity: MainActivity)
             return false
         }
         mSocket = socket
+        Log.d(mLogTag, "connected")
         return true
     }
 
     // send data through socket
-    public fun sendData()
+    fun sendData()
     {
-        // TODO: collect data from variable and send data to target device
+        if(mSocket?.isConnected != true) return
+        val nextData = mGlobalData.getData() ?: return
+        try {
+            val stream = mSocket?.outputStream
+            stream?.write(nextData)
+            stream?.flush()
+            // Log.d(mLogTag, "[sendData] data sent (${nextData.size} bytes)")
+        } catch (e : IOException)
+        {
+            Log.d(mLogTag, "${e.message}")
+            Thread.sleep(4)
+            disconnect()
+        }
     }
 
     // disconnect from target device
-    public fun disconnect() : Boolean
+    fun disconnect() : Boolean
     {
         if(mSocket == null) return false
         val socket = mSocket
@@ -104,11 +128,12 @@ class BluetoothHelper(private val mActivity: MainActivity)
             return false
         }
         mSocket = null
+        Log.d(mLogTag, "disconnected")
         return true
     }
 
     // clean object
-    public fun clean()
+    fun clean()
     {
         disconnect()
         ignore { mActivity.unregisterReceiver(mReceiver) }
@@ -157,6 +182,7 @@ class BluetoothHelper(private val mActivity: MainActivity)
             ignore {
                 val streamOut = DataOutputStream(socket.outputStream)
                 streamOut.writeInt(DEVICE_CHECK_DATA)
+                streamOut.flush()
                 val streamIn = DataInputStream(socket.inputStream)
                 if(streamIn.readInt() == DEVICE_CHECK_EXPECTED)
                     isValid = true
@@ -165,7 +191,7 @@ class BluetoothHelper(private val mActivity: MainActivity)
 
         try {
             validationThread.start()
-            validationThread.join(MAX_WAIT_TIME)
+            validationThread.join(MAX_WAIT_TIME) // set max wait time for execution
             if(validationThread.isAlive)
             {
                 Log.d(mLogTag, "testConnection [validationThread]: exceeds max timeout")
@@ -181,19 +207,20 @@ class BluetoothHelper(private val mActivity: MainActivity)
             ignore { socket.close() }
             return false
         }
-
+        // close socket
         ignore { socket.close() }
         return isValid
     }
 
     // get connected device information
-    public fun getConnectedDeviceInfo() : String
+    fun getConnectedDeviceInfo() : String
     {
         if(mAdapter == null || mTargetDevice == null || mSocket == null) return ""
         return "[Device Name] ${mTargetDevice?.name}\n[Device Address] ${mTargetDevice?.address}"
     }
 
-    public fun isSocketValid() : Boolean
+    // check if current socket is valid and connected
+    fun isSocketValid() : Boolean
     {
         return !(mSocket == null || mSocket?.isConnected == false)
     }
