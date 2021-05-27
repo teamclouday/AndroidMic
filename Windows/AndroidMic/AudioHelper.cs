@@ -1,4 +1,5 @@
 ﻿using NAudio.Wave;
+using NAudio.Wave.SampleProviders;
 using System;
 using System.Windows;
 using System.Threading;
@@ -12,21 +13,30 @@ namespace AndroidMic
         private readonly AudioData mGlobalData;
         private readonly WaveFormat mWaveFormat = new WaveFormat(44100, 16, 1); // sample rate, bits, channels
         private readonly int MAX_WAIT_TIME = 1500;
-        private readonly int BUFFER_SIZE = 2000;
 
         public string[] DeviceList { get; private set; }
         private bool isAudioAllowed = false;
         private Thread mProcessThread = null;
         private WaveOut mWaveOut;
 
-        private BufferedWaveProvider mProvider;
+        private BufferedWaveProvider mBufferedProvider;
+        private VolumeSampleProvider mVolumeProvider;
+
+        // render waveform
+        private readonly int RENDER_SCREEN_SIZE = 2048; // screen size to update waveform
+        private int mRenderByteCount = 0;
+        private bool mRenderSkipByte = false; // whether to skip first byte for short alignment
+        private short mRenderPos = 0, mRenderNeg = 0;
+
 
         public AudioHelper(MainWindow mainWindow, AudioData globalData)
         {
             mMainWindow = mainWindow;
             mGlobalData = globalData;
-            mWaveOut = new WaveOut();
-            mWaveOut.DeviceNumber = -1; // use default device first
+            mWaveOut = new WaveOut
+            {
+                DeviceNumber = -1 // use default device first
+            };
             RefreshAudioDevices();
         }
 
@@ -34,10 +44,15 @@ namespace AndroidMic
         public void Start()
         {
             if (mWaveOut.PlaybackState == PlaybackState.Playing) mWaveOut.Stop();
-            mProvider = new BufferedWaveProvider(mWaveFormat);
-            mProvider.BufferLength = BUFFER_SIZE * 16;
-            mProvider.DiscardOnBufferOverflow = true;
-            mWaveOut.Init(mProvider);
+            mBufferedProvider = new BufferedWaveProvider(mWaveFormat)
+            {
+                DiscardOnBufferOverflow = true
+            };
+            mVolumeProvider = new VolumeSampleProvider(mBufferedProvider.ToSampleProvider())
+            {
+                Volume = 1.0f
+            };
+            mWaveOut.Init(mVolumeProvider);
             mWaveOut.Play();
             isAudioAllowed = true;
             mProcessThread = new Thread(new ThreadStart(Process));
@@ -66,7 +81,8 @@ namespace AndroidMic
         // retrieve audio data and add to samples
         private void Process()
         {
-            while(isAudioAllowed)
+            byte[] buffer = new byte[2];
+            while (isAudioAllowed)
             {
                 Tuple<byte[], int> data = mGlobalData.GetData();
                 if (data == null)
@@ -74,9 +90,27 @@ namespace AndroidMic
                     Thread.Sleep(5); // wait for data
                     continue;
                 }
-                mProvider.AddSamples(data.Item1, 0, data.Item2);
-                //if(mWaveOut.PlaybackState != PlaybackState.Playing) mWaveOut.Play();
-                Debug.WriteLine("[AudioHelper] new data (" + data.Item2 + " bytes)");
+                mBufferedProvider.AddSamples(data.Item1, 0, data.Item2);
+                // collect positive and negative extremes in this sample screen
+                int startIdx = mRenderSkipByte ? 1 : 0;
+                while((startIdx+2) <= data.Item2)
+                {
+                    Array.Copy(data.Item1, startIdx, buffer, 0, 2);
+                    short nextData = DecodeByte(buffer);
+                    mRenderPos = Math.Max(nextData, mRenderPos);
+                    mRenderNeg = Math.Min(nextData, mRenderNeg);
+                    mRenderByteCount++;
+                    if(mRenderByteCount >= RENDER_SCREEN_SIZE)
+                    {
+                        AddWavePoint();
+                        mRenderPos = mRenderNeg = 0;
+                        mRenderByteCount = 0;
+                    }
+                    startIdx += 2;
+                }
+                if (startIdx != data.Item2) mRenderSkipByte = true;
+                else mRenderSkipByte = false;
+                //Debug.WriteLine("[AudioHelper] new data (" + data.Item2 + " bytes)");
                 Thread.Sleep(1);
             }
         }
@@ -86,9 +120,11 @@ namespace AndroidMic
         {
             if (mWaveOut.PlaybackState == PlaybackState.Playing) mWaveOut.Stop();
             mWaveOut.Dispose();
-            mWaveOut = new WaveOut();
-            mWaveOut.DeviceNumber = i;
-            mWaveOut.Init(mProvider);
+            mWaveOut = new WaveOut
+            {
+                DeviceNumber = i
+            };
+            mWaveOut.Init(mVolumeProvider);
             mWaveOut.Play();
             Debug.WriteLine("[AudioHelper] device index changed to " + i);
             AddLog("Device changed to " + ((i < 0) ? "Default" : DeviceList[i]));
@@ -100,6 +136,15 @@ namespace AndroidMic
             Application.Current.Dispatcher.Invoke(new Action(() =>
             {
                 mMainWindow.AddLogMessage("[Audio]\n" + message + "\n");
+            }));
+        }
+
+        // add new point to wave graph
+        private void AddWavePoint()
+        {
+            Application.Current.Dispatcher.Invoke(new Action(() =>
+            {
+                mMainWindow.RefreshWaveform(mRenderPos, mRenderNeg);
             }));
         }
 
@@ -123,6 +168,22 @@ namespace AndroidMic
             }
 
             return changed;
+        }
+
+        // set volume
+        public void SetVolume(float val)
+        {
+            if (mVolumeProvider == null || val == mVolumeProvider.Volume) return;
+            val = Math.Max(val, 0.0f);
+            mVolumeProvider.Volume = val;
+        }
+
+        // helper function to decode byte to float
+        public short DecodeByte(byte[] array)
+        {
+            //if (BitConverter.IsLittleEndian)
+            //    Array.Reverse(array);
+            return BitConverter.ToInt16(array, 0);
         }
     }
 }

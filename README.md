@@ -32,9 +32,10 @@ That's all!
 
 ### Future Feature Plan  
 
-- [ ] Volume control on Windows side  
+- [x] Windows app can minimize to system tray  
+- [x] Volume control on Windows side  
+- [x] Audio visualization on Windows side  
 - [ ] Audio visualization on Android side  
-- [ ] Audio visualization on Windows side  
 - [ ] USB serial port connection support  
 - [ ] Make Android side able to run in background  
 - [ ] Show notification when mic is in use on Android side  

@@ -78,12 +78,14 @@ class AudioHelper(mActivity: MainActivity, private val mGlobalData : GlobalData)
     fun startMic()
     {
         mRecorder?.startRecording()
+        Log.d(mLogTag, "startMic")
     }
 
     // stop recording
     fun stopMic()
     {
         mRecorder?.stop()
+        Log.d(mLogTag, "stopMic")
     }
 
     // clean object
@@ -92,5 +94,6 @@ class AudioHelper(mActivity: MainActivity, private val mGlobalData : GlobalData)
         mRecorder?.stop()
         mRecorder?.release()
         mRecorder = null
+        Log.d(mLogTag, "clean")
     }
 }

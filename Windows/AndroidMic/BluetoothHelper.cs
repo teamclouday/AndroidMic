@@ -24,7 +24,7 @@ namespace AndroidMic
         private readonly int DEVICE_CHECK_EXPECTED = 123456;
         private readonly int DEVICE_CHECK_DATA = 654321;
         private readonly int MAX_WAIT_TIME = 2000;
-        private readonly int BUFFER_SIZE = 2000;
+        private readonly int BUFFER_SIZE = 2048;
 
         private BluetoothListener mListener = null;
         private BluetoothClient mClient = null;
@@ -49,8 +49,10 @@ namespace AndroidMic
         {
             if (mListener == null)
             {
-                mListener = new BluetoothListener(mServerUUID);
-                mListener.ServiceName = mServerName;
+                mListener = new BluetoothListener(mServerUUID)
+                {
+                    ServiceName = mServerName
+                };
                 mListener.Start();
             }
             Status = BthStatus.LISTENING;
@@ -217,7 +219,7 @@ namespace AndroidMic
                         break;
                     }
                     mGlobalData.AddData(buffer, bufferSize);
-                    Debug.WriteLine("[BluetoothHelper] Process buffer received (" + bufferSize + " bytes)");
+                    //Debug.WriteLine("[BluetoothHelper] Process buffer received (" + bufferSize + " bytes)");
                 } catch(IOException e)
                 {
                     Debug.WriteLine("[BluetoothHelper] Process error: " + e.Message);
@@ -244,6 +246,7 @@ namespace AndroidMic
             }
             Application.Current.Dispatcher.Invoke(new Action(() =>
             {
+                mMainWindow.mWaveformDisplay.Reset();
                 mMainWindow.ConnectButton.Content = "Connect";
             }));
             Debug.WriteLine("[BluetoothHelper] client disconnected");

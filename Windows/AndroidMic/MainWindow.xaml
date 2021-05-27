@@ -7,25 +7,37 @@
         mc:Ignorable="d"
         Title="Android Microphone" Height="600" Width="800" ResizeMode="CanMinimize" Background="#94fffa" Closing="MainWindow_Closing">
     <Grid>
-        <Border BorderBrush="Black" BorderThickness="1" Margin="50,50,400,50" Background="#FFC0FFEB" CornerRadius="10" Padding="10">
-            <ScrollViewer VerticalScrollBarVisibility="Auto">
-                <TextBlock x:Name="LogBlock" TextWrapping="Wrap" FontSize="16" MouseDown="LogBlock_MouseDown"
-                           ToolTip="double click to clear" ToolTipService.ShowDuration="2000">
-                </TextBlock>
-            </ScrollViewer>
-        </Border>
+        <Grid Margin="50,50,400,50">
+            <Border BorderBrush="Black" BorderThickness="1" Background="#FFC0FFEB" CornerRadius="10" Padding="10" Margin="0,0,0,140">
+                <ScrollViewer x:Name="LogBlockScroll" VerticalScrollBarVisibility="Auto">
+                    <TextBlock x:Name="LogBlock" TextWrapping="Wrap" FontSize="16" MouseDown="LogBlock_MouseDown"
+                           ToolTip="double click to clear" ToolTipService.ShowDuration="2000" HorizontalAlignment="Left" VerticalAlignment="Top">
+                    </TextBlock>
+                </ScrollViewer>
+            </Border>
+            <!--<Image x:Name="WaveformImage" ClipToBounds="True" HorizontalAlignment="Center" VerticalAlignment="Bottom" Height="125" Margin="0,0,0,10" Width="350"/>-->
+            <Border HorizontalAlignment="Center" VerticalAlignment="Bottom" Width="340" Height="100" Background="Black" Margin="0,0,0,10" CornerRadius="10" 
+                    ToolTip="audio display" ToolTipService.ShowDuration="2000">
+                <Canvas x:Name="WaveformCanvas" ClipToBounds="True"/>
+            </Border>
+        </Grid>
         <Grid Margin="450,50,50,50">
             <Button x:Name="ConnectButton" Cursor="Hand" Content="Connect" HorizontalAlignment="Center" VerticalAlignment="Bottom"
-                    Margin="0,0,0,50" FontSize="20" Padding="6" Background="#FFEFFFA8" Click="ConnectButton_Click"
+                    Margin="0,0,0,20" FontSize="20" Padding="6" Background="#FFEFFFA8" Click="ConnectButton_Click"
                     ToolTip="bluetooth connection" ToolTipService.ShowDuration="2000"/>
-            <ComboBox x:Name="AudioDeviceList" Cursor="Hand" HorizontalAlignment="Center" Margin="0,100,0,0"
+            <ComboBox x:Name="AudioDeviceList" Cursor="Hand" HorizontalAlignment="Center" Margin="0,80,0,0"
                       VerticalAlignment="Top" FontSize="18" Width="200" DropDownClosed="AudioDeviceList_DropDownClosed"
                       ToolTip="select audio device" ToolTipService.ShowDuration="2000">
                 <ComboBoxItem IsSelected="True">Default</ComboBoxItem>
             </ComboBox>
-            <Label Content="Audio Device" HorizontalAlignment="Center" Margin="0,60,0,0" VerticalAlignment="Top" Width="200" FontSize="18" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-
+            <Label Content="Audio Device" HorizontalAlignment="Center" Margin="0,20,0,0" 
+                   VerticalAlignment="Top" Width="200" FontSize="18" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+            <DockPanel Margin="50,150,50,0" VerticalAlignment="Top" ToolTip="adjust volume" ToolTipService.ShowDuration="2000">
+                <TextBox DockPanel.Dock="Right" Width="40" FontSize="16" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                         Background="#FFCCFFD0" Text="{Binding ElementName=VolumeSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat=N1}" />
+                <Slider Maximum="10.0" Minimum="0.0" x:Name="VolumeSlider" TickFrequency="0.1"
+                        TickPlacement="None" IsSnapToTickEnabled="True" ValueChanged="VolumeSlider_PropertyChange"/>
+            </DockPanel>
         </Grid>
-
     </Grid>
 </Window>

@@ -32,7 +32,7 @@ class GlobalState(
 // global data structure
 class GlobalData
 {
-    val MAX_BUFFER_SIZE = 30
+    val MAX_BUFFER_SIZE = 5 // set to 5 to reduce latency
     private val mBuffer = mutableListOf<ByteArray>()
     private val mLock = object{}
 

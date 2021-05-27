@@ -3,7 +3,9 @@ using System.Diagnostics;
 using System.ComponentModel;
 using System.Collections.Generic;
 using System.Windows;
+using System.Windows.Media;
 using System.Windows.Input;
+using System.Windows.Shapes;
 using System.Windows.Controls;
 using System.Windows.Documents;
 
@@ -12,7 +14,7 @@ namespace AndroidMic
     // Audio data structure for storing received data
     public class AudioData
     {
-        private Queue<Tuple<byte[], int>> buffer = new Queue<Tuple<byte[], int>>();
+        private readonly Queue<Tuple<byte[], int>> buffer = new Queue<Tuple<byte[], int>>();
         private const int MAX_BUFFER_SIZE = 10;
         public void AddData(byte[] data, int realSize)
         {
@@ -34,18 +36,55 @@ namespace AndroidMic
 
     public partial class MainWindow : Window
     {
-        private BluetoothHelper mHelperBluetooth;
-        private AudioHelper mHelperAudio;
-        private AudioData mGlobalData = new AudioData();
+        private readonly AudioData mGlobalData = new AudioData();
+        private readonly BluetoothHelper mHelperBluetooth;
+        private readonly AudioHelper mHelperAudio;
+        public WaveDisplay mWaveformDisplay;
+        private readonly System.Windows.Forms.NotifyIcon notifyIcon = new System.Windows.Forms.NotifyIcon();
 
         public MainWindow()
         {
             InitializeComponent();
+            // init objects
             mHelperBluetooth = new BluetoothHelper(this, mGlobalData);
             mHelperAudio = new AudioHelper(this, mGlobalData);
+            // setup audio
             SetupAudioList();
             mHelperAudio.Start();
+            VolumeSlider.Value = 1.0;
+            // set debug information
             Debug.AutoFlush = true;
+            // create system tray icon
+            // reference: https://stackoverflow.com/questions/10230579/easiest-way-to-have-a-program-minimize-itself-to-the-system-tray-using-net-4
+            using (System.IO.Stream iconStream = Application.GetResourceStream(new Uri("/icon.ico", UriKind.Relative)).Stream)
+            {
+                notifyIcon.Icon = new System.Drawing.Icon(iconStream);
+            }
+            notifyIcon.Visible = true;
+            notifyIcon.DoubleClick +=
+                delegate (object sender, EventArgs e)
+                {
+                    Show();
+                    WindowState = WindowState.Normal;
+                };
+            notifyIcon.ContextMenu = new System.Windows.Forms.ContextMenu();
+            notifyIcon.ContextMenu.MenuItems.Add(
+                "Quit",
+                delegate (object sender, EventArgs e)
+                {
+                    Close();
+                }
+            );
+            // set waveform image
+            mWaveformDisplay = new WaveDisplay(WaveformCanvas);
+        }
+
+        // check window state change
+        protected override void OnStateChanged(EventArgs e)
+        {
+            if (WindowState == WindowState.Minimized)
+                Hide();
+            base.OnStateChanged(e);
         }
 
         // close event for main window
@@ -53,6 +92,7 @@ namespace AndroidMic
         {
             mHelperBluetooth.StopServer();
             mHelperAudio.Stop();
+            notifyIcon.Dispose();
         }
 
         // click event for connect button
@@ -73,6 +113,7 @@ namespace AndroidMic
             }
             else
             {
+                mWaveformDisplay.Reset();
                 mHelperBluetooth.StopServer();
                 button.Content = "Connect";
             }
@@ -92,6 +133,21 @@ namespace AndroidMic
         {
             mHelperAudio.SetAudioDevice(AudioDeviceList.SelectedIndex - 1);
             if (mHelperAudio.RefreshAudioDevices()) SetupAudioList();
+        }
+
+        // volume slider change callback
+        private void VolumeSlider_PropertyChange(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            mHelperAudio.SetVolume((float)e.NewValue);
+        }
+
+        // log message auto scroll to bottom
+        private void LogBlockScroll_ScrollChanged(object sender, ScrollChangedEventArgs e)
+        {
+            if(e.ExtentHeightChange != 0)
+            {
+                (sender as ScrollViewer).ScrollToBottom();
+            }
         }
 
         // set up audio device list
@@ -116,6 +172,14 @@ namespace AndroidMic
                 LogBlock.Inlines.Add(m);
                 LogBlock.Inlines.Add(new LineBreak());
             }
+        }
+
+        // refresh waveform image data
+        public void RefreshWaveform(short valPos, short valNeg)
+        {
+            // only update when window is not minimized
+            if(WindowState != WindowState.Minimized)
+                mWaveformDisplay.AddData(valPos, valNeg);
         }
     }
 }
