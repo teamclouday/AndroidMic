@@ -21,10 +21,9 @@ You have a Windows desktop PC but do not have a mic (or have a Sony bluetooth he
 1. Run Windows side application first, click `connect` to start server  
 2. Next launch Android side application, click `connect` and enable `microphone`  
 3. Select audio speaker from drop down list to the one that VAC (or VB) created  
-   ![sound config 1](Assets/sound_config1.png)  
-   ![sound config 1](Assets/sound_config3.png)  
+   <img src="Assets/sound_config1.png" width="300" alt="sound config1">  
 4. Use the corresponding microphone created by VAC (or VB)  
-   ![sound config 1](Assets/sound_config2.png)  
+   <img src="Assets/sound_config2.png" width="300" alt="sound config2">  
 
 That's all!  
 
@@ -44,3 +43,14 @@ That's all!
 ### Releases
 
 Pre-built installers can be found [here](https://github.com/teamclouday/AndroidMic/releases)  
+
+
+------
+
+### Windows Side
+
+<img src="Assets/p1.png" width="400" alt="Windows Side">
+
+### Android Side
+
+<img src="Assets/p2.jpg" width="200" alt="Android Side">
