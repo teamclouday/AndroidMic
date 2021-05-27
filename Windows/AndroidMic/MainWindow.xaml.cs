@@ -83,7 +83,10 @@ namespace AndroidMic
         protected override void OnStateChanged(EventArgs e)
         {
             if (WindowState == WindowState.Minimized)
+            {
+                notifyIcon.ShowBalloonTip(2000, "AndroidMic", "App minimized to system tray", System.Windows.Forms.ToolTipIcon.Info);
                 Hide();
+            }
             base.OnStateChanged(e);
         }
 
