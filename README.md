@@ -39,10 +39,6 @@ That's all!
 
 ------
 
-
-
-------
-
 ### Future Feature Plan  
 
 - [x] Windows app can minimize to system tray  
