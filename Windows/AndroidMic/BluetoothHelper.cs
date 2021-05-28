@@ -32,14 +32,20 @@ namespace AndroidMic
         private BluetoothEndPoint mTargetDeviceID = null;
 
         public BthStatus Status { get; private set; } = BthStatus.DEFAULT;
+
+        private void SetStatus(BthStatus value)
+        {
+            Status = value;
+        }
+
         private bool isConnectionAllowed = false;
         private Thread mProcessThread = null;
 
         private readonly MainWindow mMainWindow;
         private readonly AudioData mGlobalData;
 
-        public BluetoothHelper(MainWindow mainWindow, AudioData globalData) 
-        { 
+        public BluetoothHelper(MainWindow mainWindow, AudioData globalData)
+        {
             mMainWindow = mainWindow;
             mGlobalData = globalData;
         }
@@ -55,7 +61,7 @@ namespace AndroidMic
                 };
                 mListener.Start();
             }
-            Status = BthStatus.LISTENING;
+            SetStatus(BthStatus.LISTENING);
             Debug.WriteLine("[BluetoothHelper] server started");
             AddLog("Service started listening...");
             Accept();
@@ -78,7 +84,7 @@ namespace AndroidMic
                 mListener.Stop();
                 mListener = null;
             }
-            Status = BthStatus.DEFAULT;
+            SetStatus(BthStatus.DEFAULT);
             AddLog("Service stopped");
             Debug.WriteLine("[BluetoothHelper] server stopped");
         }
@@ -96,7 +102,7 @@ namespace AndroidMic
         {
             if(!isConnectionAllowed)
             {
-                Status = BthStatus.DEFAULT;
+                SetStatus(BthStatus.DEFAULT);
                 return;
             }
             if(result.IsCompleted)
@@ -113,6 +119,9 @@ namespace AndroidMic
                 Debug.WriteLine("[BluetoothHelper] cliented detected, checking...");
                 if (TestClient(client))
                 {
+                    // close current client
+                    client.Dispose();
+                    client.Close();
                     Debug.WriteLine("[BluetoothHelper] client valid");
                     // stop alive thread
                     if (mProcessThread != null && mProcessThread.IsAlive)
@@ -157,6 +166,9 @@ namespace AndroidMic
                 }
                 else
                 {
+                    // close current client
+                client.Dispose();
+                client.Close();
                     Debug.WriteLine("[BluetoothHelper] client invalid");
                     if (client != null) client.Dispose();
                     Accept();
@@ -164,6 +176,7 @@ namespace AndroidMic
             }
         }
 
+        // check if client is validate
         private bool TestClient(BluetoothClient client)
         {
             if (client == null) return false;
@@ -180,11 +193,7 @@ namespace AndroidMic
                 if (!stream.CanRead || !stream.CanWrite) return false;
                 // check received integer
                 if (stream.Read(receivedPack, 0, receivedPack.Length) == 0) return false;
-                else if (DecodeInt(receivedPack) != DEVICE_CHECK_EXPECTED)
-                {
-                    int tmp = DecodeInt(receivedPack);
-                    return false;
-                }
+                else if (DecodeInt(receivedPack) != DEVICE_CHECK_EXPECTED) return false;
                 // send back integer for verification
                 stream.Write(sentPack, 0, sentPack.Length);
                 // save valid target client ID
@@ -197,16 +206,13 @@ namespace AndroidMic
                 Debug.WriteLine("[BluetoothHelper] TestClient error: " + e.Message);
                 return false;
             }
-            // close current client
-            client.Dispose();
-            client.Close();
             return true;
         }
 
         // receive audio data
         private void Process()
         {
-            Status = BthStatus.CONNECTED;
+            SetStatus(BthStatus.CONNECTED);
             while(isConnectionAllowed && IsClientValid())
             {
                 try
@@ -240,7 +246,7 @@ namespace AndroidMic
         {
             if(mClient != null)
             {
-                Status = BthStatus.DEFAULT;
+                SetStatus(BthStatus.DEFAULT);
                 mClient.Dispose();
                 mClient = null;
             }

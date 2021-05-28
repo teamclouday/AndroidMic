@@ -222,6 +222,6 @@ class BluetoothHelper(private val mActivity: MainActivity, private val mGlobalDa
     // check if current socket is valid and connected
     fun isSocketValid() : Boolean
     {
-        return !(mSocket == null || mSocket?.isConnected == false)
+        return mSocket?.isConnected == true
     }
 }

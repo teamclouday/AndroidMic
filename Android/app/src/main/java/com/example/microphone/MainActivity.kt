@@ -1,13 +1,17 @@
 package com.example.microphone
 
+import android.content.DialogInterface
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
+import android.text.InputType
 import android.util.Log
 import android.view.View
 import android.view.WindowManager
 import android.widget.Button
+import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SwitchCompat
 import kotlinx.coroutines.*
 import java.lang.Exception
@@ -26,7 +30,10 @@ class GlobalState(
     var isBluetoothStarted : Boolean,
     var bluetoothShouldStop : Boolean,
     var isAudioStarted : Boolean,
-    var audioShouldStop : Boolean
+    var audioShouldStop : Boolean,
+    var isUSBStarted : Boolean,
+    var usbShouldStop : Boolean,
+    var isUSBAddressSet : Boolean
 )
 
 // global data structure
@@ -69,13 +76,18 @@ class MainActivity : AppCompatActivity()
     private val mUIScope = CoroutineScope(Dispatchers.Main)
     private var mJobBluetooth : Job? = null
     private var mJobAudio : Job? = null
+    private var mJobUSB : Job? = null
 
     private lateinit var mLogTextView : TextView
 
     private var helperBluetooth : BluetoothHelper? = null
     private var helperAudio : AudioHelper? = null
+    private var helperUSB : USBHelper? = null
 
     private val mGlobalState = GlobalState(
+        false,
+        false,
+        false,
         false,
         false,
         false,
@@ -86,6 +98,7 @@ class MainActivity : AppCompatActivity()
 
     private var threadBth : Thread? = null
     private var threadAio : Thread? = null
+    private var threadUSB : Thread? = null
 
     override fun onCreate(savedInstanceState: Bundle?)
     {
@@ -99,31 +112,39 @@ class MainActivity : AppCompatActivity()
 
     override fun onStop() {
         super.onStop()
-        mGlobalState.bluetoothShouldStop = true
-        mGlobalState.audioShouldStop = true
-        threadBth?.join()
-        threadAio?.join()
-        helperBluetooth?.clean()
-        helperAudio?.clean()
+        clean()
     }
 
     override fun onResume() {
         super.onResume()
         findViewById<Button>(R.id.bth_connect).setText(R.string.turn_on_bth)
+        findViewById<Button>(R.id.usb_connect).setText(R.string.turn_on_usb)
         findViewById<SwitchCompat>(R.id.audio_switch).isChecked = false
         mGlobalState.isBluetoothStarted = false
         mGlobalState.isAudioStarted = false
+        mGlobalState.isUSBStarted = false
     }
 
     override fun onPause() {
         super.onPause()
         mLogTextView.text = "" // clear log messages on pause
+        clean()
+    }
+
+    fun clean()
+    {
         mGlobalState.bluetoothShouldStop = true
         mGlobalState.audioShouldStop = true
+        mGlobalState.usbShouldStop = true
         threadBth?.join()
         threadAio?.join()
+        threadUSB?.join()
         helperBluetooth?.clean()
         helperAudio?.clean()
+        helperUSB?.clean()
+        if(mJobUSB?.isActive == true) mJobUSB?.cancel()
+        if(mJobBluetooth?.isActive == true) mJobBluetooth?.cancel()
+        if(mJobAudio?.isActive == true) mJobAudio?.cancel()
     }
 
     // onclick for bluetooth button
@@ -131,9 +152,13 @@ class MainActivity : AppCompatActivity()
     {
         if(!mGlobalState.isBluetoothStarted)
         {
+            if(isConnected())
+            {
+                showToastMessage("Already connected")
+                return
+            }
             val activity = this
             if(mJobBluetooth?.isActive == true) return
-            this.showToastMessage("Starting bluetooth...")
             Log.d(mLogTag, "onButtonBluetooth [start]")
             mGlobalData.reset() // reset global data to store most recent audio
             // launch a coroutine to prepare bluetooth helper object and start thread
@@ -150,7 +175,12 @@ class MainActivity : AppCompatActivity()
                         {
                             activity.addLogMessage("Error: " + e.message)
                         }
+                        cancel()
                         null
+                    }
+                    withContext(Dispatchers.Main)
+                    {
+                        activity.showToastMessage("Starting bluetooth...")
                     }
                     // try to connect
                     if(helperBluetooth?.connect() == true)
@@ -182,10 +212,8 @@ class MainActivity : AppCompatActivity()
                             Thread.sleep(1)
                         }
                     }
-                    threadBth?.start()
-
                     // update UI if success start
-                    if(helperBluetooth != null && threadBth?.isAlive == true)
+                    if(helperBluetooth?.isSocketValid() == true)
                     {
                         withContext(Dispatchers.Main)
                         {
@@ -193,6 +221,8 @@ class MainActivity : AppCompatActivity()
                         }
                         mGlobalState.isBluetoothStarted = true
                     }
+
+                    threadBth?.start()
                 }
             }
         }
@@ -210,9 +240,117 @@ class MainActivity : AppCompatActivity()
             }
             helperBluetooth?.clean()
             helperBluetooth = null
-            threadBth = null
             (view as Button).setText(R.string.turn_on_bth)
             mGlobalState.isBluetoothStarted = false
+        }
+    }
+
+    // onclick for USB button
+    fun onButtonUSB(view : View)
+    {
+        if(!mGlobalState.isUSBStarted)
+        {
+            if(isConnected())
+            {
+                showToastMessage("Already connected")
+                return
+            }
+            val activity = this
+            if(mJobUSB?.isActive == true) return
+            Log.d(mLogTag, "onButtonUSB [start]")
+            mGlobalData.reset() // reset global data to store most recent audio
+            // launch a coroutine to prepare bluetooth helper object and start thread
+            mJobUSB = mUIScope.launch {
+                withContext(Dispatchers.Default)
+                {
+                    mGlobalState.usbShouldStop = false
+                    helperUSB?.clean()
+                    // create object
+                    helperUSB = try {
+                        USBHelper(activity, mGlobalData)
+                    } catch (e : IllegalArgumentException){
+                        withContext(Dispatchers.Main)
+                        {
+                            activity.addLogMessage("Error: " + e.message)
+                        }
+                        cancel()
+                        null
+                    }
+                    // get target IP address
+                    withContext(Dispatchers.Main)
+                    {
+                        getIpAddress()
+                    }
+                    while(!mGlobalState.usbShouldStop && !mGlobalState.isUSBAddressSet)
+                    {
+                        try {
+                            delay(200)
+                        } catch (e : CancellationException) {break}
+                    }
+                    withContext(Dispatchers.Main)
+                    {
+                        activity.showToastMessage("Starting USB client...")
+                    }
+                    // try to connect
+                    if(helperUSB?.connect() == true)
+                    {
+                        withContext(Dispatchers.Main)
+                        {
+                            activity.showToastMessage("Device connected")
+                            activity.addLogMessage("Connected Device Information\n${helperUSB?.getConnectedDeviceInfo()}")
+                        }
+                        Log.d(mLogTag, "onButtonUSB [connect]")
+                    }
+                    // define and start the thread
+                    threadUSB = Thread{
+                        while (!mGlobalState.usbShouldStop) {
+                            if (helperUSB?.isSocketValid() == true) // check if socket is disconnected
+                                helperUSB?.sendData()
+                            else {
+                                // if not valid, disconnect the device
+                                runOnUiThread {
+                                    activity.addLogMessage("Device disconnected")
+                                    mGlobalState.isUSBStarted = false
+                                    helperUSB?.clean()
+                                    helperUSB = null
+                                    threadUSB = null
+                                    (view as Button).setText(R.string.turn_on_usb)
+                                }
+                                break
+                            }
+                            Thread.sleep(1)
+                        }
+                    }
+                    // update UI if success start
+                    if(helperUSB?.isSocketValid() == true)
+                    {
+                        withContext(Dispatchers.Main)
+                        {
+                            (view as Button).setText(R.string.turn_off_usb)
+                        }
+                        mGlobalState.isUSBStarted = true
+                    }
+
+                    threadUSB?.start()
+                }
+            }
+        }
+        else
+        {
+            mGlobalState.usbShouldStop = true
+            this.showToastMessage("Stopping USB client...")
+            Log.d(mLogTag, "onButtonUSB [stop]")
+            ignore { threadUSB?.join(1000) }
+            threadUSB = null
+            if(helperUSB?.disconnect() == true)
+            {
+                this.showToastMessage("Device disconnected")
+                this.addLogMessage("Device disconnected successfully")
+            }
+            helperUSB?.clean()
+            helperUSB = null
+            (view as Button).setText(R.string.turn_on_usb)
+            mGlobalState.isUSBStarted = false
         }
     }
 
@@ -295,14 +433,43 @@ class MainActivity : AppCompatActivity()
     }
 
     // helper function to show toast message
-    fun showToastMessage(message : String)
+    private fun showToastMessage(message : String)
     {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
 
     // helper function to append log message to textview
-    fun addLogMessage(message : String)
+    private fun addLogMessage(message : String)
     {
         mLogTextView.append(message + "\n")
+    }
+
+    private fun isConnected() : Boolean
+    {
+        return mGlobalState.isUSBStarted || mGlobalState.isBluetoothStarted
+    }
+
+    private fun getIpAddress()
+    {
+        mGlobalState.isUSBAddressSet = false
+        val builder =  AlertDialog.Builder(this)
+        builder.setTitle("PC IP Address")
+        val input = EditText(this)
+        input.setText("192.168.")
+        input.inputType = InputType.TYPE_CLASS_PHONE
+        builder.setView(input)
+        builder.setPositiveButton("OK"
+        ) { dialog, which ->
+            if(helperUSB?.setAddress(input.text.toString()) != true)
+                addLogMessage("Invalid address: ${input.text}")
+            mGlobalState.isUSBAddressSet = true
+        }
+        builder.setOnCancelListener {
+            mGlobalState.isUSBAddressSet = true
+        }
+        builder.setOnDismissListener {
+            mGlobalState.isUSBAddressSet = true
+        }
+        builder.show()
     }
 }

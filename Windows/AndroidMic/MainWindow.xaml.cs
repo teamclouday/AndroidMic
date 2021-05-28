@@ -3,9 +3,7 @@ using System.Diagnostics;
 using System.ComponentModel;
 using System.Collections.Generic;
 using System.Windows;
-using System.Windows.Media;
 using System.Windows.Input;
-using System.Windows.Shapes;
 using System.Windows.Controls;
 using System.Windows.Documents;
 
@@ -39,6 +37,7 @@ namespace AndroidMic
         private readonly AudioData mGlobalData = new AudioData();
         private readonly BluetoothHelper mHelperBluetooth;
         private readonly AudioHelper mHelperAudio;
+        private readonly USBHelper mHelperUSB;
         public WaveDisplay mWaveformDisplay;
         private readonly System.Windows.Forms.NotifyIcon notifyIcon = new System.Windows.Forms.NotifyIcon();
 
@@ -48,6 +47,9 @@ namespace AndroidMic
             // init objects
             mHelperBluetooth = new BluetoothHelper(this, mGlobalData);
             mHelperAudio = new AudioHelper(this, mGlobalData);
+            mHelperUSB = new USBHelper(this, mGlobalData);
+            // setup USB ips
+            SetupUSBList();
             // setup audio
             SetupAudioList();
             mHelperAudio.Start();
@@ -95,6 +97,7 @@ namespace AndroidMic
         {
             mHelperBluetooth.StopServer();
             mHelperAudio.Stop();
+            mHelperUSB.Clean();
             notifyIcon.Dispose();
         }
 
@@ -104,7 +107,11 @@ namespace AndroidMic
             Button button = (Button)sender;
             if(mHelperBluetooth.Status == BthStatus.DEFAULT)
             {
-                if(!BluetoothHelper.CheckBluetooth())
+                if(IsConnected())
+                {
+                    AddLogMessage("You have already connected");
+                }
+                else if(!BluetoothHelper.CheckBluetooth())
                 {
                     MessageBox.Show("Bluetooth not enabled\nPlease enable it and try again", "AndroidMic Bluetooth", MessageBoxButton.OK);
                 }
@@ -138,6 +145,13 @@ namespace AndroidMic
             if (mHelperAudio.RefreshAudioDevices()) SetupAudioList();
         }
 
+        // drop down closed for combobox of USB server IP addreses
+        private void USBIP_DropDownClosed(object sender, EventArgs e)
+        {
+            mHelperUSB.StartServer(USBIPAddresses.SelectedIndex - 1);
+            if (mHelperUSB.RefreshIpAdress()) SetupUSBList();
+        }
+
         // volume slider change callback
         private void VolumeSlider_PropertyChange(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
@@ -166,6 +180,19 @@ namespace AndroidMic
             }
         }
 
+        // set up USB IP list
+        private void SetupUSBList()
+        {
+            USBIPAddresses.Items.Clear();
+            USBIPAddresses.Items.Add("Disabled");
+            USBIPAddresses.SelectedIndex = 0;
+            string[] addresses = mHelperUSB.IPAddresses;
+            foreach(string address in addresses)
+            {
+                USBIPAddresses.Items.Add(address);
+            }
+        }
+
         // help function to append log message to text block
         public void AddLogMessage(string message)
         {
@@ -183,6 +210,11 @@ namespace AndroidMic
             // only update when window is not minimized
             if(WindowState != WindowState.Minimized)
                 mWaveformDisplay.AddData(valPos, valNeg);
+        }
+
+        public bool IsConnected()
+        {
+            return (mHelperBluetooth.Status == BthStatus.CONNECTED) || (mHelperUSB.Status == USBStatus.CONNECTED);
         }
     }
 }

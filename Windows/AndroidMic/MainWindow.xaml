@@ -38,6 +38,9 @@
                 <Slider Maximum="10.0" Minimum="0.0" x:Name="VolumeSlider" TickFrequency="0.1"
                         TickPlacement="None" IsSnapToTickEnabled="True" ValueChanged="VolumeSlider_PropertyChange"/>
             </DockPanel>
+            <Label Content="USB Server" HorizontalAlignment="Center" Margin="0,220,0,0" VerticalAlignment="Top" RenderTransformOrigin="0.533,-1.115" Width="200" FontSize="18" HorizontalContentAlignment="Center"/>
+            <ComboBox HorizontalAlignment="Center" Margin="0,280,0,0" VerticalAlignment="Top" Width="200" FontSize="18"
+                      ToolTip="select USB Tethering IP" ToolTipService.ShowDuration="2000" x:Name="USBIPAddresses" DropDownClosed="USBIP_DropDownClosed"/>
         </Grid>
     </Grid>
 </Window>
