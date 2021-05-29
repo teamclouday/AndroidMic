@@ -64,6 +64,14 @@ namespace AndroidMic
                 AddLog("Server stopped");
                 return; // idx < 0 means disabled server
             }
+            if (mMainWindow.IsConnected())
+            {
+                Application.Current.Dispatcher.Invoke(new Action(() =>
+                {
+                    mMainWindow.AddLogMessage("You have already connected");
+                }));
+                return;
+            }
             isConnectionAllowed = true;
             mSelectedAddressID = idx;
             mThreadServer = new Thread(new ThreadStart(Process));
