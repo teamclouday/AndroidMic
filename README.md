@@ -45,6 +45,7 @@ That's all!
 - [x] Volume control on Windows side  
 - [x] Audio visualization on Windows side  
 - [x] USB serial port connection support  
+- [ ] Limit fps of the waveform visualization update  
 - [ ] Make Android side able to run in background  
 - [ ] Show notification when mic is in use on Android side  
 
