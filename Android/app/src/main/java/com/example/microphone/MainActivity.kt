@@ -1,16 +1,12 @@
 package com.example.microphone
 
-import android.content.DialogInterface
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
 import android.text.InputType
 import android.util.Log
 import android.view.View
 import android.view.WindowManager
-import android.widget.Button
-import android.widget.EditText
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SwitchCompat
 import kotlinx.coroutines.*
@@ -79,6 +75,7 @@ class MainActivity : AppCompatActivity()
     private var mJobUSB : Job? = null
 
     private lateinit var mLogTextView : TextView
+    private lateinit var mScroller : ScrollView
 
     private var helperBluetooth : BluetoothHelper? = null
     private var helperAudio : AudioHelper? = null
@@ -108,6 +105,8 @@ class MainActivity : AppCompatActivity()
         mLogTextView = findViewById(R.id.txt_log)
         // set screen to always on
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // set scroll to focus down
+        mScroller = findViewById(R.id.scrollView2)
     }
 
     override fun onStop() {
@@ -442,6 +441,7 @@ class MainActivity : AppCompatActivity()
     private fun addLogMessage(message : String)
     {
         mLogTextView.append(message + "\n")
+        mScroller.fullScroll(View.FOCUS_DOWN)
     }
 
     private fun isConnected() : Boolean
