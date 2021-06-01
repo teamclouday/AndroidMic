@@ -244,7 +244,7 @@ class BackgroundHelper : Service()
         else
         {
             replyData.putString("reply", "Bluetooth already started")
-            replyFailed(sender, replyData, COMMAND_START_BLUETOOTH)
+            replySuccess(sender, replyData, COMMAND_START_BLUETOOTH)
         }
     }
 
@@ -317,7 +317,7 @@ class BackgroundHelper : Service()
         else
         {
             replyData.putString("reply", "Microphone already enabled")
-            replyFailed(sender, replyData, COMMAND_START_AUDIO)
+            replySuccess(sender, replyData, COMMAND_START_AUDIO)
         }
     }
 
@@ -443,7 +443,7 @@ class BackgroundHelper : Service()
         else
         {
             replyData.putString("reply", "USB client already started")
-            replyFailed(sender, replyData, COMMAND_START_USB)
+            replySuccess(sender, replyData, COMMAND_START_USB)
         }
     }
 
