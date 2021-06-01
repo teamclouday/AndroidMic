@@ -141,6 +141,7 @@ namespace AndroidMic
             Application.Current.Dispatcher.Invoke(new Action(() =>
             {
                 mMainWindow.mWaveformDisplay.Reset();
+                mMainWindow.USBIPAddresses.SelectedIndex = 0;
             }));
         }
 

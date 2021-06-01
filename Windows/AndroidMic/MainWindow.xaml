@@ -5,11 +5,11 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AndroidMic"
         mc:Ignorable="d"
-        Title="Android Microphone" Height="600" Width="800" ResizeMode="CanMinimize" Background="#94fffa" Closing="MainWindow_Closing">
+        Title="AndroidMic" Height="600" Width="800" ResizeMode="CanMinimize" Background="#94fffa" Closing="MainWindow_Closing">
     <Grid>
         <Grid Margin="50,50,400,50">
             <Border BorderBrush="Black" BorderThickness="1" Background="#FFC0FFEB" CornerRadius="10" Padding="10" Margin="0,0,0,140">
-                <ScrollViewer x:Name="LogBlockScroll" VerticalScrollBarVisibility="Auto">
+                <ScrollViewer x:Name="LogBlockScroll" VerticalScrollBarVisibility="Auto" ScrollChanged="LogBlockScroll_ScrollChanged">
                     <TextBlock x:Name="LogBlock" TextWrapping="Wrap" FontSize="16" MouseDown="LogBlock_MouseDown"
                            ToolTip="double click to clear" ToolTipService.ShowDuration="2000" HorizontalAlignment="Left" VerticalAlignment="Top">
                     </TextBlock>

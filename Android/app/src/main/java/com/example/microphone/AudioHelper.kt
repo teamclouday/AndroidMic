@@ -16,11 +16,9 @@ import java.nio.ByteOrder
 // reference: https://dolby.io/blog/recording-audio-on-android-with-examples
 // reference: https://twigstechtips.blogspot.com/2013/07/android-enable-noise-cancellation-in.html
 
-class AudioHelper(mActivity: MainActivity, private val mGlobalData : GlobalData)
+class AudioHelper(mActivity: Context, private val mGlobalData : GlobalData)
 {
     private val mLogTag : String = "AndroidMicAio"
-
-    private val REQUEST_ENABLE_BIT = 0
 
     private val AUDIO_SOURCE : Int = MediaRecorder.AudioSource.VOICE_RECOGNITION
     private val SAMPLE_RATE : Int = 44100
@@ -36,11 +34,6 @@ class AudioHelper(mActivity: MainActivity, private val mGlobalData : GlobalData)
         // check microphone
         require(mActivity.packageManager.hasSystemFeature(PackageManager.FEATURE_MICROPHONE)){
             "Microphone is not detected on this device"
-        }
-        // check permission
-        if(ContextCompat.checkSelfPermission(mActivity, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED)
-        {
-            ActivityCompat.requestPermissions(mActivity, arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_ENABLE_BIT)
         }
         require(ContextCompat.checkSelfPermission(mActivity, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED){
             "Microphone recording is not permitted"

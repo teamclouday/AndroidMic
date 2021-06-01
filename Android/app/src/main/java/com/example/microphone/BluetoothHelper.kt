@@ -16,12 +16,11 @@ import java.io.*
 import java.lang.Exception
 import java.util.*
 
-class BluetoothHelper(private val mActivity: MainActivity, private val mGlobalData : GlobalData)
+class BluetoothHelper(private val mContext: Context, private val mGlobalData : GlobalData)
 {
     private val mLogTag : String = "AndroidMicBth"
 
     private val mUUID : UUID = UUID.fromString("34335e34-bccf-11eb-8529-0242ac130003")
-    private val REQUEST_ENABLE_BIT = 1
     private val MAX_WAIT_TIME = 1500L // timeout
 
     private val DEVICE_CHECK_DATA : Int = 123456
@@ -55,14 +54,8 @@ class BluetoothHelper(private val mActivity: MainActivity, private val mGlobalDa
         // check bluetooth adapter
         require(mAdapter != null) {"Bluetooth adapter is not found"}
         // check permission
-        require(ContextCompat.checkSelfPermission(mActivity, Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED){
+        require(ContextCompat.checkSelfPermission(mContext, Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED){
             "Bluetooth is not permitted"
-        }
-        // enable adapter
-        if(!mAdapter.isEnabled)
-        {
-            val enableBthIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-            mActivity.startActivityForResult(enableBthIntent, REQUEST_ENABLE_BIT)
         }
         require(mAdapter.isEnabled){"Bluetooth adapter is not enabled"}
         // set target device
@@ -72,7 +65,7 @@ class BluetoothHelper(private val mActivity: MainActivity, private val mGlobalDa
         val filter = IntentFilter(BluetoothAdapter.ACTION_STATE_CHANGED)
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECT_REQUESTED)
         filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
-        mActivity.registerReceiver(mReceiver, filter)
+        mContext.registerReceiver(mReceiver, filter)
     }
 
     // connect to target device
@@ -136,7 +129,7 @@ class BluetoothHelper(private val mActivity: MainActivity, private val mGlobalDa
     fun clean()
     {
         disconnect()
-        ignore { mActivity.unregisterReceiver(mReceiver) }
+        ignore { mContext.unregisterReceiver(mReceiver) }
     }
 
     // auto select target PC device from a list

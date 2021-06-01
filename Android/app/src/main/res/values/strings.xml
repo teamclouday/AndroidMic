@@ -5,5 +5,5 @@
     <string name="turn_on_usb">Connect USB</string>
     <string name="turn_off_usb">Disconnect USB</string>
     <string name="turn_audio">Record Audio</string>
-
+    <string name="activity_name">AndroidMic</string>
 </resources>

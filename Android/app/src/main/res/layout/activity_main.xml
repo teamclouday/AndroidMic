@@ -26,7 +26,7 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
-        android:layout_marginBottom="48dp"
+        android:layout_marginBottom="16dp"
         android:onClick="onSwitchMic"
         android:text="@string/turn_audio"
         android:textSize="20sp"
@@ -40,7 +40,7 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginStart="16dp"
-        android:layout_marginTop="64dp"
+        android:layout_marginTop="16dp"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
         android:background="@color/text_back"
@@ -58,7 +58,7 @@
             android:layout_height="wrap_content"
             android:background="@color/text_back"
             android:padding="12dp"
-            android:textColor="@color/black"/>
+            android:textColor="@color/black" />
     </ScrollView>
 
     <Button

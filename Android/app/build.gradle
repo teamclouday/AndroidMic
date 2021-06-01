@@ -9,7 +9,7 @@ android {
 
     defaultConfig {
         applicationId "com.example.microphone"
-        minSdkVersion 19
+        minSdkVersion 21
         targetSdkVersion 30
         versionCode 4
         versionName "1.3"

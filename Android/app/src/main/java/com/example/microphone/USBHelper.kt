@@ -6,12 +6,11 @@ import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.EOFException
 import java.io.IOException
-import java.net.NetworkInterface
-import java.net.Socket
+import java.net.*
 
 
 // enable connection through USB tethering
-class USBHelper(private val mActivity: MainActivity, private val mGlobalData : GlobalData)
+class USBHelper(private val mGlobalData : GlobalData)
 {
     private val mLogTag : String = "AndroidMicUSB"
 
@@ -52,9 +51,13 @@ class USBHelper(private val mActivity: MainActivity, private val mGlobalData : G
     fun connect() : Boolean
     {
         // create socket and connect
-        mSocket = try {
-            Socket(mAddress, PORT)
+        mSocket = Socket()
+        try {
+            mSocket?.connect(InetSocketAddress(mAddress, PORT), MAX_WAIT_TIME)
         } catch (e : IOException) {
+            Log.d(mLogTag, "connect [Socket]: ${e.message}")
+            null
+        } catch (e : SocketTimeoutException) {
             Log.d(mLogTag, "connect [Socket]: ${e.message}")
             null
         } ?: return false

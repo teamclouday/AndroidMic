@@ -113,7 +113,8 @@ namespace AndroidMic
                 }
                 else if(!BluetoothHelper.CheckBluetooth())
                 {
-                    MessageBox.Show("Bluetooth not enabled\nPlease enable it and try again", "AndroidMic Bluetooth", MessageBoxButton.OK);
+                    MessageBox.Show("Bluetooth not enabled\nPlease enable it and try again", "AndroidMic Bluetooth", 
+                        MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 else
                 {
@@ -163,7 +164,7 @@ namespace AndroidMic
         {
             if(e.ExtentHeightChange != 0)
             {
-                (sender as ScrollViewer).ScrollToBottom();
+                LogBlockScroll.ScrollToVerticalOffset(LogBlockScroll.ExtentHeight);
             }
         }
 
