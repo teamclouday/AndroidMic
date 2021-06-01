@@ -81,6 +81,8 @@ class BackgroundHelper : Service()
         const val COMMAND_DISC_USB = 21
 
         const val COMMAND_SET_IP = 30
+
+        const val COMMAND_GET_STATUS = 40
     }
 
     private var helperBluetooth : BluetoothHelper? = null
@@ -117,6 +119,7 @@ class BackgroundHelper : Service()
                 COMMAND_START_USB       -> startUSB(msg)
                 COMMAND_STOP_USB        -> stopUSB(msg)
                 COMMAND_SET_IP          -> setIP(msg)
+                COMMAND_GET_STATUS      -> getStatus(msg)
             }
         }
     }
@@ -177,7 +180,7 @@ class BackgroundHelper : Service()
                     replyFailed(sender, replyData, COMMAND_START_BLUETOOTH)
                     return
                 }
-                mGlobalData.reset()
+                // mGlobalData.reset()
                 mJobBluetooth = mUIScope.launch {
                     withContext(Dispatchers.Default) {
                         helperBluetooth?.clean()
@@ -361,7 +364,7 @@ class BackgroundHelper : Service()
                     replyFailed(sender, replyData, COMMAND_START_USB)
                     return
                 }
-                mGlobalData.reset()
+                // mGlobalData.reset()
                 mJobUSB = mUIScope.launch {
                     withContext(Dispatchers.Default) {
                         helperUSB?.clean()
@@ -481,6 +484,20 @@ class BackgroundHelper : Service()
             replyFailed(sender, replyData, COMMAND_SET_IP)
         }
         else replySuccess(sender, replyData, COMMAND_SET_IP)
+    }
+
+    fun getStatus(msg : Message)
+    {
+        val sender = msg.replyTo
+        val replyData = Bundle()
+        replyData.putBoolean("isBluetoothStarted", mGlobalState.isBluetoothStarted)
+        replyData.putBoolean("isUSBStarted", mGlobalState.isUSBStarted)
+        replyData.putBoolean("isAudioStarted", mGlobalState.isAudioStarted)
+        val reply = Message()
+        reply.data = replyData
+        reply.what = COMMAND_GET_STATUS
+        reply.replyTo = serviceMessenger
+        sender.send(reply)
     }
 
     private fun isConnected() : Boolean

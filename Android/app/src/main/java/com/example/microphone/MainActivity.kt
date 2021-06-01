@@ -3,18 +3,16 @@ package com.example.microphone
 import android.Manifest
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.bluetooth.BluetoothAdapter
-import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
-import android.content.ServiceConnection
 import android.content.pm.PackageManager
 import android.os.*
 import androidx.appcompat.app.AppCompatActivity
 import android.text.InputType
 import android.util.Log
 import android.view.View
-import android.view.WindowManager
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SwitchCompat
@@ -48,21 +46,6 @@ class MainActivity : AppCompatActivity()
     private var mService : Messenger? = null
     private var mBound = false
 
-    private val mConnection = object : ServiceConnection
-    {
-        override fun onServiceConnected(name: ComponentName?, service: IBinder?)
-        {
-            mService = Messenger(service)
-            mBound = true
-        }
-
-        override fun onServiceDisconnected(name: ComponentName?)
-        {
-            mService = null
-            mBound = false
-        }
-    }
-
     private lateinit var handlerThread : HandlerThread
     private lateinit var mMessenger : Messenger
     private lateinit var mMessengerLooper : Looper
@@ -74,9 +57,10 @@ class MainActivity : AppCompatActivity()
         {
             when(msg.what)
             {
-                BackgroundHelper.COMMAND_SET_IP   -> handleSetIP(msg)
-                BackgroundHelper.COMMAND_DISC_BTH -> handleBthDisconnect(msg)
-                BackgroundHelper.COMMAND_DISC_USB -> handleUSBDisconnect(msg)
+                BackgroundHelper.COMMAND_SET_IP     -> handleSetIP(msg)
+                BackgroundHelper.COMMAND_DISC_BTH   -> handleBthDisconnect(msg)
+                BackgroundHelper.COMMAND_DISC_USB   -> handleUSBDisconnect(msg)
+                BackgroundHelper.COMMAND_GET_STATUS -> handleGetStatus(msg)
             }
             if(msg.what < BackgroundHelper.COMMAND_DISC_BTH)
             {
@@ -93,7 +77,6 @@ class MainActivity : AppCompatActivity()
     {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         mLogTextView = findViewById(R.id.txt_log)
         // set action bar title
         supportActionBar?.setTitle(R.string.activity_name)
@@ -113,7 +96,10 @@ class MainActivity : AppCompatActivity()
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
         }
-
+        // first disable all buttons, wait for service reply
+        //findViewById<Button>(R.id.usb_connect).isClickable = false
+        //findViewById<Button>(R.id.bth_connect).isClickable = false
+        //findViewById<SwitchCompat>(R.id.audio_switch).isClickable = false
     }
 
     override fun onStart()
@@ -122,39 +108,56 @@ class MainActivity : AppCompatActivity()
         // check for audio permission
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED)
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 0)
-        // enable adapter
-        if(!BluetoothAdapter.getDefaultAdapter().isEnabled)
-        {
-            val enableBthIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-            startActivity(enableBthIntent)
-        }
         // start handler thread
         handlerThread = HandlerThread("MainActivityStartArgs", Process.THREAD_PRIORITY_BACKGROUND)
         handlerThread.start()
         mMessengerLooper = handlerThread.looper
         mMessengerHandler = ReplyHandler(handlerThread.looper)
         mMessenger = Messenger(mMessengerHandler)
-        // start and bind to service
-        val intent = Intent(this, BackgroundHelper::class.java)
-        startService(intent)
-        bindService(intent, mConnection, Context.BIND_AUTO_CREATE)
+        // get variable from application
+        refreshAppVariables()
+        // get status
+        askForStatus()
     }
 
     override fun onStop() {
         super.onStop()
-        stopService(intent)
-        if(mBound)
-        {
-            unbindService(mConnection)
-            mBound = false
-        }
         mMessengerLooper.quitSafely()
         ignore { handlerThread.join(1000) }
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        val extras = intent?.extras
+        if(extras?.getBoolean("BackgroundHelperBound") == true)
+        {
+            // get variable from application
+            refreshAppVariables()
+            // get status
+            askForStatus()
+        }
+    }
+
+    private fun refreshAppVariables()
+    {
+        mService = (application as DefaultApp).mService
+        mBound = (application as DefaultApp).mBound
     }
 
     // onclick for bluetooth button
     fun onButtonBluetooth(view : View)
     {
+        if(!mBound)
+        {
+            Toast.makeText(this, "Service not available", Toast.LENGTH_SHORT).show()
+            return
+        }
+        // enable adapter
+        if(!BluetoothAdapter.getDefaultAdapter().isEnabled)
+        {
+            val enableBthIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
+            startActivity(enableBthIntent)
+        }
         (view as Button).isClickable = false // lock button
         if(isBluetoothStarted)
         {
@@ -175,6 +178,11 @@ class MainActivity : AppCompatActivity()
     // onclick for USB button
     fun onButtonUSB(view : View)
     {
+        if(!mBound)
+        {
+            Toast.makeText(this, "Service not available", Toast.LENGTH_SHORT).show()
+            return
+        }
         (view as Button).isClickable = false // lock button
         if(isUSBStarted)
         {
@@ -196,6 +204,11 @@ class MainActivity : AppCompatActivity()
     // basically similar to bluetooth function
     fun onSwitchMic(view : View)
     {
+        if(!mBound)
+        {
+            Toast.makeText(this, "Service not available", Toast.LENGTH_SHORT).show()
+            return
+        }
         (view as SwitchCompat).isClickable = false // lock switch
         if(isAudioStarted)
         {
@@ -210,6 +223,57 @@ class MainActivity : AppCompatActivity()
             val reply = Message.obtain(null, BackgroundHelper.COMMAND_START_AUDIO, 0, 0)
             reply.replyTo = mMessenger
             mService?.send(reply)
+        }
+    }
+
+    private fun askForStatus()
+    {
+        if(!mBound) return
+        val reply = Message.obtain(null, BackgroundHelper.COMMAND_GET_STATUS, 0, 0)
+        reply.replyTo = mMessenger
+        mService?.send(reply)
+    }
+
+    fun handleGetStatus(msg : Message)
+    {
+        isBluetoothStarted = msg.data.getBoolean("isBluetoothStarted")
+        isUSBStarted = msg.data.getBoolean("isUSBStarted")
+        isAudioStarted = msg.data.getBoolean("isAudioStarted")
+        val bthButton = findViewById<Button>(R.id.bth_connect)
+        val usbButton = findViewById<Button>(R.id.usb_connect)
+        val aioSwitch = findViewById<SwitchCompat>(R.id.audio_switch)
+        runOnUiThread {
+            if(isBluetoothStarted)
+            {
+                bthButton.setText(R.string.turn_off_bth)
+                bthButton.isClickable = true
+
+            }
+            else
+            {
+                bthButton.setText(R.string.turn_on_bth)
+                bthButton.isClickable = true
+            }
+            if(isUSBStarted)
+            {
+                usbButton.setText(R.string.turn_off_usb)
+                usbButton.isClickable = true
+            }
+            else
+            {
+                usbButton.setText(R.string.turn_on_usb)
+                usbButton.isClickable = true
+            }
+            if(isAudioStarted)
+            {
+                aioSwitch.isChecked = true
+                aioSwitch.isClickable = true
+            }
+            else
+            {
+                aioSwitch.isChecked = false
+                aioSwitch.isClickable = true
+            }
         }
     }
 
@@ -441,11 +505,16 @@ class MainActivity : AppCompatActivity()
 
     private fun showNotification()
     {
+        val onTap = Intent(this, MainActivity::class.java).apply {
+            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT)
+        }
+        val pendingIntent = PendingIntent.getActivity(this, 0, onTap, 0)
         val builder = NotificationCompat.Builder(this, "AndroidMic")
             .setSmallIcon(R.drawable.icon)
             .setContentTitle("AndroidMic")
             .setContentText("Microphone is in use")
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setContentIntent(pendingIntent)
             .setOngoing(true)
         with(NotificationManagerCompat.from(this))
         {
