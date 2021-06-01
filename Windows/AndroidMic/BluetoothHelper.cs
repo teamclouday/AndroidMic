@@ -152,11 +152,11 @@ namespace AndroidMic
                     }
                     // set client stream
                     mClientStream = mClient.GetStream();
-                    if (mClientStream.CanTimeout)
-                    {
-                        mClientStream.ReadTimeout = MAX_WAIT_TIME;
-                        mClientStream.WriteTimeout = MAX_WAIT_TIME;
-                    }
+                    //if (mClientStream.CanTimeout)
+                    //{
+                    //    mClientStream.ReadTimeout = MAX_WAIT_TIME;
+                    //    mClientStream.WriteTimeout = MAX_WAIT_TIME;
+                    //}
                     isConnectionAllowed = true;
                     AddLog("Device connected\nclient [Name]: " + mClient.RemoteMachineName + "\nclient [Address]: " + mClient.RemoteEndPoint);
                     // start processing

@@ -29,7 +29,7 @@
     <TargetCulture>en</TargetCulture>
     <ProductName>AndroidMic</ProductName>
     <PublisherName>Teamclouday</PublisherName>
-    <ApplicationRevision>1</ApplicationRevision>
+    <ApplicationRevision>2</ApplicationRevision>
     <ApplicationVersion>1.4.0.%2a</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
