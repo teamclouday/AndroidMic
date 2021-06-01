@@ -95,8 +95,8 @@ class MainActivity : AppCompatActivity()
         setContentView(R.layout.activity_main)
 
         mLogTextView = findViewById(R.id.txt_log)
-        // set screen to always on
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // set action bar title
+        supportActionBar?.setTitle(R.string.activity_name)
         // set scroll to focus down
         mScroller = findViewById(R.id.scrollView2)
         // set up notification
