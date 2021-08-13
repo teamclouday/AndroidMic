@@ -58,4 +58,4 @@ My method of displaying raw byte audio array in real time is:
 2. Whenever new data is received from stream, run a while loop and check the maximum float (at least 0) and minimum float (at most 0) in current screen  
 3. If current screen is full, add current max and min `short` values to the wave display  
 
-Another interesting thing is that since I already converted the `short` array to `byte` array based on Big Endian on Android side, I don't need to reverse bytes to get a `short` value from the stream.  
+Another interesting thing is that since I already converted the `short` array to `byte` array based on Big Endian on Android side, I don't need to reverse bytes to get a `short` value from the stream. (will probably be a bug if Windows side and Android side have different endian specs)  
