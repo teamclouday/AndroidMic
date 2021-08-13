@@ -79,6 +79,8 @@ namespace AndroidMic
             );
             // set waveform image
             mWaveformDisplay = new WaveDisplay(WaveformCanvas);
+            // raise process priority to keep connection stable
+            Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.RealTime;
         }
 
         // check window state change

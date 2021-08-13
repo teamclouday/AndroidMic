@@ -35,7 +35,9 @@ namespace AndroidMic
             mGlobalData = globalData;
             mWaveOut = new WaveOut
             {
-                DeviceNumber = -1 // use default device first
+                DeviceNumber = -1, // use default device first
+                DesiredLatency = 50,
+                NumberOfBuffers = 2
             };
             RefreshAudioDevices();
         }

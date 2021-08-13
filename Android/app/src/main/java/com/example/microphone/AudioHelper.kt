@@ -12,6 +12,7 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import kotlin.math.roundToInt
 
 // reference: https://dolby.io/blog/recording-audio-on-android-with-examples
 // reference: https://twigstechtips.blogspot.com/2013/07/android-enable-noise-cancellation-in.html
@@ -25,6 +26,7 @@ class AudioHelper(mActivity: Context, private val mGlobalData : GlobalData)
     private val CHANNEL_CONFIG : Int = AudioFormat.CHANNEL_IN_MONO
     private val AUDIO_FORMAT : Int = AudioFormat.ENCODING_PCM_16BIT
     private val BUFFER_SIZE : Int = AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT)
+    private val AUDIO_GAIN : Float = 1.5f
 
     private var mRecorder : AudioRecord? = null
     private val mBuffer = ShortArray(BUFFER_SIZE)
@@ -57,8 +59,11 @@ class AudioHelper(mActivity: Context, private val mGlobalData : GlobalData)
         }
         // convert shorts to byte array
         val convertShort = ShortArray(readShorts)
-        convertShort.forEachIndexed { index, value ->
-            convertShort[index] = mBuffer[index]
+        // apply audio gain
+        // reference: https://stackoverflow.com/questions/25441166/how-to-adjust-microphone-sensitivity-while-recording-audio-in-android
+        convertShort.forEachIndexed { index, _ ->
+            convertShort[index] = (mBuffer[index] * AUDIO_GAIN).roundToInt()
+                .coerceAtMost(Short.MAX_VALUE.toInt()).toShort()
         }
         val newData = ByteArray(readShorts * 2)
         ByteBuffer.wrap(newData).order(ByteOrder.LITTLE_ENDIAN).asShortBuffer().put(convertShort)

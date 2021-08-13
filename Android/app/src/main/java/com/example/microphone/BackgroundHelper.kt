@@ -213,6 +213,7 @@ class BackgroundHelper : Service()
                         }
                         mGlobalState.bluetoothShouldStop = false
                         threadBth = Thread {
+                            Process.setThreadPriority(Process.THREAD_PRIORITY_FOREGROUND)
                             while (!mGlobalState.bluetoothShouldStop) {
                                 if (helperBluetooth?.isSocketValid() == true) // check if socket is disconnected
                                     helperBluetooth?.sendData()
@@ -306,6 +307,7 @@ class BackgroundHelper : Service()
                     else cancel()
                     mGlobalState.audioShouldStop = false
                     threadAio = Thread {
+                        Process.setThreadPriority(Process.THREAD_PRIORITY_AUDIO)
                         while (!mGlobalState.audioShouldStop) {
                             helperAudio?.setData()
                             Thread.sleep(1)
@@ -412,6 +414,7 @@ class BackgroundHelper : Service()
                         }
                         mGlobalState.usbShouldStop = false
                         threadUSB = Thread {
+                            Process.setThreadPriority(Process.THREAD_PRIORITY_FOREGROUND)
                             while (!mGlobalState.usbShouldStop) {
                                 if (helperUSB?.isSocketValid() == true) // check if socket is disconnected
                                     helperUSB?.sendData()

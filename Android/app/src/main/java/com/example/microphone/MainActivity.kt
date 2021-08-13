@@ -13,6 +13,7 @@ import androidx.appcompat.app.AppCompatActivity
 import android.text.InputType
 import android.util.Log
 import android.view.View
+import android.view.WindowManager
 import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SwitchCompat
@@ -100,6 +101,10 @@ class MainActivity : AppCompatActivity()
         //findViewById<Button>(R.id.usb_connect).isClickable = false
         //findViewById<Button>(R.id.bth_connect).isClickable = false
         //findViewById<SwitchCompat>(R.id.audio_switch).isClickable = false
+
+        // keeps screen on for this activity
+        // otherwise when app enters background, the service will also stop
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
     }
 
     override fun onStart()
