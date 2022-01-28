@@ -69,3 +69,25 @@ Pre-built installers can be found [here](https://github.com/teamclouday/AndroidM
 ### Android Side (Landscape)
 
 <img src="Assets/p3.jpg" width="500" alt="Android Side">
+
+------
+
+### Some Notes
+
+One drawback of this program is the __echoing__ issue.
+Let's say you have the same setup as I do:  
+* Android phone as mic to a desktop PC  
+* Desktop PC plays audio by a speaker  
+
+Then any audio played from the speaker will then be captured into the microphone, causing an echoing effect on the side of whoever you are talking to.
+You may not notice it but your friends may have a headache.  
+
+To solve this issue, there are a lot to learn. The following steps are required:  
+* How to capture the system audio output in my program?  
+  According to [stackoverflow](https://stackoverflow.com/questions/1292076/capture-sound-output-in-c-sharp), I can use VAC or VB-audio to let the system audio pass through a virtual speaker before reaching the real speaker (?), and capture the audio data from that virtual device.  
+* How to do echo cancellation?  
+  The formal name is Acoustic Echo Cancellation (AEC). An overview can be found [here](https://www.ittiam.com/wp-content/uploads/2017/12/AEC-All_You_Wanted_To_Know-TechOnline.pdf). Generally, I will need an adaptive filter algorithm, which is further explained in this [paper](https://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.51.7749&rep=rep1&type=pdf).  
+* How to do it in realtime?  
+  I should first try implementing one on CPU, then see if it is possible to be implemented on GPU. (using Compute Shaders)
+
+Hopefully I will come back to it in the future.
