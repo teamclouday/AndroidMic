@@ -192,14 +192,14 @@ namespace AndroidMic.Streaming
         // get client info
         public override string GetClientInfo()
         {
-            if (client == null) return "client [null]";
-            return "client [Name]: " + client.RemoteMachineName + "\nclient [Address]: " + client.RemoteEndPoint;
+            if (client == null) return "[null]";
+            return "[Name]: " + client.RemoteMachineName + "\n[Address]: " + client.RemoteEndPoint;
         }
 
         // get server info
         public override string GetServerInfo()
         {
-            return "server [Name]: " + listener.ServiceName + "\nserver [Address]: " + listener.Server.LocalEndPoint;
+            return "[Name]: " + listener.ServiceName + "\n[Address]: " + listener.Server.LocalEndPoint;
         }
 
         // check bluetooth availability

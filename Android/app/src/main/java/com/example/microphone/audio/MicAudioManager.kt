@@ -7,7 +7,6 @@ import android.media.AudioFormat
 import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.MediaRecorder
-import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
 import kotlinx.coroutines.delay
@@ -57,7 +56,7 @@ class MicAudioManager(ctx : Context) {
         val size = recorder?.read(buffer, 0, BUFFER_SIZE, AudioRecord.READ_BLOCKING) ?: return
         if(size <= 0)
         {
-            delay(4)
+            delay(1)
             return
         }
         // create bytearray

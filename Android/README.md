@@ -73,3 +73,7 @@ AndroidMic Project (Android Application folder)
 ### UI Activity
 
 * Upon create, communicate with service to get latest UI states  
+
+### Asynchronous Execution
+
+* Instead of threads, the project mainly uses `Coroutine` in Kotlin to execute asynchronous tasks  
