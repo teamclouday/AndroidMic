@@ -1,24 +1,23 @@
 # Android Microphone (Android side)  
 
-Android Microphone Project (Android Application folder)
+AndroidMic Project (Android Application folder)
 
 ------
 
-### Structure
+## Structure
 
-#### _Activity Foreground_
-##### UI Thread  
+### _Activity_
+#### UI Thread  
 
-* manage the rest 2 threads  
 * handle button and switch clicks  
 * display messages  
 
-##### Message Handler Thread
+#### Message Handler Thread
 
-* communicate with background service
+* communicate with service
 
-#### _Background Service_
-##### Bluetooth Thread  
+### _Service_
+#### Stream Manager Thread  
 
 * check for permission  
 * search for valid PC  
@@ -27,30 +26,50 @@ Android Microphone Project (Android Application folder)
 * transfer stored audio data  
 * cancel connection  
 
-##### USB Thread  
-
-* check if USB tethering is enabled  
-* connect to server based on input address  
-* transfer stored audio data  
-* cancel connection  
-
-##### Audio Thread  
+#### Audio Manager Thread  
 
 * check for permission  
-* start recording (44100, 16, mono)  
+* start recording (16000, 16, mono)  
 * store recorded audio data  
 * stop recording  
 
-##### Message Handler Thread
+#### Message Handler Thread
 
-* communicate with foreground UI
+* communicate with UI
 
 ------
 
-### Notes  
+## Details
 
-This is the first Android application I write in Kotlin. The bluetooth part is basically the same as the Java applications I wrote before. However, Kotlin appears to be cleaner and shorter in length. A notable difference is that Kotlin uses `coroutines` to replace `AsyncTask` in Java, which I think is better. Another difference is that Kotlin is strict with `null` values and provide many ways to check them.  
+### Communication
 
-~~A drawback of this application is that it won't be able to run in background. So when connected, your application will force the screen on and will close connection whenever the app is put into background. A possible fix is to create [Background Services](https://developer.android.com/training/run-background-service/create-service) instead of threads I'm currently using. However, that requires much efforts in learning, and the communication with main activity is especially complex. I will leave it like that.~~  
+1. PC side starts server  
+2. Client side searches server  
+3. Find server, validate:  
+   1. client sends `"AndroidMicCheck"`  
+   2. server receives and compare  
+   3. server sends `"AndroidMicCheckAck"`  
+   4. client receives and compare  
+4. Establish socket session  
+5. Sync data  
 
-USB communication is achieved by enabling USB tethering. In this case, the network through PC can be detected by Android. By establishing a TCP socket, the device can communicate with PC app through USB.  
+### Bluetooth
+
+* Search server only from paired PC devices  
+* Socket is closed from validation step and reconnect  
+
+### Wifi
+
+* Support actual wifi (connected to same network)  
+* Or USB tethering  
+* Socket is maintained from validation step  
+
+### Service
+
+* Runs as a foreground service  
+* Manages notification  
+* Upon connection, bluetooth is preferred and tested first  
+
+### UI Activity
+
+* Upon create, communicate with service to get latest UI states  
