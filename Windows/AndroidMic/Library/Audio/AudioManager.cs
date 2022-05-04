@@ -104,7 +104,7 @@ namespace AndroidMic.Audio
             };
             bufferedProvider.ClearBuffer();
             // start playing
-            player.Init(bufferedProvider);
+            player.Init(volumeProvider);
             player.Play();
             DebugLog("SelectAudioDevice: " + deviceIdx);
             AddLog("Device changed to " + ((deviceIdx < 0) ? "Default" : devices[deviceIdx].ProductName));

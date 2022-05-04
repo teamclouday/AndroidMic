@@ -56,7 +56,7 @@ class MicAudioManager(ctx : Context) {
         val size = recorder?.read(buffer, 0, BUFFER_SIZE, AudioRecord.READ_BLOCKING) ?: return
         if(size <= 0)
         {
-            delay(1)
+            delay(RECORD_DELAY)
             return
         }
         // create bytearray

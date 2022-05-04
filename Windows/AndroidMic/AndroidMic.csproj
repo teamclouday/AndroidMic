@@ -129,7 +129,6 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Library\Audio\AudioBuffer.cs" />
-    <Compile Include="Library\Audio\AudioDisplay.cs" />
     <Compile Include="Library\Audio\AudioManager.cs" />
     <Compile Include="Library\Audio\Filters\FilterRenderer.cs" />
     <Compile Include="Library\Audio\Filters\FilterWriter.cs" />

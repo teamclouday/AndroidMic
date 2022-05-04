@@ -15,13 +15,21 @@ Use your Android phone as a microphone to Windows PC
 ## How to use  
 
 <details>
-<summary>Select Audio Device</summary>
+<summary>Config Audio Device</summary>
 
 1. Run Windows side app  
-2. Select audio speaker from drop down list to the one that VAC (or VB) created  
+2. Select audio speaker from drop down list to the one that VB created  
    <img src="Assets/sound_config1.png" width="300" alt="sound config1">  
-3. Use the corresponding microphone created by VAC (or VB)  
+3. Use the corresponding microphone created by VB  
    <img src="Assets/sound_config2.png" width="300" alt="sound config2">  
+4. In `Properties` of both, make sure both set default format to following:  
+   <img src="Assets/sound_config4.png" width="300" alt="sound config4">  
+5. For speaker, click `Configure Speakers` and set channel to `Mono`:  
+   <img src="Assets/sound_config3.png" width="300" alt="sound config3">  
+6. For microphone, click `Properties` and set following:  
+   <img src="Assets/sound_config5.png" width="300" alt="sound config5">
+
+On my machine, this setup has the lowest delay and best sound quality. VB is not optimized as hardware devices, so these configurations are important for audio.
 
 </details>
 
