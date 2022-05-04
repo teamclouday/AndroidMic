@@ -7,17 +7,17 @@
     tools:context=".MainActivity">
 
     <Button
-        android:id="@+id/bth_connect"
+        android:id="@+id/connect"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="0dp"
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="16dp"
-        android:onClick="onButtonBluetooth"
-        android:text="@string/turn_on_bth"
-        app:layout_constraintBottom_toTopOf="@+id/usb_connect"
+        android:onClick="onButtonConnect"
+        android:text="@string/connect"
+        android:textSize="16sp"
+        app:layout_constraintBottom_toTopOf="@+id/audio_switch"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.497"
         app:layout_constraintStart_toStartOf="parent" />
 
     <androidx.appcompat.widget.SwitchCompat
@@ -32,11 +32,10 @@
         android:textSize="20sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.521"
         app:layout_constraintStart_toStartOf="parent" />
 
     <ScrollView
-        android:id="@+id/scrollView2"
+        android:id="@+id/scrollView"
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:layout_marginStart="16dp"
@@ -45,7 +44,7 @@
         android:layout_marginBottom="16dp"
         android:background="@color/text_back"
         android:scrollbars="vertical"
-        app:layout_constraintBottom_toTopOf="@+id/bth_connect"
+        app:layout_constraintBottom_toTopOf="@+id/connect"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
@@ -60,16 +59,5 @@
             android:padding="12dp"
             android:textColor="@color/black" />
     </ScrollView>
-
-    <Button
-        android:id="@+id/usb_connect"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="16dp"
-        android:onClick="onButtonUSB"
-        android:text="@string/turn_on_usb"
-        app:layout_constraintBottom_toTopOf="@+id/audio_switch"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

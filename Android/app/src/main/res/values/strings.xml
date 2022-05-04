@@ -1,9 +1,10 @@
 <resources>
     <string name="app_name">Mic</string>
-    <string name="turn_on_bth">Connect Bluetooth</string>
-    <string name="turn_off_bth">Disconnect Bluetooth</string>
-    <string name="turn_on_usb">Connect USB</string>
-    <string name="turn_off_usb">Disconnect USB</string>
+    <string name="connect">Connect Device</string>
+    <string name="disconnect">Disconnect Device</string>
     <string name="turn_audio">Record Audio</string>
     <string name="activity_name">AndroidMic</string>
+    <string name="notification_text">Microphone is in use</string>
+    <string name="dialog_ip">IP</string>
+    <string name="dialog_port">PORT</string>
 </resources>

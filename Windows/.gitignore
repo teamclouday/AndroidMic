@@ -3,4 +3,9 @@ AndroidMic/bin/*
 AndroidMic/obj/*
 AndroidMic/packages/*
 AndroidMic/publish/*
-*pfx
+**pfx
+
+Experimental/.vs/*
+Experimental/bin/*
+Experimental/obj/*
+Experimental/packages/*

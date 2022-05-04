@@ -1,69 +1,66 @@
 ﻿using System;
+using System.Threading;
 using System.Diagnostics;
 using System.ComponentModel;
-using System.Collections.Generic;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using AndroidMic.Audio;
+using AndroidMic.Streaming;
 
 namespace AndroidMic
 {
-    // Audio data structure for storing received data
-    public class AudioData
+    public class MessageArgs : EventArgs
     {
-        private readonly Queue<Tuple<byte[], int>> buffer = new Queue<Tuple<byte[], int>>();
-        private const int MAX_BUFFER_SIZE = 10;
-        public void AddData(byte[] data, int realSize)
-        {
-            lock(this)
-            {
-                buffer.Enqueue(Tuple.Create(data, realSize));
-                while (buffer.Count > MAX_BUFFER_SIZE) buffer.Dequeue();
-            }
-        }
-        public Tuple<byte[], int> GetData()
-        {
-            lock(this)
-            {
-                if (buffer.Count > 0) return buffer.Dequeue();
-                else return null;
-            }
-        }
+        public string Message { get; set; }
     }
 
     public partial class MainWindow : Window
     {
-        private readonly AudioData mGlobalData = new AudioData();
-        private readonly BluetoothHelper mHelperBluetooth;
-        private readonly AudioHelper mHelperAudio;
-        private readonly USBHelper mHelperUSB;
-        public WaveDisplay mWaveformDisplay;
-        private readonly System.Windows.Forms.NotifyIcon notifyIcon = new System.Windows.Forms.NotifyIcon();
+        private readonly AudioBuffer sharedBuffer;
+        private readonly StreamManager streamM;
+        private readonly AudioManager audioM;
+        private readonly System.Windows.Forms.NotifyIcon notifyIcon;
+        private readonly SynchronizationContext uiContext;
 
         public MainWindow()
         {
             InitializeComponent();
-            // init objects
-            mHelperBluetooth = new BluetoothHelper(this, mGlobalData);
-            mHelperAudio = new AudioHelper(this, mGlobalData);
-            mHelperUSB = new USBHelper(this, mGlobalData);
-            // setup USB ips
-            SetupUSBList();
-            // setup audio
-            SetupAudioList();
-            mHelperAudio.Start();
-            VolumeSlider.Value = 1.0;
+            // raise process priority to keep connection stable
+            Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.RealTime;
             // set debug information
             Debug.AutoFlush = true;
+            // set UI context
+            uiContext = SynchronizationContext.Current;
+            // init objects
+            sharedBuffer = new AudioBuffer();
+            streamM = new StreamManager(sharedBuffer);
+            streamM.AddLogEvent += Services_AddLogEvent;
+            streamM.ServerListeningEvent += StreamM_ServerListeningEvent;
+            streamM.ClientConnectedEvent += StreamM_ClientConnectedEvent;
+            streamM.ClientDisconnectedEvent += StreamM_ClientDisconnectedEvent;
+            audioM = new AudioManager(sharedBuffer);
+            audioM.AddLogEvent += Services_AddLogEvent;
+            audioM.RefreshAudioDevicesEvent += AudioM_RefreshAudioDevicesEvent;
+            audioM.RefreshAudioDevices();
+            audioM.RendererProvider.RefreshCanvasEvent += AudioM_RefreshCanvasEvent;
             // create system tray icon
+            notifyIcon = new System.Windows.Forms.NotifyIcon();
+            SetupNotificationIcon();
+        }
+
+        private void SetupNotificationIcon()
+        {
             // reference: https://stackoverflow.com/questions/10230579/easiest-way-to-have-a-program-minimize-itself-to-the-system-tray-using-net-4
-            using (System.IO.Stream iconStream = Application.GetResourceStream(new Uri("/icon.ico", UriKind.Relative)).Stream)
+            using (var iconStream = Application.GetResourceStream(new Uri("/icon.ico", UriKind.Relative)).Stream)
             {
                 notifyIcon.Icon = new System.Drawing.Icon(iconStream);
             }
             notifyIcon.Visible = true;
-            notifyIcon.DoubleClick +=
+            notifyIcon.BalloonTipTitle = Title;
+            notifyIcon.BalloonTipText = "App minimized. Click to show.";
+            notifyIcon.Click +=
                 delegate (object sender, EventArgs e)
                 {
                     Show();
@@ -77,10 +74,6 @@ namespace AndroidMic
                     Close();
                 }
             );
-            // set waveform image
-            mWaveformDisplay = new WaveDisplay(WaveformCanvas);
-            // raise process priority to keep connection stable
-            Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.RealTime;
         }
 
         // check window state change
@@ -97,38 +90,21 @@ namespace AndroidMic
         // close event for main window
         private void MainWindow_Closing(object sender, CancelEventArgs e)
         {
-            mHelperBluetooth.StopServer();
-            mHelperAudio.Stop();
-            mHelperUSB.Clean();
-            notifyIcon.Dispose();
+            streamM?.Shutdown();
+            audioM?.Shutdown();
+            notifyIcon?.Dispose();
         }
 
         // click event for connect button
         private void ConnectButton_Click(object sender, RoutedEventArgs e)
         {
-            Button button = (Button)sender;
-            if(mHelperBluetooth.Status == BthStatus.DEFAULT)
+            Button btn = sender as Button;
+            if(btn != null)
             {
-                if(IsConnected())
-                {
-                    AddLogMessage("You have already connected");
-                }
-                else if(!BluetoothHelper.CheckBluetooth())
-                {
-                    MessageBox.Show("Bluetooth not enabled\nPlease enable it and try again", "AndroidMic Bluetooth", 
-                        MessageBoxButton.OK, MessageBoxImage.Information);
-                }
+                if(btn.Content.ToString().StartsWith("C"))
+                    streamM?.Start();
                 else
-                {
-                    mHelperBluetooth.StartServer();
-                    button.Content = "Disconnect";
-                }
-            }
-            else
-            {
-                mWaveformDisplay.Reset();
-                mHelperBluetooth.StopServer();
-                button.Content = "Connect";
+                    streamM?.Stop();
             }
         }
 
@@ -141,83 +117,141 @@ namespace AndroidMic
             }
         }
 
-        // drop down closed for combobox of audio device list
-        private void AudioDeviceList_DropDownClosed(object sender, EventArgs e)
-        {
-            mHelperAudio.SetAudioDevice(AudioDeviceList.SelectedIndex - 1);
-            if (mHelperAudio.RefreshAudioDevices()) SetupAudioList();
-        }
-
-        // drop down closed for combobox of USB server IP addreses
-        private void USBIP_DropDownClosed(object sender, EventArgs e)
-        {
-            mHelperUSB.StartServer(USBIPAddresses.SelectedIndex - 1);
-            if (mHelperUSB.RefreshIpAdress()) SetupUSBList();
-        }
-
-        // volume slider change callback
-        private void VolumeSlider_PropertyChange(object sender, RoutedPropertyChangedEventArgs<double> e)
-        {
-            mHelperAudio.SetVolume((float)e.NewValue);
-        }
-
         // log message auto scroll to bottom
         private void LogBlockScroll_ScrollChanged(object sender, ScrollChangedEventArgs e)
         {
-            if(e.ExtentHeightChange != 0)
+            if (e.ExtentHeightChange != 0)
             {
                 LogBlockScroll.ScrollToVerticalOffset(LogBlockScroll.ExtentHeight);
             }
         }
 
-        // set up audio device list
-        private void SetupAudioList()
+        // drop down closed for combobox of audio device list
+        private void AudioDeviceList_DropDownClosed(object sender, EventArgs e)
         {
-            AudioDeviceList.Items.Clear();
-            AudioDeviceList.Items.Add("Default");
-            AudioDeviceList.SelectedIndex = 0;
-            string[] devices = mHelperAudio.DeviceList;
-            foreach(string device in devices)
+            audioM?.SelectAudioDevice(AudioDeviceList.SelectedIndex - 1);
+        }
+
+        // connection type radio button checked event
+        private void RadioButton_Checked(object sender, RoutedEventArgs e)
+        {
+            RadioButton rb = sender as RadioButton;
+            if(rb != null && (rb.IsChecked == true))
             {
-                AudioDeviceList.Items.Add(device);
+                // select bluetooth or wifi
+                if (rb.Content.ToString().StartsWith("B"))
+                    streamM?.SetConnectionType(StreamManager.ConnectionType.BLUETOOTH);
+                else
+                    streamM?.SetConnectionType(StreamManager.ConnectionType.WIFI);
             }
         }
 
-        // set up USB IP list
-        private void SetupUSBList()
+        // volume slider change callback
+        private void VolumeSlider_PropertyChange(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            USBIPAddresses.Items.Clear();
-            USBIPAddresses.Items.Add("Disabled");
-            USBIPAddresses.SelectedIndex = 0;
-            string[] addresses = mHelperUSB.IPAddresses;
-            foreach(string address in addresses)
+            audioM?.SetVolume((float)e.NewValue);
+        }
+
+        // add log message to UI
+        private void Services_AddLogEvent(object sender, MessageArgs e)
+        {
+            string[] messages = e.Message.Split('\n');
+            uiContext?.Post(delegate
             {
-                USBIPAddresses.Items.Add(address);
-            }
+                lock (LogBlock)
+                {
+                    foreach (string m in messages)
+                    {
+                        LogBlock.Inlines.Add(m);
+                        LogBlock.Inlines.Add(new LineBreak());
+                    }
+                }
+            }, null);
         }
 
-        // help function to append log message to text block
-        public void AddLogMessage(string message)
+        // refresh audio devices list
+        private void AudioM_RefreshAudioDevicesEvent(object sender, AudioDevicesArgs e)
         {
-            string[] messages = message.Split('\n');
-            foreach (string m in messages)
+            uiContext?.Post(delegate
             {
-                LogBlock.Inlines.Add(m);
-                LogBlock.Inlines.Add(new LineBreak());
-            }
+                lock(AudioDeviceList)
+                {
+                    AudioDeviceList.Items.Clear();
+                    AudioDeviceList.Items.Add("Default");
+                    foreach (string device in e.Devices)
+                    {
+                        AudioDeviceList.Items.Add(device);
+                    }
+                    AudioDeviceList.SelectedIndex = Math.Min(e.SelectedIdx + 1, AudioDeviceList.Items.Count - 1);
+                }
+            }, null);
         }
 
-        // refresh waveform image data
-        public void RefreshWaveform(short valPos, short valNeg)
+        // server starts listening
+        private void StreamM_ServerListeningEvent(object sender, EventArgs e)
         {
-            // only update when window is not minimized
-            if(WindowState != WindowState.Minimized)
-                mWaveformDisplay.AddData(valPos, valNeg);
+            uiContext?.Post(delegate
+            {
+                lock(RadioButton1)
+                {
+                    RadioButton1.IsEnabled = false;
+                    RadioButton2.IsEnabled = false;
+                }
+                lock(ConnectButton)
+                {
+                    ConnectButton.Content = "Listening";
+                    ConnectButton.ToolTip = "Click to Stop";
+                }
+            }, null);
         }
 
-        public bool IsConnected()
+        // client connected
+        private void StreamM_ClientConnectedEvent(object sender, EventArgs e)
         {
-            return (mHelperBluetooth.Status == BthStatus.CONNECTED) || (mHelperUSB.Status == USBStatus.CONNECTED);
+            uiContext?.Post(delegate
+            {
+                lock (RadioButton1)
+                {
+                    RadioButton1.IsEnabled = false;
+                    RadioButton2.IsEnabled = false;
+                }
+                lock (ConnectButton)
+                {
+                    ConnectButton.Content = "Disconnect";
+                    ConnectButton.ToolTip = "Click to Disconnect";
+                }
+            }, null);
+        }
+
+        // client disconnected
+        private void StreamM_ClientDisconnectedEvent(object sender, EventArgs e)
+        {
+            uiContext?.Post(delegate
+            {
+                lock (RadioButton1)
+                {
+                    RadioButton1.IsEnabled = true;
+                    RadioButton2.IsEnabled = true;
+                }
+                lock (ConnectButton)
+                {
+                    
+                    ConnectButton.Content = "Connect";
+                    ConnectButton.ToolTip = "Start Server";
+                }
+            }, null);
+        }
+
+        private void AudioM_RefreshCanvasEvent(object sender, CanvasEventArgs e)
+        {
+            uiContext?.Post(delegate
+            {
+                lock (WaveformCanvas)
+                {
+                    WaveformCanvas.Children.Clear();
+                    WaveformCanvas.Children.Add(e.Data);
+                }
+            }, null);
         }
     }
 }

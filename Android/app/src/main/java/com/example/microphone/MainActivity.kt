@@ -1,16 +1,10 @@
 package com.example.microphone
 
 import android.Manifest
-import android.app.NotificationChannel
-import android.app.NotificationManager
-import android.app.PendingIntent
-import android.bluetooth.BluetoothAdapter
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.*
 import androidx.appcompat.app.AppCompatActivity
-import android.text.InputType
 import android.util.Log
 import android.view.View
 import android.view.WindowManager
@@ -18,10 +12,12 @@ import android.widget.*
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.SwitchCompat
 import androidx.core.app.ActivityCompat
-import androidx.core.app.NotificationCompat
-import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
+import com.example.microphone.service.ForegroundService
+import com.example.microphone.streaming.MicStreamManager
 import java.lang.Exception
+import java.lang.NumberFormatException
+import java.util.concurrent.atomic.AtomicBoolean
 
 // helper function to ignore some exceptions
 inline fun ignore(body: () -> Unit)
@@ -33,16 +29,18 @@ inline fun ignore(body: () -> Unit)
 
 class MainActivity : AppCompatActivity()
 {
-    private val mLogTag : String = "MainActivityTag"
-    private var defaultIP : String = "192.168."
+    private val TAG : String = "MicMainActivity"
+    private val WAIT_PERIOD = 500L
 
     private lateinit var mLogTextView : TextView
     private lateinit var mScroller : ScrollView
 
-    private var isBluetoothStarted = false
-    private var isAudioStarted = false
-    private var isUSBStarted = false
-    private var isIPSet = false
+    data class States(
+        val isStreamStarted : AtomicBoolean = AtomicBoolean(false),
+        val isAudioStarted : AtomicBoolean = AtomicBoolean(false),
+        val isIPInfoSet : AtomicBoolean = AtomicBoolean(false)
+    )
+    private val states = States()
 
     private var mService : Messenger? = null
     private var mBound = false
@@ -58,12 +56,11 @@ class MainActivity : AppCompatActivity()
         {
             when(msg.what)
             {
-                BackgroundHelper.COMMAND_SET_IP     -> handleSetIP(msg)
-                BackgroundHelper.COMMAND_DISC_BTH   -> handleBthDisconnect(msg)
-                BackgroundHelper.COMMAND_DISC_USB   -> handleUSBDisconnect(msg)
-                BackgroundHelper.COMMAND_GET_STATUS -> handleGetStatus(msg)
+                ForegroundService.COMMAND_SET_IP_PORT   -> handleSetIPInfo(msg)
+                ForegroundService.COMMAND_DISC_STREAM   -> handleDisconnect(msg)
+                ForegroundService.COMMAND_GET_STATUS    -> handleGetStatus(msg)
             }
-            if(msg.what < BackgroundHelper.COMMAND_DISC_BTH)
+            if(msg.what < ForegroundService.COMMAND_DISC_STREAM)
             {
                 when(msg.data.getInt("Result"))
                 {
@@ -82,26 +79,7 @@ class MainActivity : AppCompatActivity()
         // set action bar title
         supportActionBar?.setTitle(R.string.activity_name)
         // set scroll to focus down
-        mScroller = findViewById(R.id.scrollView2)
-        // set up notification
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
-        {
-            val name = "AndroidMic"
-            val descriptionText = "Microphone is in use"
-            val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel("AndroidMic", name, importance).apply {
-                description = descriptionText
-            }
-            // Register the channel with the system
-            val notificationManager: NotificationManager =
-                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
-        }
-        // first disable all buttons, wait for service reply
-        //findViewById<Button>(R.id.usb_connect).isClickable = false
-        //findViewById<Button>(R.id.bth_connect).isClickable = false
-        //findViewById<SwitchCompat>(R.id.audio_switch).isClickable = false
-
+        mScroller = findViewById(R.id.scrollView)
         // keeps screen on for this activity
         // otherwise when app enters background, the service will also stop
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -114,7 +92,7 @@ class MainActivity : AppCompatActivity()
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED)
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 0)
         // start handler thread
-        handlerThread = HandlerThread("MainActivityStartArgs", Process.THREAD_PRIORITY_BACKGROUND)
+        handlerThread = HandlerThread("MicActivityStart", Process.THREAD_PRIORITY_BACKGROUND)
         handlerThread.start()
         mMessengerLooper = handlerThread.looper
         mMessengerHandler = ReplyHandler(handlerThread.looper)
@@ -128,13 +106,12 @@ class MainActivity : AppCompatActivity()
     override fun onStop() {
         super.onStop()
         mMessengerLooper.quitSafely()
-        ignore { handlerThread.join(1000) }
+        ignore { handlerThread.join(WAIT_PERIOD) }
     }
 
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
-        val extras = intent?.extras
-        if(extras?.getBoolean("BackgroundHelperBound") == true)
+        if(intent?.extras?.getBoolean("ForegroundServiceBound") == true)
         {
             // get variable from application
             refreshAppVariables()
@@ -149,64 +126,33 @@ class MainActivity : AppCompatActivity()
         mBound = (application as DefaultApp).mBound
     }
 
-    // onclick for bluetooth button
-    fun onButtonBluetooth(view : View)
+    // onclick for connect button
+    fun onButtonConnect(view : View)
     {
         if(!mBound)
         {
             Toast.makeText(this, "Service not available", Toast.LENGTH_SHORT).show()
             return
         }
-        // enable adapter
-        if(!BluetoothAdapter.getDefaultAdapter().isEnabled)
+        // lock button to avoid duplicate events
+        (view as Button).isClickable = false
+        if(states.isStreamStarted.get())
         {
-            val enableBthIntent = Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE)
-            startActivity(enableBthIntent)
-        }
-        (view as Button).isClickable = false // lock button
-        if(isBluetoothStarted)
-        {
-            Log.d(mLogTag, "Stop Bluetooth")
-            val reply = Message.obtain(null, BackgroundHelper.COMMAND_STOP_BLUETOOTH, 0, 0)
+            Log.d(TAG, "onButtonConnect: stop stream")
+            val reply = Message.obtain(null, ForegroundService.COMMAND_STOP_STREAM)
             reply.replyTo = mMessenger
             mService?.send(reply)
         }
         else
         {
-            Log.d(mLogTag, "Start Bluetooth")
-            val reply = Message.obtain(null, BackgroundHelper.COMMAND_START_BLUETOOTH, 0, 0)
-            reply.replyTo = mMessenger
-            mService?.send(reply)
-        }
-    }
-
-    // onclick for USB button
-    fun onButtonUSB(view : View)
-    {
-        if(!mBound)
-        {
-            Toast.makeText(this, "Service not available", Toast.LENGTH_SHORT).show()
-            return
-        }
-        (view as Button).isClickable = false // lock button
-        if(isUSBStarted)
-        {
-            Log.d(mLogTag, "Stop USB")
-            val reply = Message.obtain(null, BackgroundHelper.COMMAND_STOP_USB, 0, 0)
-            reply.replyTo = mMessenger
-            mService?.send(reply)
-        }
-        else
-        {
-            Log.d(mLogTag, "Start USB")
-            val reply = Message.obtain(null, BackgroundHelper.COMMAND_START_USB, 0, 0)
+            Log.d(TAG, "onButtonConnect: start stream")
+            val reply = Message.obtain(null, ForegroundService.COMMAND_START_STREAM)
             reply.replyTo = mMessenger
             mService?.send(reply)
         }
     }
 
     // on change for microphone switch
-    // basically similar to bluetooth function
     fun onSwitchMic(view : View)
     {
         if(!mBound)
@@ -214,70 +160,60 @@ class MainActivity : AppCompatActivity()
             Toast.makeText(this, "Service not available", Toast.LENGTH_SHORT).show()
             return
         }
-        (view as SwitchCompat).isClickable = false // lock switch
-        if(isAudioStarted)
+        // lock switch
+        (view as SwitchCompat).isClickable = false
+        if(states.isAudioStarted.get())
         {
-            Log.d(mLogTag, "Stop Audio")
-            val reply = Message.obtain(null, BackgroundHelper.COMMAND_STOP_AUDIO, 0, 0)
+            Log.d(TAG, "onSwitchMic: stop audio")
+            val reply = Message.obtain(null, ForegroundService.COMMAND_STOP_AUDIO)
             reply.replyTo = mMessenger
             mService?.send(reply)
         }
         else
         {
-            Log.d(mLogTag, "Start Audio")
-            val reply = Message.obtain(null, BackgroundHelper.COMMAND_START_AUDIO, 0, 0)
+            Log.d(TAG, "onSwitchMic: start audio")
+            val reply = Message.obtain(null, ForegroundService.COMMAND_START_AUDIO)
             reply.replyTo = mMessenger
             mService?.send(reply)
         }
     }
 
+    // ask foreground service for current status
     private fun askForStatus()
     {
         if(!mBound) return
-        val reply = Message.obtain(null, BackgroundHelper.COMMAND_GET_STATUS, 0, 0)
+        val reply = Message.obtain(null, ForegroundService.COMMAND_GET_STATUS)
         reply.replyTo = mMessenger
         mService?.send(reply)
     }
 
+    // apply status to UI
     fun handleGetStatus(msg : Message)
     {
-        isBluetoothStarted = msg.data.getBoolean("isBluetoothStarted")
-        isUSBStarted = msg.data.getBoolean("isUSBStarted")
-        isAudioStarted = msg.data.getBoolean("isAudioStarted")
-        val bthButton = findViewById<Button>(R.id.bth_connect)
-        val usbButton = findViewById<Button>(R.id.usb_connect)
-        val aioSwitch = findViewById<SwitchCompat>(R.id.audio_switch)
+        states.isStreamStarted.set(msg.data.getBoolean("isStreamStarted"))
+        states.isAudioStarted.set(msg.data.getBoolean("isAudioStarted"))
+        val connectButton = findViewById<Button>(R.id.connect)
+        val audioSwitch = findViewById<SwitchCompat>(R.id.audio_switch)
         runOnUiThread {
-            if(isBluetoothStarted)
+            if(states.isStreamStarted.get())
             {
-                bthButton.setText(R.string.turn_off_bth)
-                bthButton.isClickable = true
-
+                connectButton.setText(R.string.disconnect)
+                connectButton.isClickable = true
             }
             else
             {
-                bthButton.setText(R.string.turn_on_bth)
-                bthButton.isClickable = true
+                connectButton.setText(R.string.connect)
+                connectButton.isClickable = true
             }
-            if(isUSBStarted)
+            if(states.isAudioStarted.get())
             {
-                usbButton.setText(R.string.turn_off_usb)
-                usbButton.isClickable = true
-            }
-            else
-            {
-                usbButton.setText(R.string.turn_on_usb)
-                usbButton.isClickable = true
-            }
-            if(isAudioStarted)
-            {
-                aioSwitch.isChecked = true
-                aioSwitch.isClickable = true
+                audioSwitch.isChecked = true
+                audioSwitch.isClickable = true
             }
             else
             {
-                aioSwitch.isChecked = false
-                aioSwitch.isClickable = true
+                audioSwitch.isChecked = false
+                audioSwitch.isClickable = true
             }
         }
     }
@@ -286,65 +222,44 @@ class MainActivity : AppCompatActivity()
     {
         val reply = msg.data.getString("reply")
         if(reply != null) runOnUiThread { addLogMessage(reply) }
-        val bthButton = findViewById<Button>(R.id.bth_connect)
-        val usbButton = findViewById<Button>(R.id.usb_connect)
-        val aioSwitch = findViewById<SwitchCompat>(R.id.audio_switch)
+        val connectButton = findViewById<Button>(R.id.connect)
+        val audioSwitch = findViewById<SwitchCompat>(R.id.audio_switch)
         when(msg.what)
         {
-            BackgroundHelper.COMMAND_START_BLUETOOTH -> {
-                // bluetooth start success
-                Log.d(mLogTag, "handleSuccess COMMAND_START_BLUETOOTH")
-                isBluetoothStarted = true
+            ForegroundService.COMMAND_START_STREAM -> {
+                // stream start success
+                Log.d(TAG, "handleSuccess: COMMAND_START_STREAM")
+                states.isStreamStarted.set(true)
                 runOnUiThread {
-                    bthButton.setText(R.string.turn_off_bth)
-                    bthButton.isClickable = true
+                    connectButton.setText(R.string.disconnect)
+                    connectButton.isClickable = true
                 }
             }
-            BackgroundHelper.COMMAND_STOP_BLUETOOTH -> {
-                // bluetooth stop success
-                Log.d(mLogTag, "handleSuccess COMMAND_STOP_BLUETOOTH")
-                isBluetoothStarted = false
+            ForegroundService.COMMAND_STOP_STREAM -> {
+                // stream stop success
+                Log.d(TAG, "handleSuccess: COMMAND_STOP_STREAM")
+                states.isStreamStarted.set(false)
                 runOnUiThread {
-                    bthButton.setText(R.string.turn_on_bth)
-                    bthButton.isClickable = true
+                    connectButton.setText(R.string.connect)
+                    connectButton.isClickable = true
                 }
             }
-            BackgroundHelper.COMMAND_START_AUDIO -> {
+            ForegroundService.COMMAND_START_AUDIO -> {
                 // audio start success
-                Log.d(mLogTag, "handleSuccess COMMAND_START_AUDIO")
-                isAudioStarted = true
+                Log.d(TAG, "handleSuccess: COMMAND_START_AUDIO")
+                states.isAudioStarted.set(true)
                 runOnUiThread {
-                    showNotification()
-                    aioSwitch.isChecked = true
-                    aioSwitch.isClickable = true
+                    audioSwitch.isChecked = true
+                    audioSwitch.isClickable = true
                 }
             }
-            BackgroundHelper.COMMAND_STOP_AUDIO -> {
+            ForegroundService.COMMAND_STOP_AUDIO -> {
                 // audio stop success
-                Log.d(mLogTag, "handleSuccess COMMAND_STOP_AUDIO")
-                isAudioStarted = false
+                Log.d(TAG, "handleSuccess: COMMAND_STOP_AUDIO")
+                states.isAudioStarted.set(false)
                 runOnUiThread {
-                    removeNotification()
-                    aioSwitch.isChecked = false
-                    aioSwitch.isClickable = true
-                }
-            }
-            BackgroundHelper.COMMAND_START_USB -> {
-                // usb start success
-                Log.d(mLogTag, "handleSuccess COMMAND_START_USB")
-                isUSBStarted = true
-                runOnUiThread {
-                    usbButton.setText(R.string.turn_off_usb)
-                    usbButton.isClickable = true
-                }
-            }
-            BackgroundHelper.COMMAND_STOP_USB -> {
-                // usb stop success
-                Log.d(mLogTag, "handleSuccess COMMAND_STOP_USB")
-                isUSBStarted = false
-                runOnUiThread {
-                    usbButton.setText(R.string.turn_on_usb)
-                    usbButton.isClickable = true
+                    audioSwitch.isChecked = false
+                    audioSwitch.isClickable = true
                 }
             }
         }
@@ -354,91 +269,61 @@ class MainActivity : AppCompatActivity()
     {
         val reply = msg.data.getString("reply")
         if(reply != null) runOnUiThread { addLogMessage(reply) }
-        val bthButton = findViewById<Button>(R.id.bth_connect)
-        val usbButton = findViewById<Button>(R.id.usb_connect)
-        val aioSwitch = findViewById<SwitchCompat>(R.id.audio_switch)
+        val connectButton = findViewById<Button>(R.id.connect)
+        val audioSwitch = findViewById<SwitchCompat>(R.id.audio_switch)
         when(msg.what)
         {
-            BackgroundHelper.COMMAND_START_BLUETOOTH -> {
-                // bluetooth start fail
-                Log.d(mLogTag, "handleSuccess COMMAND_START_BLUETOOTH")
-                isBluetoothStarted = false
+            ForegroundService.COMMAND_START_STREAM -> {
+                // stream start fail
+                Log.d(TAG, "handleFailure: COMMAND_START_STREAM")
+                states.isStreamStarted.set(false)
                 runOnUiThread {
-                    bthButton.setText(R.string.turn_on_bth)
-                    bthButton.isClickable = true
+                    connectButton.setText(R.string.connect)
+                    connectButton.isClickable = true
                 }
             }
-            BackgroundHelper.COMMAND_STOP_BLUETOOTH -> {
-                // bluetooth stop fail
-                Log.d(mLogTag, "handleSuccess COMMAND_STOP_BLUETOOTH")
-                isBluetoothStarted = true
+            ForegroundService.COMMAND_STOP_STREAM -> {
+                // stream stop fail
+                Log.d(TAG, "handleFailure: COMMAND_STOP_STREAM")
+                states.isStreamStarted.set(true)
                 runOnUiThread {
-                    bthButton.setText(R.string.turn_off_bth)
-                    bthButton.isClickable = true
+                    connectButton.setText(R.string.disconnect)
+                    connectButton.isClickable = true
                 }
             }
-            BackgroundHelper.COMMAND_START_AUDIO -> {
+            ForegroundService.COMMAND_START_AUDIO -> {
                 // audio start fail
-                Log.d(mLogTag, "handleSuccess COMMAND_START_AUDIO")
-                isAudioStarted = false
+                Log.d(TAG, "handleFailure: COMMAND_START_AUDIO")
+                states.isAudioStarted.set(false)
                 runOnUiThread {
-                    aioSwitch.isChecked = false
-                    aioSwitch.isClickable = true
+                    audioSwitch.isChecked = false
+                    audioSwitch.isClickable = true
                 }
             }
-            BackgroundHelper.COMMAND_STOP_AUDIO -> {
+            ForegroundService.COMMAND_STOP_AUDIO -> {
                 // audio stop fail
-                Log.d(mLogTag, "handleSuccess COMMAND_STOP_AUDIO")
-                isAudioStarted = true
+                Log.d(TAG, "handleFailure: COMMAND_STOP_AUDIO")
+                states.isAudioStarted.set(true)
                 runOnUiThread {
-                    aioSwitch.isChecked = true
-                    aioSwitch.isClickable = true
-                }
-            }
-            BackgroundHelper.COMMAND_START_USB -> {
-                // usb start fail
-                Log.d(mLogTag, "handleSuccess COMMAND_START_USB")
-                isUSBStarted = false
-                runOnUiThread {
-                    usbButton.setText(R.string.turn_on_usb)
-                    usbButton.isClickable = true
-                }
-            }
-            BackgroundHelper.COMMAND_STOP_USB -> {
-                // usb stop fail
-                Log.d(mLogTag, "handleSuccess COMMAND_STOP_USB")
-                isUSBStarted = true
-                runOnUiThread {
-                    usbButton.setText(R.string.turn_off_usb)
-                    usbButton.isClickable = true
+                    audioSwitch.isChecked = true
+                    audioSwitch.isClickable = true
                 }
             }
         }
     }
 
-    fun handleBthDisconnect(msg : Message)
+    fun handleDisconnect(msg : Message)
     {
         val reply = msg.data.getString("reply")
         if(reply != null) runOnUiThread { addLogMessage(reply) }
         runOnUiThread {
-            findViewById<Button>(R.id.bth_connect).setText(R.string.turn_on_bth)
-            findViewById<Button>(R.id.bth_connect).isClickable = true
+            findViewById<Button>(R.id.connect).setText(R.string.connect)
+            findViewById<Button>(R.id.connect).isClickable = true
         }
-        isBluetoothStarted = false
+        states.isStreamStarted.set(false)
     }
 
-    fun handleUSBDisconnect(msg : Message)
-    {
-        val reply = msg.data.getString("reply")
-        if(reply != null) runOnUiThread { addLogMessage(reply) }
-        runOnUiThread {
-            findViewById<Button>(R.id.usb_connect).setText(R.string.turn_on_usb)
-            findViewById<Button>(R.id.usb_connect).isClickable = true
-        }
-        isUSBStarted = false
-    }
-
-    fun handleSetIP(msg : Message)
+    fun handleSetIPInfo(msg : Message)
     {
         if(!msg.data.isEmpty)
         {
@@ -460,78 +345,66 @@ class MainActivity : AppCompatActivity()
 
     private fun getIpAddress()
     {
-        isIPSet = false
+        states.isIPInfoSet.set(false)
+
+        val layout = layoutInflater.inflate(R.layout.alertdialog, null)
+        layout.findViewById<EditText>(R.id.dialog_ip)
+            .setText(MicStreamManager.DEFAULT_IP)
+        layout.findViewById<EditText>(R.id.dialog_port)
+            .setText(MicStreamManager.DEFAULT_PORT.toString())
         val builder = AlertDialog.Builder(this)
-        builder.setTitle("PC IP Address")
-        val input = EditText(this)
-        input.setText(defaultIP)
-        input.inputType = InputType.TYPE_CLASS_PHONE
-        builder.setView(input)
+        builder.setTitle("PC Address IP/Port")
+        builder.setView(layout)
         builder.setPositiveButton("OK"
-        ) { dialog, which ->
-            defaultIP = input.text.toString()
+        ) { diag, _ ->
+            val ip = layout.findViewById<EditText>(R.id.dialog_ip)
+                .text.toString()
+            val port = try {
+                layout.findViewById<EditText>(R.id.dialog_port)
+                    .text.toString().toInt()
+            } catch(e : NumberFormatException)
+            {
+                Log.d(TAG, "getIpAddress: invalid port")
+                -1
+            }
             val data = Bundle()
-            data.putString("IP", defaultIP)
-            val reply = Message.obtain(null, BackgroundHelper.COMMAND_SET_IP, 0, 0)
+            data.putString("IP", ip)
+            data.putInt("PORT", port)
+            val reply = Message.obtain(null, ForegroundService.COMMAND_SET_IP_PORT)
             reply.data = data
             reply.replyTo = mMessenger
-            if(!isIPSet)
+            if(!states.isIPInfoSet.get())
             {
                 mService?.send(reply)
-                isIPSet = true
+                states.isIPInfoSet.set(true)
             }
         }
         builder.setOnCancelListener {
             val data = Bundle()
-            data.putString("IP", defaultIP)
-            val reply = Message.obtain(null, BackgroundHelper.COMMAND_SET_IP, 0, 0)
+            data.putString("IP", MicStreamManager.DEFAULT_IP)
+            data.putInt("PORT", MicStreamManager.DEFAULT_PORT)
+            val reply = Message.obtain(null, ForegroundService.COMMAND_SET_IP_PORT)
             reply.data = data
             reply.replyTo = mMessenger
-            if(!isIPSet)
+            if(!states.isIPInfoSet.get())
             {
                 mService?.send(reply)
-                isIPSet = true
+                states.isIPInfoSet.set(true)
             }
         }
         builder.setOnDismissListener {
             val data = Bundle()
-            data.putString("IP", defaultIP)
-            val reply = Message.obtain(null, BackgroundHelper.COMMAND_SET_IP, 0, 0)
+            data.putString("IP", MicStreamManager.DEFAULT_IP)
+            data.putInt("PORT", MicStreamManager.DEFAULT_PORT)
+            val reply = Message.obtain(null, ForegroundService.COMMAND_SET_IP_PORT)
             reply.data = data
             reply.replyTo = mMessenger
-            if(!isIPSet)
+            if(!states.isIPInfoSet.get())
             {
                 mService?.send(reply)
-                isIPSet = true
+                states.isIPInfoSet.set(true)
             }
         }
         builder.show()
-    }
-
-    private fun showNotification()
-    {
-        val onTap = Intent(this, MainActivity::class.java).apply {
-            addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT)
-        }
-        val pendingIntent = PendingIntent.getActivity(this, 0, onTap, 0)
-        val builder = NotificationCompat.Builder(this, "AndroidMic")
-            .setSmallIcon(R.drawable.icon)
-            .setContentTitle("AndroidMic")
-            .setContentText("Microphone is in use")
-            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
-            .setContentIntent(pendingIntent)
-            .setOngoing(true)
-        with(NotificationManagerCompat.from(this))
-        {
-            notify(0, builder.build())
-        }
-    }
-
-    private fun removeNotification()
-    {
-        with(NotificationManagerCompat.from(this))
-        {
-            cancel(0)
-        }
     }
 }

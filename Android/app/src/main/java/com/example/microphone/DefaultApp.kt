@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
 import android.os.Messenger
+import com.example.microphone.service.ForegroundService
 
 class DefaultApp : Application()
 {
@@ -23,7 +24,7 @@ class DefaultApp : Application()
             val notifyIntent = Intent(applicationContext, MainActivity::class.java).apply {
                 action = Intent.ACTION_VIEW
                 addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK)
-                putExtra("BackgroundHelperBound", true)
+                putExtra("ForegroundServiceBound", true)
             }
             startActivity(notifyIntent)
         }
@@ -38,8 +39,7 @@ class DefaultApp : Application()
     override fun onCreate() {
         super.onCreate()
         // start and bind to service
-        val intent = Intent(this, BackgroundHelper::class.java)
-        // startService(intent)
+        val intent = Intent(this, ForegroundService::class.java)
         bindService(intent, mConnection, Context.BIND_AUTO_CREATE)
     }
 }

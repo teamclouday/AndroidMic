@@ -7,13 +7,13 @@
     tools:context=".MainActivity">
 
     <Button
-        android:id="@+id/bth_connect"
+        android:id="@+id/connect"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginTop="32dp"
         android:layout_marginEnd="32dp"
-        android:onClick="onButtonBluetooth"
-        android:text="@string/turn_on_bth"
+        android:onClick="onButtonConnect"
+        android:text="@string/connect"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -27,10 +27,10 @@
         android:textSize="20sp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/usb_connect" />
+        app:layout_constraintTop_toBottomOf="@+id/connect" />
 
     <ScrollView
-        android:id="@+id/scrollView2"
+        android:id="@+id/scrollView"
         android:layout_width="0dp"
         android:layout_height="match_parent"
         android:layout_marginStart="16dp"
@@ -40,7 +40,7 @@
         android:background="@color/text_back"
         android:scrollbars="vertical"
         app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/bth_connect"
+        app:layout_constraintEnd_toStartOf="@+id/connect"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
@@ -52,16 +52,5 @@
             android:padding="12dp"
             android:textColor="@color/black" />
     </ScrollView>
-
-    <Button
-        android:id="@+id/usb_connect"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="32dp"
-        android:layout_marginEnd="32dp"
-        android:onClick="onButtonUSB"
-        android:text="@string/turn_on_usb"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/bth_connect" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

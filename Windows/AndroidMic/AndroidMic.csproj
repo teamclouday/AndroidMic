@@ -128,8 +128,15 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Compile Include="USBHelper.cs" />
-    <Compile Include="WaveDisplay.cs" />
+    <Compile Include="Library\Audio\AudioBuffer.cs" />
+    <Compile Include="Library\Audio\AudioDisplay.cs" />
+    <Compile Include="Library\Audio\AudioManager.cs" />
+    <Compile Include="Library\Audio\Filters\FilterRenderer.cs" />
+    <Compile Include="Library\Audio\Filters\FilterWriter.cs" />
+    <Compile Include="Library\Streaming\Streamer.cs" />
+    <Compile Include="Library\Streaming\StreamerBluetooth.cs" />
+    <Compile Include="Library\Streaming\StreamerWifi.cs" />
+    <Compile Include="Library\Streaming\StreamManager.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -138,8 +145,6 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="AudioHelper.cs" />
-    <Compile Include="BluetoothHelper.cs" />
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
