@@ -19,7 +19,7 @@ namespace AndroidMic.Audio
 
         public byte[] poll()
         {
-            lock(this)
+            lock(toLock)
             {
                 if (buffer.Count > 0) return buffer.Dequeue();
                 else return null;
