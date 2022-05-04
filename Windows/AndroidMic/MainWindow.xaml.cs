@@ -90,7 +90,7 @@ namespace AndroidMic
         // close event for main window
         private void MainWindow_Closing(object sender, CancelEventArgs e)
         {
-            streamM?.Shutdown();
+            streamM?.Stop();
             audioM?.Shutdown();
             notifyIcon?.Dispose();
         }

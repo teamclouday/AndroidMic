@@ -70,18 +70,8 @@ namespace AndroidMic.Streaming
             AddLog("Server Starts Listening...\n" + server.GetServerInfo());
         }
 
-        // stop server
-        public void Stop()
-        {
-            processAllowed = false;
-            if (processThread != null && processThread.IsAlive)
-                processThread.Join();
-            server?.Shutdown();
-            AddLog("Server Stopped");
-        }
-
         // shutdown server
-        public void Shutdown()
+        public void Stop()
         {
             processAllowed = false;
             Thread.Sleep(MAX_WAIT_TIME);
