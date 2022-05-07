@@ -1,0 +1,28 @@
+﻿<Window x:Class="AndroidMic.AdvancedWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:AndroidMic"
+        mc:Ignorable="d"
+        Title="AndroidMic Advanced" Height="600" Width="400" ResizeMode="CanMinimize" Background="#94fffa">
+    <Grid>
+        <Label Content="Audio Effects" HorizontalAlignment="Center" Margin="0,50,0,0" FontWeight="Bold" FontFamily="Bahnschrift"
+            VerticalAlignment="Top" Width="200" FontSize="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
+        <Expander Header="Pitch Shifter" HorizontalAlignment="Center" VerticalAlignment="Top" Width="300" Margin="0,100,0,0" 
+                  FontSize="20" FontFamily="Comic Sans MS" Background="#FF93F0FF">
+            <Grid Background="#FFC0FFEB">
+                <CheckBox Content="Enabled" VerticalContentAlignment="Center" x:Name="PitchShiferEnableCheckbox"
+                          VerticalAlignment="Top" Checked="PitchShiferEnableCheckbox_StateChanged" Unchecked="PitchShiferEnableCheckbox_StateChanged"/>
+                <DockPanel ToolTip="Adjust Pitch" ToolTipService.ShowDuration="2000" VerticalAlignment="Top" Margin="0,30,0,0"
+                           IsEnabled="{Binding ElementName=PitchShiferEnableCheckbox, Path=IsChecked, TargetNullValue=false}">
+                    <TextBox DockPanel.Dock="Right" Width="40" FontSize="16" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                         Background="#FFCCFFD0" Text="{Binding ElementName=PitchSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"/>
+                    <Slider Maximum="2.0" Minimum="0.5" x:Name="PitchSlider" TickFrequency="0.01" Value="1.0"
+                        TickPlacement="None" IsSnapToTickEnabled="True" ValueChanged="PitchSlider_PropertyChange"/>
+                </DockPanel>
+            </Grid>
+        </Expander>
+
+    </Grid>
+</Window>

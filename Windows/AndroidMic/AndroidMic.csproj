@@ -129,14 +129,22 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="AdvancedWindow.xaml.cs">
+      <DependentUpon>AdvancedWindow.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Library\Audio\AudioBuffer.cs" />
     <Compile Include="Library\Audio\AudioManager.cs" />
+    <Compile Include="Library\Audio\Filters\FilterPitchShifter.cs" />
     <Compile Include="Library\Audio\Filters\FilterRenderer.cs" />
     <Compile Include="Library\Audio\Filters\FilterWriter.cs" />
     <Compile Include="Library\Streaming\Streamer.cs" />
     <Compile Include="Library\Streaming\StreamerBluetooth.cs" />
     <Compile Include="Library\Streaming\StreamerWifi.cs" />
     <Compile Include="Library\Streaming\StreamManager.cs" />
+    <Page Include="AdvancedWindow.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>

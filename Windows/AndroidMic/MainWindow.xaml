@@ -23,26 +23,29 @@
         </Grid>
         <Grid Margin="450,50,50,50">
             <Button x:Name="ConnectButton" Cursor="Hand" Content="Connect" HorizontalAlignment="Center" VerticalAlignment="Bottom"
-                    Margin="0,0,0,20" FontSize="20" Padding="6" Background="#FFEFFFA8" Click="ConnectButton_Click"
+                    Margin="0,0,0,20" FontSize="18" Padding="6" Background="#FFEFFFA8" Click="ConnectButton_Click" Width="200"
                     ToolTip="Start Server" ToolTipService.ShowDuration="2000" FontFamily="Comic Sans MS"/>
-            <ComboBox x:Name="AudioDeviceList" Cursor="Hand" HorizontalAlignment="Center" Margin="0,80,0,0"
+            <ComboBox x:Name="AudioDeviceList" Cursor="Hand" HorizontalAlignment="Center" Margin="0,60,0,0"
                       VerticalAlignment="Top" FontSize="18" Width="200" DropDownClosed="AudioDeviceList_DropDownClosed"
                       ToolTip="Select Audio Device" ToolTipService.ShowDuration="2000" FontFamily="Segoe UI">
                 <ComboBoxItem IsSelected="True">Default</ComboBoxItem>
             </ComboBox>
-            <Label Content="Audio Device" HorizontalAlignment="Center" Margin="0,20,0,0" FontWeight="Bold" FontFamily="Bahnschrift"
+            <Label Content="Audio Device" HorizontalAlignment="Center" Margin="0,10,0,0" FontWeight="Bold" FontFamily="Bahnschrift"
                    VerticalAlignment="Top" Width="200" FontSize="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-            <DockPanel Margin="50,140,50,0" VerticalAlignment="Top" ToolTip="Adjust Volume" ToolTipService.ShowDuration="2000">
+            <DockPanel Margin="50,110,50,0" VerticalAlignment="Top" ToolTip="Adjust Volume" ToolTipService.ShowDuration="2000">
                 <TextBox DockPanel.Dock="Right" Width="40" FontSize="16" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                          Background="#FFCCFFD0" Text="{Binding ElementName=VolumeSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat=N1}" />
                 <Slider Maximum="5.0" Minimum="0.0" x:Name="VolumeSlider" TickFrequency="0.1" Value="1.0"
                         TickPlacement="None" IsSnapToTickEnabled="True" ValueChanged="VolumeSlider_PropertyChange"/>
             </DockPanel>
-            <Label Content="Connection" HorizontalAlignment="Center" Margin="0,220,0,0" VerticalAlignment="Top" Width="200"
+            <Button x:Name="AdvancedButton" Cursor="Hand" Content="Advanced Effects" HorizontalAlignment="Center" VerticalAlignment="Top"
+                    Margin="0,150,0,20" FontSize="18" Padding="6" Background="#FFEFFFA8" Click="AdvancedButton_Click"
+                    ToolTip="Start Server" ToolTipService.ShowDuration="2000" FontFamily="Comic Sans MS" Width="200"/>
+            <Label Content="Connection" HorizontalAlignment="Center" Margin="0,260,0,0" VerticalAlignment="Top" Width="200"
                    FontSize="20" FontFamily="Bahnschrift" FontWeight="Bold" HorizontalContentAlignment="Center"/>
-            <RadioButton HorizontalAlignment="Center" x:Name="RadioButton1" GroupName="ConnectionType" Margin="0,280,0,0"
+            <RadioButton HorizontalAlignment="Center" x:Name="RadioButton1" GroupName="ConnectionType" Margin="0,320,0,0"
                          VerticalAlignment="Top" Width="200" FontSize="18" Content="Bluetooth" FontFamily="Segoe UI" IsChecked="True" Checked="RadioButton_Checked"/>
-            <RadioButton HorizontalAlignment="Center" x:Name="RadioButton2" GroupName="ConnectionType" Margin="0,320,0,0"
+            <RadioButton HorizontalAlignment="Center" x:Name="RadioButton2" GroupName="ConnectionType" Margin="0,350,0,0"
                          VerticalAlignment="Top" Width="200" FontSize="18" Content="Wifi" FontFamily="Segoe UI" Checked="RadioButton_Checked"/>
         </Grid>
     </Grid>

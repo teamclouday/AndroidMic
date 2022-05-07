@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Threading;
 using System.Diagnostics;
+using System.Collections.Generic;
+using System.Windows.Controls;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
 
@@ -12,10 +14,17 @@ namespace AndroidMic.Audio
         public int SelectedIdx { get; set; }
     }
 
+    // supported filters
+    public enum AdvancedFilterType
+    {
+        FPitchShifter = 0
+    }
+
     public class AudioManager
     {
         private readonly string TAG = "AudioManager";
         private readonly int MAX_WAIT_TIME = 1000;
+        private readonly int MAX_FILTERS_COUNT = 1;
 
         private WaveOutCapabilities[] devices;
         private int selectedDeviceIdx;
@@ -25,8 +34,10 @@ namespace AndroidMic.Audio
         private readonly WaveFormat format;
 
         private readonly BufferedWaveProvider bufferedProvider;
-        public readonly FilterRenderer RendererProvider;
-        private readonly VolumeSampleProvider volumeProvider;
+        private readonly FilterRenderer rendererProvider;
+        private VolumeSampleProvider volumeProvider;
+        private readonly ISampleProvider[] providerPipeline;
+        private readonly Dictionary<AdvancedFilterType, bool> providerPipelineStates;
 
         private readonly AudioBuffer sharedBuffer;
         private readonly Thread processThread;
@@ -42,18 +53,21 @@ namespace AndroidMic.Audio
             format = new WaveFormat(16000, 16, 1); // sample rate, bits, channels
             player = new WaveOut
             {
-                DeviceNumber = -1,
+                DeviceNumber = selectedDeviceIdx,
                 DesiredLatency = playerDesiredLatency,
                 NumberOfBuffers = playerNumberOfBuffers
             };
+            providerPipeline = new ISampleProvider[MAX_FILTERS_COUNT];
+            providerPipelineStates = new Dictionary<AdvancedFilterType, bool>();
+            for (int i = 0; i < MAX_FILTERS_COUNT; i++)
+                providerPipelineStates[(AdvancedFilterType)i] = false;
             bufferedProvider = new BufferedWaveProvider(format)
             {
                 DiscardOnBufferOverflow = true
             };
-            RendererProvider = new FilterRenderer(bufferedProvider.ToSampleProvider());
-            volumeProvider = new VolumeSampleProvider(RendererProvider);
-            player.Init(volumeProvider);
-            player.Play();
+            rendererProvider = new FilterRenderer(bufferedProvider.ToSampleProvider());
+            // build filter pipeline
+            BuildPipeline();
             processAllowed = true;
             processThread = new Thread(new ThreadStart(Process));
             processThread.Start();
@@ -137,6 +151,79 @@ namespace AndroidMic.Audio
                 });
             }
         }
+
+        // build audio filter pipeline
+        private void BuildPipeline()
+        {
+            player.Stop();
+            player.Dispose();
+            // create new player
+            player = new WaveOut
+            {
+                DeviceNumber = selectedDeviceIdx,
+                DesiredLatency = playerDesiredLatency,
+                NumberOfBuffers = playerNumberOfBuffers
+            };
+            bufferedProvider.ClearBuffer();
+            ISampleProvider source = rendererProvider;
+            for (int i = 0; i < MAX_FILTERS_COUNT; i++)
+            {
+                AdvancedFilterType type = (AdvancedFilterType)i;
+                // skip not enabled pipelines
+                if (!providerPipelineStates[type]) continue;
+                switch(type)
+                {
+                    case AdvancedFilterType.FPitchShifter:
+                        source = providerPipeline[i] = new FilterPitchShifter(source, providerPipeline[i] as FilterPitchShifter);
+                        break;
+                }
+            }
+            volumeProvider = new VolumeSampleProvider(source)
+            {
+                Volume = volumeProvider == null ? 1.0f : volumeProvider.Volume
+            };
+            player.Init(volumeProvider);
+            player.Play();
+        }
+
+        // update a filter state
+        public void UpdatePipelineFilter(AdvancedFilterType type, bool enabled)
+        {
+            bool shouldUpdate = providerPipelineStates[type] != enabled;
+            providerPipelineStates[type] = enabled;
+            if (shouldUpdate) BuildPipeline();
+        }
+
+        // config a filter
+        public void PipelineFilterConfig(AdvancedFilterType type, int config, ref float value, bool set)
+        {
+            switch(type)
+            {
+                case AdvancedFilterType.FPitchShifter:
+                    {
+                        FilterPitchShifter.ConfigTypes configType = (FilterPitchShifter.ConfigTypes)config;
+                        FilterPitchShifter filter = providerPipeline[(int)type] as FilterPitchShifter;
+                        switch (configType)
+                        {
+                            case FilterPitchShifter.ConfigTypes.ConfigPitch:
+                                if(set && filter != null)
+                                {
+                                    filter.PitchShift = value;
+                                }
+                                else
+                                {
+                                    value = filter == null ? 1.0f : filter.PitchShift;
+                                }
+                                break;
+                        }
+                    }
+                    break;
+            }
+        }
+
+        public bool IsEnabled(AdvancedFilterType type) => providerPipelineStates[type];
+
+        public void ApplyToCanvas(Canvas c) => rendererProvider.ApplyToCanvas(c);
 
         // add log message to main window
         private void AddLog(string message)

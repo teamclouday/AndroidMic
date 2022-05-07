@@ -2,15 +2,11 @@
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
+using System.Windows.Controls;
 using NAudio.Wave;
 
 namespace AndroidMic.Audio
 {
-    public class CanvasEventArgs : EventArgs
-    {
-        public Polygon Data { get; set; }
-    }
-
     class AudioPeaks
     {
         public readonly int WINDOW;
@@ -62,8 +58,6 @@ namespace AndroidMic.Audio
         private readonly ISampleProvider source;
         private readonly AudioPeaks peaks;
 
-        public EventHandler<CanvasEventArgs> RefreshCanvasEvent;
-
         public FilterRenderer(ISampleProvider source, int speed = 5)
         {
             this.source = source;
@@ -89,6 +83,13 @@ namespace AndroidMic.Audio
             }
             // the larger the speed, the slower it updates
             peaks = new AudioPeaks(MAX_POINT_COUNT * speed);
+        }
+
+        // add polygon to canvas, called from UI
+        public void ApplyToCanvas(Canvas c)
+        {
+            c.Children.Clear();
+            c.Children.Add(streamGroup);
         }
 
         // read call
@@ -122,10 +123,6 @@ namespace AndroidMic.Audio
             PointCollection pc = new PointCollection(audioPeaks.Length);
             foreach (var p in audioPeaks) pc.Add(p);
             streamGroup.Points = pc;
-            RefreshCanvasEvent?.Invoke(this, new CanvasEventArgs
-            {
-                Data = streamGroup
-            });
         }
 
         public WaveFormat WaveFormat => source.WaveFormat;

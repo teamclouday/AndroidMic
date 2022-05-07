@@ -24,8 +24,27 @@ namespace AndroidMic
         private readonly System.Windows.Forms.NotifyIcon notifyIcon;
         private readonly SynchronizationContext uiContext;
 
+        [System.Runtime.InteropServices.DllImport("User32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr handle);
+
         public MainWindow()
         {
+            // avoid duplicate processes
+            Process[] processes = Process.GetProcessesByName(Process.GetCurrentProcess().ProcessName);
+            if(processes.Length > 1)
+            {
+                int prevProcessIdx = 0;
+                while (prevProcessIdx < processes.Length &&
+                    processes[prevProcessIdx].Id == Process.GetCurrentProcess().Id)
+                    prevProcessIdx++;
+                if(prevProcessIdx < processes.Length)
+                {
+                    // bring previous process to foreground
+                    SetForegroundWindow(processes[prevProcessIdx].MainWindowHandle);
+                }
+                // close current process
+                Application.Current.Shutdown();
+            }
             InitializeComponent();
             // raise process priority to keep connection stable
             Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.RealTime;
@@ -44,7 +63,7 @@ namespace AndroidMic
             audioM.AddLogEvent += Services_AddLogEvent;
             audioM.RefreshAudioDevicesEvent += AudioM_RefreshAudioDevicesEvent;
             audioM.RefreshAudioDevices();
-            audioM.RendererProvider.RefreshCanvasEvent += AudioM_RefreshCanvasEvent;
+            audioM.ApplyToCanvas(WaveformCanvas);
             // create system tray icon
             notifyIcon = new System.Windows.Forms.NotifyIcon();
             SetupNotificationIcon();
@@ -106,6 +125,16 @@ namespace AndroidMic
                 else
                     streamM?.Stop();
             }
+        }
+
+        // click event for advanced button
+        private void AdvancedButton_Click(object sender, RoutedEventArgs e)
+        {
+            AdvancedWindow advancedWindow = new AdvancedWindow(audioM)
+            {
+                Owner = this
+            };
+            advancedWindow.Show();
         }
 
         // mouse down and check double click for log message block
@@ -238,18 +267,6 @@ namespace AndroidMic
                     
                     ConnectButton.Content = "Connect";
                     ConnectButton.ToolTip = "Start Server";
-                }
-            }, null);
-        }
-
-        private void AudioM_RefreshCanvasEvent(object sender, CanvasEventArgs e)
-        {
-            uiContext?.Post(delegate
-            {
-                lock (WaveformCanvas)
-                {
-                    WaveformCanvas.Children.Clear();
-                    WaveformCanvas.Children.Add(e.Data);
                 }
             }, null);
         }
