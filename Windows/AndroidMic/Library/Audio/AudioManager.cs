@@ -15,6 +15,8 @@ namespace AndroidMic.Audio
     }
 
     // supported filters
+    // numbers define the applied order of
+    // the filters once enabled
     public enum AdvancedFilterType
     {
         FPitchShifter = 0,

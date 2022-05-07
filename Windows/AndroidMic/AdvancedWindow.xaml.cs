@@ -16,6 +16,8 @@ namespace AndroidMic
             InitializeComponent();
             this.audioM = audioM;
             InitComponentStates();
+            // prevent parent hiding on close
+            Closing += (a, b) => { Application.Current.MainWindow.Activate(); };
         }
 
         // update component states

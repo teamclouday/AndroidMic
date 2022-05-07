@@ -67,6 +67,27 @@ On my machine, this setup has the lowest delay and best sound quality. VB is not
 
 </details>
 
+<details>
+<summary>Advanced Filters</summary>
+
+1. Run Windows side app  
+2. Connect phone to app  
+3. Click `Advanced Effects` to open advanced settings window  
+4. Expand a filter and check `enabled` to test effects  
+
+__Pitch Shifter__:  
+* Slider controls pitch shift factor  
+
+__White Noise__:  
+* Slider controls the noise strength  
+
+__Repeat Track__:  
+* check `Repeat` to enable looped audio track  
+* Slider controls audio track volume strength  
+* `Select File` to select an audio file to play  
+
+</details>
+
 ------
 
 ## Feature Plans  
