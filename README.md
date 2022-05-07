@@ -78,6 +78,8 @@ On my machine, this setup has the lowest delay and best sound quality. VB is not
 - [ ] Implement Acoustic Echo Cancellation (AEC)  
 - [ ] Audio effect filters (Not yet released)  
   - [x] Pitch Shifter  
+  - [x] Add White Noise  
+  - [x] Repeated Background Track  
   - [ ] To be continued  
 
 Check out [Avalonia](https://github.com/AvaloniaUI/Avalonia)! With this it may be possible to port all Windows code to .Net Core that can be compiled to support Linux/MacOS!

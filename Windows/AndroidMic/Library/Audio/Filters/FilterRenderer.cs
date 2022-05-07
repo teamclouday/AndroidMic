@@ -22,13 +22,16 @@ namespace AndroidMic.Audio
             counter = 0;
         }
 
+        // update min, max in current window
+        // restrict to range [-1, 1]
         public void Consume(float val)
         {
-            valMax = Math.Max(valMax, val);
-            valMin = Math.Min(valMin, val);
+            valMax = Math.Min(Math.Max(valMax, val), 1.0f);
+            valMin = Math.Max(Math.Min(valMin, val), -1.0f);
             counter++;
         }
 
+        // get next pair if window is full
         public bool NextPair(ref float valMaxCopy, ref float valMinCopy)
         {
             if (counter > WINDOW)
@@ -52,13 +55,14 @@ namespace AndroidMic.Audio
         private readonly float POINT_INTERVAL;
         private readonly float PEAK_MULTIPLIER = 0.8f;
 
+        public Canvas RenderCanvas;
         private readonly Polygon streamGroup;
         private readonly Point[] audioPeaks;
 
         private readonly ISampleProvider source;
         private readonly AudioPeaks peaks;
 
-        public FilterRenderer(ISampleProvider source, int speed = 5)
+        public FilterRenderer(ISampleProvider source, int speed = 5, FilterRenderer prev = null)
         {
             this.source = source;
             POINT_INTERVAL = (float)IMG_W / MAX_POINT_COUNT;
@@ -83,13 +87,19 @@ namespace AndroidMic.Audio
             }
             // the larger the speed, the slower it updates
             peaks = new AudioPeaks(MAX_POINT_COUNT * speed);
+            // copy prev canvas pointer
+            if(prev != null)
+            {
+                ApplyToCanvas(prev.RenderCanvas);
+            }
         }
 
-        // add polygon to canvas, called from UI
+        // add polygon to canvas
         public void ApplyToCanvas(Canvas c)
         {
-            c.Children.Clear();
-            c.Children.Add(streamGroup);
+            RenderCanvas = c;
+            RenderCanvas.Children.Clear();
+            RenderCanvas.Children.Add(streamGroup);
         }
 
         // read call

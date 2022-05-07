@@ -134,6 +134,8 @@
     </Compile>
     <Compile Include="Library\Audio\AudioBuffer.cs" />
     <Compile Include="Library\Audio\AudioManager.cs" />
+    <Compile Include="Library\Audio\Filters\FilterRepeatTrack.cs" />
+    <Compile Include="Library\Audio\Filters\FilterWhiteNoise.cs" />
     <Compile Include="Library\Audio\Filters\FilterPitchShifter.cs" />
     <Compile Include="Library\Audio\Filters\FilterRenderer.cs" />
     <Compile Include="Library\Audio\Filters\FilterWriter.cs" />

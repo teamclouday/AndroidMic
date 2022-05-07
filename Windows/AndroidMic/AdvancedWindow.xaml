@@ -7,10 +7,11 @@
         mc:Ignorable="d"
         Title="AndroidMic Advanced" Height="600" Width="400" ResizeMode="CanMinimize" Background="#94fffa">
     <Grid>
-        <Label Content="Audio Effects" HorizontalAlignment="Center" Margin="0,50,0,0" FontWeight="Bold" FontFamily="Bahnschrift"
+        <Label Content="Audio Filters" HorizontalAlignment="Center" Margin="0,50,0,0" FontWeight="Bold" FontFamily="Bahnschrift"
             VerticalAlignment="Top" Width="200" FontSize="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
         <Expander Header="Pitch Shifter" HorizontalAlignment="Center" VerticalAlignment="Top" Width="300" Margin="0,100,0,0" 
-                  FontSize="20" FontFamily="Comic Sans MS" Background="#FF93F0FF">
+                  FontSize="20" FontFamily="Comic Sans MS" Background="#FF93F0FF" Panel.ZIndex="0" x:Name="Expander1"
+                  Expanded="Expander_Expanded" Collapsed="Expander_Collapsed">
             <Grid Background="#FFC0FFEB">
                 <CheckBox Content="Enabled" VerticalContentAlignment="Center" x:Name="PitchShiferEnableCheckbox"
                           VerticalAlignment="Top" Checked="PitchShiferEnableCheckbox_StateChanged" Unchecked="PitchShiferEnableCheckbox_StateChanged"/>
@@ -23,6 +24,41 @@
                 </DockPanel>
             </Grid>
         </Expander>
-
+        <Expander Header="White Noise" HorizontalAlignment="Center" VerticalAlignment="Top" Width="300" Margin="0,140,0,0"
+                  FontSize="20" FontFamily="Comic Sans MS" Background="#FF93F0FF" Panel.ZIndex="0" x:Name="Expander2"
+                  Expanded="Expander_Expanded" Collapsed="Expander_Collapsed">
+            <Grid Background="#FFC0FFEB">
+                <CheckBox Content="Enabled" VerticalContentAlignment="Center" x:Name="WhiteNoiseEnableCheckbox"
+                          VerticalAlignment="Top" Checked="WhiteNoiseEnableCheckbox_StateChanged" Unchecked="WhiteNoiseEnableCheckbox_StateChanged"/>
+                <DockPanel ToolTip="Adjust Noise Strength" ToolTipService.ShowDuration="2000" VerticalAlignment="Top" Margin="0,30,0,0"
+                           IsEnabled="{Binding ElementName=WhiteNoiseEnableCheckbox, Path=IsChecked, TargetNullValue=false}">
+                    <TextBox DockPanel.Dock="Right" Width="50" FontSize="16" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                         Background="#FFCCFFD0" Text="{Binding ElementName=NoiseRatioSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"/>
+                    <Slider Maximum="1.0" Minimum="-1.0" x:Name="NoiseRatioSlider" TickFrequency="0.01" Value="0.0"
+                        TickPlacement="None" IsSnapToTickEnabled="True" ValueChanged="NoiseRatioSlider_PropertyChange"/>
+                </DockPanel>
+            </Grid>
+        </Expander>
+        <Expander Header="Repeat Track" HorizontalAlignment="Center" VerticalAlignment="Top" Width="300" Margin="0,180,0,0"
+                  FontSize="20" FontFamily="Comic Sans MS" Background="#FF93F0FF" Panel.ZIndex="0" x:Name="Expander3"
+                  Expanded="Expander_Expanded" Collapsed="Expander_Collapsed">
+            <Grid Background="#FFC0FFEB">
+                <CheckBox Content="Enabled" VerticalContentAlignment="Center" x:Name="RepeatTrackEnableCheckbox"
+                          VerticalAlignment="Top" Checked="RepeatTrackEnableCheckbox_StateChanged" Unchecked="RepeatTrackEnableCheckbox_StateChanged"/>
+                <CheckBox Content="Repeat" VerticalContentAlignment="Center" x:Name="RepeatTrackLoopCheckbox" Margin="0,30,0,0"
+                          IsEnabled="{Binding ElementName=RepeatTrackEnableCheckbox, Path=IsChecked, TargetNullValue=false}"
+                          VerticalAlignment="Top" Checked="RepeatTrackLoopCheckbox_StateChanged" Unchecked="RepeatTrackLoopCheckbox_StateChanged"/>
+                <DockPanel ToolTip="Adjust Track Strength" ToolTipService.ShowDuration="2000" VerticalAlignment="Top" Margin="0,60,0,0"
+                           IsEnabled="{Binding ElementName=RepeatTrackEnableCheckbox, Path=IsChecked, TargetNullValue=false}">
+                    <TextBox DockPanel.Dock="Right" Width="50" FontSize="16" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                         Background="#FFCCFFD0" Text="{Binding ElementName=TrackRatioSlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat=N2}"/>
+                    <Slider Maximum="1.0" Minimum="0.0" x:Name="TrackRatioSlider" TickFrequency="0.01" Value="0.0"
+                        TickPlacement="None" IsSnapToTickEnabled="True" ValueChanged="TrackRatioSlider_PropertyChange"/>
+                </DockPanel>
+                <Button x:Name="SelectFileButton" Content="Select File" Margin="0,90,0,0" Cursor="Hand" HorizontalAlignment="Center"
+                        IsEnabled="{Binding ElementName=RepeatTrackEnableCheckbox, Path=IsChecked, TargetNullValue=false}"
+                        Background="#FFEFFFA8" Click="SelectFileButton_Click" Width="300" ToolTip="Select Track File" ToolTipService.ShowDuration="2000"/>
+            </Grid>
+        </Expander>
     </Grid>
 </Window>

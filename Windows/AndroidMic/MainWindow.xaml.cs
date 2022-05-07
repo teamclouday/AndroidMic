@@ -67,6 +67,8 @@ namespace AndroidMic
             // create system tray icon
             notifyIcon = new System.Windows.Forms.NotifyIcon();
             SetupNotificationIcon();
+            // set to top most
+            Topmost = true;
         }
 
         private void SetupNotificationIcon()

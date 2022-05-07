@@ -17,14 +17,16 @@ namespace AndroidMic.Audio
     // supported filters
     public enum AdvancedFilterType
     {
-        FPitchShifter = 0
+        FPitchShifter = 0,
+        FWhiteNoise = 1,
+        FRepeatTrack = 2
     }
 
     public class AudioManager
     {
         private readonly string TAG = "AudioManager";
         private readonly int MAX_WAIT_TIME = 1000;
-        private readonly int MAX_FILTERS_COUNT = 1;
+        private readonly int MAX_FILTERS_COUNT = 3;
 
         private WaveOutCapabilities[] devices;
         private int selectedDeviceIdx;
@@ -34,7 +36,7 @@ namespace AndroidMic.Audio
         private readonly WaveFormat format;
 
         private readonly BufferedWaveProvider bufferedProvider;
-        private readonly FilterRenderer rendererProvider;
+        private FilterRenderer rendererProvider;
         private VolumeSampleProvider volumeProvider;
         private readonly ISampleProvider[] providerPipeline;
         private readonly Dictionary<AdvancedFilterType, bool> providerPipelineStates;
@@ -65,7 +67,6 @@ namespace AndroidMic.Audio
             {
                 DiscardOnBufferOverflow = true
             };
-            rendererProvider = new FilterRenderer(bufferedProvider.ToSampleProvider());
             // build filter pipeline
             BuildPipeline();
             processAllowed = true;
@@ -165,7 +166,7 @@ namespace AndroidMic.Audio
                 NumberOfBuffers = playerNumberOfBuffers
             };
             bufferedProvider.ClearBuffer();
-            ISampleProvider source = rendererProvider;
+            ISampleProvider source = bufferedProvider.ToSampleProvider();
             for (int i = 0; i < MAX_FILTERS_COUNT; i++)
             {
                 AdvancedFilterType type = (AdvancedFilterType)i;
@@ -176,9 +177,16 @@ namespace AndroidMic.Audio
                     case AdvancedFilterType.FPitchShifter:
                         source = providerPipeline[i] = new FilterPitchShifter(source, providerPipeline[i] as FilterPitchShifter);
                         break;
+                    case AdvancedFilterType.FWhiteNoise:
+                        source = providerPipeline[i] = new FilterWhiteNoise(source, providerPipeline[i] as FilterWhiteNoise);
+                        break;
+                    case AdvancedFilterType.FRepeatTrack:
+                        source = providerPipeline[i] = new FilterRepeatTrack(source, providerPipeline[i] as FilterRepeatTrack);
+                        break;
                 }
             }
-            volumeProvider = new VolumeSampleProvider(source)
+            rendererProvider = new FilterRenderer(source, prev: rendererProvider);
+            volumeProvider = new VolumeSampleProvider(rendererProvider)
             {
                 Volume = volumeProvider == null ? 1.0f : volumeProvider.Volume
             };
@@ -218,12 +226,73 @@ namespace AndroidMic.Audio
                         }
                     }
                     break;
+                case AdvancedFilterType.FWhiteNoise:
+                    {
+                        FilterWhiteNoise.ConfigTypes configType = (FilterWhiteNoise.ConfigTypes)config;
+                        FilterWhiteNoise filter = providerPipeline[(int)type] as FilterWhiteNoise;
+                        switch(configType)
+                        {
+                            case FilterWhiteNoise.ConfigTypes.ConfigStrength:
+                                if (set && filter != null)
+                                {
+                                    filter.Strength = value;
+                                }
+                                else
+                                {
+                                    value = filter == null ? 0.0f : filter.Strength;
+                                }
+                                break;
+                        }
+                    }
+                    break;
+                case AdvancedFilterType.FRepeatTrack:
+                    {
+                        FilterRepeatTrack.ConfigTypes configType = (FilterRepeatTrack.ConfigTypes)config;
+                        FilterRepeatTrack filter = providerPipeline[(int)type] as FilterRepeatTrack;
+                        switch (configType)
+                        {
+                            case FilterRepeatTrack.ConfigTypes.ConfigStrength:
+                                if (set && filter != null)
+                                {
+                                    filter.Strength = value;
+                                }
+                                else
+                                {
+                                    value = filter == null ? 0.0f : filter.Strength;
+                                }
+                                break;
+                            case FilterRepeatTrack.ConfigTypes.ConfigRepeat:
+                                if(set && filter != null)
+                                {
+                                    filter.Repeat = value == 1.0f;
+                                }
+                                else
+                                {
+                                    value = filter == null ? 0.0f : (filter.Repeat ? 1.0f : 0.0f);
+                                }
+                                break;
+                            case FilterRepeatTrack.ConfigTypes.ConfigSelectFile:
+                                string openedFileName = filter.SelectFile();
+                                if(openedFileName.Length <= 0)
+                                {
+                                    AddLog("Failed to load track file!");
+                                }
+                                else
+                                {
+                                    AddLog("Selected track file: " + openedFileName);
+                                }
+                                break;
+                        }
+                    }
+                    break;
             }
         }
 
         public bool IsEnabled(AdvancedFilterType type) => providerPipelineStates[type];
 
         public void ApplyToCanvas(Canvas c) => rendererProvider.ApplyToCanvas(c);
+
+
 
         // add log message to main window
         private void AddLog(string message)
