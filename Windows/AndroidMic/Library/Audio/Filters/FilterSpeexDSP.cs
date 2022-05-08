@@ -4,6 +4,7 @@ using System.Windows.Media;
 using System.Windows.Shapes;
 using System.Runtime.InteropServices;
 using NAudio.Wave;
+using NAudio.Utils;
 using libspeexdsp;
 
 namespace AndroidMic.Audio
@@ -20,16 +21,24 @@ namespace AndroidMic.Audio
             ConfigVAD = 3
         }
 
-        private readonly int FRAME_SIZE = 1600; // 0.1 * 16000
-        private readonly int FILTER_LEN = 12800; // or 100
+        private readonly int FRAME_SIZE = 640; // 40ms (0.04 * 16000)
+        private readonly int FRAME_SIZE_BYTES = 640 * 2; // in bytes
+        private readonly int FILTER_LEN = 512; // or 100
 
         // configs specifically chosen for this app
         private readonly int VAD_PROB_START = 85;
         private readonly int VAD_PROB_CONTINUE = 70;
+        private readonly int ECHO_SUPPRESS = -60; // in dB
+        private readonly int ECHO_SUPPRESS_ACTIVE = -60; // in dB
+        private readonly int NOISE_SUPPRESS = -25; // in dB
+        private readonly int AGC_LEVEL = 24000;
 
         private readonly short[] audioBuffer;
-        private readonly short[] echoPlayBuffer;
-        private readonly short[] echoOutBuffer;
+        //private readonly short[] echoPlayBuffer;
+        //private readonly short[] echoOutBuffer;
+        //private readonly byte[] echoPlayerCircBufferSource;
+        //private readonly CircularBuffer echoPlayerCircBuffer;
+        //private bool enableCircBuffer;
 
         private readonly IWaveProvider source;
         private Ellipse indicator;
@@ -44,8 +53,11 @@ namespace AndroidMic.Audio
         {
             this.source = source;
             audioBuffer = new short[FRAME_SIZE];
-            echoPlayBuffer = new short[FRAME_SIZE];
-            echoOutBuffer = new short[FRAME_SIZE];
+            //echoPlayBuffer = new short[FRAME_SIZE];
+            //echoOutBuffer = new short[FRAME_SIZE];
+            //echoPlayerCircBufferSource = new byte[FRAME_SIZE_B];
+            //echoPlayerCircBuffer = new CircularBuffer(WaveFormat.AverageBytesPerSecond * 5);
+            //enableCircBuffer = false;
             SpeexPreprocessState = SpeexPreprocess.speex_preprocess_state_init(FRAME_SIZE, WaveFormat.SampleRate);
             SpeexEchoState = SpeexEcho.speex_echo_state_init(FRAME_SIZE, FILTER_LEN);
             StateUpdate = Marshal.AllocHGlobal(sizeof(int));
@@ -64,24 +76,26 @@ namespace AndroidMic.Audio
             int samplesRead = source.Read(buffer, offset, sampleCount);
             // skip if no filters are enabled
             if (!(EnabledDenoise || EnabledAGC || EnabledEcho || EnabledVAD)) return samplesRead;
-            int toRead = samplesRead;
+            // else do audio processing
+            int toRead = samplesRead; // in bytes
             while(toRead > 0)
             {
                 // copy buffer
-                int nextRead = Math.Min(toRead, FRAME_SIZE);
+                int nextRead = Math.Min(toRead, FRAME_SIZE_BYTES); // in bytes
                 Buffer.BlockCopy(buffer, offset, audioBuffer, 0, nextRead);
-                toRead -= nextRead;
+                // clear audio buffer remaining shorts (bytes / 2)
+                if (nextRead < FRAME_SIZE_BYTES) Array.Clear(audioBuffer, nextRead / 2, (FRAME_SIZE_BYTES - nextRead) / 2);
                 // process audio
-                if (EnabledEcho)
-                {
-                    SpeexEcho.speex_echo_cancellation(SpeexEchoState, audioBuffer, echoPlayBuffer, echoOutBuffer);
-                    Buffer.BlockCopy(echoOutBuffer, 0, audioBuffer, 0, nextRead);
-                }
                 InSpeech = SpeexPreprocess.speex_preprocess_run(SpeexPreprocessState, audioBuffer) == 1;
                 // copy back
                 Buffer.BlockCopy(audioBuffer, 0, buffer, offset, nextRead);
+                // update samples to read
+                toRead -= nextRead;
+                offset += nextRead;
             }
+            // check if VAD enabled
             InSpeech = InSpeech && EnabledVAD;
+            // update indicator
             Application.Current.Dispatcher.Invoke(new Action(() =>
             {
                 UpdateIndicator();
@@ -129,6 +143,14 @@ namespace AndroidMic.Audio
                     SpeexPreprocess.speex_preprocess_ctl(
                         SpeexPreprocessState, SpeexPreprocess.SPEEX_PREPROCESS_SET_DENOISE,
                         StateUpdate);
+                    if(_EnabledDenoise)
+                    {
+                        // Set maximum attenuation of the noise in dB (negative number)
+                        Marshal.WriteInt32(StateUpdate, NOISE_SUPPRESS);
+                        SpeexPreprocess.speex_preprocess_ctl(
+                            SpeexPreprocessState, SpeexPreprocess.SPEEX_PREPROCESS_SET_NOISE_SUPPRESS,
+                            StateUpdate);
+                    }
                 }
             }
         }
@@ -150,6 +172,14 @@ namespace AndroidMic.Audio
                     SpeexPreprocess.speex_preprocess_ctl(
                         SpeexPreprocessState, SpeexPreprocess.SPEEX_PREPROCESS_SET_AGC,
                         StateUpdate);
+                    if(_EnabledAGC)
+                    {
+                        // Set preprocessor Automatic Gain Control level
+                        Marshal.WriteInt32(StateUpdate, AGC_LEVEL);
+                        SpeexPreprocess.speex_preprocess_ctl(
+                            SpeexPreprocessState, SpeexPreprocess.SPEEX_PREPROCESS_SET_AGC_TARGET,
+                            StateUpdate);
+                    }
                 }
             }
         }
@@ -173,11 +203,12 @@ namespace AndroidMic.Audio
                         StateUpdate);
                     if(_EnabledVAD)
                     {
-                        // config VAD probs
+                        // Set probability required for the VAD to go from silence to voice
                         Marshal.WriteInt32(StateUpdate, VAD_PROB_START);
                         SpeexPreprocess.speex_preprocess_ctl(
                             SpeexPreprocessState, SpeexPreprocess.SPEEX_PREPROCESS_SET_PROB_START,
                             StateUpdate);
+                        // Set probability required for the VAD to stay in the voice state (integer percent)
                         Marshal.WriteInt32(StateUpdate, VAD_PROB_CONTINUE);
                         SpeexPreprocess.speex_preprocess_ctl(
                             SpeexPreprocessState, SpeexPreprocess.SPEEX_PREPROCESS_SET_PROB_CONTINUE,
@@ -204,6 +235,17 @@ namespace AndroidMic.Audio
                     SpeexPreprocess.speex_preprocess_ctl(
                         SpeexPreprocessState, SpeexPreprocess.SPEEX_PREPROCESS_SET_ECHO_STATE,
                         _EnabledEcho ? SpeexEchoState : IntPtr.Zero);
+                    if(_EnabledEcho)
+                    {
+                        Marshal.WriteInt32(StateUpdate, ECHO_SUPPRESS);
+                        SpeexPreprocess.speex_preprocess_ctl(
+                            SpeexPreprocessState, SpeexPreprocess.SPEEX_PREPROCESS_SET_ECHO_SUPPRESS,
+                            StateUpdate);
+                        Marshal.WriteInt32(StateUpdate, ECHO_SUPPRESS_ACTIVE);
+                        SpeexPreprocess.speex_preprocess_ctl(
+                            SpeexPreprocessState, SpeexPreprocess.SPEEX_PREPROCESS_SET_ECHO_SUPPRESS_ACTIVE,
+                            StateUpdate);
+                    }
                 }
             }
         }

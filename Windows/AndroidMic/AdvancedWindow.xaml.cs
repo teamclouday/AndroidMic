@@ -198,5 +198,16 @@ namespace AndroidMic
                 audioM?.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigVAD, ref enabled, true);
             }
         }
+
+        // echo cancellation enable state changed
+        private void EchoCancelEnableCheckbox_StateChanged(object sender, RoutedEventArgs e)
+        {
+            CheckBox checkBox = sender as CheckBox;
+            if (checkBox != null)
+            {
+                bool enabled = checkBox.IsChecked == true;
+                audioM?.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigEcho, ref enabled, true);
+            }
+        }
     }
 }

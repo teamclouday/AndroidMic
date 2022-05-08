@@ -104,7 +104,7 @@ __SpeexDSP Filters__:
   - [x] Pitch Shifter  
   - [x] Add White Noise  
   - [x] Repeated Background Track  
-  - [ ] SpeexDSP Noise Cancellation  
+  - [x] SpeexDSP Noise Cancellation  
   - [x] SpeexDSP Automatic Gain Control  
   - [x] SpeexDSP Voice Activity Detection  
   - [ ] SpeexDSP Residual Echo Cancellation  
