@@ -60,5 +60,19 @@
                         Background="#FFEFFFA8" Click="SelectFileButton_Click" Width="300" ToolTip="Select Track File" ToolTipService.ShowDuration="2000"/>
             </Grid>
         </Expander>
+        <CheckBox Content="Noise Cancellation" VerticalContentAlignment="Center" x:Name="NoiseCancelEnableCheckbox"
+                  FontSize="20" FontFamily="Comic Sans MS" VerticalAlignment="Bottom" Width="300"
+                  Checked="NoiseCancelEnableCheckbox_StateChanged" Unchecked="NoiseCancelEnableCheckbox_StateChanged" Margin="0,0,0,250"/>
+        <CheckBox Content="Automic Gain Control" VerticalContentAlignment="Center" x:Name="AutomicGainEnableCheckbox"
+                  FontSize="20" FontFamily="Comic Sans MS" VerticalAlignment="Bottom" Width="300"
+                  Checked="AutomicGainEnableCheckbox_StateChanged" Unchecked="AutomicGainEnableCheckbox_StateChanged" Margin="0,0,0,210"/>
+        <CheckBox Content="Voice Activity Detector" VerticalContentAlignment="Center" x:Name="VADEnableCheckbox"
+                  FontSize="20" FontFamily="Comic Sans MS" VerticalAlignment="Bottom" Width="300"
+                  Checked="VADEnableCheckbox_StateChanged" Unchecked="VADEnableCheckbox_StateChanged" Margin="0,0,0,170"/>
+
+        <Canvas Height="50" Width="50" VerticalAlignment="Bottom" Margin="0,0,0,50"
+                IsEnabled="{Binding ElementName=VADEnableCheckbox, Path=IsChecked, TargetNullValue=false}">
+            <Ellipse Width="50" Height="50" Fill="#94fffa" x:Name="SpeechIndicator"/>
+        </Canvas>
     </Grid>
 </Window>

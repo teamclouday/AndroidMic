@@ -7,7 +7,7 @@ using NAudio.Wave.SampleProviders;
 
 namespace AndroidMic.Audio
 {
-    class FilterRepeatTrack : ISampleProvider, IDisposable
+    public class FilterRepeatTrack : ISampleProvider, IDisposable
     {
         public enum ConfigTypes
         {
@@ -31,7 +31,10 @@ namespace AndroidMic.Audio
             {
                 Strength = prev.Strength;
                 Repeat = prev.Repeat;
-                prev.Dispose();
+                reader = prev.reader;
+                resampler = prev.resampler;
+                // do not dispose
+                //prev.Dispose();
             }
         }
 

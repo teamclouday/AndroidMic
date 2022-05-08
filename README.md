@@ -82,9 +82,12 @@ __White Noise__:
 * Slider controls the noise strength  
 
 __Repeat Track__:  
-* check `Repeat` to enable looped audio track  
+* Check `Repeat` to enable looped audio track  
 * Slider controls audio track volume strength  
 * `Select File` to select an audio file to play  
+
+__SpeexDSP Filters__:  
+* Check corresponding filters to enable/disable   
 
 </details>
 
@@ -101,6 +104,10 @@ __Repeat Track__:
   - [x] Pitch Shifter  
   - [x] Add White Noise  
   - [x] Repeated Background Track  
+  - [ ] SpeexDSP Noise Cancellation  
+  - [x] SpeexDSP Automatic Gain Control  
+  - [x] SpeexDSP Voice Activity Detection  
+  - [ ] SpeexDSP Residual Echo Cancellation  
   - [ ] To be continued  
 
 Check out [Avalonia](https://github.com/AvaloniaUI/Avalonia)! With this it may be possible to port all Windows code to .Net Core that can be compiled to support Linux/MacOS!

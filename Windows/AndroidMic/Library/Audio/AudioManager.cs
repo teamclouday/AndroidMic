@@ -2,6 +2,7 @@
 using System.Threading;
 using System.Diagnostics;
 using System.Collections.Generic;
+using System.Windows.Shapes;
 using System.Windows.Controls;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
@@ -38,6 +39,7 @@ namespace AndroidMic.Audio
         private readonly WaveFormat format;
 
         private readonly BufferedWaveProvider bufferedProvider;
+        private readonly FilterSpeexDSP speexProvider;
         private FilterRenderer rendererProvider;
         private VolumeSampleProvider volumeProvider;
         private readonly ISampleProvider[] providerPipeline;
@@ -69,6 +71,7 @@ namespace AndroidMic.Audio
             {
                 DiscardOnBufferOverflow = true
             };
+            speexProvider = new FilterSpeexDSP(bufferedProvider);
             // build filter pipeline
             BuildPipeline();
             processAllowed = true;
@@ -87,6 +90,12 @@ namespace AndroidMic.Audio
                 processThread.Join(MAX_WAIT_TIME);
             }
             player.Dispose();
+            speexProvider.Dispose();
+            for (int i = 0; i < MAX_FILTERS_COUNT; i++)
+            {
+                var filter = providerPipeline[i] as IDisposable;
+                if (filter != null) filter.Dispose();
+            }
             DebugLog("Shutdown");
         }
 
@@ -168,7 +177,7 @@ namespace AndroidMic.Audio
                 NumberOfBuffers = playerNumberOfBuffers
             };
             bufferedProvider.ClearBuffer();
-            ISampleProvider source = bufferedProvider.ToSampleProvider();
+            ISampleProvider source = speexProvider.ToSampleProvider();
             for (int i = 0; i < MAX_FILTERS_COUNT; i++)
             {
                 AdvancedFilterType type = (AdvancedFilterType)i;
@@ -194,6 +203,37 @@ namespace AndroidMic.Audio
             };
             player.Init(volumeProvider);
             player.Play();
+        }
+
+        public void ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes config, ref bool enabled, bool set)
+        {
+            switch (config)
+            {
+                case FilterSpeexDSP.ConfigTypes.ConfigDenoise:
+                    if (set)
+                        speexProvider.EnabledDenoise = enabled;
+                    else
+                        enabled = speexProvider.EnabledDenoise;
+                    break;
+                case FilterSpeexDSP.ConfigTypes.ConfigAGC:
+                    if (set)
+                        speexProvider.EnabledAGC = enabled;
+                    else
+                        enabled = speexProvider.EnabledAGC;
+                    break;
+                case FilterSpeexDSP.ConfigTypes.ConfigVAD:
+                    if (set)
+                        speexProvider.EnabledVAD = enabled;
+                    else
+                        enabled = speexProvider.EnabledVAD;
+                    break;
+                case FilterSpeexDSP.ConfigTypes.ConfigEcho:
+                    if (set)
+                        speexProvider.EnabledEcho = enabled;
+                    else
+                        enabled = speexProvider.EnabledEcho;
+                    break;
+            }
         }
 
         // update a filter state
@@ -266,7 +306,7 @@ namespace AndroidMic.Audio
                             case FilterRepeatTrack.ConfigTypes.ConfigRepeat:
                                 if(set && filter != null)
                                 {
-                                    filter.Repeat = value == 1.0f;
+                                    filter.Repeat = value != 0.0f;
                                 }
                                 else
                                 {
@@ -294,6 +334,7 @@ namespace AndroidMic.Audio
 
         public void ApplyToCanvas(Canvas c) => rendererProvider.ApplyToCanvas(c);
 
+        public void SetIndicator(Ellipse e) => speexProvider.SetIndicator(e);
 
 
         // add log message to main window

@@ -38,6 +38,15 @@ namespace AndroidMic
             TrackRatioSlider.Value = val;
             audioM.PipelineFilterConfig(AdvancedFilterType.FRepeatTrack, (int)FilterRepeatTrack.ConfigTypes.ConfigRepeat, ref val, false);
             RepeatTrackLoopCheckbox.IsChecked = val == 1.0f;
+            // init speex states
+            audioM.SetIndicator(SpeechIndicator);
+            bool valB = false;
+            audioM.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigDenoise, ref valB, false);
+            NoiseCancelEnableCheckbox.IsChecked = valB;
+            audioM.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigAGC, ref valB, false);
+            AutomicGainEnableCheckbox.IsChecked = valB;
+            audioM.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigVAD, ref valB, false);
+            VADEnableCheckbox.IsChecked = valB;
         }
 
         // pitch slider change callback
@@ -155,6 +164,39 @@ namespace AndroidMic
                 Expander2.IsExpanded = false;
             if (!exception.Equals(Expander3))
                 Expander3.IsExpanded = false;
+        }
+
+        // noise cancelling enable state changed
+        private void NoiseCancelEnableCheckbox_StateChanged(object sender, RoutedEventArgs e)
+        {
+            CheckBox checkBox = sender as CheckBox;
+            if (checkBox != null)
+            {
+                bool enabled = checkBox.IsChecked == true;
+                audioM?.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigDenoise, ref enabled, true);
+            }
+        }
+
+        // AGC enable state changed
+        private void AutomicGainEnableCheckbox_StateChanged(object sender, RoutedEventArgs e)
+        {
+            CheckBox checkBox = sender as CheckBox;
+            if (checkBox != null)
+            {
+                bool enabled = checkBox.IsChecked == true;
+                audioM?.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigAGC, ref enabled, true);
+            }
+        }
+
+        // VAD enable state changed
+        private void VADEnableCheckbox_StateChanged(object sender, RoutedEventArgs e)
+        {
+            CheckBox checkBox = sender as CheckBox;
+            if (checkBox != null)
+            {
+                bool enabled = checkBox.IsChecked == true;
+                audioM?.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigVAD, ref enabled, true);
+            }
         }
     }
 }

@@ -5,7 +5,7 @@ namespace AndroidMic.Audio
 {
     // add white noise to audio stream
 
-    class FilterWhiteNoise : ISampleProvider
+    public class FilterWhiteNoise : ISampleProvider
     {
         public enum ConfigTypes
         {
