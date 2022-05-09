@@ -177,6 +177,7 @@ class ForegroundService : Service() {
                 while(!states.streamShouldStop.get() && !states.isIPInfoSet.get())
                     delay(WAIT_PERIOD)
             }
+            sharedBuffer.reset()
             showMessage("Starting streaming")
             if(managerStream?.start() == true && managerStream?.isConnected() == true)
             {

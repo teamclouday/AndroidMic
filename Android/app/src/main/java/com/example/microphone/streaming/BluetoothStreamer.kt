@@ -97,7 +97,7 @@ class BluetoothStreamer(private val ctx : Context) : Streamer {
         try {
             val streamOut = socket!!.outputStream
             streamOut.write(data)
-            streamOut.flush()
+            // streamOut.flush()
         } catch (e : IOException)
         {
             Log.d(TAG, "stream: ${e.message}")
