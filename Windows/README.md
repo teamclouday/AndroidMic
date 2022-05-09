@@ -38,14 +38,15 @@ Built with WPF
 
 I once thought TCP delays audio data transfer. So I went to look at RTSP as alternative. Turns out it uses TCP for control and UDP/TCP to transfer data. RTSP is mainly used to stream video (with audio) data. TCP is still fast enough for audio data. No stream control required in my app, so RTSP is not necessary. BTW, UDP transfer is not easy to implement without a sequential order manager.
 
-### Buffers
+### Latency  
 
-A lot of buffers used in one audio pass:  
-1. Android `AudioRecord` will first store audio data in a buffer  
-2. Then recorded data will be copied to `AudioBuffer` by audio manager, which will be read by stream manager  
-3. Stream manager reads and sends to Windows side. Windows stream manager receives and stores in `AudioBuffer`, which will be read by audio manager  
-4. Audio manager has a `BufferedWaveProvider` layer for `NAudio` player, which will also store cached audio data  
+By test, audio via bluetooth socket has much __higher latency__ than TCP socket through Wifi on my machine, even though the code is very similar.  
+VB Cable can be configured to minimum latency, but still slower than physical devices.  
+Android `AudioRecord` also has latency for recording. Can look into [Oboe](https://github.com/google/oboe) to replace `AudioRecord` to improve.  
 
-The size and implementation of these buffers affect the latency of audio transfer. Two `AudioBuffer`s can be configured. I set max number of buffers to `3`. (Can also try 2 but it may drop audio too frequently) For `NAudio` wave out player, I set desired latency to `50`, number of buffers to `3`. A combination of (50,2) will cause choppy audio.
 
-Assume Android `AudioRecord` has optimum performance. Audio format is `16000` sample rate, `16` bits (2 bytes) data, `1` channel, PCM. Expect to have 16000x2x1=`32000` bytes generated from Android app per second. Bluetooth is able to transfer at least 1Mbps. Wifi will be much faster (up to 2 Gbps). TCP header can be up to 60 bytes per packet. So sockets are not expected to cause delay.
+### SpeexDSP and Audio Processing  
+
+This projects integrates [SpeexDSP](https://gitlab.xiph.org/xiph/speexdsp) library to support echo cancellation, noise suppression, automatic gain control and voice activity detection. The library dll provided in this project is compiled locally from the [latest source code](https://gitlab.xiph.org/xiph/speexdsp/-/commit/68311d46785be76d2a186c75578d51108bff6dfb) for x86. Then I wrote a C# binding for the library to call the functions in header files.  
+It is tricky to configure SpeexDSP filter, especially for echo cancellation. I looked at a lot of open source projects to learn their parameters. I tweaked and tested those parameters to better fit my app. For echo cancellation, a player buffer is required, which should be the samples sent to the speaker. I use NAudio provider which calls WASAPI internally to record the PC soundcard output.  
+Alternative for audio processing is [WebRTC](https://webrtc.org/). It is huge library in comparison, so I didn't include it in the end.  

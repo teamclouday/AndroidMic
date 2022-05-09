@@ -6,7 +6,7 @@ import kotlinx.coroutines.sync.withLock
 class AudioBuffer
 {
     // set buffer size for latency
-    private val BUFFER_SIZE = 2
+    private val BUFFER_SIZE = 3
     // actual buffer of byte arrays (FIFO with queue)
     private val buffer = ArrayDeque<ByteArray>()
     // mutex for coroutines

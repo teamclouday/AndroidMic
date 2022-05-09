@@ -66,7 +66,7 @@
         <CheckBox Content="Noise Cancellation" VerticalContentAlignment="Center" x:Name="NoiseCancelEnableCheckbox"
                   FontSize="20" FontFamily="Comic Sans MS" VerticalAlignment="Bottom" Width="300"
                   Checked="NoiseCancelEnableCheckbox_StateChanged" Unchecked="NoiseCancelEnableCheckbox_StateChanged" Margin="0,0,0,170"/>
-        <CheckBox Content="Automic Gain Control" VerticalContentAlignment="Center" x:Name="AutomicGainEnableCheckbox"
+        <CheckBox Content="Automatic Gain Control" VerticalContentAlignment="Center" x:Name="AutomicGainEnableCheckbox"
                   FontSize="20" FontFamily="Comic Sans MS" VerticalAlignment="Bottom" Width="300"
                   Checked="AutomicGainEnableCheckbox_StateChanged" Unchecked="AutomicGainEnableCheckbox_StateChanged" Margin="0,0,0,130"/>
         <CheckBox Content="Voice Activity Detector" VerticalContentAlignment="Center" x:Name="VADEnableCheckbox"

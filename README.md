@@ -29,7 +29,11 @@ Use your Android phone as a microphone to Windows PC
 6. For microphone, click `Properties` and set following:  
    <img src="Assets/sound_config5.png" width="300" alt="sound config5">
 
-On my machine, this setup has the lowest delay and best sound quality. VB is not optimized as hardware devices, so these configurations are important for audio.
+On my machine, this setup has the lowest delay and best sound quality.  
+Can further improve audio latency by opening `VBCABLE_ControlPanel.exe` (from downloaded folder of VB) and set `Max Latency` in Options to 2048 smp:  
+<img src="Assets/sound_config6.png" width="600" alt="sound config6">
+
+Do not set to 512 smp since that will cause most buffers lost. If 2048 has no sound or bad quality, consider a higher smp.
 
 </details>
 
@@ -106,7 +110,7 @@ __SpeexDSP Filters__:
 - [ ] Audio effect filters (Not yet released)  
   - [x] Pitch Shifter  
   - [x] Add White Noise  
-  - [x] Repeated Background Track  
+  - [x] Repeated Background Audio  
   - [x] SpeexDSP Noise Cancellation  
   - [x] SpeexDSP Automatic Gain Control  
   - [x] SpeexDSP Voice Activity Detection  
@@ -121,18 +125,18 @@ Check out [Avalonia](https://github.com/AvaloniaUI/Avalonia)! With this it may b
 
 Pre-built installers can be found [here](https://github.com/teamclouday/AndroidMic/releases)  
 
-
 ------
 
 ## Windows Side
 
-<img src="Assets/p1.png" width="500" alt="Windows Side">
+<p float="left">
+<img src="Assets/p1.png" width="510" alt="Windows Side">
+<img src="Assets/p4.png" width="250" alt="Windows Side">
+</p>
 
-## Android Side (Portrait)
+## Android Side
 
-<img src="Assets/p2.jpg" width="250" alt="Android Side">
-
-## Android Side (Landscape)
+<img src="Assets/p2.jpg" width="250" alt="Android Side">  
 
 <img src="Assets/p3.jpg" width="500" alt="Android Side">
 

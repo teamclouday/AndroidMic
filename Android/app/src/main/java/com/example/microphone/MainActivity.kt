@@ -91,6 +91,12 @@ class MainActivity : AppCompatActivity()
         // check for audio permission
         if(ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED)
             ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.RECORD_AUDIO), 0)
+        if(ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH) != PackageManager.PERMISSION_GRANTED)
+            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.BLUETOOTH), 0)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if(ContextCompat.checkSelfPermission(this, Manifest.permission.BLUETOOTH_CONNECT) != PackageManager.PERMISSION_GRANTED)
+                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.BLUETOOTH_CONNECT), 0)
+        }
         // start handler thread
         handlerThread = HandlerThread("MicActivityStart", Process.THREAD_PRIORITY_BACKGROUND)
         handlerThread.start()

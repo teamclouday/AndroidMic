@@ -52,6 +52,7 @@ namespace AndroidMic.Audio
         private Ellipse indicator;
         private readonly Brush indicatorOn;
         private readonly Brush indicatorOff;
+        private bool indicatorInSpeech;
 
         private readonly IntPtr SpeexPreprocessState;
         private readonly IntPtr SpeexEchoState;
@@ -112,7 +113,7 @@ namespace AndroidMic.Audio
                     Buffer.BlockCopy(echoOutBuffer, 0, audioBuffer, 0, nextRead);
                 }
                 // process audio
-                InSpeech = SpeexPreprocess.speex_preprocess_run(SpeexPreprocessState, audioBuffer) == 1;
+                indicatorInSpeech = SpeexPreprocess.speex_preprocess_run(SpeexPreprocessState, audioBuffer) == 1;
                 // copy back
                 Buffer.BlockCopy(audioBuffer, 0, buffer, offset, nextRead);
                 // update samples to read
@@ -120,7 +121,7 @@ namespace AndroidMic.Audio
                 offset += nextRead;
             }
             // check if VAD enabled
-            InSpeech = InSpeech && EnabledVAD;
+            indicatorInSpeech = indicatorInSpeech && EnabledVAD;
             // update indicator
             Application.Current.Dispatcher.Invoke(new Action(() =>
             {
@@ -148,7 +149,7 @@ namespace AndroidMic.Audio
         private void UpdateIndicator()
         {
             if (indicator == null) return;
-            indicator.Fill = InSpeech ? indicatorOn : indicatorOff;
+            indicator.Fill = indicatorInSpeech ? indicatorOn : indicatorOff;
         }
 
         // start PC speaker capture
@@ -296,6 +297,15 @@ namespace AndroidMic.Audio
                         SpeexPreprocessState, SpeexPreprocess.SPEEX_PREPROCESS_SET_PROB_CONTINUE,
                         StateUpdate);
                 }
+                else
+                {
+                    indicatorInSpeech = false;
+                    // update indicator
+                    Application.Current.Dispatcher.Invoke(new Action(() =>
+                    {
+                        UpdateIndicator();
+                    }));
+                }
             }
         }
 
@@ -337,7 +347,5 @@ namespace AndroidMic.Audio
                 else StopCapture();
             }
         }
-
-        public bool InSpeech { get; private set; }
     }
 }

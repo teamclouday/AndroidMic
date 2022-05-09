@@ -1,15 +1,13 @@
 package com.example.microphone.streaming
 
 import android.Manifest
-import android.bluetooth.BluetoothAdapter
-import android.bluetooth.BluetoothClass
-import android.bluetooth.BluetoothDevice
-import android.bluetooth.BluetoothSocket
+import android.bluetooth.*
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.example.microphone.audio.AudioBuffer
@@ -26,7 +24,7 @@ class BluetoothStreamer(private val ctx : Context) : Streamer {
     private val myUUID : UUID = UUID.fromString("34335e34-bccf-11eb-8529-0242ac130003")
     private val MAX_WAIT_TIME = 1500L // timeout
 
-    private val adapter : BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
+    private val adapter : BluetoothAdapter
     private var target : BluetoothDevice? = null
     private var socket : BluetoothSocket? = null
 
@@ -51,11 +49,19 @@ class BluetoothStreamer(private val ctx : Context) : Streamer {
     // init everything
     init
     {
+        // get bluetooth adapter
+        val bm = ctx.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
+        adapter = bm.adapter
         // check bluetooth adapter
         require(adapter != null) {"Bluetooth adapter is not found"}
         // check permission
         require(ContextCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH) == PackageManager.PERMISSION_GRANTED){
             "Bluetooth is not permitted"
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            require(ContextCompat.checkSelfPermission(ctx, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED){
+                "Bluetooth is not permitted"
+            }
         }
         require(adapter.isEnabled){"Bluetooth adapter is not enabled"}
         // set target device
@@ -77,11 +83,19 @@ class BluetoothStreamer(private val ctx : Context) : Streamer {
         } catch (e : IOException) {
             Log.d(TAG, "connect [createInsecureRfcommSocketToServiceRecord]: ${e.message}")
             null
+        } catch (e : SecurityException)
+        {
+            Log.d(TAG, "connect [createInsecureRfcommSocketToServiceRecord]: ${e.message}")
+            null
         } ?: return false
         // connect to server
         try {
             socket?.connect()
         } catch (e : IOException){
+            Log.d(TAG, "connect [connect]: ${e.message}")
+            return false
+        } catch (e : SecurityException)
+        {
             Log.d(TAG, "connect [connect]: ${e.message}")
             return false
         }
@@ -136,22 +150,28 @@ class BluetoothStreamer(private val ctx : Context) : Streamer {
     private fun selectTargetDevice()
     {
         target = null
-        val pairedDevices = adapter?.bondedDevices ?: return
-        for(device in pairedDevices)
-        {
-            if(device.bluetoothClass.majorDeviceClass == BluetoothClass.Device.Major.COMPUTER)
+        try {
+            val pairedDevices = adapter.bondedDevices ?: return
+            for(device in pairedDevices)
             {
-                Log.d(TAG, "selectTargetDevice: testing ${device.name}")
-                if(testConnection(device))
+                if(device.bluetoothClass.majorDeviceClass == BluetoothClass.Device.Major.COMPUTER)
                 {
-                    target = device
-                    Log.d(TAG, "selectTargetDevice: ${device.name} is valid")
-                    break
+                    Log.d(TAG, "selectTargetDevice: testing ${device.name}")
+                    if(testConnection(device))
+                    {
+                        target = device
+                        Log.d(TAG, "selectTargetDevice: ${device.name} is valid")
+                        break
+                    }
+                    else
+                        Log.d(TAG, "selectTargetDevice: ${device.name} is invalid")
                 }
-                else
-                    Log.d(TAG, "selectTargetDevice: ${device.name} is invalid")
             }
+        } catch(e : SecurityException)
+        {
+            Log.d(TAG, "selectTargetDevice: ${e.message}")
         }
+
     }
 
     // test connection with a device
@@ -165,11 +185,19 @@ class BluetoothStreamer(private val ctx : Context) : Streamer {
         } catch (e : IOException) {
             Log.d(TAG, "testConnection [createInsecureRfcommSocketToServiceRecord]: ${e.message}")
             null
+        } catch (e : SecurityException)
+        {
+            Log.d(TAG, "testConnection [createInsecureRfcommSocketToServiceRecord]: ${e.message}")
+            null
         } ?: return false
         // try to connect
         try {
             socket.connect()
         } catch (e : IOException){
+            Log.d(TAG, "testConnection [connect]: ${e.message}")
+            return false
+        } catch (e : SecurityException)
+        {
             Log.d(TAG, "testConnection [connect]: ${e.message}")
             return false
         }
@@ -215,8 +243,15 @@ class BluetoothStreamer(private val ctx : Context) : Streamer {
     // get connected device information
     override fun getInfo() : String
     {
-        if(adapter == null || target == null || socket == null) return ""
-        return "[Device Name] ${target?.name}\n[Device Address] ${target?.address}"
+        if(target == null || socket == null) return ""
+        val deviceName = try {
+            target?.name
+        } catch (e : SecurityException)
+        {
+            Log.d(TAG, "getInfo: ${e.message}")
+            "null"
+        }
+        return "[Device Name] ${deviceName}\n[Device Address] ${target?.address}"
     }
 
     // return true if is connected for streaming

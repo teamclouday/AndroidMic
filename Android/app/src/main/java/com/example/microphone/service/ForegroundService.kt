@@ -379,7 +379,7 @@ class ForegroundService : Service() {
             val onTap = Intent(ctx, MainActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT)
             }
-            val pendingIntent = PendingIntent.getActivity(ctx, 0, onTap, 0)
+            val pendingIntent = PendingIntent.getActivity(ctx, 0, onTap, PendingIntent.FLAG_IMMUTABLE)
             val builder = NotificationCompat.Builder(ctx, "AndroidMic")
                 .setSmallIcon(R.drawable.icon)
                 .setContentTitle(getString(R.string.activity_name))
