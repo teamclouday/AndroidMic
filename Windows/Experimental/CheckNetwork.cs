@@ -5,7 +5,6 @@ using System.Net.NetworkInformation;
 
 namespace Experimental
 {
-
     partial class Program
     {
         static void listIPs()

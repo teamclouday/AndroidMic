@@ -118,13 +118,14 @@ namespace AndroidMic.Audio
         // select audio device by UI
         public void SelectAudioDevice(int deviceIdx)
         {
+            selectedDeviceIdx = deviceIdx;
             // stop playing
             player.Stop();
             player.Dispose();
             // create new player
             player = new WaveOut
             {
-                DeviceNumber = deviceIdx,
+                DeviceNumber = selectedDeviceIdx,
                 DesiredLatency = playerDesiredLatency,
                 NumberOfBuffers = playerNumberOfBuffers
             };
@@ -134,7 +135,6 @@ namespace AndroidMic.Audio
             player.Play();
             DebugLog("SelectAudioDevice: " + deviceIdx);
             AddLog("Device changed to " + ((deviceIdx < 0) ? "Default" : devices[deviceIdx].ProductName));
-            selectedDeviceIdx = deviceIdx;
             RefreshAudioDevices();
         }
 

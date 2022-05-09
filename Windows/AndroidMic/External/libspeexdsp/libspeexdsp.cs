@@ -57,6 +57,10 @@ namespace libspeexdsp
         [DllImport("libspeexdsp.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void speex_echo_cancellation(IntPtr st, short[] rec, short[] play, short[] outt);
 
+        // byte array version, as long as audio data is from 16 bit stream
+        [DllImport("libspeexdsp.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern void speex_echo_cancellation(IntPtr st, byte[] rec, byte[] play, byte[] outt);
+
         /** Perform echo cancellation using internal playback buffer, which is delayed by two frames
          * to account for the delay introduced by most soundcards (but it could be off!)
          * @param st Echo canceller state
@@ -140,6 +144,10 @@ namespace libspeexdsp
         */
         [DllImport("libspeexdsp.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int speex_preprocess_run(IntPtr st, short[] x);
+
+        // byte array version, as long as audio data is from 16 bit stream
+        [DllImport("libspeexdsp.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int speex_preprocess_run(IntPtr st, byte[] x);
 
         /** Update preprocessor state, but do not compute the output
          * @param st Preprocessor state

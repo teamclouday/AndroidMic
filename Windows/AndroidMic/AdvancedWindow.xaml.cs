@@ -47,6 +47,8 @@ namespace AndroidMic
             AutomicGainEnableCheckbox.IsChecked = valB;
             audioM.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigVAD, ref valB, false);
             VADEnableCheckbox.IsChecked = valB;
+            audioM.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigEcho, ref valB, false);
+            EchoCancelEnableCheckbox.IsChecked = valB;
         }
 
         // pitch slider change callback

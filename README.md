@@ -88,6 +88,9 @@ __Repeat Track__:
 
 __SpeexDSP Filters__:  
 * Check corresponding filters to enable/disable   
+* If Echo Cancellation does not work (your friend hears echo from your speaker)  
+  Try re-enable echo cancellation to restart cancellation state  
+  Echo Cancellation may take a while (5-10s) to optimize  
 
 </details>
 
@@ -99,7 +102,7 @@ __SpeexDSP Filters__:
 - [x] Volume control on Windows side  
 - [x] Audio visualization on Windows side  
 - [x] Show notification when mic is in use on Android side  
-- [ ] Implement Acoustic Echo Cancellation (AEC)  
+- [x] ~~Implement Acoustic Echo Cancellation (AEC)~~  
 - [ ] Audio effect filters (Not yet released)  
   - [x] Pitch Shifter  
   - [x] Add White Noise  
@@ -107,7 +110,7 @@ __SpeexDSP Filters__:
   - [x] SpeexDSP Noise Cancellation  
   - [x] SpeexDSP Automatic Gain Control  
   - [x] SpeexDSP Voice Activity Detection  
-  - [ ] SpeexDSP Residual Echo Cancellation  
+  - [x] SpeexDSP Echo Cancellation  
   - [ ] To be continued  
 
 Check out [Avalonia](https://github.com/AvaloniaUI/Avalonia)! With this it may be possible to port all Windows code to .Net Core that can be compiled to support Linux/MacOS!

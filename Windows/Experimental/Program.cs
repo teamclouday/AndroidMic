@@ -6,7 +6,7 @@ namespace Experimental
     {
         static void Main(string[] args)
         {
-            listIPs2();
+            CaptureSpeaker();
             Console.ReadKey();
         }
     }
