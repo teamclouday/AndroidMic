@@ -107,7 +107,7 @@ __SpeexDSP Filters__:
 - [x] Audio visualization on Windows side  
 - [x] Show notification when mic is in use on Android side  
 - [x] ~~Implement Acoustic Echo Cancellation (AEC)~~  
-- [ ] Audio effect filters (Not yet released)  
+- [x] Audio effect filters  
   - [x] Pitch Shifter  
   - [x] Add White Noise  
   - [x] Repeated Background Audio  
@@ -115,7 +115,6 @@ __SpeexDSP Filters__:
   - [x] SpeexDSP Automatic Gain Control  
   - [x] SpeexDSP Voice Activity Detection  
   - [x] SpeexDSP Echo Cancellation  
-  - [ ] To be continued  
 
 Check out [Avalonia](https://github.com/AvaloniaUI/Avalonia)! With this it may be possible to port all Windows code to .Net Core that can be compiled to support Linux/MacOS!
 
