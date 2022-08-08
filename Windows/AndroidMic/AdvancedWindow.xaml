@@ -9,7 +9,7 @@
     <Grid>
         <Label Content="Audio Filters" HorizontalAlignment="Center" Margin="0,50,0,0" FontWeight="Bold" FontFamily="Bahnschrift"
             VerticalAlignment="Top" Width="200" FontSize="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-        <Expander Header="Pitch Shifter" HorizontalAlignment="Center" VerticalAlignment="Top" Width="300" Margin="0,100,0,0" 
+        <Expander Header="Pitch Shifter" HorizontalAlignment="Center" VerticalAlignment="Top" Width="300" Margin="0,100,0,0"
                   FontSize="20" FontFamily="Comic Sans MS" Background="#FF93F0FF" Panel.ZIndex="0" x:Name="Expander1"
                   Expanded="Expander_Expanded" Collapsed="Expander_Collapsed">
             <Grid Background="#FFC0FFEB">

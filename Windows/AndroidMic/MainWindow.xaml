@@ -15,8 +15,7 @@
                     </TextBlock>
                 </ScrollViewer>
             </Border>
-            <!--<Image x:Name="WaveformImage" ClipToBounds="True" HorizontalAlignment="Center" VerticalAlignment="Bottom" Height="125" Margin="0,0,0,10" Width="350"/>-->
-            <Border HorizontalAlignment="Center" VerticalAlignment="Bottom" Width="340" Height="100" Background="Black" Margin="0,0,0,10" CornerRadius="10" 
+            <Border HorizontalAlignment="Center" VerticalAlignment="Bottom" Width="340" Height="100" Background="Black" Margin="0,0,0,10" CornerRadius="10"
                     ToolTip="Audio Display" ToolTipService.ShowDuration="2000">
                 <Canvas x:Name="WaveformCanvas" ClipToBounds="True"/>
             </Border>
