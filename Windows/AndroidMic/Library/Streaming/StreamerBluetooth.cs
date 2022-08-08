@@ -15,7 +15,7 @@ namespace AndroidMic.Streaming
         private readonly string TAG = "StreamerBluetooth";
         private readonly Guid serverUUID = new Guid("34335e34-bccf-11eb-8529-0242ac130003");
         private readonly string serverName = "AndroidMic Host";
-        
+
         private readonly BluetoothListener listener;
         private BluetoothClient client;
         private BluetoothEndPoint targetDevice;
@@ -43,17 +43,18 @@ namespace AndroidMic.Streaming
         // async callback for server accept
         private void AcceptCallback(IAsyncResult result)
         {
-            if(!isConnectionAllowed)
+            if (!isConnectionAllowed)
             {
                 Status = ServerStatus.DEFAULT;
                 return;
             }
-            if(result.IsCompleted)
+            if (result.IsCompleted)
             {
                 try
                 {
                     client = listener.EndAcceptBluetoothClient(result);
-                } catch(Exception e)
+                }
+                catch (Exception e)
                 {
                     DebugLog("AcceptCallback: " + e.Message);
                     listener.BeginAcceptBluetoothClient(new AsyncCallback(AcceptCallback), listener);
@@ -61,7 +62,7 @@ namespace AndroidMic.Streaming
                 }
                 DebugLog("AcceptCallback: checking client " + client.RemoteMachineName);
                 // validate client
-                if(TestClient(client))
+                if (TestClient(client))
                 {
                     DebugLog("AcceptCallback: valid client");
                     // close client session
@@ -74,14 +75,15 @@ namespace AndroidMic.Streaming
                         return;
                     }
                     // wait client with same ID
-                    while(isConnectionAllowed)
+                    while (isConnectionAllowed)
                     {
                         client.Dispose();
                         client.Close();
                         try
                         {
                             client = listener.AcceptBluetoothClient();
-                        } catch (InvalidOperationException e) { return; }
+                        }
+                        catch (InvalidOperationException) { return; }
                         if (client.RemoteEndPoint.Equals(targetDevice)) break;
                     }
                     Status = ServerStatus.CONNECTED;
@@ -157,9 +159,9 @@ namespace AndroidMic.Streaming
             byte[] sendPack = Encoding.UTF8.GetBytes(DEVICE_CHECK);
             try
             {
-                using(var stream = client.GetStream())
+                using (var stream = client.GetStream())
                 {
-                    if(stream.CanTimeout)
+                    if (stream.CanTimeout)
                     {
                         stream.ReadTimeout = MAX_WAIT_TIME;
                         stream.WriteTimeout = MAX_WAIT_TIME;
@@ -175,7 +177,8 @@ namespace AndroidMic.Streaming
                     stream.Flush();
                 }
 
-            } catch(IOException e)
+            }
+            catch (IOException e)
             {
                 DebugLog("TestClient: " + e.Message);
                 return false;

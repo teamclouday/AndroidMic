@@ -23,6 +23,7 @@ namespace AndroidMic
         private readonly AudioManager audioM;
         private readonly System.Windows.Forms.NotifyIcon notifyIcon;
         private readonly SynchronizationContext uiContext;
+        private bool notifDisplayedOnce = false;
 
         [System.Runtime.InteropServices.DllImport("User32.dll")]
         private static extern bool SetForegroundWindow(IntPtr handle);
@@ -31,13 +32,13 @@ namespace AndroidMic
         {
             // avoid duplicate processes
             Process[] processes = Process.GetProcessesByName(Process.GetCurrentProcess().ProcessName);
-            if(processes.Length > 1)
+            if (processes.Length > 1)
             {
                 int prevProcessIdx = 0;
                 while (prevProcessIdx < processes.Length &&
                     processes[prevProcessIdx].Id == Process.GetCurrentProcess().Id)
                     prevProcessIdx++;
-                if(prevProcessIdx < processes.Length)
+                if (prevProcessIdx < processes.Length)
                 {
                     // bring previous process to foreground
                     SetForegroundWindow(processes[prevProcessIdx].MainWindowHandle);
@@ -100,7 +101,11 @@ namespace AndroidMic
         {
             if (WindowState == WindowState.Minimized)
             {
-                notifyIcon.ShowBalloonTip(2000, "AndroidMic", "App minimized to system tray", System.Windows.Forms.ToolTipIcon.Info);
+                if (!notifDisplayedOnce)
+                {
+                    notifyIcon.ShowBalloonTip(2000, "AndroidMic", "App minimized to system tray", System.Windows.Forms.ToolTipIcon.Info);
+                    notifDisplayedOnce = true;
+                }
                 Hide();
             }
             base.OnStateChanged(e);
@@ -118,9 +123,9 @@ namespace AndroidMic
         private void ConnectButton_Click(object sender, RoutedEventArgs e)
         {
             Button btn = sender as Button;
-            if(btn != null)
+            if (btn != null)
             {
-                if(btn.Content.ToString().StartsWith("C"))
+                if (btn.Content.ToString().StartsWith("C"))
                     streamM?.Start();
                 else
                     streamM?.Stop();
@@ -140,7 +145,7 @@ namespace AndroidMic
         // mouse down and check double click for log message block
         private void LogBlock_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if(e.ClickCount == 2)
+            if (e.ClickCount == 2)
             {
                 LogBlock.Inlines.Clear(); // clear message if double clicked
             }
@@ -165,7 +170,7 @@ namespace AndroidMic
         private void RadioButton_Checked(object sender, RoutedEventArgs e)
         {
             RadioButton rb = sender as RadioButton;
-            if(rb != null && (rb.IsChecked == true))
+            if (rb != null && (rb.IsChecked == true))
             {
                 // select bluetooth or wifi
                 if (rb.Content.ToString().StartsWith("B"))
@@ -203,7 +208,7 @@ namespace AndroidMic
         {
             uiContext?.Post(delegate
             {
-                lock(AudioDeviceList)
+                lock (AudioDeviceList)
                 {
                     AudioDeviceList.Items.Clear();
                     AudioDeviceList.Items.Add("Default");
@@ -221,12 +226,12 @@ namespace AndroidMic
         {
             uiContext?.Post(delegate
             {
-                lock(RadioButton1)
+                lock (RadioButton1)
                 {
                     RadioButton1.IsEnabled = false;
                     RadioButton2.IsEnabled = false;
                 }
-                lock(ConnectButton)
+                lock (ConnectButton)
                 {
                     ConnectButton.Content = "Listening";
                     ConnectButton.ToolTip = "Click to Stop";
@@ -264,7 +269,6 @@ namespace AndroidMic
                 }
                 lock (ConnectButton)
                 {
-                    
                     ConnectButton.Content = "Connect";
                     ConnectButton.ToolTip = "Start Server";
                 }

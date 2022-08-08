@@ -46,7 +46,7 @@ namespace AndroidMic.Audio
             gSynMagn = new float[MAX_FRAME_LENGTH];
             gRover = 0;
             // copy configs from prev filter
-            if(prev != null)
+            if (prev != null)
             {
                 PitchShift = prev.PitchShift;
             }
@@ -230,7 +230,7 @@ namespace AndroidMic.Audio
             }
         }
 
-        /* 
+        /*
 	        FFT routine, (C)1996 S.M.Bernsee. Sign = -1 is FFT, 1 is iFFT (inverse)
 	        Fills fftBuffer[0...2*fftFrameSize-1] with the Fourier transform of the
 	        time domain data in fftBuffer[0...2*fftFrameSize-1]. The FFT array takes
@@ -251,7 +251,7 @@ namespace AndroidMic.Audio
                     if ((i & bitm) != 0) j++;
                     j <<= 1;
                 }
-                if(i < j)
+                if (i < j)
                 {
                     float p1 = fftBuffer[i], p2 = fftBuffer[j];
                     fftBuffer[i] = p2;
@@ -262,7 +262,7 @@ namespace AndroidMic.Audio
                     fftBuffer[j + 1] = p1;
                 }
             }
-            for(k = 0, le = 2; k < (long)(Math.Log(fftFrameSize) / Math.Log(2.0) + 0.5); k++)
+            for (k = 0, le = 2; k < (long)(Math.Log(fftFrameSize) / Math.Log(2.0) + 0.5); k++)
             {
                 le <<= 1;
                 le2 = le >> 1;

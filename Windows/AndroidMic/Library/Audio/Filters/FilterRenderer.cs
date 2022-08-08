@@ -75,7 +75,7 @@ namespace AndroidMic.Audio
                 VerticalAlignment = VerticalAlignment.Center
             };
             audioPeaks = new Point[MAX_POINT_COUNT * 2];
-            for(int i = 0; i < MAX_POINT_COUNT; i++)
+            for (int i = 0; i < MAX_POINT_COUNT; i++)
             {
                 audioPeaks[i].X = i * POINT_INTERVAL;
                 audioPeaks[i].Y = IMG_H * 0.5f;
@@ -88,7 +88,7 @@ namespace AndroidMic.Audio
             // the larger the speed, the slower it updates
             peaks = new AudioPeaks(MAX_POINT_COUNT * speed);
             // copy prev canvas pointer
-            if(prev != null)
+            if (prev != null)
             {
                 ApplyToCanvas(prev.RenderCanvas);
             }
@@ -110,7 +110,7 @@ namespace AndroidMic.Audio
             for (int n = 0; n < sampleCount; n++)
             {
                 peaks.Consume(PEAK_MULTIPLIER * buffer[n + offset]);
-                if(peaks.NextPair(ref nextMax, ref nextMin))
+                if (peaks.NextPair(ref nextMax, ref nextMin))
                 {
                     Application.Current.Dispatcher.Invoke(new Action(() =>
                     {
@@ -126,7 +126,7 @@ namespace AndroidMic.Audio
         {
             for (int i = 0; i < MAX_POINT_COUNT - 1; i++)
                 audioPeaks[i].Y = audioPeaks[i + 1].Y;
-            for(int i = MAX_POINT_COUNT * 2 - 1; i > MAX_POINT_COUNT; i--)
+            for (int i = MAX_POINT_COUNT * 2 - 1; i > MAX_POINT_COUNT; i--)
                 audioPeaks[i].Y = audioPeaks[i - 1].Y;
             audioPeaks[MAX_POINT_COUNT - 1].Y = IMG_H * 0.5f * (1.0f + maxVal);
             audioPeaks[MAX_POINT_COUNT].Y = IMG_H * 0.5f * (1.0f + minVal);

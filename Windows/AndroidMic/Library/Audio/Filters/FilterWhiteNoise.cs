@@ -21,7 +21,7 @@ namespace AndroidMic.Audio
             this.source = source;
             rnd = new Random();
             Strength = 0.0f;
-            if(prev != null)
+            if (prev != null)
             {
                 Strength = prev.Strength;
             }
@@ -38,7 +38,7 @@ namespace AndroidMic.Audio
         private void ApplyNoise(float[] buffer, int offset, int samplesRead)
         {
             if (samplesRead <= 0 || Strength == 0.0f) return;
-            for(int i = 0; i < samplesRead; i++)
+            for (int i = 0; i < samplesRead; i++)
             {
                 // add noise such that range is still between -1 and 1
                 //buffer[i + offset] = buffer[i + offset] * 0.5f * (1.0f - Strength) + ((float)rnd.NextDouble() - 0.5f) * Strength;

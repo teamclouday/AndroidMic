@@ -10,7 +10,7 @@ namespace AndroidMic.Audio
 
         public void push(byte[] data)
         {
-            lock(toLock)
+            lock (toLock)
             {
                 buffer.Enqueue(data);
                 while (buffer.Count > MAX_BUFFER_SIZE) buffer.Dequeue();
@@ -19,7 +19,7 @@ namespace AndroidMic.Audio
 
         public byte[] poll()
         {
-            lock(toLock)
+            lock (toLock)
             {
                 if (buffer.Count > 0) return buffer.Dequeue();
                 else return null;

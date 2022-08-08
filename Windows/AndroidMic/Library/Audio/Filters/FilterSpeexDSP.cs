@@ -91,7 +91,7 @@ namespace AndroidMic.Audio
             if (!(EnabledDenoise || EnabledAGC || EnabledEcho || EnabledVAD)) return samplesRead;
             // else do audio processing
             int toRead = samplesRead; // in bytes
-            while(toRead > 0)
+            while (toRead > 0)
             {
                 // copy buffer
                 int nextRead = Math.Min(toRead, FRAME_SIZE_BYTES); // in bytes
@@ -99,7 +99,7 @@ namespace AndroidMic.Audio
                 // clear audio buffer remaining shorts (bytes / 2)
                 if (nextRead < FRAME_SIZE_BYTES) Array.Clear(audioBuffer, nextRead, FRAME_SIZE_BYTES - nextRead);
                 // do echo cancellation first if enabled
-                if(EnabledEcho)
+                if (EnabledEcho)
                 {
                     // prepare recorded play buffer
                     lock (loopbackPlayBufferLock)

@@ -44,17 +44,19 @@ namespace AndroidMic.Streaming
         private void BindPort()
         {
             int p = port;
-            for(; p <= 65535; p++)
+            for (; p <= 65535; p++)
             {
                 DebugLog("SelectPort: testing port " + p);
                 try
                 {
                     listener.Bind(new IPEndPoint(IPAddress.Parse(address), p));
-                } catch(SocketException e)
+                }
+                catch (SocketException e)
                 {
                     DebugLog("SelectPort: port " + p + " invalid, " + e.Message);
                     continue;
-                } catch(ObjectDisposedException e)
+                }
+                catch (ObjectDisposedException e)
                 {
                     DebugLog("SelectPort: listener has been disposed " + e.Message);
                     break;
@@ -70,7 +72,7 @@ namespace AndroidMic.Streaming
         // async callback for server accept
         private void AcceptCallback(IAsyncResult result)
         {
-            if(!isConnectionAllowed)
+            if (!isConnectionAllowed)
             {
                 Status = ServerStatus.DEFAULT;
                 return;
@@ -151,7 +153,7 @@ namespace AndroidMic.Streaming
             {
                 DebugLog("Process: " + e.Message);
             }
-            catch(ObjectDisposedException e)
+            catch (ObjectDisposedException e)
             {
                 DebugLog("Process: " + e.Message);
             }
@@ -216,7 +218,7 @@ namespace AndroidMic.Streaming
             adapterName = "";
             // get adapters
             NetworkInterface[] nis = NetworkInterface.GetAllNetworkInterfaces();
-            foreach(var ni in nis)
+            foreach (var ni in nis)
             {
                 // skip unenabled adapters
                 if (ni.OperationalStatus != OperationalStatus.Up) continue;
@@ -226,10 +228,10 @@ namespace AndroidMic.Streaming
                 // get IP properties
                 var props = ni.GetIPProperties();
                 // analyze addresses
-                foreach(var addr in props.UnicastAddresses)
+                foreach (var addr in props.UnicastAddresses)
                 {
                     // select IPv4 except loopback
-                    if(addr.Address.AddressFamily == AddressFamily.InterNetwork &&
+                    if (addr.Address.AddressFamily == AddressFamily.InterNetwork &&
                         !IPAddress.IsLoopback(addr.Address) && addr.IsDnsEligible)
                     {
                         adapterName = ni.Name;

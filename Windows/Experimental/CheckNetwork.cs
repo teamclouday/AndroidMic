@@ -10,9 +10,9 @@ namespace Experimental
         static void listIPs()
         {
             var host = Dns.GetHostEntry(Dns.GetHostName());
-            foreach(var ip in host.AddressList)
+            foreach (var ip in host.AddressList)
             {
-                if(ip.AddressFamily == AddressFamily.InterNetwork)
+                if (ip.AddressFamily == AddressFamily.InterNetwork)
                 {
                     Console.WriteLine("IP: " + ip);
                 }

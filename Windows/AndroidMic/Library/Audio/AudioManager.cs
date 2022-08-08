@@ -102,10 +102,10 @@ namespace AndroidMic.Audio
         // process audio data
         public void Process()
         {
-            while(processAllowed)
+            while (processAllowed)
             {
                 var data = sharedBuffer.poll();
-                if(data == null || player == null ||
+                if (data == null || player == null ||
                     player.PlaybackState != PlaybackState.Playing)
                 {
                     Thread.Sleep(5);
@@ -151,10 +151,10 @@ namespace AndroidMic.Audio
                 devices = new WaveOutCapabilities[WaveOut.DeviceCount];
             for (int i = 0; i < devices.Length; i++)
                 devices[i] = WaveOut.GetCapabilities(i);
-            if(RefreshAudioDevicesEvent != null)
+            if (RefreshAudioDevicesEvent != null)
             {
                 string[] deviceNames = new string[devices.Length];
-                for(int i = 0; i < devices.Length; i++)
+                for (int i = 0; i < devices.Length; i++)
                     deviceNames[i] = devices[i].ProductName;
                 RefreshAudioDevicesEvent?.Invoke(this, new AudioDevicesArgs
                 {
@@ -183,7 +183,7 @@ namespace AndroidMic.Audio
                 AdvancedFilterType type = (AdvancedFilterType)i;
                 // skip not enabled pipelines
                 if (!providerPipelineStates[type]) continue;
-                switch(type)
+                switch (type)
                 {
                     case AdvancedFilterType.FPitchShifter:
                         source = providerPipeline[i] = new FilterPitchShifter(source, providerPipeline[i] as FilterPitchShifter);
@@ -247,7 +247,7 @@ namespace AndroidMic.Audio
         // config a filter
         public void PipelineFilterConfig(AdvancedFilterType type, int config, ref float value, bool set)
         {
-            switch(type)
+            switch (type)
             {
                 case AdvancedFilterType.FPitchShifter:
                     {
@@ -256,7 +256,7 @@ namespace AndroidMic.Audio
                         switch (configType)
                         {
                             case FilterPitchShifter.ConfigTypes.ConfigPitch:
-                                if(set && filter != null)
+                                if (set && filter != null)
                                 {
                                     filter.PitchShift = value;
                                 }
@@ -272,7 +272,7 @@ namespace AndroidMic.Audio
                     {
                         FilterWhiteNoise.ConfigTypes configType = (FilterWhiteNoise.ConfigTypes)config;
                         FilterWhiteNoise filter = providerPipeline[(int)type] as FilterWhiteNoise;
-                        switch(configType)
+                        switch (configType)
                         {
                             case FilterWhiteNoise.ConfigTypes.ConfigStrength:
                                 if (set && filter != null)
@@ -304,7 +304,7 @@ namespace AndroidMic.Audio
                                 }
                                 break;
                             case FilterRepeatTrack.ConfigTypes.ConfigRepeat:
-                                if(set && filter != null)
+                                if (set && filter != null)
                                 {
                                     filter.Repeat = value != 0.0f;
                                 }
@@ -315,7 +315,7 @@ namespace AndroidMic.Audio
                                 break;
                             case FilterRepeatTrack.ConfigTypes.ConfigSelectFile:
                                 string openedFileName = filter.SelectFile();
-                                if(openedFileName.Length <= 0)
+                                if (openedFileName.Length <= 0)
                                 {
                                     AddLog("Failed to load track file!");
                                 }

@@ -34,7 +34,7 @@ namespace AndroidMic.Streaming
         public void Start()
         {
             // skip if already started
-            if(processThread != null && processThread.IsAlive)
+            if (processThread != null && processThread.IsAlive)
             {
                 AddLog("Server already started");
                 return;
@@ -42,7 +42,7 @@ namespace AndroidMic.Streaming
             // start server
             try
             {
-                switch(type)
+                switch (type)
                 {
                     case ConnectionType.BLUETOOTH:
                         server = new StreamerBluetooth();
@@ -51,7 +51,8 @@ namespace AndroidMic.Streaming
                         server = new StreamerWifi();
                         break;
                 }
-            } catch(ArgumentException e)
+            }
+            catch (ArgumentException e)
             {
                 server = null;
                 AddLog("Error: " + e.Message);

@@ -55,7 +55,7 @@ namespace AndroidMic
         private void PitchSlider_PropertyChange(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
             Slider slider = sender as Slider;
-            if(slider != null)
+            if (slider != null)
             {
                 float val = (float)slider.Value;
                 audioM?.PipelineFilterConfig(AdvancedFilterType.FPitchShifter, (int)FilterPitchShifter.ConfigTypes.ConfigPitch, ref val, true);
@@ -66,7 +66,7 @@ namespace AndroidMic
         private void PitchShiferEnableCheckbox_StateChanged(object sender, RoutedEventArgs e)
         {
             CheckBox checkBox = sender as CheckBox;
-            if(checkBox != null)
+            if (checkBox != null)
             {
                 audioM?.UpdatePipelineFilter(AdvancedFilterType.FPitchShifter, checkBox.IsChecked == true);
             }
@@ -129,7 +129,7 @@ namespace AndroidMic
         private void SelectFileButton_Click(object sender, RoutedEventArgs e)
         {
             Button button = sender as Button;
-            if(button != null)
+            if (button != null)
             {
                 float val = 0.0f;
                 audioM?.PipelineFilterConfig(AdvancedFilterType.FRepeatTrack, (int)FilterRepeatTrack.ConfigTypes.ConfigSelectFile, ref val, true);
@@ -151,7 +151,7 @@ namespace AndroidMic
         private void Expander_Collapsed(object sender, RoutedEventArgs e)
         {
             Expander expander = sender as Expander;
-            if(expander != null)
+            if (expander != null)
             {
                 Panel.SetZIndex(expander, 0);
             }
@@ -160,7 +160,7 @@ namespace AndroidMic
         // close all expanders
         private void CloseAllExpanders(Expander exception)
         {
-            if(!exception.Equals(Expander1))
+            if (!exception.Equals(Expander1))
                 Expander1.IsExpanded = false;
             if (!exception.Equals(Expander2))
                 Expander2.IsExpanded = false;

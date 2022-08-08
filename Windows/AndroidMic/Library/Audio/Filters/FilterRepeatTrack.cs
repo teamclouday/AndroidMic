@@ -44,7 +44,7 @@ namespace AndroidMic.Audio
             {
                 Filter = "MP3 File (*.mp3)|*.mp3|WAV File (*.wav)|*.wav|All Files (*.*)|*.*"
             };
-            if(dialog.ShowDialog() == true)
+            if (dialog.ShowDialog() == true)
             {
                 return LoadFile(dialog.FileName);
             }
@@ -57,7 +57,8 @@ namespace AndroidMic.Audio
             {
                 reader = new AudioFileReader(filepath);
                 resampler = new WdlResamplingSampleProvider(reader.ToSampleProvider().ToMono(), WaveFormat.SampleRate);
-            } catch(Exception e)
+            }
+            catch (Exception e)
             {
                 Debug.WriteLine("[FilterRepeatTrack]: " + e.Message);
                 reader = null;
@@ -87,7 +88,7 @@ namespace AndroidMic.Audio
                     resampledRead += resampledReadNew;
                     resampledOffset += resampledReadNew;
                 }
-                for(int i = 0; i < samplesRead; i++)
+                for (int i = 0; i < samplesRead; i++)
                 {
                     buffer[i + offset] = buffer[i + offset] * (1.0f - Strength) +
                         ReadFromBuffer(i, offset, resampledRead) * Strength;
@@ -112,7 +113,7 @@ namespace AndroidMic.Audio
 
         // strength: [0.0, 1.0]
         public float Strength { get; set; }
-        
+
         // whether to repeat
         public bool Repeat { get; set; }
     }
