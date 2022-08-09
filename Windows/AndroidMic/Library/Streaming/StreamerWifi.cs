@@ -3,6 +3,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using System.Diagnostics;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Net.NetworkInformation;
@@ -216,6 +217,7 @@ namespace AndroidMic.Streaming
         {
             address = "";
             adapterName = "";
+            List<Tuple<string, string>> validAddresses = new List<Tuple<string, string>>();
             // get adapters
             NetworkInterface[] nis = NetworkInterface.GetAllNetworkInterfaces();
             foreach (var ni in nis)
@@ -236,15 +238,23 @@ namespace AndroidMic.Streaming
                     {
                         adapterName = ni.Name;
                         address = addr.Address.ToString();
-                        DebugLog("CheckWifi: selected " + address);
-                        break;
+                        validAddresses.Add(new Tuple<string, string>(adapterName, address));
+                        DebugLog("CheckWifi: new valid address " + address);
                     }
                 }
-                if (address.Length > 0) break;
             }
             // check if at least 1 address is found
-            if (address.Length == 0)
+            if (validAddresses.Count == 0)
                 throw new ArgumentException("No valid IPv4 network (Wifi/Ethernet) found");
+            // user selection
+            SelectNetworkWindow dialog = new SelectNetworkWindow(validAddresses);
+            if (dialog.ShowDialog() == true)
+            {
+                var pair = validAddresses[dialog.selectedIdx];
+                adapterName = pair.Item1;
+                address = pair.Item2;
+                DebugLog("CheckWifi: selected address " + address);
+            }
         }
 
         // debug log

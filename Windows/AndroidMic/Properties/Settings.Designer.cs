@@ -202,5 +202,17 @@ namespace AndroidMic.Properties {
                 this["AdvancedWindow_SpeexEcho"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public int SelectNetworkWindow_Idx {
+            get {
+                return ((int)(this["SelectNetworkWindow_Idx"]));
+            }
+            set {
+                this["SelectNetworkWindow_Idx"] = value;
+            }
+        }
     }
 }

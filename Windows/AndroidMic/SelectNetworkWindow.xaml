@@ -1,0 +1,15 @@
+﻿<Window x:Class="AndroidMic.SelectNetworkWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:AndroidMic"
+        mc:Ignorable="d"
+        Title="Select Network" Height="300" Width="400" ResizeMode="CanMinimize" Background="#94fffa">
+    <Grid>
+        <ComboBox x:Name="NetworkAddressList" Cursor="Hand" HorizontalAlignment="Center" Margin="0,50,0,0"
+                      VerticalAlignment="Top" FontSize="18" Width="250" DropDownClosed="NetworkAddressList_DropDownClosed"
+                      ToolTip="Select Network Address" ToolTipService.ShowDuration="2000" FontFamily="Segoe UI">
+        </ComboBox>
+    </Grid>
+</Window>
