@@ -24,6 +24,7 @@ namespace AndroidMic
         private readonly System.Windows.Forms.NotifyIcon notifyIcon;
         private readonly SynchronizationContext uiContext;
         private bool notifDisplayedOnce = false;
+        private bool windowInitialized = false;
 
         [System.Runtime.InteropServices.DllImport("User32.dll")]
         private static extern bool SetForegroundWindow(IntPtr handle);
@@ -68,6 +69,8 @@ namespace AndroidMic
             // create system tray icon
             notifyIcon = new System.Windows.Forms.NotifyIcon();
             SetupNotificationIcon();
+            LoadUserSettings();
+            windowInitialized = true;
         }
 
         private void SetupNotificationIcon()
@@ -96,6 +99,42 @@ namespace AndroidMic
             );
         }
 
+        // load user settings for MainWindow
+        private void LoadUserSettings()
+        {
+            var settings = Properties.Settings.Default;
+            // MainWindow_AudioDisplayEnabled
+            if (!settings.MainWindow_AudioDisplayEnabled)
+            {
+                var margin = LogBlockBorder.Margin;
+                margin.Bottom = 40;
+                LogBlockBorder.Margin = margin;
+                WaveformCanvasBorder.Height = 20;
+            }
+            // MainWindow_AudioDeviceIdx
+            {
+                int idx = settings.MainWindow_AudioDeviceIdx;
+                audioM?.SelectAudioDevice(idx);
+            }
+            // MainWindow_AudioVolume
+            {
+                float volume = settings.MainWindow_AudioVolume;
+                audioM?.SetVolume(volume);
+                VolumeSlider.Value = volume;
+            }
+            // MainWindow_ConnectViaBluetooth
+            if (settings.MainWindow_ConnectViaBluetooth)
+            {
+                streamM?.SetConnectionType(StreamManager.ConnectionType.BLUETOOTH);
+                RadioButton1.IsChecked = true;
+            }
+            else
+            {
+                streamM?.SetConnectionType(StreamManager.ConnectionType.WIFI);
+                RadioButton2.IsChecked = true;
+            }
+        }
+
         // check window state change
         protected override void OnStateChanged(EventArgs e)
         {
@@ -117,6 +156,7 @@ namespace AndroidMic
             streamM?.Stop();
             audioM?.Shutdown();
             notifyIcon?.Dispose();
+            Properties.Settings.Default.Save();
         }
 
         // click event for connect button
@@ -167,7 +207,8 @@ namespace AndroidMic
             {
                 if (sender is Border b)
                 {
-                    if (audioM.ToggleCanvas())
+                    bool enabled = audioM.ToggleCanvas();
+                    if (enabled)
                     {
                         var margin = LogBlockBorder.Margin;
                         margin.Bottom = 140;
@@ -181,6 +222,7 @@ namespace AndroidMic
                         LogBlockBorder.Margin = margin;
                         b.Height = 20;
                     }
+                    Properties.Settings.Default.MainWindow_AudioDisplayEnabled = enabled;
                 }
             }
         }
@@ -188,7 +230,9 @@ namespace AndroidMic
         // drop down closed for combobox of audio device list
         private void AudioDeviceList_DropDownClosed(object sender, EventArgs e)
         {
-            audioM?.SelectAudioDevice(AudioDeviceList.SelectedIndex - 1);
+            int idx = AudioDeviceList.SelectedIndex - 1;
+            audioM?.SelectAudioDevice(idx);
+            Properties.Settings.Default.MainWindow_AudioDeviceIdx = idx;
         }
 
         // connection type radio button checked event
@@ -199,16 +243,27 @@ namespace AndroidMic
             {
                 // select bluetooth or wifi
                 if (rb.Content.ToString().StartsWith("B"))
+                {
                     streamM?.SetConnectionType(StreamManager.ConnectionType.BLUETOOTH);
+                    if (windowInitialized)
+                        Properties.Settings.Default.MainWindow_ConnectViaBluetooth = true;
+                }
                 else
+                {
                     streamM?.SetConnectionType(StreamManager.ConnectionType.WIFI);
+                    if (windowInitialized)
+                        Properties.Settings.Default.MainWindow_ConnectViaBluetooth = false;
+                }
             }
         }
 
         // volume slider change callback
         private void VolumeSlider_PropertyChange(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            audioM?.SetVolume((float)e.NewValue);
+            float volume = (float)e.NewValue;
+            audioM?.SetVolume(volume);
+            if (windowInitialized)
+                Properties.Settings.Default.MainWindow_AudioVolume = volume;
         }
 
         // add log message to UI

@@ -62,7 +62,7 @@ namespace AndroidMic.Audio
         private readonly ISampleProvider source;
         private readonly AudioPeaks peaks;
 
-        private bool canvasEnabled = true;
+        private bool canvasEnabled;
 
         public FilterRenderer(ISampleProvider source, int speed = 5, FilterRenderer prev = null)
         {
@@ -94,6 +94,8 @@ namespace AndroidMic.Audio
             {
                 ApplyToCanvas(prev.RenderCanvas);
             }
+            // user settings
+            canvasEnabled = Properties.Settings.Default.MainWindow_AudioDisplayEnabled;
         }
 
         // add polygon to canvas

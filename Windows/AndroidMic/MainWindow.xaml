@@ -15,7 +15,7 @@
                     </TextBlock>
                 </ScrollViewer>
             </Border>
-            <Border HorizontalAlignment="Center" VerticalAlignment="Bottom" Width="340" Height="100" Background="Black" Margin="0,0,0,10" CornerRadius="10"
+            <Border x:Name="WaveformCanvasBorder" HorizontalAlignment="Center" VerticalAlignment="Bottom" Width="340" Height="100" Background="Black" Margin="0,0,0,10" CornerRadius="10"
                     ToolTip="Audio Display (double click to toggle)" ToolTipService.ShowDuration="2000" MouseDown="AudioDisplay_MouseDown">
                 <Canvas x:Name="WaveformCanvas" ClipToBounds="True"/>
             </Border>
