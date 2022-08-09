@@ -44,8 +44,6 @@ namespace AndroidMic.Audio
 
         // capture variables for echo cancellation play buffer
         private WasapiLoopbackCapture loopbackCapture;
-        private byte[] loopbackCaptureBuffer;
-        private float loopbackCaptureReadMultiplier;
 
         private Ellipse indicator;
         private readonly Brush indicatorOn;
@@ -153,6 +151,7 @@ namespace AndroidMic.Audio
         // start PC speaker capture
         private void StartCapture()
         {
+            StopCapture();
             loopbackCapture = new WasapiLoopbackCapture();
             loopbackCapture.DataAvailable += (s, e) =>
             {
@@ -162,6 +161,10 @@ namespace AndroidMic.Audio
                     loopbackPlayBuffer.Write(e.Buffer, 0, e.BytesRecorded);
                 }
             };
+            loopbackCapture.RecordingStopped += (s, a) =>
+            {
+                loopbackCapture.Dispose();
+            };
             loopbackCapture.WaveFormat = WaveFormat;
             loopbackCapture.StartRecording();
         }
@@ -170,7 +173,6 @@ namespace AndroidMic.Audio
         private void StopCapture()
         {
             loopbackCapture?.StopRecording();
-            loopbackCapture?.Dispose();
         }
 
         public WaveFormat WaveFormat => source.WaveFormat;
