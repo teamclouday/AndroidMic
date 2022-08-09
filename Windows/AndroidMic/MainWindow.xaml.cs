@@ -270,6 +270,7 @@ namespace AndroidMic
                         margin.Bottom = 140;
                         LogBlockBorder.Margin = margin;
                         b.Height = 100;
+                        audioM.ApplyToCanvas(WaveformCanvas);
                     }
                     else
                     {
@@ -277,6 +278,7 @@ namespace AndroidMic
                         margin.Bottom = 40;
                         LogBlockBorder.Margin = margin;
                         b.Height = 20;
+                        WaveformCanvas.Children.Clear();
                     }
                     Properties.Settings.Default.MainWindow_AudioDisplayEnabled = enabled;
                 }
