@@ -160,6 +160,31 @@ namespace AndroidMic
             }
         }
 
+        // mouse down and check double click for audio visualization
+        private void AudioDisplay_MouseDown(object sender, MouseButtonEventArgs e)
+        {
+            if (e.ClickCount == 2)
+            {
+                if (sender is Border b)
+                {
+                    if (audioM.ToggleCanvas())
+                    {
+                        var margin = LogBlockBorder.Margin;
+                        margin.Bottom = 140;
+                        LogBlockBorder.Margin = margin;
+                        b.Height = 100;
+                    }
+                    else
+                    {
+                        var margin = LogBlockBorder.Margin;
+                        margin.Bottom = 40;
+                        LogBlockBorder.Margin = margin;
+                        b.Height = 20;
+                    }
+                }
+            }
+        }
+
         // drop down closed for combobox of audio device list
         private void AudioDeviceList_DropDownClosed(object sender, EventArgs e)
         {

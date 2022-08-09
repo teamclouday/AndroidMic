@@ -334,6 +334,8 @@ namespace AndroidMic.Audio
 
         public void ApplyToCanvas(Canvas c) => rendererProvider.ApplyToCanvas(c);
 
+        public bool ToggleCanvas() => rendererProvider.ToggleCanvas();
+
         public void SetIndicator(Ellipse e) => speexProvider.SetIndicator(e);
 
 

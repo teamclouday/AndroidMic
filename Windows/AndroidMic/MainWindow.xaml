@@ -8,7 +8,7 @@
         Title="AndroidMic" Height="600" Width="800" ResizeMode="CanMinimize" Background="#94fffa" Closing="MainWindow_Closing">
     <Grid>
         <Grid Margin="50,50,400,50">
-            <Border BorderBrush="Black" BorderThickness="1" Background="#FFC0FFEB" CornerRadius="10" Padding="10" Margin="0,0,0,140">
+            <Border x:Name="LogBlockBorder" BorderBrush="Black" BorderThickness="1" Background="#FFC0FFEB" CornerRadius="10" Padding="10" Margin="0,0,0,140">
                 <ScrollViewer x:Name="LogBlockScroll" VerticalScrollBarVisibility="Auto" ScrollChanged="LogBlockScroll_ScrollChanged">
                     <TextBlock x:Name="LogBlock" TextWrapping="Wrap" FontSize="16" MouseDown="LogBlock_MouseDown"
                            ToolTip="Double Click to Clear" ToolTipService.ShowDuration="2000" HorizontalAlignment="Left" VerticalAlignment="Top">
@@ -16,7 +16,7 @@
                 </ScrollViewer>
             </Border>
             <Border HorizontalAlignment="Center" VerticalAlignment="Bottom" Width="340" Height="100" Background="Black" Margin="0,0,0,10" CornerRadius="10"
-                    ToolTip="Audio Display" ToolTipService.ShowDuration="2000">
+                    ToolTip="Audio Display (double click to toggle)" ToolTipService.ShowDuration="2000" MouseDown="AudioDisplay_MouseDown">
                 <Canvas x:Name="WaveformCanvas" ClipToBounds="True"/>
             </Border>
         </Grid>

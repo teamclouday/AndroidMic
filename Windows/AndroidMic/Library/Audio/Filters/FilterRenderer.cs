@@ -62,6 +62,8 @@ namespace AndroidMic.Audio
         private readonly ISampleProvider source;
         private readonly AudioPeaks peaks;
 
+        private bool canvasEnabled = true;
+
         public FilterRenderer(ISampleProvider source, int speed = 5, FilterRenderer prev = null)
         {
             this.source = source;
@@ -102,12 +104,18 @@ namespace AndroidMic.Audio
             RenderCanvas.Children.Add(streamGroup);
         }
 
+        public bool ToggleCanvas()
+        {
+            canvasEnabled = !canvasEnabled;
+            return canvasEnabled;
+        }
+
         // read call
         public int Read(float[] buffer, int offset, int sampleCount)
         {
             float nextMax = 0.0f, nextMin = 0.0f;
             int samplesRead = source.Read(buffer, offset, sampleCount);
-            for (int n = 0; n < sampleCount; n++)
+            for (int n = 0; n < sampleCount && canvasEnabled; n++)
             {
                 peaks.Consume(PEAK_MULTIPLIER * buffer[n + offset]);
                 if (peaks.NextPair(ref nextMax, ref nextMin))
