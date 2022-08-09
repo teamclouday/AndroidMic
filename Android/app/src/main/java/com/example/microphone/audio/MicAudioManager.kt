@@ -61,7 +61,7 @@ class MicAudioManager(ctx : Context) {
         val dataWrapper = ByteBuffer.wrap(data)
             .order(ByteOrder.LITTLE_ENDIAN)
             .asShortBuffer()
-        dataWrapper.put(buffer)
+        dataWrapper.put(buffer, 0, size)
         // store data
         audioBuffer.push(data)
         Log.d(TAG, "[record] audio data recorded (${data.size} bytes)")

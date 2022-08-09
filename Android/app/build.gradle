@@ -11,8 +11,8 @@ android {
         applicationId "com.example.microphone"
         minSdkVersion 23
         targetSdkVersion 31
-        versionCode 6
-        versionName "1.7"
+        versionCode 7
+        versionName "1.8"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
