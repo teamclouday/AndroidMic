@@ -92,5 +92,46 @@ namespace Experimental
             multiplier = 1.0f / multiplier;
             return provider;
         }
+
+        public static void CaptureSpeakerAuto()
+        {
+            var capture = new WasapiLoopbackCapture();
+            Console.WriteLine("Capture Device Format: (" +
+                capture.WaveFormat.SampleRate + "," +
+                capture.WaveFormat.BitsPerSample + "," +
+                capture.WaveFormat.Channels + ")");
+
+            var targetWaveFormat = new WaveFormat(25000, 16, 2);
+            Console.WriteLine("Target Format: (" +
+                targetWaveFormat.SampleRate + "," +
+                targetWaveFormat.BitsPerSample + "," +
+                targetWaveFormat.Channels + ")");
+
+            capture.WaveFormat = targetWaveFormat;
+
+            var writer = new WaveFileWriter("recorded.wav", targetWaveFormat);
+
+            capture.DataAvailable += (s, a) =>
+            {
+                Console.WriteLine("Recieved " + a.BytesRecorded);
+                writer.Write(a.Buffer, 0, a.BytesRecorded);
+            };
+            capture.RecordingStopped += (s, a) =>
+            {
+                writer.Dispose();
+                writer = null;
+                capture.Dispose();
+            };
+            capture.StartRecording();
+            // recording seconds
+            int numSeconds = 10;
+            while (capture.CaptureState != NAudio.CoreAudioApi.CaptureState.Stopped)
+            {
+                Thread.Sleep(1000);
+                numSeconds -= 1;
+                if (numSeconds < 0) capture.StopRecording();
+            }
+            Console.WriteLine("Recording stopped");
+        }
     }
 }

@@ -44,8 +44,6 @@ namespace AndroidMic.Audio
 
         // capture variables for echo cancellation play buffer
         private WasapiLoopbackCapture loopbackCapture;
-        private BufferedWaveProvider loopbackStreamer;
-        private IWaveProvider loopbackResampler;
         private byte[] loopbackCaptureBuffer;
         private float loopbackCaptureReadMultiplier;
 
@@ -156,9 +154,15 @@ namespace AndroidMic.Audio
         private void StartCapture()
         {
             loopbackCapture = new WasapiLoopbackCapture();
-            loopbackCapture.DataAvailable += LoopbackDataAvailableEvent;
-            loopbackStreamer = new BufferedWaveProvider(loopbackCapture.WaveFormat);
-            loopbackResampler = BuildResamplerPipeline(loopbackStreamer, loopbackCapture.WaveFormat, WaveFormat, out loopbackCaptureReadMultiplier);
+            loopbackCapture.DataAvailable += (s, e) =>
+            {
+                // record into loopback buffer
+                lock (loopbackPlayBufferLock)
+                {
+                    loopbackPlayBuffer.Write(e.Buffer, 0, e.BytesRecorded);
+                }
+            };
+            loopbackCapture.WaveFormat = WaveFormat;
             loopbackCapture.StartRecording();
         }
 
@@ -167,52 +171,6 @@ namespace AndroidMic.Audio
         {
             loopbackCapture?.StopRecording();
             loopbackCapture?.Dispose();
-        }
-
-        // loopback capture events
-        private void LoopbackDataAvailableEvent(object sender, WaveInEventArgs e)
-        {
-            if (loopbackCaptureBuffer == null || loopbackCaptureBuffer.Length < e.Buffer.Length)
-                loopbackCaptureBuffer = new byte[e.Buffer.Length];
-            loopbackStreamer.AddSamples(e.Buffer, 0, e.BytesRecorded);
-            int bytesToRead = (int)(e.BytesRecorded * loopbackCaptureReadMultiplier);
-            if (bytesToRead % 2 != 0) bytesToRead -= 1;
-            int converted = loopbackResampler.Read(loopbackCaptureBuffer, 0, bytesToRead);
-            // record into loopback buffer
-            lock (loopbackPlayBufferLock)
-            {
-                loopbackPlayBuffer.Write(loopbackCaptureBuffer, 0, converted);
-            }
-        }
-
-        // build resampler pipeline
-        private IWaveProvider BuildResamplerPipeline(IWaveProvider provider, WaveFormat input, WaveFormat output, out float multiplier)
-        {
-            multiplier = 1.0f;
-            // resample
-            if (input.SampleRate != output.SampleRate)
-            {
-                // resample
-                provider = new MediaFoundationResampler(provider, output.SampleRate)
-                {
-                    ResamplerQuality = 60
-                };
-                multiplier *= (float)input.SampleRate / output.SampleRate;
-            }
-            // convert encoding
-            if (input.Encoding == WaveFormatEncoding.IeeeFloat)
-            {
-                provider = new WaveFloatTo16Provider(provider);
-                multiplier *= 2.0f;
-            }
-            // stereo to mono
-            if (input.Channels != output.Channels)
-            {
-                provider = new StereoToMonoProvider16(provider);
-                multiplier *= 2.0f;
-            }
-            multiplier = 1.0f / multiplier;
-            return provider;
         }
 
         public WaveFormat WaveFormat => source.WaveFormat;
