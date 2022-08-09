@@ -5,11 +5,13 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AndroidMic"
         mc:Ignorable="d"
-        Title="Select Network" Height="300" Width="400" ResizeMode="CanMinimize" Background="#94fffa">
+        Title="Select Network" Height="250" Width="400" ResizeMode="CanMinimize" Background="#94fffa">
     <Grid>
         <ComboBox x:Name="NetworkAddressList" Cursor="Hand" HorizontalAlignment="Center" Margin="0,50,0,0"
                       VerticalAlignment="Top" FontSize="18" Width="250" DropDownClosed="NetworkAddressList_DropDownClosed"
                       ToolTip="Select Network Address" ToolTipService.ShowDuration="2000" FontFamily="Segoe UI">
         </ComboBox>
+        <Button x:Name="OKButton" Cursor="Hand" Content="OK" HorizontalAlignment="Center" VerticalAlignment="Bottom"
+                    Margin="0,0,0,50" FontSize="18" Padding="6" Background="#FFEFFFA8" Click="OKButton_Click" Width="150" FontFamily="Comic Sans MS"/>
     </Grid>
 </Window>

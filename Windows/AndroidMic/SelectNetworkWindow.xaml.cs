@@ -30,5 +30,11 @@ namespace AndroidMic
             selectedIdx = NetworkAddressList.SelectedIndex;
             Properties.Settings.Default.SelectNetworkWindow_Idx = selectedIdx;
         }
+
+        // OK button clicked
+        private void OKButton_Click(object sender, RoutedEventArgs e)
+        {
+            Close();
+        }
     }
 }
