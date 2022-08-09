@@ -59,6 +59,7 @@ namespace AndroidMic
             {
                 float val = (float)slider.Value;
                 audioM?.PipelineFilterConfig(AdvancedFilterType.FPitchShifter, (int)FilterPitchShifter.ConfigTypes.ConfigPitch, ref val, true);
+                Properties.Settings.Default.AdvancedWindow_PitchShifterVal = val;
             }
         }
 
@@ -68,7 +69,9 @@ namespace AndroidMic
             CheckBox checkBox = sender as CheckBox;
             if (checkBox != null)
             {
-                audioM?.UpdatePipelineFilter(AdvancedFilterType.FPitchShifter, checkBox.IsChecked == true);
+                bool isChecked = checkBox.IsChecked == true;
+                audioM?.UpdatePipelineFilter(AdvancedFilterType.FPitchShifter, isChecked);
+                Properties.Settings.Default.AdvancedWindow_PitchShifterEnabled = isChecked;
             }
         }
 
@@ -80,6 +83,7 @@ namespace AndroidMic
             {
                 float val = (float)slider.Value;
                 audioM?.PipelineFilterConfig(AdvancedFilterType.FWhiteNoise, (int)FilterWhiteNoise.ConfigTypes.ConfigStrength, ref val, true);
+                Properties.Settings.Default.AdvancedWindow_WhiteNoiseVal = val;
             }
         }
 
@@ -89,7 +93,9 @@ namespace AndroidMic
             CheckBox checkBox = sender as CheckBox;
             if (checkBox != null)
             {
-                audioM?.UpdatePipelineFilter(AdvancedFilterType.FWhiteNoise, checkBox.IsChecked == true);
+                bool isChecked = checkBox.IsChecked == true;
+                audioM?.UpdatePipelineFilter(AdvancedFilterType.FWhiteNoise, isChecked);
+                Properties.Settings.Default.AdvancedWindow_WhiteNoiseEnabled = isChecked;
             }
         }
 
@@ -101,6 +107,7 @@ namespace AndroidMic
             {
                 float val = (float)slider.Value;
                 audioM?.PipelineFilterConfig(AdvancedFilterType.FRepeatTrack, (int)FilterRepeatTrack.ConfigTypes.ConfigStrength, ref val, true);
+                Properties.Settings.Default.AdvancedWindow_RepeatTrackStrength = val;
             }
         }
 
@@ -110,7 +117,9 @@ namespace AndroidMic
             CheckBox checkBox = sender as CheckBox;
             if (checkBox != null)
             {
-                audioM?.UpdatePipelineFilter(AdvancedFilterType.FRepeatTrack, checkBox.IsChecked == true);
+                bool isChecked = checkBox.IsChecked == true;
+                audioM?.UpdatePipelineFilter(AdvancedFilterType.FRepeatTrack, isChecked);
+                Properties.Settings.Default.AdvancedWindow_RepeatTrackEnabled = isChecked;
             }
         }
 
@@ -122,6 +131,7 @@ namespace AndroidMic
             {
                 float val = checkBox.IsChecked == true ? 1.0f : 0.0f;
                 audioM?.PipelineFilterConfig(AdvancedFilterType.FRepeatTrack, (int)FilterRepeatTrack.ConfigTypes.ConfigRepeat, ref val, true);
+                Properties.Settings.Default.AdvancedWindow_RepeatTrackLoop = val;
             }
         }
 
@@ -176,6 +186,7 @@ namespace AndroidMic
             {
                 bool enabled = checkBox.IsChecked == true;
                 audioM?.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigDenoise, ref enabled, true);
+                Properties.Settings.Default.AdvancedWindow_SpeexDenoise = enabled;
             }
         }
 
@@ -187,6 +198,7 @@ namespace AndroidMic
             {
                 bool enabled = checkBox.IsChecked == true;
                 audioM?.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigAGC, ref enabled, true);
+                Properties.Settings.Default.AdvancedWindow_SpeexAGC = enabled;
             }
         }
 
@@ -198,6 +210,7 @@ namespace AndroidMic
             {
                 bool enabled = checkBox.IsChecked == true;
                 audioM?.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigVAD, ref enabled, true);
+                Properties.Settings.Default.AdvancedWindow_SpeexVAD = enabled;
             }
         }
 
@@ -209,6 +222,7 @@ namespace AndroidMic
             {
                 bool enabled = checkBox.IsChecked == true;
                 audioM?.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigEcho, ref enabled, true);
+                Properties.Settings.Default.AdvancedWindow_SpeexEcho = enabled;
             }
         }
     }

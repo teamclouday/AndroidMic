@@ -70,5 +70,137 @@ namespace AndroidMic.Properties {
                 this["MainWindow_ConnectViaBluetooth"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("1")]
+        public float AdvancedWindow_PitchShifterVal {
+            get {
+                return ((float)(this["AdvancedWindow_PitchShifterVal"]));
+            }
+            set {
+                this["AdvancedWindow_PitchShifterVal"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool AdvancedWindow_PitchShifterEnabled {
+            get {
+                return ((bool)(this["AdvancedWindow_PitchShifterEnabled"]));
+            }
+            set {
+                this["AdvancedWindow_PitchShifterEnabled"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public float AdvancedWindow_WhiteNoiseVal {
+            get {
+                return ((float)(this["AdvancedWindow_WhiteNoiseVal"]));
+            }
+            set {
+                this["AdvancedWindow_WhiteNoiseVal"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool AdvancedWindow_WhiteNoiseEnabled {
+            get {
+                return ((bool)(this["AdvancedWindow_WhiteNoiseEnabled"]));
+            }
+            set {
+                this["AdvancedWindow_WhiteNoiseEnabled"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public float AdvancedWindow_RepeatTrackStrength {
+            get {
+                return ((float)(this["AdvancedWindow_RepeatTrackStrength"]));
+            }
+            set {
+                this["AdvancedWindow_RepeatTrackStrength"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("0")]
+        public float AdvancedWindow_RepeatTrackLoop {
+            get {
+                return ((float)(this["AdvancedWindow_RepeatTrackLoop"]));
+            }
+            set {
+                this["AdvancedWindow_RepeatTrackLoop"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool AdvancedWindow_RepeatTrackEnabled {
+            get {
+                return ((bool)(this["AdvancedWindow_RepeatTrackEnabled"]));
+            }
+            set {
+                this["AdvancedWindow_RepeatTrackEnabled"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool AdvancedWindow_SpeexDenoise {
+            get {
+                return ((bool)(this["AdvancedWindow_SpeexDenoise"]));
+            }
+            set {
+                this["AdvancedWindow_SpeexDenoise"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool AdvancedWindow_SpeexAGC {
+            get {
+                return ((bool)(this["AdvancedWindow_SpeexAGC"]));
+            }
+            set {
+                this["AdvancedWindow_SpeexAGC"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool AdvancedWindow_SpeexVAD {
+            get {
+                return ((bool)(this["AdvancedWindow_SpeexVAD"]));
+            }
+            set {
+                this["AdvancedWindow_SpeexVAD"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool AdvancedWindow_SpeexEcho {
+            get {
+                return ((bool)(this["AdvancedWindow_SpeexEcho"]));
+            }
+            set {
+                this["AdvancedWindow_SpeexEcho"] = value;
+            }
+        }
     }
 }

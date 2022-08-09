@@ -99,7 +99,7 @@ namespace AndroidMic
             );
         }
 
-        // load user settings for MainWindow
+        // load user settings for MainWindow & AdvancedWindow
         private void LoadUserSettings()
         {
             var settings = Properties.Settings.Default;
@@ -114,24 +114,80 @@ namespace AndroidMic
             // MainWindow_AudioDeviceIdx
             {
                 int idx = settings.MainWindow_AudioDeviceIdx;
-                audioM?.SelectAudioDevice(idx);
+                audioM.SelectAudioDevice(idx);
             }
             // MainWindow_AudioVolume
             {
                 float volume = settings.MainWindow_AudioVolume;
-                audioM?.SetVolume(volume);
+                audioM.SetVolume(volume);
                 VolumeSlider.Value = volume;
             }
             // MainWindow_ConnectViaBluetooth
             if (settings.MainWindow_ConnectViaBluetooth)
             {
-                streamM?.SetConnectionType(StreamManager.ConnectionType.BLUETOOTH);
+                streamM.SetConnectionType(StreamManager.ConnectionType.BLUETOOTH);
                 RadioButton1.IsChecked = true;
             }
             else
             {
-                streamM?.SetConnectionType(StreamManager.ConnectionType.WIFI);
+                streamM.SetConnectionType(StreamManager.ConnectionType.WIFI);
                 RadioButton2.IsChecked = true;
+            }
+
+            float val;
+            // AdvancedWindow_PitchShifterEnabled
+            {
+                audioM.UpdatePipelineFilter(AdvancedFilterType.FPitchShifter, settings.AdvancedWindow_PitchShifterEnabled);
+            }
+            // AdvancedWindow_PitchShifterVal
+            {
+                val = settings.AdvancedWindow_PitchShifterVal;
+                audioM.PipelineFilterConfig(AdvancedFilterType.FPitchShifter, (int)FilterPitchShifter.ConfigTypes.ConfigPitch, ref val, true);
+            }
+            // AdvancedWindow_WhiteNoiseEnabled
+            {
+                audioM.UpdatePipelineFilter(AdvancedFilterType.FWhiteNoise, settings.AdvancedWindow_WhiteNoiseEnabled);
+            }
+            // AdvancedWindow_WhiteNoiseVal
+            {
+                val = settings.AdvancedWindow_WhiteNoiseVal;
+                audioM.PipelineFilterConfig(AdvancedFilterType.FWhiteNoise, (int)FilterWhiteNoise.ConfigTypes.ConfigStrength, ref val, true);
+            }
+            // AdvancedWindow_RepeatTrackEnabled
+            {
+                audioM.UpdatePipelineFilter(AdvancedFilterType.FRepeatTrack, settings.AdvancedWindow_RepeatTrackEnabled);
+            }
+            // AdvancedWindow_RepeatTrackStrength
+            {
+                val = settings.AdvancedWindow_RepeatTrackStrength;
+                audioM.PipelineFilterConfig(AdvancedFilterType.FRepeatTrack, (int)FilterRepeatTrack.ConfigTypes.ConfigStrength, ref val, true);
+            }
+            // AdvancedWindow_RepeatTrackLoop
+            {
+                val = settings.AdvancedWindow_RepeatTrackLoop;
+                audioM.PipelineFilterConfig(AdvancedFilterType.FRepeatTrack, (int)FilterRepeatTrack.ConfigTypes.ConfigRepeat, ref val, true);
+            }
+
+            bool valB;
+            // AdvancedWindow_SpeexDenoise
+            {
+                valB = settings.AdvancedWindow_SpeexDenoise;
+                audioM.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigDenoise, ref valB, true);
+            }
+            // AdvancedWindow_SpeexAGC
+            {
+                valB = settings.AdvancedWindow_SpeexAGC;
+                audioM.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigAGC, ref valB, true);
+            }
+            // AdvancedWindow_SpeexVAD
+            {
+                valB = settings.AdvancedWindow_SpeexVAD;
+                audioM.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigVAD, ref valB, true);
+            }
+            // AdvancedWindow_SpeexEcho
+            {
+                valB = settings.AdvancedWindow_SpeexEcho;
+                audioM.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigEcho, ref valB, true);
             }
         }
 
