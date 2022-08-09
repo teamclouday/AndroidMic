@@ -353,19 +353,26 @@ class MainActivity : AppCompatActivity()
     {
         states.isIPInfoSet.set(false)
 
+        val USER_SETTINGS_DEFAULT_IP = "DEFAULT_IP"
+        val USER_SETTINGS_DEFAULT_PORT = "DEFAULT_PORT"
+        val PREFERENCES_NAME = "AndroidMicUserSettings"
+        val userSettings = applicationContext.getSharedPreferences(PREFERENCES_NAME, MODE_PRIVATE)
+        var ip = userSettings.getString(USER_SETTINGS_DEFAULT_IP, MicStreamManager.DEFAULT_IP)
+        var port = userSettings.getInt(USER_SETTINGS_DEFAULT_PORT, MicStreamManager.DEFAULT_PORT)
+
         val layout = layoutInflater.inflate(R.layout.alertdialog, null)
         layout.findViewById<EditText>(R.id.dialog_ip)
-            .setText(MicStreamManager.DEFAULT_IP)
+            .setText(ip)
         layout.findViewById<EditText>(R.id.dialog_port)
-            .setText(MicStreamManager.DEFAULT_PORT.toString())
+            .setText(port.toString())
         val builder = AlertDialog.Builder(this)
         builder.setTitle("PC Address IP/Port")
         builder.setView(layout)
         builder.setPositiveButton("OK"
-        ) { diag, _ ->
-            val ip = layout.findViewById<EditText>(R.id.dialog_ip)
+        ) { _, _ ->
+            ip = layout.findViewById<EditText>(R.id.dialog_ip)
                 .text.toString()
-            val port = try {
+            port = try {
                 layout.findViewById<EditText>(R.id.dialog_port)
                     .text.toString().toInt()
             } catch(e : NumberFormatException)
@@ -384,6 +391,10 @@ class MainActivity : AppCompatActivity()
                 mService?.send(reply)
                 states.isIPInfoSet.set(true)
             }
+            val editor = userSettings.edit()
+            editor.putString(USER_SETTINGS_DEFAULT_IP, ip)
+            editor.putInt(USER_SETTINGS_DEFAULT_PORT, port)
+            editor.apply()
         }
         builder.setOnCancelListener {
             val data = Bundle()
