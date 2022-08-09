@@ -118,7 +118,10 @@ namespace AndroidMic.Audio
         // select audio device by UI
         public void SelectAudioDevice(int deviceIdx)
         {
-            selectedDeviceIdx = deviceIdx;
+            if (deviceIdx < devices.Length)
+                selectedDeviceIdx = deviceIdx;
+            else
+                selectedDeviceIdx = -1;
             // stop playing
             player.Stop();
             player.Dispose();
