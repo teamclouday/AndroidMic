@@ -9,15 +9,12 @@ import android.os.IBinder
 import android.os.Messenger
 import com.example.microphone.service.ForegroundService
 
-class DefaultApp : Application()
-{
-    var mService : Messenger? = null
+class DefaultApp : Application() {
+    var mService: Messenger? = null
     var mBound = false
 
-    private val mConnection = object : ServiceConnection
-    {
-        override fun onServiceConnected(name: ComponentName?, service: IBinder?)
-        {
+    private val mConnection = object : ServiceConnection {
+        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             mService = Messenger(service)
             mBound = true
             // notify current running activity that service is connected
@@ -29,8 +26,7 @@ class DefaultApp : Application()
             startActivity(notifyIntent)
         }
 
-        override fun onServiceDisconnected(name: ComponentName?)
-        {
+        override fun onServiceDisconnected(name: ComponentName?) {
             mService = null
             mBound = false
         }

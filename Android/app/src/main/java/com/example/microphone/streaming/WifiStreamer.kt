@@ -10,20 +10,21 @@ import kotlinx.coroutines.*
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
-import java.lang.Exception
-import java.net.*
+import java.net.InetSocketAddress
+import java.net.NetworkInterface
+import java.net.Socket
+import java.net.SocketTimeoutException
 
-class WifiStreamer(private val ctx : Context) : Streamer {
-    private val TAG : String = "MicStreamWIFI"
+class WifiStreamer(private val ctx: Context) : Streamer {
+    private val TAG: String = "MicStreamWIFI"
 
     private val MAX_WAIT_TIME = 1500 // timeout
 
-    private var socket : Socket? = null
-    private var address : String = ""
+    private var socket: Socket? = null
+    private var address: String = ""
     private var port = 55555
 
-    enum class Mode
-    {
+    enum class Mode {
         NONE,
         WIFI, // wifi connection under same network
         USB   // USB tethering
@@ -33,30 +34,28 @@ class WifiStreamer(private val ctx : Context) : Streamer {
 
     init {
         updateConnectionMode()
-        require(mode != Mode.NONE) {"WIFI or USB tethering not connected"}
+        require(mode != Mode.NONE) { "WIFI or USB tethering not connected" }
     }
 
     // connect to server
-    override fun connect() : Boolean
-    {
+    override fun connect(): Boolean {
         // update connection mode
         updateConnectionMode()
-        if(mode == Mode.NONE) return false
+        if (mode == Mode.NONE) return false
         // create socket
         socket = Socket()
         try {
             socket?.connect(InetSocketAddress(address, port), MAX_WAIT_TIME)
-        } catch (e : IOException) {
+        } catch (e: IOException) {
             Log.d(TAG, "connect [Socket]: ${e.message}")
             null
-        } catch (e : SocketTimeoutException) {
+        } catch (e: SocketTimeoutException) {
             Log.d(TAG, "connect [Socket]: ${e.message}")
             null
         } ?: return false
         socket?.soTimeout = MAX_WAIT_TIME
         // test server
-        if(!testConnection(socket!!))
-        {
+        if (!testConnection(socket!!)) {
             socket?.close()
             socket = null
             return false
@@ -67,30 +66,27 @@ class WifiStreamer(private val ctx : Context) : Streamer {
     // stream data through socket
     override suspend fun stream(audioBuffer: AudioBuffer) = withContext(Dispatchers.IO)
     {
-        if(socket == null || socket?.isConnected != true) return@withContext
+        if (socket == null || socket?.isConnected != true) return@withContext
         val data = audioBuffer.poll() ?: return@withContext
         try {
             val streamOut = socket!!.outputStream
             streamOut.write(data)
             // streamOut.flush()
-        } catch (e : IOException)
-        {
+        } catch (e: IOException) {
             Log.d(TAG, "${e.message}")
             delay(5)
             disconnect()
-        } catch (e : Exception)
-        {
+        } catch (e: Exception) {
             Log.d(TAG, "${e.message}")
         }
     }
 
     // disconnect from server
-    override fun disconnect() : Boolean
-    {
-        if(socket == null) return false
+    override fun disconnect(): Boolean {
+        if (socket == null) return false
         try {
             socket?.close()
-        } catch(e : IOException) {
+        } catch (e: IOException) {
             Log.d(TAG, "disconnect [close]: ${e.message}")
             socket = null
             return false
@@ -101,27 +97,23 @@ class WifiStreamer(private val ctx : Context) : Streamer {
     }
 
     // shutdown streamer
-    override fun shutdown()
-    {
+    override fun shutdown() {
         disconnect()
         address = ""
         mode = Mode.NONE
     }
 
     // detect and update current connection mode
-    private fun updateConnectionMode()
-    {
+    private fun updateConnectionMode() {
         mode = Mode.NONE
         // prefer USB tethering
         // reference: https://stackoverflow.com/questions/43478586/checking-tethering-usb-bluetooth-is-active
         // reference: https://airtower.wordpress.com/2010/07/29/getting-network-interface-information-in-java/
         val ifs = NetworkInterface.getNetworkInterfaces()
-        while(ifs.hasMoreElements())
-        {
+        while (ifs.hasMoreElements()) {
             val iface = ifs.nextElement()
             Log.d(TAG, "updateConnectionMode: checking iface = " + iface.name)
-            if(iface.name == "rndis0" || iface.name == "ap0")
-            {
+            if (iface.name == "rndis0" || iface.name == "ap0") {
                 mode = Mode.USB
                 Log.d(TAG, "updateConnectionMode: USB tethering enabled")
                 return
@@ -132,14 +124,13 @@ class WifiStreamer(private val ctx : Context) : Streamer {
         val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         val net = cm.activeNetwork ?: return
         val cap = cm.getNetworkCapabilities(net) ?: return
-        if(cap.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
+        if (cap.hasTransport(NetworkCapabilities.TRANSPORT_WIFI))
             mode = Mode.WIFI
     }
 
     // test connection
-    private fun testConnection(socket : Socket) : Boolean
-    {
-        if(!socket.isConnected) return false
+    private fun testConnection(socket: Socket): Boolean {
+        if (!socket.isConnected) return false
         var isValid = false
         runBlocking(Dispatchers.IO) {
             val job = launch {
@@ -151,23 +142,19 @@ class WifiStreamer(private val ctx : Context) : Streamer {
                     val buffer = ByteArray(100)
                     val size = streamIn.read(buffer, 0, 100)
                     val received = String(buffer, 0, size, Charsets.UTF_8)
-                    if(received == Streamer.DEVICE_CHECK_EXPECT)
-                    {
+                    if (received == Streamer.DEVICE_CHECK_EXPECT) {
                         isValid = true
                         Log.d(TAG, "testConnection: device matched!")
-                    }
-                    else
+                    } else
                         Log.d(TAG, "testConnection: device mismatch with $received!")
                 }
             }
             var time = 5
-            while(!job.isCompleted && time < MAX_WAIT_TIME)
-            {
+            while (!job.isCompleted && time < MAX_WAIT_TIME) {
                 delay(5)
                 time += 5
             }
-            if(!job.isCompleted)
-            {
+            if (!job.isCompleted) {
                 job.cancel()
                 Log.d(TAG, "testConnection: timeout!")
             }
@@ -176,20 +163,17 @@ class WifiStreamer(private val ctx : Context) : Streamer {
     }
 
     // get connected server information
-    override fun getInfo() : String
-    {
-        if(socket == null) return ""
+    override fun getInfo(): String {
+        if (socket == null) return ""
         return "[WIFI Mode] ${mode.name}\n[Device Address] ${socket?.remoteSocketAddress}"
     }
 
     // return true if is connected for streaming
-    override fun isAlive() : Boolean
-    {
+    override fun isAlive(): Boolean {
         return (socket != null && socket?.isConnected == true)
     }
 
-    override fun updateAddress(address : InetSocketAddress)
-    {
+    override fun updateAddress(address: InetSocketAddress) {
         this.port = address.port
         this.address = address.hostName
     }

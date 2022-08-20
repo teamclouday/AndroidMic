@@ -20,15 +20,13 @@ import com.example.microphone.streaming.MicStreamManager
 import kotlinx.coroutines.*
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.IllegalArgumentException
 
 class ForegroundService : Service() {
     private val TAG = "MicService"
     private val scope = CoroutineScope(Dispatchers.Default)
     private val WAIT_PERIOD = 500L
 
-    companion object
-    {
+    companion object {
         const val COMMAND_START_STREAM = 1
         const val COMMAND_STOP_STREAM = 2
         const val COMMAND_START_AUDIO = 3
@@ -38,12 +36,9 @@ class ForegroundService : Service() {
         const val COMMAND_GET_STATUS = 30
     }
 
-    private inner class ServiceHandler(looper: Looper) : Handler(looper)
-    {
-        override fun handleMessage(msg: Message)
-        {
-            when(msg.what)
-            {
+    private inner class ServiceHandler(looper: Looper) : Handler(looper) {
+        override fun handleMessage(msg: Message) {
+            when (msg.what) {
                 COMMAND_START_STREAM -> startStream(msg)
                 COMMAND_STOP_STREAM -> stopStream(msg)
                 COMMAND_START_AUDIO -> startAudio(msg)
@@ -54,24 +49,25 @@ class ForegroundService : Service() {
         }
     }
 
-    private lateinit var handlerThread : HandlerThread
-    private lateinit var serviceLooper : Looper
-    private lateinit var serviceHandler : ServiceHandler
-    private lateinit var serviceMessenger : Messenger
+    private lateinit var handlerThread: HandlerThread
+    private lateinit var serviceLooper: Looper
+    private lateinit var serviceHandler: ServiceHandler
+    private lateinit var serviceMessenger: Messenger
 
     private var sharedBuffer = AudioBuffer()
-    private var managerAudio : MicAudioManager? = null
-    private var managerStream : MicStreamManager? = null
-    private var jobStreamM : Job? = null
-    private var jobAudioM : Job? = null
+    private var managerAudio: MicAudioManager? = null
+    private var managerStream: MicStreamManager? = null
+    private var jobStreamM: Job? = null
+    private var jobAudioM: Job? = null
 
     data class States(
-        val isStreamStarted : AtomicBoolean = AtomicBoolean(false),
-        val streamShouldStop : AtomicBoolean = AtomicBoolean(false),
-        val isAudioStarted : AtomicBoolean = AtomicBoolean(false),
-        val audioShouldStop : AtomicBoolean = AtomicBoolean(false),
-        val isIPInfoSet : AtomicBoolean = AtomicBoolean(false)
+        val isStreamStarted: AtomicBoolean = AtomicBoolean(false),
+        val streamShouldStop: AtomicBoolean = AtomicBoolean(false),
+        val isAudioStarted: AtomicBoolean = AtomicBoolean(false),
+        val audioShouldStop: AtomicBoolean = AtomicBoolean(false),
+        val isIPInfoSet: AtomicBoolean = AtomicBoolean(false)
     )
+
     private val states = States()
 
     override fun onCreate() {
@@ -117,8 +113,8 @@ class ForegroundService : Service() {
         states.audioShouldStop.set(true)
         runBlocking {
             delay(WAIT_PERIOD)
-            if(jobStreamM?.isActive == true) jobStreamM?.cancel()
-            if(jobAudioM?.isActive == true) jobAudioM?.cancel()
+            if (jobStreamM?.isActive == true) jobStreamM?.cancel()
+            if (jobAudioM?.isActive == true) jobAudioM?.cancel()
             jobStreamM?.join()
             jobAudioM?.join()
         }
@@ -133,19 +129,15 @@ class ForegroundService : Service() {
     }
 
     // start streaming
-    private fun startStream(msg : Message)
-    {
+    private fun startStream(msg: Message) {
         val sender = msg.replyTo
         val replyData = Bundle()
         // check connection state
-        if(states.isStreamStarted.get())
-        {
+        if (states.isStreamStarted.get()) {
             replyData.putString("reply", "Stream already started")
             replySuccess(sender, replyData, COMMAND_START_STREAM)
             return
-        }
-        else if(jobStreamM?.isActive == true)
-        {
+        } else if (jobStreamM?.isActive == true) {
             // avoid duplicate jobs
             replyFailed(sender, replyData, COMMAND_START_STREAM)
             return
@@ -157,15 +149,13 @@ class ForegroundService : Service() {
             managerStream = MicStreamManager(applicationContext)
             try {
                 managerStream?.initialize()
-            } catch (e : IllegalArgumentException)
-            {
+            } catch (e: IllegalArgumentException) {
                 replyData.putString("reply", "Error:\n" + e.message)
                 replyFailed(sender, replyData, COMMAND_START_STREAM)
                 cancel()
             }
             states.streamShouldStop.set(false)
-            if(managerStream?.needInitIP() == true)
-            {
+            if (managerStream?.needInitIP() == true) {
                 // ask UI to set IP
                 states.isIPInfoSet.set(false)
                 val askIP = Message()
@@ -174,13 +164,12 @@ class ForegroundService : Service() {
                 askIP.replyTo = serviceMessenger
                 sender.send(askIP)
                 // wait
-                while(!states.streamShouldStop.get() && !states.isIPInfoSet.get())
+                while (!states.streamShouldStop.get() && !states.isIPInfoSet.get())
                     delay(WAIT_PERIOD)
             }
             sharedBuffer.reset()
             showMessage("Starting streaming")
-            if(managerStream?.start() == true && managerStream?.isConnected() == true)
-            {
+            if (managerStream?.start() == true && managerStream?.isConnected() == true) {
                 showMessage("Device connected")
                 replyData.putString(
                     "reply",
@@ -188,9 +177,7 @@ class ForegroundService : Service() {
                 )
                 replySuccess(sender, replyData, COMMAND_START_STREAM)
                 Log.d(TAG, "startStream [connected]")
-            }
-            else
-            {
+            } else {
                 replyData.putString("reply", "Failed to connect")
                 replyFailed(sender, replyData, COMMAND_START_STREAM)
                 managerStream?.shutdown()
@@ -198,15 +185,11 @@ class ForegroundService : Service() {
             }
             states.isStreamStarted.set(true)
             states.streamShouldStop.set(false)
-            while(!states.streamShouldStop.get())
-            {
-                if(managerStream?.isConnected() == true)
-                {
+            while (!states.streamShouldStop.get()) {
+                if (managerStream?.isConnected() == true) {
                     managerStream?.stream(sharedBuffer)
                     delay(MicStreamManager.STREAM_DELAY)
-                }
-                else
-                {
+                } else {
                     replyData.putString("reply", "Device disconnected")
                     showMessage("Device disconnected")
                     replyFailed(sender, replyData, COMMAND_DISC_STREAM)
@@ -218,8 +201,7 @@ class ForegroundService : Service() {
     }
 
     // stop streaming
-    private fun stopStream(msg : Message)
-    {
+    private fun stopStream(msg: Message) {
         Log.d(TAG, "stopStream")
         val sender = msg.replyTo
         val replyData = Bundle()
@@ -237,19 +219,15 @@ class ForegroundService : Service() {
     }
 
     // start mic
-    private fun startAudio(msg : Message)
-    {
+    private fun startAudio(msg: Message) {
         val sender = msg.replyTo
         val replyData = Bundle()
         // check audio state
-        if(states.isAudioStarted.get())
-        {
+        if (states.isAudioStarted.get()) {
             replyData.putString("reply", "Microphone already started")
             replySuccess(sender, replyData, COMMAND_START_AUDIO)
             return
-        }
-        else if(jobAudioM?.isActive == true)
-        {
+        } else if (jobAudioM?.isActive == true) {
             // avoid duplicate jobs
             replyFailed(sender, replyData, COMMAND_START_AUDIO)
             return
@@ -260,8 +238,7 @@ class ForegroundService : Service() {
             managerAudio?.shutdown()
             managerAudio = try {
                 MicAudioManager(applicationContext)
-            } catch (e : IllegalArgumentException)
-            {
+            } catch (e: IllegalArgumentException) {
                 replyData.putString("reply", "Error:\n" + e.message)
                 replyFailed(sender, replyData, COMMAND_START_AUDIO)
                 cancel()
@@ -278,8 +255,7 @@ class ForegroundService : Service() {
             // record into buffer
             states.isAudioStarted.set(true)
             states.audioShouldStop.set(false)
-            while(!states.audioShouldStop.get())
-            {
+            while (!states.audioShouldStop.get()) {
                 managerAudio?.record(sharedBuffer)
                 delay(MicAudioManager.RECORD_DELAY)
             }
@@ -289,8 +265,7 @@ class ForegroundService : Service() {
     }
 
     // stop mic
-    private fun stopAudio(msg : Message)
-    {
+    private fun stopAudio(msg: Message) {
         Log.d(TAG, "stopAudio")
         val sender = msg.replyTo
         val replyData = Bundle()
@@ -308,16 +283,14 @@ class ForegroundService : Service() {
         replySuccess(sender, replyData, COMMAND_STOP_AUDIO)
     }
 
-    private fun setIPInfo(msg : Message)
-    {
+    private fun setIPInfo(msg: Message) {
         val sender = msg.replyTo
         val replyData = Bundle()
         val ip = msg.data.getString("IP") ?: ""
         val port = msg.data.getInt("PORT")
         val address = try {
             InetSocketAddress(ip, port)
-        } catch (e : IllegalArgumentException)
-        {
+        } catch (e: IllegalArgumentException) {
             Log.d(TAG, "setIPInfo: ${e.message}")
             replyData.putString("reply", "Invalid IP Address ${ip}:${port}")
             replyFailed(sender, replyData, COMMAND_SET_IP_PORT)
@@ -328,8 +301,7 @@ class ForegroundService : Service() {
         replySuccess(sender, replyData, COMMAND_SET_IP_PORT)
     }
 
-    private fun getStatus(msg : Message)
-    {
+    private fun getStatus(msg: Message) {
         val sender = msg.replyTo
         val replyData = Bundle()
         replyData.putBoolean("isStreamStarted", states.isStreamStarted.get())
@@ -342,8 +314,7 @@ class ForegroundService : Service() {
     }
 
     // reply failed message
-    private fun replyFailed(sender : Messenger, data : Bundle, what : Int)
-    {
+    private fun replyFailed(sender: Messenger, data: Bundle, what: Int) {
         data.putInt("Result", 0) // 0 for failure
         val reply = Message()
         reply.data = data
@@ -353,8 +324,7 @@ class ForegroundService : Service() {
     }
 
     // reply success message
-    private fun replySuccess(sender : Messenger, data : Bundle, what : Int)
-    {
+    private fun replySuccess(sender: Messenger, data: Bundle, what: Int) {
         data.putInt("Result", 1) // 1 for success
         val reply = Message()
         reply.data = data
@@ -364,22 +334,21 @@ class ForegroundService : Service() {
     }
 
     // show message on UI
-    private fun showMessage(message : String)
-    {
+    private fun showMessage(message: String) {
         val ctx = this
         CoroutineScope(Dispatchers.Main).launch {
             Toast.makeText(ctx, message, Toast.LENGTH_SHORT).show()
         }
     }
 
-    private fun showNotification()
-    {
+    private fun showNotification() {
         val ctx = this
         CoroutineScope(Dispatchers.Main).launch {
             val onTap = Intent(ctx, MainActivity::class.java).apply {
                 addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT)
             }
-            val pendingIntent = PendingIntent.getActivity(ctx, 0, onTap, PendingIntent.FLAG_IMMUTABLE)
+            val pendingIntent =
+                PendingIntent.getActivity(ctx, 0, onTap, PendingIntent.FLAG_IMMUTABLE)
             val builder = NotificationCompat.Builder(ctx, "AndroidMic")
                 .setSmallIcon(R.drawable.icon)
                 .setContentTitle(getString(R.string.activity_name))
@@ -394,8 +363,7 @@ class ForegroundService : Service() {
         }
     }
 
-    private fun removeNotification()
-    {
+    private fun removeNotification() {
         val ctx = this
         CoroutineScope(Dispatchers.Main).launch {
             with(NotificationManagerCompat.from(ctx))
