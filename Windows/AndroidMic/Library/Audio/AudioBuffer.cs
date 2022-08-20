@@ -4,7 +4,7 @@ namespace AndroidMic.Audio
 {
     public class AudioBuffer
     {
-        public const int MAX_BUFFER_SIZE = 3;
+        public const int MAX_BUFFER_SIZE = 5;
         private readonly Queue<byte[]> buffer = new Queue<byte[]>();
         private readonly object toLock = new object();
 

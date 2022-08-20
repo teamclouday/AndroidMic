@@ -111,7 +111,9 @@ namespace AndroidMic.Audio
                     Thread.Sleep(5);
                     continue;
                 }
-                bufferedProvider.AddSamples(data, 0, data.Length);
+                // skip buffers if more than 100ms audio playing
+                if (bufferedProvider.BufferedDuration.TotalMilliseconds <= playerDesiredLatency)
+                    bufferedProvider.AddSamples(data, 0, data.Length);
             }
         }
 
