@@ -3,14 +3,12 @@ package com.example.microphone.audio
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
+import android.media.AudioDeviceInfo
 import android.media.AudioFormat
+import android.media.AudioManager
 import android.media.AudioRecord
-import android.media.MediaRecorder
 import android.util.Log
 import androidx.core.content.ContextCompat
-import kotlinx.coroutines.delay
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 
 // reference: https://dolby.io/blog/recording-audio-on-android-with-examples
 // reference: https://twigstechtips.blogspot.com/2013/07/android-enable-noise-cancellation-in.html
@@ -21,16 +19,16 @@ class MicAudioManager(ctx: Context) {
 
     companion object {
         const val RECORD_DELAY = 1L
-        const val AUDIO_SOURCE: Int = MediaRecorder.AudioSource.MIC
         const val SAMPLE_RATE: Int = 16000
-        const val CHANNEL_CONFIG: Int = AudioFormat.CHANNEL_IN_MONO
-        const val AUDIO_FORMAT: Int = AudioFormat.ENCODING_PCM_16BIT
         val BUFFER_SIZE: Int =
-            AudioRecord.getMinBufferSize(SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT)
+            AudioRecord.getMinBufferSize(
+                SAMPLE_RATE,
+                AudioFormat.CHANNEL_IN_MONO,
+                AudioFormat.ENCODING_PCM_16BIT
+            )
     }
 
-    private var recorder: AudioRecord? = null
-    private val buffer = ShortArray(BUFFER_SIZE)
+    private var recorder: OboeRecorder? = null
 
     init {
         // check microphone
@@ -45,25 +43,28 @@ class MicAudioManager(ctx: Context) {
         ) {
             "Microphone recording is not permitted"
         }
+        // find audio device
+        val am = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val devices = am.getDevices(AudioManager.GET_DEVICES_INPUTS)
+        require(devices.isNotEmpty()) {
+            "No valid microphone device"
+        }
+        var selectedDevice = devices[0]
+        for (device in devices) {
+            if (device.type == AudioDeviceInfo.TYPE_BUILTIN_MIC) {
+                selectedDevice = device
+                break
+            }
+        }
+        Log.d(TAG, "[init] selected input device ${selectedDevice.productName}")
         // init recorder
-        recorder = AudioRecord(AUDIO_SOURCE, SAMPLE_RATE, CHANNEL_CONFIG, AUDIO_FORMAT, BUFFER_SIZE)
-        require(recorder?.state == AudioRecord.STATE_INITIALIZED) { "Microphone not init properly" }
+        recorder = OboeRecorder(selectedDevice.id, SAMPLE_RATE, BUFFER_SIZE)
     }
 
     // store data in shared audio buffer
     suspend fun record(audioBuffer: AudioBuffer) {
         // read number of shorts
-        val size = recorder?.read(buffer, 0, BUFFER_SIZE) ?: return
-        if (size <= 0) {
-            delay(RECORD_DELAY)
-            return
-        }
-        // create bytearray
-        val data = ByteArray(size * 2)
-        val dataWrapper = ByteBuffer.wrap(data)
-            .order(ByteOrder.LITTLE_ENDIAN)
-            .asShortBuffer()
-        dataWrapper.put(buffer, 0, size)
+        val data = recorder?.readBytes() ?: return
         // store data
         audioBuffer.push(data)
         Log.d(TAG, "[record] audio data recorded (${data.size} bytes)")
@@ -71,20 +72,19 @@ class MicAudioManager(ctx: Context) {
 
     // start recording
     fun start() {
-        recorder?.startRecording()
+        recorder?.startRecord()
         Log.d(TAG, "start")
     }
 
     // stop recording
     fun stop() {
-        recorder?.stop()
+        recorder?.stopRecord()
         Log.d(TAG, "stop")
     }
 
     // shutdown manager
     fun shutdown() {
-        recorder?.stop()
-        recorder?.release()
+        recorder?.stopRecord()
         recorder = null
         Log.d(TAG, "shutdown")
     }
