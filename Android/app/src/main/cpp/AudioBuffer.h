@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <array>
 #include <vector>
+#include <mutex>
 
 template<uint32_t COUNT, typename TYPE = int16_t>
 class AudioBuffer {
@@ -38,6 +39,7 @@ public:
 
     /// Advance to next available read buffer
     void NextReadBuffer() {
+        std::lock_guard<std::mutex> guard(_mutex);
         _bufferValidCounts[_bufferToRead] = 0;
         _bufferToRead++;
         validateBufferPointers();
@@ -45,6 +47,7 @@ public:
 
     /// Advance to next available write buffer
     void NextWriteBuffer() {
+        std::lock_guard<std::mutex> guard(_mutex);
         _bufferToWrite++;
         validateBufferPointers();
     }
@@ -83,6 +86,8 @@ private:
     volatile uint32_t _bufferToWrite;
     volatile uint32_t _bufferToRead;
     uint32_t _bufferSize;
+
+    std::mutex _mutex;
 };
 
 #endif //MICROPHONE_AUDIOBUFFER_H
