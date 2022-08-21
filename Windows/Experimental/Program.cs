@@ -4,9 +4,10 @@ namespace Experimental
 {
     partial class Program
     {
+        [STAThread]
         static void Main(string[] args)
         {
-            CaptureSpeakerAuto();
+            TestWasapiOut();
             Console.ReadKey();
         }
     }

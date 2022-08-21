@@ -6,6 +6,7 @@ using System.Windows.Shapes;
 using System.Windows.Controls;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
+using NAudio.CoreAudioApi;
 
 namespace AndroidMic.Audio
 {
@@ -31,11 +32,10 @@ namespace AndroidMic.Audio
         private readonly int MAX_WAIT_TIME = 1000;
         private readonly int MAX_FILTERS_COUNT = 3;
 
-        private WaveOutCapabilities[] devices;
+        private MMDeviceCollection devices;
         private int selectedDeviceIdx;
         private IWavePlayer player;
-        private readonly int playerDesiredLatency = 100;
-        private readonly int playerNumberOfBuffers = 3;
+        private readonly int playerDesiredLatency = 100; // in milliseconds
         private readonly WaveFormat format;
 
         private readonly BufferedWaveProvider bufferedProvider;
@@ -49,20 +49,21 @@ namespace AndroidMic.Audio
         private readonly Thread processThread;
         private volatile bool processAllowed;
 
+        private readonly SynchronizationContext uiContext;
+
         public event EventHandler<MessageArgs> AddLogEvent;
         public event EventHandler<AudioDevicesArgs> RefreshAudioDevicesEvent;
 
-        public AudioManager(AudioBuffer buffer)
+        public AudioManager(AudioBuffer buffer, SynchronizationContext context)
         {
             sharedBuffer = buffer;
+            uiContext = context;
+
             selectedDeviceIdx = -1;
             format = new WaveFormat(16000, 16, 1); // sample rate, bits, channels
-            player = new WaveOut
-            {
-                DeviceNumber = selectedDeviceIdx,
-                DesiredLatency = playerDesiredLatency,
-                NumberOfBuffers = playerNumberOfBuffers
-            };
+            var deviceIter = new MMDeviceEnumerator();
+            devices = deviceIter.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
+            player = new WasapiOut(deviceIter.GetDefaultAudioEndpoint(DataFlow.Render, Role.Console), AudioClientShareMode.Shared, false, playerDesiredLatency);
             providerPipeline = new ISampleProvider[MAX_FILTERS_COUNT];
             providerPipelineStates = new Dictionary<AdvancedFilterType, bool>();
             for (int i = 0; i < MAX_FILTERS_COUNT; i++)
@@ -71,7 +72,7 @@ namespace AndroidMic.Audio
             {
                 DiscardOnBufferOverflow = true
             };
-            speexProvider = new FilterSpeexDSP(bufferedProvider);
+            speexProvider = new FilterSpeexDSP(bufferedProvider, uiContext);
             // build filter pipeline
             BuildPipeline();
             processAllowed = true;
@@ -109,18 +110,19 @@ namespace AndroidMic.Audio
                     player.PlaybackState != PlaybackState.Playing)
                 {
                     Thread.Sleep(5);
-                    continue;
                 }
-                // skip buffers if more than 100ms audio playing
-                if (bufferedProvider.BufferedDuration.TotalMilliseconds <= playerDesiredLatency)
+                else if (bufferedProvider.BufferedDuration.TotalMilliseconds <= playerDesiredLatency)
+                {
+                    // skip buffers if more than 100ms audio playing
                     bufferedProvider.AddSamples(data, 0, data.Length);
+                }
             }
         }
 
         // select audio device by UI
         public void SelectAudioDevice(int deviceIdx)
         {
-            if (deviceIdx < devices.Length)
+            if (deviceIdx < devices.Count)
                 selectedDeviceIdx = deviceIdx;
             else
                 selectedDeviceIdx = -1;
@@ -128,18 +130,15 @@ namespace AndroidMic.Audio
             player.Stop();
             player.Dispose();
             // create new player
-            player = new WaveOut
-            {
-                DeviceNumber = selectedDeviceIdx,
-                DesiredLatency = playerDesiredLatency,
-                NumberOfBuffers = playerNumberOfBuffers
-            };
+            var deviceIter = new MMDeviceEnumerator();
+            var device = selectedDeviceIdx < 0 ? deviceIter.GetDefaultAudioEndpoint(DataFlow.Render, Role.Console) : devices[selectedDeviceIdx];
+            player = new WasapiOut(device, AudioClientShareMode.Shared, false, playerDesiredLatency);
             bufferedProvider.ClearBuffer();
             // start playing
             player.Init(volumeProvider);
             player.Play();
             DebugLog("SelectAudioDevice: " + deviceIdx);
-            AddLog("Device changed to " + ((deviceIdx < 0) ? "Default" : devices[deviceIdx].ProductName));
+            AddLog("Device changed to " + ((deviceIdx < 0) ? "Default" : devices[deviceIdx].FriendlyName));
             RefreshAudioDevices();
         }
 
@@ -152,15 +151,13 @@ namespace AndroidMic.Audio
         // refresh audio devices
         public void RefreshAudioDevices()
         {
-            if (devices == null || WaveOut.DeviceCount != devices.Length)
-                devices = new WaveOutCapabilities[WaveOut.DeviceCount];
-            for (int i = 0; i < devices.Length; i++)
-                devices[i] = WaveOut.GetCapabilities(i);
+            var deviceIter = new MMDeviceEnumerator();
+            devices = deviceIter.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
             if (RefreshAudioDevicesEvent != null)
             {
-                string[] deviceNames = new string[devices.Length];
-                for (int i = 0; i < devices.Length; i++)
-                    deviceNames[i] = devices[i].ProductName;
+                string[] deviceNames = new string[devices.Count];
+                for (int i = 0; i < devices.Count; i++)
+                    deviceNames[i] = devices[i].FriendlyName;
                 RefreshAudioDevicesEvent?.Invoke(this, new AudioDevicesArgs
                 {
                     Devices = deviceNames,
@@ -175,12 +172,9 @@ namespace AndroidMic.Audio
             player.Stop();
             player.Dispose();
             // create new player
-            player = new WaveOut
-            {
-                DeviceNumber = selectedDeviceIdx,
-                DesiredLatency = playerDesiredLatency,
-                NumberOfBuffers = playerNumberOfBuffers
-            };
+            var deviceIter = new MMDeviceEnumerator();
+            var device = selectedDeviceIdx < 0 ? deviceIter.GetDefaultAudioEndpoint(DataFlow.Render, Role.Console) : devices[selectedDeviceIdx];
+            player = new WasapiOut(device, AudioClientShareMode.Shared, false, playerDesiredLatency);
             bufferedProvider.ClearBuffer();
             ISampleProvider source = speexProvider.ToSampleProvider();
             for (int i = 0; i < MAX_FILTERS_COUNT; i++)
@@ -201,7 +195,7 @@ namespace AndroidMic.Audio
                         break;
                 }
             }
-            rendererProvider = new FilterRenderer(source, prev: rendererProvider);
+            rendererProvider = new FilterRenderer(source, uiContext, prev: rendererProvider);
             volumeProvider = new VolumeSampleProvider(rendererProvider)
             {
                 Volume = volumeProvider == null ? 1.0f : volumeProvider.Volume

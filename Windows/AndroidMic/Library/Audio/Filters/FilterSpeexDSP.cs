@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
+using System.Threading;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -22,8 +22,8 @@ namespace AndroidMic.Audio
             ConfigVAD = 3
         }
 
-        private readonly int FRAME_SIZE = 640; // 40ms (0.04 * 16000)
-        private readonly int FRAME_SIZE_BYTES = 640 * 2; // in bytes
+        private readonly int FRAME_SIZE = 800; // 50ms (0.05 * 16000)
+        private readonly int FRAME_SIZE_BYTES = 800 * 2; // in bytes
         private readonly int FILTER_LEN = 3200; // 100-500 ms (0.2 * 16000)
 
         // configs specifically chosen for this app
@@ -36,7 +36,6 @@ namespace AndroidMic.Audio
 
         private readonly byte[] audioBuffer;
         private readonly byte[] echoPlayBuffer;
-        private readonly byte[] echoOutBuffer;
         private readonly CircularBuffer loopbackPlayBuffer;
         private readonly object loopbackPlayBufferLock;
 
@@ -51,16 +50,18 @@ namespace AndroidMic.Audio
         private bool indicatorInSpeech;
 
         private readonly IntPtr SpeexPreprocessState;
-        private readonly IntPtr SpeexEchoState;
         private readonly IntPtr StateUpdate;
+        private IntPtr SpeexEchoState;
 
-        public FilterSpeexDSP(IWaveProvider source)
+        private readonly SynchronizationContext uiContext;
+
+        public FilterSpeexDSP(IWaveProvider source, SynchronizationContext uiContext)
         {
             this.source = source;
+            this.uiContext = uiContext;
 
             audioBuffer = new byte[FRAME_SIZE_BYTES];
             echoPlayBuffer = new byte[FRAME_SIZE_BYTES];
-            echoOutBuffer = new byte[FRAME_SIZE_BYTES];
 
             loopbackPlayBuffer = new CircularBuffer(WaveFormat.AverageBytesPerSecond * 5); // 5 seconds recording
             loopbackPlayBufferLock = new object();
@@ -92,7 +93,6 @@ namespace AndroidMic.Audio
                 // copy buffer
                 int nextRead = Math.Min(toRead, FRAME_SIZE_BYTES); // in bytes
                 Buffer.BlockCopy(buffer, offset, audioBuffer, 0, nextRead);
-                // clear audio buffer remaining shorts (bytes / 2)
                 if (nextRead < FRAME_SIZE_BYTES) Array.Clear(audioBuffer, nextRead, FRAME_SIZE_BYTES - nextRead);
                 // do echo cancellation first if enabled
                 if (EnabledEcho)
@@ -104,9 +104,7 @@ namespace AndroidMic.Audio
                         if (bytesRead < echoPlayBuffer.Length) Array.Clear(echoPlayBuffer, bytesRead, echoPlayBuffer.Length - bytesRead);
                     }
                     // echo cancellation
-                    SpeexEcho.speex_echo_cancellation(SpeexEchoState, audioBuffer, echoPlayBuffer, echoOutBuffer);
-                    // copy back
-                    Buffer.BlockCopy(echoOutBuffer, 0, audioBuffer, 0, nextRead);
+                    SpeexEcho.speex_echo_cancellation(SpeexEchoState, audioBuffer, echoPlayBuffer, audioBuffer);
                 }
                 // process audio
                 indicatorInSpeech = SpeexPreprocess.speex_preprocess_run(SpeexPreprocessState, audioBuffer) == 1;
@@ -119,10 +117,10 @@ namespace AndroidMic.Audio
             // check if VAD enabled
             indicatorInSpeech = indicatorInSpeech && EnabledVAD;
             // update indicator
-            Application.Current.Dispatcher.Invoke(new Action(() =>
+            uiContext?.Post(delegate
             {
                 UpdateIndicator();
-            }));
+            }, null);
             return samplesRead;
         }
 
@@ -261,10 +259,10 @@ namespace AndroidMic.Audio
                 {
                     indicatorInSpeech = false;
                     // update indicator
-                    Application.Current.Dispatcher.Invoke(new Action(() =>
+                    uiContext?.Post(delegate
                     {
                         UpdateIndicator();
-                    }));
+                    }, null);
                 }
             }
         }
@@ -304,7 +302,13 @@ namespace AndroidMic.Audio
                     // Start capturing for play buffer
                     StartCapture();
                 }
-                else StopCapture();
+                else
+                {
+                    StopCapture();
+                    // reset echo state
+                    SpeexEcho.speex_echo_state_destroy(SpeexEchoState);
+                    SpeexEchoState = SpeexEcho.speex_echo_state_init(FRAME_SIZE, FILTER_LEN);
+                }
             }
         }
     }

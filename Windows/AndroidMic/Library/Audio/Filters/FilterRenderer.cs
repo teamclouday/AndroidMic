@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Shapes;
@@ -56,6 +57,7 @@ namespace AndroidMic.Audio
         private readonly float PEAK_MULTIPLIER = 0.8f;
 
         public Canvas RenderCanvas;
+        private readonly SynchronizationContext uiContext;
         private readonly Polygon streamGroup;
         private readonly Point[] audioPeaks;
 
@@ -64,9 +66,10 @@ namespace AndroidMic.Audio
 
         private bool canvasEnabled;
 
-        public FilterRenderer(ISampleProvider source, int speed = 5, FilterRenderer prev = null)
+        public FilterRenderer(ISampleProvider source, SynchronizationContext uiContext, int speed = 5, FilterRenderer prev = null)
         {
             this.source = source;
+            this.uiContext = uiContext;
             POINT_INTERVAL = (float)IMG_W / MAX_POINT_COUNT;
             streamGroup = new Polygon
             {
@@ -122,10 +125,10 @@ namespace AndroidMic.Audio
                 peaks.Consume(PEAK_MULTIPLIER * buffer[n + offset]);
                 if (peaks.NextPair(ref nextMax, ref nextMin))
                 {
-                    Application.Current.Dispatcher.Invoke(new Action(() =>
+                    uiContext?.Post(delegate
                     {
                         Push(nextMax, nextMin);
-                    }));
+                    }, null);
                 }
             }
             return samplesRead;

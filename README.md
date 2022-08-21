@@ -126,8 +126,8 @@ __SpeexDSP Filters__:
 
 To further reduce latency, here're the possible areas to optimize:
 - [x] Use `Oboe` audio library
-- [ ] Improve `NAudio` filters
-- [ ] Use modern `NAudio` WASAPI player (no more Windows XP / lower support)
+- [x] Improve `NAudio` filters
+- [x] Use modern `NAudio` WASAPI player (no more Windows XP / lower support)
 - [ ] Garbage Collection friendly buffers on Android Kotlin
 - [ ] Garbage Collection friendly buffers on Windows C#
 - [ ] Threads / Coroutines priority level

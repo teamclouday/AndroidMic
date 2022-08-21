@@ -61,7 +61,7 @@ namespace AndroidMic
             streamM.ServerListeningEvent += StreamM_ServerListeningEvent;
             streamM.ClientConnectedEvent += StreamM_ClientConnectedEvent;
             streamM.ClientDisconnectedEvent += StreamM_ClientDisconnectedEvent;
-            audioM = new AudioManager(sharedBuffer);
+            audioM = new AudioManager(sharedBuffer, uiContext);
             audioM.AddLogEvent += Services_AddLogEvent;
             audioM.RefreshAudioDevicesEvent += AudioM_RefreshAudioDevicesEvent;
             audioM.RefreshAudioDevices();
@@ -218,8 +218,7 @@ namespace AndroidMic
         // click event for connect button
         private void ConnectButton_Click(object sender, RoutedEventArgs e)
         {
-            Button btn = sender as Button;
-            if (btn != null)
+            if (sender is Button btn && btn != null)
             {
                 if (btn.Content.ToString().StartsWith("C"))
                     streamM?.Start();
@@ -296,8 +295,7 @@ namespace AndroidMic
         // connection type radio button checked event
         private void RadioButton_Checked(object sender, RoutedEventArgs e)
         {
-            RadioButton rb = sender as RadioButton;
-            if (rb != null && (rb.IsChecked == true))
+            if (sender is RadioButton rb && rb != null && (rb.IsChecked == true))
             {
                 // select bluetooth or wifi
                 if (rb.Content.ToString().StartsWith("B"))
