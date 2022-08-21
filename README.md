@@ -106,7 +106,6 @@ __SpeexDSP Filters__:
 - [x] Volume control on Windows side  
 - [x] Audio visualization on Windows side  
 - [x] Show notification when mic is in use on Android side  
-- [x] ~~Implement Acoustic Echo Cancellation (AEC)~~  
 - [x] Audio effect filters  
   - [x] Pitch Shifter  
   - [x] Add White Noise  
@@ -115,8 +114,24 @@ __SpeexDSP Filters__:
   - [x] SpeexDSP Automatic Gain Control  
   - [x] SpeexDSP Voice Activity Detection  
   - [x] SpeexDSP Echo Cancellation  
+- [x] Memorized user settings
+- [x] Select network adapter in wifi mode
+- [ ] Port all Windows code & dependencies to .Net Core (with [Avalonia](https://github.com/AvaloniaUI/Avalonia))
+  - [ ] MacOS Support
+  - [ ] Linux Support
 
-Check out [Avalonia](https://github.com/AvaloniaUI/Avalonia)! With this it may be possible to port all Windows code to .Net Core that can be compiled to support Linux/MacOS!
+------
+
+## Optimization Plans
+
+To further reduce latency, here're the possible areas to optimize:
+- [x] Use `Oboe` audio library
+- [ ] Improve `NAudio` filters
+- [ ] Use modern `NAudio` WASAPI player (no more Windows XP / lower support)
+- [ ] Garbage Collection friendly buffers on Android Kotlin
+- [ ] Garbage Collection friendly buffers on Windows C#
+- [ ] Threads / Coroutines priority level
+- [ ] Profile and analyze hot code paths on each
 
 ------
 
