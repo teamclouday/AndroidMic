@@ -111,22 +111,25 @@ class BluetoothStreamer(private val ctx: Context) : Streamer {
     override suspend fun stream(audioBuffer: AudioBuffer) = withContext(Dispatchers.IO)
     {
         if (socket == null || socket?.isConnected != true || audioBuffer.isEmpty()) return@withContext
+        var readSize = 0
         try {
             val streamOut = socket!!.outputStream
             val region = audioBuffer.openReadRegion(1024)
             val regionSize = region.first
             val regionOffset = region.second
             streamOut.write(audioBuffer.buffer, regionOffset, regionSize)
-            audioBuffer.closeReadRegion(regionSize)
+            readSize = regionSize
             // streamOut.flush()
         } catch (e: IOException) {
             Log.d(TAG, "stream: ${e.message}")
-            audioBuffer.closeReadRegion(0)
             delay(5)
             disconnect()
+            readSize = 0
         } catch (e: Exception) {
             Log.d(TAG, "stream: ${e.message}")
-            audioBuffer.closeReadRegion(0)
+            readSize = 0
+        } finally {
+            audioBuffer.closeReadRegion(readSize)
         }
     }
 
