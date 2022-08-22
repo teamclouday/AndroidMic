@@ -11,7 +11,7 @@
 
 #include "AudioBuffer.h"
 
-#define AUDIO_BUFFER_COUNT  3
+#define AUDIO_BUFFER_SIZE   2 * 1024
 
 class OboeRecorder {
 public:
@@ -36,7 +36,7 @@ public:
     void SetBufferSizeInFrames(int32_t frames);
 
     /// Get audio buffer to read from
-    std::shared_ptr<AudioBuffer<AUDIO_BUFFER_COUNT>> GetAudioBuffer();
+    std::shared_ptr<AudioBuffer<>> GetAudioBuffer();
 
     /// Check if is little endian
     bool IsLittleEndian() const;
@@ -54,7 +54,7 @@ private:
     int32_t _bufferSizeInFrames;
 
     std::shared_ptr<oboe::AudioStream> _stream;
-    std::shared_ptr<AudioBuffer<AUDIO_BUFFER_COUNT>> _buffer;
+    std::shared_ptr<AudioBuffer<>> _buffer;
     std::thread _readThread;
 
     volatile bool _recording;

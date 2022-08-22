@@ -129,7 +129,7 @@ To further reduce latency, here're the possible areas to optimize:
 - [x] Improve `NAudio` filters
 - [x] Use modern `NAudio` WASAPI player (no more Windows XP / lower support)
 - [x] Garbage Collection friendly buffers on Android Kotlin
-- [ ] Garbage Collection friendly buffers on Windows C#
+- [x] Garbage Collection friendly buffers on Windows C#
 - [ ] Threads / Coroutines priority level
 - [ ] Profile and analyze hot code paths on each
 

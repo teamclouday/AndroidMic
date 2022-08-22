@@ -4,9 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioDeviceInfo
-import android.media.AudioFormat
 import android.media.AudioManager
-import android.media.AudioRecord
 import android.util.Log
 import androidx.core.content.ContextCompat
 
@@ -20,12 +18,8 @@ class MicAudioManager(ctx: Context) {
     companion object {
         const val RECORD_DELAY = 1L
         const val SAMPLE_RATE: Int = 16000
-        val BUFFER_SIZE: Int =
-            AudioRecord.getMinBufferSize(
-                SAMPLE_RATE,
-                AudioFormat.CHANNEL_IN_MONO,
-                AudioFormat.ENCODING_PCM_16BIT
-            )
+        const val BUFFER_SIZE = 1024
+        const val BUFFER_COUNT = 2
     }
 
     private var recorder: OboeRecorder? = null
@@ -58,7 +52,7 @@ class MicAudioManager(ctx: Context) {
         }
         Log.d(TAG, "[init] selected input device ${selectedDevice.productName}")
         // init recorder
-        recorder = OboeRecorder(selectedDevice.id, SAMPLE_RATE, BUFFER_SIZE)
+        recorder = OboeRecorder(selectedDevice.id, SAMPLE_RATE, BUFFER_SIZE * BUFFER_COUNT)
     }
 
     // store data in shared audio buffer

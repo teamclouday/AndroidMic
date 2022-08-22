@@ -109,13 +109,14 @@ namespace AndroidMic.Audio
                     player.PlaybackState != PlaybackState.Playing)
                 {
                     Thread.Sleep(5);
+                    continue;
                 }
-                else if (bufferedProvider.BufferedDuration.TotalMilliseconds <= playerDesiredLatency)
+                sharedBuffer.OpenReadRegion(Streaming.Streamer.BUFFER_SIZE, out var count, out var offset);
+                if (bufferedProvider.BufferedDuration.TotalMilliseconds <= playerDesiredLatency)
                 {
-                    sharedBuffer.OpenReadRegion(4000, out var count, out var offset);
                     bufferedProvider.AddSamples(sharedBuffer.Buffer, offset, count);
-                    sharedBuffer.CloseReadRegion(count);
                 }
+                sharedBuffer.CloseReadRegion(count);
             }
         }
 

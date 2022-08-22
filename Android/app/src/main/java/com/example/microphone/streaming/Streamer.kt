@@ -15,5 +15,6 @@ interface Streamer {
     companion object {
         val DEVICE_CHECK = "AndroidMicCheck"
         val DEVICE_CHECK_EXPECT = "AndroidMicCheckAck"
+        val BUFFER_SIZE = 1024
     }
 }

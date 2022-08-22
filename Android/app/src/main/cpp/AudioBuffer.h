@@ -9,11 +9,11 @@
 #include <cmath>
 
 // an implementation of circular buffer
-template<uint32_t COUNT, typename TYPE = int16_t>
+template<typename TYPE = int16_t>
 class AudioBuffer {
 public:
-    AudioBuffer(uint32_t bufferSize) {
-        _bufferCapacity = bufferSize * COUNT;
+    AudioBuffer(uint32_t capacity) {
+        _bufferCapacity = capacity;
         _buffer.resize(_bufferSize);
         _regionLeft = _regionRight = 0;
         _bufferSize = 0;

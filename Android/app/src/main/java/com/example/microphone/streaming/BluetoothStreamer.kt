@@ -114,7 +114,7 @@ class BluetoothStreamer(private val ctx: Context) : Streamer {
         var readSize = 0
         try {
             val streamOut = socket!!.outputStream
-            val region = audioBuffer.openReadRegion(1024)
+            val region = audioBuffer.openReadRegion(Streamer.BUFFER_SIZE)
             val regionSize = region.first
             val regionOffset = region.second
             streamOut.write(audioBuffer.buffer, regionOffset, regionSize)

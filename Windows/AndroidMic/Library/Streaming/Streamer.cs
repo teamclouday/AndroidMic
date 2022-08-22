@@ -23,10 +23,10 @@ namespace AndroidMic.Streaming
         }
         public ServerStatus Status { get; protected set; } = ServerStatus.DEFAULT;
 
-        public readonly string DEVICE_CHECK_EXPECTED = "AndroidMicCheck";
-        public readonly string DEVICE_CHECK = "AndroidMicCheckAck";
-        public readonly int MAX_WAIT_TIME = 1500;
-        public readonly int MIN_WAIT_TIME = 50;
-        public readonly int BUFFER_SIZE = 4000;
+        public static readonly string DEVICE_CHECK_EXPECTED = "AndroidMicCheck";
+        public static readonly string DEVICE_CHECK = "AndroidMicCheckAck";
+        public static readonly int MAX_WAIT_TIME = 1500;
+        public static readonly int MIN_WAIT_TIME = 50;
+        public static readonly int BUFFER_SIZE = 1024;
     }
 }

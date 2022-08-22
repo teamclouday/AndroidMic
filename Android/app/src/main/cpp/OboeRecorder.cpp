@@ -51,7 +51,7 @@ void OboeRecorder::StartRecord() {
 
     _bufferSizeInFrames = _stream->getBufferSizeInFrames();
 
-    _buffer = std::make_unique<AudioBuffer<AUDIO_BUFFER_COUNT>>(_bufferSizeInFrames);
+    _buffer = std::make_unique<AudioBuffer<>>(std::max(AUDIO_BUFFER_SIZE, _bufferSizeInFrames));
 
     // skip first few frames
     int frames;
@@ -68,8 +68,7 @@ void OboeRecorder::StartRecord() {
     _recording = true;
     _readThread = std::thread(&OboeRecorder::readStream, this);
 
-    LOGD("[StartRecord] init %d buffers with size %d each",
-         AUDIO_BUFFER_COUNT, _bufferSizeInFrames);
+    LOGD("[StartRecord] init audio buffer with size %u", _buffer->Capacity());
 }
 
 void OboeRecorder::StopRecord() {
@@ -108,7 +107,7 @@ void OboeRecorder::SetBufferSizeInFrames(int32_t frames) {
     }
 }
 
-std::shared_ptr<AudioBuffer<AUDIO_BUFFER_COUNT>> OboeRecorder::GetAudioBuffer() {
+std::shared_ptr<AudioBuffer<>> OboeRecorder::GetAudioBuffer() {
     return _buffer;
 }
 

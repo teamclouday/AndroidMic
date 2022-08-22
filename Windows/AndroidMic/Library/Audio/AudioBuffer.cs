@@ -7,7 +7,7 @@ namespace AndroidMic.Audio
     // implementation of circular buffer
     public class AudioBuffer
     {
-        public const int Capacity = 3 * 2048;
+        public const int Capacity = 5 * 1024;
         public readonly byte[] Buffer = new byte[Capacity];
 
         private int regionSize = 0;
