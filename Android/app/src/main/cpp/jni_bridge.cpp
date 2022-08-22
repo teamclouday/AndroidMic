@@ -1,5 +1,9 @@
 #include "OboeRecorder.h"
+#include "AudioBuffer.h"
+#include "Logging.h"
 #include <jni.h>
+#include <chrono>
+#include <thread>
 
 extern "C"
 JNIEXPORT void JNICALL
@@ -40,38 +44,99 @@ Java_com_example_microphone_audio_OboeRecorder_stopRecordingInternal(JNIEnv *, j
 }
 
 extern "C"
-JNIEXPORT jbyteArray JNICALL
-Java_com_example_microphone_audio_OboeRecorder_readInternalBytes(JNIEnv *env, jobject) {
+JNIEXPORT jint JNICALL
+Java_com_example_microphone_audio_OboeRecorder_readInternalBytes(JNIEnv *env, jobject,
+                                                                 jbyteArray buffer,
+                                                                 jint offset, jint len) {
     auto recorder = OboeRecorder::Instance();
-    if (!recorder->HasBuffer()) return nullptr;
-    auto &lock = recorder->GetLock();
-    lock.lock();
-    auto recorded = recorder->GetRecordedFrames() * 2;
-    jbyteArray bytes = nullptr;
-    if (recorded) {
-        bytes = env->NewByteArray(recorded);
-        auto region = recorder->GetByteBuffer();
-        env->SetByteArrayRegion(bytes, 0, recorded, region);
+    auto readBuffer = recorder->GetAudioBuffer();
+    if (!readBuffer || readBuffer->IsEmpty() || len <= 0) return 0;
+    uint32_t size;
+    const auto ptr = readBuffer->OpenReadMemoryRegion((uint32_t) len / 2, size);
+    jint trueSize = (jint) size * 2;
+    if (recorder->IsLittleEndian()) {
+        env->SetByteArrayRegion(buffer, offset, trueSize,
+                                reinterpret_cast<const jbyte *>(ptr));
+    } else {
+        // revert order of each short
+        int8_t val;
+        for (jint idx = 0; idx < (jint) size; ++idx) {
+            auto shortVal = *(ptr + idx);
+            val = (int8_t) ((shortVal >> 8) & 0xff);
+            env->SetByteArrayRegion(buffer, offset + idx * 2, 1, &val);
+            val = (int8_t) (shortVal & 0xff);
+            env->SetByteArrayRegion(buffer, offset + idx * 2 + 1, 1, &val);
+        }
     }
-    recorder->ReleaseBuffer();
-    lock.unlock();
-    return bytes;
+    readBuffer->CloseReadMemoryRegion(size);
+    return trueSize;
 }
 
 extern "C"
 JNIEXPORT jint JNICALL
 Java_com_example_microphone_audio_OboeRecorder_readInternalShorts(JNIEnv *env, jobject,
                                                                   jshortArray buffer,
-                                                                  jint num_shorts) {
+                                                                  jint offset, jint len) {
     auto recorder = OboeRecorder::Instance();
-    if (!recorder->HasBuffer()) return 0;
-    auto &lock = recorder->GetLock();
-    lock.lock();
-    auto region = recorder->GetBuffer();
-    auto recorded = recorder->GetRecordedFrames();
-    if (num_shorts < recorded) recorded = num_shorts;
-    env->SetShortArrayRegion(buffer, 0, recorded, region);
-    recorder->ReleaseBuffer();
-    lock.unlock();
-    return recorded;
+    auto readBuffer = recorder->GetAudioBuffer();
+    if (!readBuffer || readBuffer->IsEmpty() || len <= 0) return 0;
+    uint32_t size;
+    const auto ptr = readBuffer->OpenReadMemoryRegion((uint32_t) len, size);
+    env->SetShortArrayRegion(buffer, offset, (jsize) size, ptr);
+    readBuffer->CloseReadMemoryRegion(size);
+    return (jint) size;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_example_microphone_audio_OboeRecorder_readInternalBytesBlocking(JNIEnv *env, jobject,
+                                                                         jbyteArray buffer,
+                                                                         jint offset, jint len) {
+    auto recorder = OboeRecorder::Instance();
+    auto readBuffer = recorder->GetAudioBuffer();
+    if (!readBuffer || readBuffer->IsEmpty() || len <= 0) return 0;
+    jint toRead = len;
+    uint32_t size;
+    while (toRead > 0) {
+        const auto ptr = readBuffer->OpenReadMemoryRegion((uint32_t) toRead / 2, size);
+        jint trueSize = (jint) size * 2;
+        if (recorder->IsLittleEndian()) {
+            env->SetByteArrayRegion(buffer, offset, trueSize,
+                                    reinterpret_cast<const jbyte *>(ptr));
+        } else {
+            // revert order of each short
+            int8_t val;
+            for (jint idx = 0; idx < (jint) size; ++idx) {
+                auto shortVal = *(ptr + idx);
+                val = (int8_t) ((shortVal >> 8) & 0xff);
+                env->SetByteArrayRegion(buffer, offset + idx * 2, 1, &val);
+                val = (int8_t) (shortVal & 0xff);
+                env->SetByteArrayRegion(buffer, offset + idx * 2 + 1, 1, &val);
+            }
+        }
+        toRead -= trueSize;
+        offset += trueSize;
+        readBuffer->CloseReadMemoryRegion(size);
+    }
+    return len;
+}
+
+extern "C"
+JNIEXPORT jint JNICALL
+Java_com_example_microphone_audio_OboeRecorder_readInternalShortsBlocking(JNIEnv *env, jobject,
+                                                                          jshortArray buffer,
+                                                                          jint offset, jint len) {
+    auto recorder = OboeRecorder::Instance();
+    auto readBuffer = recorder->GetAudioBuffer();
+    if (!readBuffer || readBuffer->IsEmpty() || len <= 0) return 0;
+    jint toRead = len;
+    uint32_t size;
+    while (toRead > 0) {
+        const auto ptr = readBuffer->OpenReadMemoryRegion((uint32_t) toRead, size);
+        env->SetShortArrayRegion(buffer, offset, (jsize) size, ptr);
+        readBuffer->CloseReadMemoryRegion(size);
+        toRead -= (jint) size;
+        offset += (jint) size;
+    }
+    return len;
 }

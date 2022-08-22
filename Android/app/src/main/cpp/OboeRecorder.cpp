@@ -1,13 +1,13 @@
 #include "OboeRecorder.h"
-#include <android/log.h>
+#include "Logging.h"
+
 #include <cstring>
 #include <chrono>
-
-#define LOGTAG "OboeRecorder"
+#include <cmath>
 
 OboeRecorder::OboeRecorder() : _deviceId(oboe::kUnspecified),
                                _sampleRate(16000), _bufferSizeInFrames(0),
-                               _stream(nullptr), _buffers(nullptr), _recording(false) {
+                               _stream(nullptr), _buffer(nullptr), _recording(false) {
     // check system endian
     // reference: https://stackoverflow.com/questions/35683931/how-to-convert-byte-array-to-integral-types-int-long-short-etc-endian-saf
     short a = 1;
@@ -32,8 +32,9 @@ void OboeRecorder::StartRecord() {
             ->setContentType(oboe::Speech)
             ->setInputPreset(oboe::Generic)
             ->openStream(_stream);
-    if (result != oboe::Result::OK)
-        __android_log_print(ANDROID_LOG_DEBUG, LOGTAG, "[StartRecord] failed to open input stream");
+    if (result != oboe::Result::OK) {
+        LOGD("[StartRecord] failed to open input stream");
+    }
 
     _stream->requestStart();
 
@@ -43,20 +44,23 @@ void OboeRecorder::StartRecord() {
     if (_bufferSizeInFrames > 0)
         _stream->setBufferSizeInFrames(_bufferSizeInFrames);
 
-    if (_stream->getBufferSizeInFrames() != _bufferSizeInFrames)
-        __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
-                            "[StartRecord] num frames changed from %d to %d", _bufferSizeInFrames,
-                            _stream->getBufferSizeInFrames());
+    if (_stream->getBufferSizeInFrames() != _bufferSizeInFrames) {
+        LOGD("[StartRecord] num frames changed from %d to %d", _bufferSizeInFrames,
+             _stream->getBufferSizeInFrames());
+    }
 
     _bufferSizeInFrames = _stream->getBufferSizeInFrames();
 
-    _buffers = std::make_unique<AudioBuffer<AUDIO_BUFFER_COUNT>>(_bufferSizeInFrames);
-    _copyBuffer.resize(_bufferSizeInFrames * 2);
+    _buffer = std::make_unique<AudioBuffer<AUDIO_BUFFER_COUNT>>(_bufferSizeInFrames);
 
     // skip first few frames
     int frames;
     do {
-        auto res = _stream->read(_buffers->GetWriteBuffer(), _bufferSizeInFrames, 0);
+        uint32_t memSize;
+        auto ptr = _buffer->OpenWriteMemoryRegion(_bufferSizeInFrames, memSize);
+        auto res = _stream->read(ptr, (int32_t) memSize, 0);
+        _buffer->CloseWriteMemoryRegion(memSize);
+        _buffer->Clear();
         if (res != oboe::Result::OK) break;
         frames = res.value();
     } while (frames != 0);
@@ -64,9 +68,8 @@ void OboeRecorder::StartRecord() {
     _recording = true;
     _readThread = std::thread(&OboeRecorder::readStream, this);
 
-    __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
-                        "[StartRecord] init %d buffers with size %d each",
-                        AUDIO_BUFFER_COUNT, _bufferSizeInFrames);
+    LOGD("[StartRecord] init %d buffers with size %d each",
+         AUDIO_BUFFER_COUNT, _bufferSizeInFrames);
 }
 
 void OboeRecorder::StopRecord() {
@@ -76,53 +79,16 @@ void OboeRecorder::StopRecord() {
         _stream->stop();
         _stream->close();
         _stream = nullptr;
-        _buffers = nullptr;
-        _copyBuffer.clear();
-        _copyBuffer.resize(0);
-        __android_log_print(ANDROID_LOG_DEBUG, LOGTAG, "[StopRecord] fully stopped");
+        _buffer = nullptr;
+        LOGD("[StopRecord] fully stopped");
     }
-}
-
-bool OboeRecorder::HasBuffer() {
-    return _buffers != nullptr;
-}
-
-std::mutex &OboeRecorder::GetLock() {
-    return _mutex;
-}
-
-const int16_t *OboeRecorder::GetBuffer() const {
-    return _buffers->GetReadBuffer();
-}
-
-const int8_t *OboeRecorder::GetByteBuffer() {
-    // if big endian, reverse order
-    // assuming Windows PC (NAudio) is little endian
-    if (!_isLittleEndian) {
-        auto ptr = _buffers->GetReadBuffer();
-        for (int i = 0; i < _buffers->GetReadBufferSize(); ++i, ++ptr) {
-            int16_t val = *ptr;
-            _copyBuffer[i * 2] = (int8_t) ((val >> 8) & 0xff);
-            _copyBuffer[i * 2 + 1] = (int8_t) (val & 0xff);
-        }
-    } else
-        memcpy(_copyBuffer.data(), _buffers->GetReadBuffer(), _buffers->GetReadBufferSize() * 2);
-    return _copyBuffer.data();
-}
-
-int32_t OboeRecorder::GetRecordedFrames() {
-    auto res = _buffers->GetReadBufferSize();
-    return res;
-}
-
-void OboeRecorder::ReleaseBuffer() {
-    _buffers->NextReadBuffer();
 }
 
 void OboeRecorder::SetDeviceId(int32_t deviceId) {
     if (deviceId != _deviceId) {
         _deviceId = deviceId;
         restartStream();
+        LOGD("[SetDeviceId] set device ID %d", _deviceId);
     }
 }
 
@@ -130,6 +96,7 @@ void OboeRecorder::SetSampleRate(int32_t sampleRate) {
     if (sampleRate != _sampleRate) {
         _sampleRate = sampleRate;
         restartStream();
+        LOGD("[SetDeviceId] set sample rate %d", _sampleRate);
     }
 }
 
@@ -137,7 +104,16 @@ void OboeRecorder::SetBufferSizeInFrames(int32_t frames) {
     if (frames != _bufferSizeInFrames) {
         _bufferSizeInFrames = frames;
         restartStream();
+        LOGD("[SetDeviceId] set buffer size %d", _bufferSizeInFrames);
     }
+}
+
+std::shared_ptr<AudioBuffer<AUDIO_BUFFER_COUNT>> OboeRecorder::GetAudioBuffer() {
+    return _buffer;
+}
+
+bool OboeRecorder::IsLittleEndian() const {
+    return _isLittleEndian;
 }
 
 void OboeRecorder::restartStream() {
@@ -150,25 +126,18 @@ void OboeRecorder::restartStream() {
 void OboeRecorder::readStream() {
     while (_recording) {
         if (!_stream) {
-            _buffers->GetWriteBufferSize() = 0;
             std::this_thread::sleep_for(std::chrono::milliseconds(10));
             continue;
         }
-        _mutex.lock();
-        auto &size = _buffers->GetWriteBufferSize();
-        auto res = _stream->read(
-                _buffers->GetWriteBuffer() + size,
-                _bufferSizeInFrames - size, 0);
-        if (res == oboe::Result::OK) {
-            size += res.value();
-            if (size >= _bufferSizeInFrames) {
-                size = _bufferSizeInFrames;
-                _buffers->NextWriteBuffer();
-                _buffers->GetWriteBufferSize() = 0;
-                __android_log_print(ANDROID_LOG_DEBUG, LOGTAG,
-                                    "[readStream] current stream buffer full, swapped to new one");
-            }
+        uint32_t size;
+        auto ptr = _buffer->OpenWriteMemoryRegion(_bufferSizeInFrames, size);
+        auto res = _stream->read(ptr, (int32_t) size, 0);
+        // if result is not OK, regard as if nothing is written
+        if (res != oboe::Result::OK) {
+            size = 0;
+        } else {
+            size = std::min(size, (uint32_t) res.value());
         }
-        _mutex.unlock();
+        _buffer->CloseWriteMemoryRegion(size);
     }
 }

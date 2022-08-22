@@ -167,7 +167,7 @@ class ForegroundService : Service() {
                 while (!states.streamShouldStop.get() && !states.isIPInfoSet.get())
                     delay(WAIT_PERIOD)
             }
-            sharedBuffer.reset()
+            sharedBuffer.clear()
             showMessage("Starting streaming")
             if (managerStream?.start() == true && managerStream?.isConnected() == true) {
                 showMessage("Device connected")
@@ -245,7 +245,7 @@ class ForegroundService : Service() {
                 null
             }
             // start recording
-            sharedBuffer.reset()
+            sharedBuffer.clear()
             managerAudio?.start()
             showNotification()
             showMessage("Recording started")

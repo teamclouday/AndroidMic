@@ -26,24 +26,6 @@ public:
     /// Stop recording
     void StopRecord();
 
-    /// Check if has recording buffer
-    bool HasBuffer();
-
-    /// Get mutex used by recording process
-    std::mutex &GetLock();
-
-    /// Get short array buffer
-    const int16_t *GetBuffer() const;
-
-    /// Get byte array buffer
-    const int8_t *GetByteBuffer();
-
-    /// Get number of shorts (frames) in buffer
-    int32_t GetRecordedFrames();
-
-    /// Release current read buffer (clear it and advance to next)
-    void ReleaseBuffer();
-
     /// Set device ID
     void SetDeviceId(int32_t deviceId);
 
@@ -52,6 +34,12 @@ public:
 
     /// Set number of shorts (frames) in each buffer
     void SetBufferSizeInFrames(int32_t frames);
+
+    /// Get audio buffer to read from
+    std::shared_ptr<AudioBuffer<AUDIO_BUFFER_COUNT>> GetAudioBuffer();
+
+    /// Check if is little endian
+    bool IsLittleEndian() const;
 
 private:
     /// Restart recording
@@ -66,9 +54,7 @@ private:
     int32_t _bufferSizeInFrames;
 
     std::shared_ptr<oboe::AudioStream> _stream;
-    std::unique_ptr<AudioBuffer<AUDIO_BUFFER_COUNT>> _buffers;
-    std::vector<int8_t> _copyBuffer;
-    std::mutex _mutex;
+    std::shared_ptr<AudioBuffer<AUDIO_BUFFER_COUNT>> _buffer;
     std::thread _readThread;
 
     volatile bool _recording;

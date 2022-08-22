@@ -25,12 +25,18 @@ class OboeRecorder(
         stopRecordingInternal()
     }
 
-    fun read(buffer: ShortArray, numShorts: Int): Int {
-        return readInternalShorts(buffer, numShorts)
+    fun readToBytes(buffer: ByteArray, offset: Int, len: Int, blocking: Boolean = false): Int {
+        return if (blocking)
+            readInternalBytesBlocking(buffer, offset, len)
+        else
+            readInternalBytes(buffer, offset, len)
     }
 
-    fun readBytes(): ByteArray? {
-        return readInternalBytes()
+    fun readToShort(buffer: ShortArray, offset: Int, len: Int, blocking: Boolean = false): Int {
+        return if (blocking)
+            readInternalShortsBlocking(buffer, offset, len)
+        else
+            readInternalShorts(buffer, offset, len)
     }
 
     private external fun setDeviceId(deviceId: Int)
@@ -43,7 +49,11 @@ class OboeRecorder(
 
     private external fun stopRecordingInternal()
 
-    private external fun readInternalBytes(): ByteArray?
+    private external fun readInternalBytes(buffer: ByteArray, offset: Int, len: Int): Int
 
-    private external fun readInternalShorts(buffer: ShortArray, numShorts: Int): Int
+    private external fun readInternalShorts(buffer: ShortArray, offset: Int, len: Int): Int
+
+    private external fun readInternalBytesBlocking(buffer: ByteArray, offset: Int, len: Int): Int
+
+    private external fun readInternalShortsBlocking(buffer: ShortArray, offset: Int, len: Int): Int
 }

@@ -63,11 +63,13 @@ class MicAudioManager(ctx: Context) {
 
     // store data in shared audio buffer
     suspend fun record(audioBuffer: AudioBuffer) {
-        // read number of shorts
-        val data = recorder?.readBytes() ?: return
-        // store data
-        audioBuffer.push(data)
-        Log.d(TAG, "[record] audio data recorded (${data.size} bytes)")
+        if (recorder == null) return
+        val region = audioBuffer.openWriteRegion(BUFFER_SIZE)
+        val regionLen = region.first
+        val regionOffset = region.second
+        val bytesWritten = recorder!!.readToBytes(audioBuffer.buffer, regionOffset, regionLen)
+        audioBuffer.closeWriteRegion(bytesWritten)
+        Log.d(TAG, "[record] audio data recorded (${bytesWritten} bytes)")
     }
 
     // start recording

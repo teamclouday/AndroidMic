@@ -66,18 +66,23 @@ class WifiStreamer(private val ctx: Context) : Streamer {
     // stream data through socket
     override suspend fun stream(audioBuffer: AudioBuffer) = withContext(Dispatchers.IO)
     {
-        if (socket == null || socket?.isConnected != true) return@withContext
-        val data = audioBuffer.poll() ?: return@withContext
+        if (socket == null || socket?.isConnected != true || audioBuffer.isEmpty()) return@withContext
         try {
             val streamOut = socket!!.outputStream
-            streamOut.write(data)
+            val region = audioBuffer.openReadRegion(1024)
+            val regionSize = region.first
+            val regionOffset = region.second
+            streamOut.write(audioBuffer.buffer, regionOffset, regionSize)
+            audioBuffer.closeReadRegion(regionSize)
             // streamOut.flush()
         } catch (e: IOException) {
             Log.d(TAG, "${e.message}")
+            audioBuffer.closeReadRegion(0)
             delay(5)
             disconnect()
         } catch (e: Exception) {
             Log.d(TAG, "${e.message}")
+            audioBuffer.closeReadRegion(0)
         }
     }
 

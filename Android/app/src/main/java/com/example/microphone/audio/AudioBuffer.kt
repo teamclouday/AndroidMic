@@ -2,37 +2,68 @@ package com.example.microphone.audio
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlin.math.min
 
+// thread safe circular buffer
 class AudioBuffer {
-    // set buffer size for latency
-    private val BUFFER_SIZE = 3
+    private var regionLeft = 0
+    private var regionRight = 0
+    private var regionSize = 0
 
-    // actual buffer of byte arrays (FIFO with queue)
-    private val buffer = ArrayDeque<ByteArray>()
+    val capacity = 3 * 2048
+    val buffer = ByteArray(capacity)
 
-    // mutex for coroutines
     private val mutex = Mutex()
 
-    // insert new data, remove overflowed data
-    suspend fun push(data: ByteArray) {
+    // get memory region to read from
+    suspend fun openReadRegion(requestSize: Int): Pair<Int, Int> {
+        mutex.lock()
+        val actualSize = min(min(requestSize, regionSize), capacity - regionLeft)
+        val offset = regionLeft
+        return Pair(actualSize, offset)
+    }
+
+    // mark this region as read
+    fun closeReadRegion(actualSize: Int) {
+        regionLeft = (regionLeft + actualSize) % capacity
+        regionSize -= min(actualSize, regionSize)
+        mutex.unlock()
+    }
+
+    // get memory region to write to
+    suspend fun openWriteRegion(requestSize: Int): Pair<Int, Int> {
+        mutex.lock()
+        val actualSize = min(min(requestSize, capacity - regionSize), capacity - regionRight)
+        val offset = regionRight
+        return Pair(actualSize, offset)
+    }
+
+    // mark this region as written
+    fun closeWriteRegion(actualSize: Int) {
+        regionRight = (regionRight + actualSize) % capacity
+        regionSize = min(regionSize + actualSize, capacity)
+        mutex.unlock()
+    }
+
+    // get valid buffer size
+    suspend fun size(): Int {
         mutex.withLock {
-            buffer.addLast(data)
-            while (buffer.size > BUFFER_SIZE)
-                buffer.removeFirst()
+            return regionSize
         }
     }
 
-    // retrieve data, may be empty
-    suspend fun poll(): ByteArray? {
+    // check if buffer is empty
+    suspend fun isEmpty(): Boolean {
         mutex.withLock {
-            return buffer.removeFirstOrNull()
+            return regionSize == 0
         }
     }
 
-    // reset buffer
-    suspend fun reset() {
+    suspend fun clear() {
         mutex.withLock {
-            buffer.clear()
+            regionLeft = 0
+            regionRight = 0
+            regionSize = 0
         }
     }
 }

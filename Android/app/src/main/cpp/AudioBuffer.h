@@ -1,92 +1,89 @@
 #ifndef MICROPHONE_AUDIOBUFFER_H
 #define MICROPHONE_AUDIOBUFFER_H
 
-#include <android/log.h>
+#include "Logging.h"
 #include <cstdint>
 #include <array>
 #include <vector>
 #include <mutex>
+#include <cmath>
 
+// an implementation of circular buffer
 template<uint32_t COUNT, typename TYPE = int16_t>
 class AudioBuffer {
 public:
     AudioBuffer(uint32_t bufferSize) {
-        _bufferSize = bufferSize;
-        for (auto &buffer: _buffers)
-            buffer.resize(_bufferSize);
-        Clear();
+        _bufferCapacity = bufferSize * COUNT;
+        _buffer.resize(_bufferSize);
+        _regionLeft = _regionRight = 0;
+        _bufferSize = 0;
     }
 
-    /// Get read buffer memory
-    const TYPE *GetReadBuffer() {
-        return _buffers[_bufferToRead].data();
+    /// Open memory region to read from
+    const TYPE *OpenReadMemoryRegion(uint32_t requestSize, uint32_t &regionSize) {
+        _mutex.lock();
+        regionSize = std::min(std::min(requestSize, _bufferSize),
+                              _bufferCapacity - _regionLeft);
+        return &_buffer[_regionLeft];
     }
 
-    /// Get read buffer current recorded size
-    int32_t &GetReadBufferSize() {
-        return _bufferValidCounts[_bufferToRead];
+    /// Close memory read region after open
+    void CloseReadMemoryRegion(uint32_t readSize) {
+        _regionLeft = (_regionLeft + readSize) % _bufferCapacity;
+        _bufferSize -= std::min(readSize, _bufferSize);
+        _mutex.unlock();
+        if (readSize)
+            LOGD("[AudioBuffer] read %u values", readSize);
     }
 
-    /// Get write buffer memory
-    TYPE *GetWriteBuffer() {
-        return _buffers[_bufferToWrite].data();
+    /// Open memory region to write from
+    TYPE *OpenWriteMemoryRegion(uint32_t requestSize, uint32_t &regionSize) {
+        _mutex.lock();
+        regionSize = std::min(std::min(requestSize, _bufferCapacity - _bufferSize),
+                              _bufferCapacity - _regionRight);
+        return &_buffer[_regionRight];
     }
 
-    /// Get write buffer current recorded size
-    int32_t &GetWriteBufferSize() {
-        return _bufferValidCounts[_bufferToWrite];
+    /// Close memory write region after open
+    void CloseWriteMemoryRegion(uint32_t writeSize) {
+        _regionRight = (_regionRight + writeSize) % _bufferCapacity;
+        _bufferSize = std::min(_bufferSize + writeSize, _bufferCapacity);
+        _mutex.unlock();
+        if (writeSize)
+            LOGD("[AudioBuffer] write %u values", writeSize);
     }
 
-    /// Advance to next available read buffer
-    void NextReadBuffer() {
-        std::lock_guard<std::mutex> guard(_mutex);
-        _bufferValidCounts[_bufferToRead] = 0;
-        _bufferToRead++;
-        validateBufferPointers();
-    }
-
-    /// Advance to next available write buffer
-    void NextWriteBuffer() {
-        std::lock_guard<std::mutex> guard(_mutex);
-        _bufferToWrite++;
-        validateBufferPointers();
-    }
-
-    /// Clear & reset all buffers
+    /// Reset buffer
     void Clear() {
-        for (auto &val: _bufferValidCounts)
-            val = 0;
-        _bufferToWrite = 0;
-        _bufferToRead = 0;
-        validateBufferPointers();
+        std::lock_guard<std::mutex> lock(_mutex);
+        _regionLeft = _regionRight = 0;
+        _bufferSize = 0;
+        LOGD("[AudioBuffer] cleared");
+    }
+
+    /// Get buffer current size
+    uint32_t Size() {
+        std::lock_guard<std::mutex> lock(_mutex);
+        return _bufferSize;
+    }
+
+    /// Get buffer max capacity
+    uint32_t Capacity() {
+        std::lock_guard<std::mutex> lock(_mutex);
+        return _bufferCapacity;
+    }
+
+    /// Check if buffer is empty
+    bool IsEmpty() {
+        std::lock_guard<std::mutex> lock(_mutex);
+        return _bufferSize == 0;
     }
 
 private:
-    /// Validate & fix current buffer locations
-    void validateBufferPointers() {
-        if (_bufferToWrite < 0) _bufferToWrite = COUNT - 1;
-        else if (_bufferToWrite >= COUNT) _bufferToWrite = 0;
-
-        if (_bufferToRead < 0) _bufferToRead = COUNT - 1;
-        else if (_bufferToRead >= COUNT) _bufferToRead = 0;
-
-        if (_bufferToRead == _bufferToWrite)
-            _bufferToRead++;
-
-        if (_bufferToRead < 0) _bufferToRead = COUNT - 1;
-        else if (_bufferToRead >= COUNT) _bufferToRead = 0;
-
-//        __android_log_print(ANDROID_LOG_DEBUG, "AudioBuffer", "[validateBufferPointers] R=%d W=%d",
-//                            _bufferToRead, _bufferToWrite);
-    }
-
-private:
-    std::array<std::vector<TYPE>, COUNT> _buffers;
-    std::array<int32_t, COUNT> _bufferValidCounts;
-    volatile uint32_t _bufferToWrite;
-    volatile uint32_t _bufferToRead;
+    std::vector<TYPE> _buffer;
+    uint32_t _bufferCapacity;
     uint32_t _bufferSize;
-
+    uint32_t _regionLeft, _regionRight;
     std::mutex _mutex;
 };
 
