@@ -20,14 +20,10 @@ namespace AndroidMic.Streaming
         private BluetoothClient client;
         private BluetoothEndPoint targetDevice;
 
-        private readonly byte[] buffer;
-        private int bufferOffset; // offset for short types (multiple of 2)
         private volatile bool isConnectionAllowed;
 
         public StreamerBluetooth()
         {
-            buffer = new byte[BUFFER_SIZE];
-            bufferOffset = 0;
             CheckBluetooth();
             listener = new BluetoothListener(serverUUID)
             {
@@ -120,34 +116,27 @@ namespace AndroidMic.Streaming
         public override void Process(AudioBuffer sharedBuffer)
         {
             if (!IsAlive()) return;
+            int count = 0;
             try
             {
                 var stream = client.GetStream();
-                int size = stream.Read(buffer, bufferOffset, BUFFER_SIZE - bufferOffset);
-                if (size <= 0) return;
-                size += bufferOffset;
-                // make sure newData is size of multiple of 2
-                if (size % 2 == 1)
-                {
-                    size -= 1;
-                    bufferOffset = 1;
-                }
-                else bufferOffset = 0;
-                byte[] newData = new byte[size];
-                Buffer.BlockCopy(buffer, 0, newData, 0, size);
-                // if one byte remaining, copy it to the front for next read
-                if (bufferOffset == 1)
-                    buffer[0] = buffer[size];
-                // add data
-                sharedBuffer.push(newData);
+                sharedBuffer.OpenWriteRegion(BUFFER_SIZE, out count, out var offset);
+                int size = stream.Read(sharedBuffer.Buffer, offset, count);
+                count = Math.Min(Math.Max(size, 0), count);
             }
             catch (IOException e)
             {
                 DebugLog("Process: " + e.Message);
+                count = 0;
             }
             catch (ObjectDisposedException e)
             {
                 DebugLog("Process: " + e.Message);
+                count = 0;
+            }
+            finally
+            {
+                sharedBuffer.CloseWriteRegion(count);
             }
         }
 

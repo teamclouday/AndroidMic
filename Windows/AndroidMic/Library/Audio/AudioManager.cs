@@ -105,16 +105,16 @@ namespace AndroidMic.Audio
         {
             while (processAllowed)
             {
-                var data = sharedBuffer.poll();
-                if (data == null || player == null ||
+                if (sharedBuffer.IsEmpty() || player == null ||
                     player.PlaybackState != PlaybackState.Playing)
                 {
                     Thread.Sleep(5);
                 }
                 else if (bufferedProvider.BufferedDuration.TotalMilliseconds <= playerDesiredLatency)
                 {
-                    // skip buffers if more than 100ms audio playing
-                    bufferedProvider.AddSamples(data, 0, data.Length);
+                    sharedBuffer.OpenReadRegion(4000, out var count, out var offset);
+                    bufferedProvider.AddSamples(sharedBuffer.Buffer, offset, count);
+                    sharedBuffer.CloseReadRegion(count);
                 }
             }
         }
