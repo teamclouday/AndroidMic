@@ -57,13 +57,12 @@ Do not set to 512 smp since that will cause most buffers lost. If 2048 has no so
 </details>
 
 <details>
-<summary>Connection: Wifi</summary>
+<summary>Connection: Wifi / LAN</summary>
 
 1. Make sure PC and phone are under the same network  
    1. Can be under the same router with Wifi  
    2. Can have PC connected to ethernet of the same router  
    3. Can have PC connected to phone by cable and enable USB tethering on phone  
-   4. USB tethering may not work if it is not the first available network  
 2. Click `Connect` on Windows app to start server  
 3. Click `Connect` on Android app to connect  
 4. Enter `IP` and `Port` (displayed on Windows side) on Android app  
@@ -115,7 +114,7 @@ __SpeexDSP Filters__:
   - [x] SpeexDSP Voice Activity Detection  
   - [x] SpeexDSP Echo Cancellation  
 - [x] Memorized user settings
-- [x] Select network adapter in wifi mode
+- [x] Select network adapter in Wifi/LAN mode
 - [ ] Port all Windows code & dependencies to .Net Core (with [Avalonia](https://github.com/AvaloniaUI/Avalonia))
   - [ ] MacOS Support
   - [ ] Linux Support
