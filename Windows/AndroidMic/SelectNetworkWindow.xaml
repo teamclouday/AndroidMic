@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AndroidMic"
         mc:Ignorable="d"
-        Title="Select Network" Height="250" Width="400" ResizeMode="CanMinimize" Background="#94fffa">
+        Title="Select Network" Height="250" Width="400" ResizeMode="CanMinimize" Background="#94fffa" Closing="SelectNetworkWindow_Closing">
     <Grid>
         <ComboBox x:Name="NetworkAddressList" Cursor="Hand" HorizontalAlignment="Center" Margin="0,50,0,0"
                       VerticalAlignment="Top" FontSize="18" Width="250" DropDownClosed="NetworkAddressList_DropDownClosed"

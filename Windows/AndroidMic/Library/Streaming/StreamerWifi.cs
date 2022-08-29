@@ -239,7 +239,10 @@ namespace AndroidMic.Streaming
             if (validAddresses.Count == 0)
                 throw new ArgumentException("No valid IPv4 network (Wifi/Ethernet) found");
             // user selection
-            SelectNetworkWindow dialog = new SelectNetworkWindow(validAddresses);
+            SelectNetworkWindow dialog = new SelectNetworkWindow(validAddresses)
+            {
+                ShowInTaskbar = false
+            };
             if (dialog.ShowDialog() == true)
             {
                 var pair = validAddresses[dialog.selectedIdx];
