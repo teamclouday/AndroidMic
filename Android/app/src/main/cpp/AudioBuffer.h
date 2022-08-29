@@ -14,7 +14,7 @@ class AudioBuffer {
 public:
     AudioBuffer(uint32_t capacity) {
         _bufferCapacity = capacity;
-        _buffer.resize(_bufferSize);
+        _buffer.resize(capacity);
         _regionLeft = _regionRight = 0;
         _bufferSize = 0;
     }

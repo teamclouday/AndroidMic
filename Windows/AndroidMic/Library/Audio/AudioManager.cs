@@ -35,7 +35,7 @@ namespace AndroidMic.Audio
         private MMDeviceCollection devices;
         private int selectedDeviceIdx;
         private IWavePlayer player;
-        public volatile int PlayerDesiredLatency = 100; // in milliseconds
+        public volatile int PlayerDesiredLatency = 120; // in milliseconds
         private readonly WaveFormat format;
 
         private readonly BufferedWaveProvider bufferedProvider;

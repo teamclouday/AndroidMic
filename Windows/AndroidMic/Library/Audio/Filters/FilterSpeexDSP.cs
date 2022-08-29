@@ -22,9 +22,9 @@ namespace AndroidMic.Audio
             ConfigVAD = 3
         }
 
-        private readonly int FRAME_SIZE = 800; // 50ms (0.05 * 16000)
-        private readonly int FRAME_SIZE_BYTES = 800 * 2; // in bytes
-        private readonly int FILTER_LEN = 3200; // 100-500 ms (0.2 * 16000)
+        private readonly int FRAME_SIZE = 4000; // 250ms (0.25 * 16000)
+        private readonly int FRAME_SIZE_BYTES = 4000 * 2; // in bytes
+        private readonly int FILTER_LEN = 4000; // 100-500 ms (0.25 * 16000)
 
         // configs specifically chosen for this app
         private readonly int VAD_PROB_START = 85;
