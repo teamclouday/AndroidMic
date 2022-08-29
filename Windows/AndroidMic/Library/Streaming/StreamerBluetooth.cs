@@ -20,8 +20,6 @@ namespace AndroidMic.Streaming
         private BluetoothClient client;
         private BluetoothEndPoint targetDevice;
 
-        private byte[] buffer = new byte[BUFFER_SIZE];
-
         private volatile bool isConnectionAllowed;
 
         public StreamerBluetooth()
@@ -123,9 +121,7 @@ namespace AndroidMic.Streaming
             {
                 var stream = client.GetStream();
                 sharedBuffer.OpenWriteRegion(BUFFER_SIZE, out count, out var offset);
-                int size = stream.Read(buffer, 0, BUFFER_SIZE);
-                count = Math.Min(Math.Max(size, 0), count);
-                Array.Copy(buffer, 0, sharedBuffer.Buffer, offset, count);
+                count = stream.Read(sharedBuffer.Buffer, offset, count);
             }
             catch (IOException e)
             {

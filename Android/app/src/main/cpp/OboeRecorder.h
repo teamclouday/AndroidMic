@@ -11,7 +11,7 @@
 
 #include "AudioBuffer.h"
 
-#define AUDIO_BUFFER_SIZE   2 * 1024
+#define AUDIO_BUFFER_SIZE   5 * 1024
 
 class OboeRecorder {
 public:

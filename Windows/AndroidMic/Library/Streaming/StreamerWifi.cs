@@ -23,8 +23,6 @@ namespace AndroidMic.Streaming
         private string address;
         private int port = 55555;
 
-        private byte[] buffer = new byte[BUFFER_SIZE];
-
         private bool isConnectionAllowed = false;
 
         public StreamerWifi()
@@ -132,9 +130,7 @@ namespace AndroidMic.Streaming
             {
                 var stream = new NetworkStream(client);
                 sharedBuffer.OpenWriteRegion(BUFFER_SIZE, out count, out var offset);
-                int size = stream.Read(buffer, 0, BUFFER_SIZE);
-                count = Math.Min(Math.Max(size, 0), count);
-                Array.Copy(buffer, 0, sharedBuffer.Buffer, offset, count);
+                count = stream.Read(sharedBuffer.Buffer, offset, count);
             }
             catch (IOException e)
             {

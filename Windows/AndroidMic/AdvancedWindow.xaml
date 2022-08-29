@@ -5,11 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:AndroidMic"
         mc:Ignorable="d"
-        Title="AndroidMic Advanced" Height="600" Width="400" ResizeMode="CanMinimize" Background="#94fffa">
+        Title="AndroidMic Advanced Configurations" Height="600" Width="400" ResizeMode="CanMinimize" Background="#94fffa">
     <Grid>
-        <Label Content="Audio Filters" HorizontalAlignment="Center" Margin="0,50,0,0" FontWeight="Bold" FontFamily="Bahnschrift"
-            VerticalAlignment="Top" Width="200" FontSize="20" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"/>
-        <Expander Header="Pitch Shifter" HorizontalAlignment="Center" VerticalAlignment="Top" Width="300" Margin="0,100,0,0"
+        <Expander Header="Pitch Shifter" HorizontalAlignment="Center" VerticalAlignment="Top" Width="300" Margin="0,50,0,0"
                   FontSize="20" FontFamily="Comic Sans MS" Background="#FF93F0FF" Panel.ZIndex="0" x:Name="Expander1"
                   Expanded="Expander_Expanded" Collapsed="Expander_Collapsed">
             <Grid Background="#FFC0FFEB">
@@ -24,7 +22,7 @@
                 </DockPanel>
             </Grid>
         </Expander>
-        <Expander Header="White Noise" HorizontalAlignment="Center" VerticalAlignment="Top" Width="300" Margin="0,140,0,0"
+        <Expander Header="White Noise" HorizontalAlignment="Center" VerticalAlignment="Top" Width="300" Margin="0,100,0,0"
                   FontSize="20" FontFamily="Comic Sans MS" Background="#FF93F0FF" Panel.ZIndex="0" x:Name="Expander2"
                   Expanded="Expander_Expanded" Collapsed="Expander_Collapsed">
             <Grid Background="#FFC0FFEB">
@@ -39,7 +37,7 @@
                 </DockPanel>
             </Grid>
         </Expander>
-        <Expander Header="Repeat Track" HorizontalAlignment="Center" VerticalAlignment="Top" Width="300" Margin="0,180,0,0"
+        <Expander Header="Repeat Track" HorizontalAlignment="Center" VerticalAlignment="Top" Width="300" Margin="0,150,0,0"
                   FontSize="20" FontFamily="Comic Sans MS" Background="#FF93F0FF" Panel.ZIndex="0" x:Name="Expander3"
                   Expanded="Expander_Expanded" Collapsed="Expander_Collapsed">
             <Grid Background="#FFC0FFEB">
@@ -60,6 +58,13 @@
                         Background="#FFEFFFA8" Click="SelectFileButton_Click" Width="300" ToolTip="Select Track File" ToolTipService.ShowDuration="2000"/>
             </Grid>
         </Expander>
+        <Label Margin="50,220,50,0" VerticalAlignment="Top" FontSize="18" FontFamily="Comic Sans MS">Desired Latency</Label>
+        <DockPanel Margin="50,270,50,0" VerticalAlignment="Top" ToolTip="Adjust Desired Latency (ms)" ToolTipService.ShowDuration="2000">
+            <TextBox DockPanel.Dock="Right" Width="60" FontSize="16" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
+                         Background="#FFCCFFD0" Text="{Binding ElementName=LatencySlider, Path=Value, UpdateSourceTrigger=PropertyChanged, StringFormat=N0}" />
+            <Slider Maximum="300.0" Minimum="50.0" x:Name="LatencySlider" TickFrequency="5" Value="100.0"
+                        TickPlacement="None" IsSnapToTickEnabled="True" ValueChanged="LatencySlider_PropertyChange"/>
+        </DockPanel>
         <CheckBox Content="Echo Cancellation" VerticalContentAlignment="Center" x:Name="EchoCancelEnableCheckbox"
                   FontSize="20" FontFamily="Comic Sans MS" VerticalAlignment="Bottom" Width="300"
                   Checked="EchoCancelEnableCheckbox_StateChanged" Unchecked="EchoCancelEnableCheckbox_StateChanged" Margin="0,0,0,210"/>

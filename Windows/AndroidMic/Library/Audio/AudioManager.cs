@@ -35,7 +35,7 @@ namespace AndroidMic.Audio
         private MMDeviceCollection devices;
         private int selectedDeviceIdx;
         private IWavePlayer player;
-        private readonly int playerDesiredLatency = 100; // in milliseconds
+        public volatile int PlayerDesiredLatency = 100; // in milliseconds
         private readonly WaveFormat format;
 
         private readonly BufferedWaveProvider bufferedProvider;
@@ -63,7 +63,7 @@ namespace AndroidMic.Audio
             format = new WaveFormat(16000, 16, 1); // sample rate, bits, channels
             var deviceIter = new MMDeviceEnumerator();
             devices = deviceIter.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
-            player = new WasapiOut(deviceIter.GetDefaultAudioEndpoint(DataFlow.Render, Role.Console), AudioClientShareMode.Shared, false, playerDesiredLatency);
+            player = new WasapiOut(deviceIter.GetDefaultAudioEndpoint(DataFlow.Render, Role.Console), AudioClientShareMode.Shared, false, PlayerDesiredLatency);
             providerPipeline = new ISampleProvider[MAX_FILTERS_COUNT];
             providerPipelineStates = new Dictionary<AdvancedFilterType, bool>();
             for (int i = 0; i < MAX_FILTERS_COUNT; i++)
@@ -112,7 +112,7 @@ namespace AndroidMic.Audio
                     continue;
                 }
                 sharedBuffer.OpenReadRegion(Streaming.Streamer.BUFFER_SIZE, out var count, out var offset);
-                if (bufferedProvider.BufferedDuration.TotalMilliseconds <= playerDesiredLatency)
+                if (bufferedProvider.BufferedDuration.TotalMilliseconds <= PlayerDesiredLatency)
                 {
                     bufferedProvider.AddSamples(sharedBuffer.Buffer, offset, count);
                 }
@@ -133,7 +133,7 @@ namespace AndroidMic.Audio
             // create new player
             var deviceIter = new MMDeviceEnumerator();
             var device = selectedDeviceIdx < 0 ? deviceIter.GetDefaultAudioEndpoint(DataFlow.Render, Role.Console) : devices[selectedDeviceIdx];
-            player = new WasapiOut(device, AudioClientShareMode.Shared, false, playerDesiredLatency);
+            player = new WasapiOut(device, AudioClientShareMode.Shared, false, PlayerDesiredLatency);
             bufferedProvider.ClearBuffer();
             // start playing
             player.Init(volumeProvider);
@@ -175,7 +175,7 @@ namespace AndroidMic.Audio
             // create new player
             var deviceIter = new MMDeviceEnumerator();
             var device = selectedDeviceIdx < 0 ? deviceIter.GetDefaultAudioEndpoint(DataFlow.Render, Role.Console) : devices[selectedDeviceIdx];
-            player = new WasapiOut(device, AudioClientShareMode.Shared, false, playerDesiredLatency);
+            player = new WasapiOut(device, AudioClientShareMode.Shared, false, PlayerDesiredLatency);
             bufferedProvider.ClearBuffer();
             ISampleProvider source = speexProvider.ToSampleProvider();
             for (int i = 0; i < MAX_FILTERS_COUNT; i++)

@@ -63,7 +63,8 @@ class MicAudioManager(ctx: Context) {
         val regionOffset = region.second
         val bytesWritten = recorder!!.readToBytes(audioBuffer.buffer, regionOffset, regionLen)
         audioBuffer.closeWriteRegion(bytesWritten)
-        Log.d(TAG, "[record] audio data recorded (${bytesWritten} bytes)")
+        if (bytesWritten > 0)
+            Log.d(TAG, "[record] audio data recorded (${bytesWritten} bytes)")
     }
 
     // start recording

@@ -10,7 +10,7 @@ class AudioBuffer {
     private var regionRight = 0
     private var regionSize = 0
 
-    val capacity = 3 * 1024
+    val capacity = 5 * 1024
     val buffer = ByteArray(capacity)
 
     private val mutex = Mutex()

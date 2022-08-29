@@ -133,6 +133,11 @@ namespace AndroidMic
                 streamM.SetConnectionType(StreamManager.ConnectionType.WIFI);
                 RadioButton2.IsChecked = true;
             }
+            // MainWindow_PlayerDesiredLatency
+            {
+                int latency = settings.MainWindow_PlayerDesiredLatency;
+                audioM.PlayerDesiredLatency = latency;
+            }
 
             float val;
             // AdvancedWindow_PitchShifterEnabled

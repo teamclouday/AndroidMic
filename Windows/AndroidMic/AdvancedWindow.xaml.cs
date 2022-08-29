@@ -10,6 +10,7 @@ namespace AndroidMic
     public partial class AdvancedWindow : Window
     {
         private readonly AudioManager audioM;
+        private bool windowInitialized = false;
 
         public AdvancedWindow(AudioManager audioM)
         {
@@ -18,6 +19,7 @@ namespace AndroidMic
             InitComponentStates();
             // prevent parent hiding on close
             Closing += (a, b) => { Application.Current.MainWindow.Activate(); };
+            windowInitialized = true;
         }
 
         // update component states
@@ -38,6 +40,8 @@ namespace AndroidMic
             TrackRatioSlider.Value = val;
             audioM.PipelineFilterConfig(AdvancedFilterType.FRepeatTrack, (int)FilterRepeatTrack.ConfigTypes.ConfigRepeat, ref val, false);
             RepeatTrackLoopCheckbox.IsChecked = val == 1.0f;
+            // desired latency
+            LatencySlider.Value = audioM.PlayerDesiredLatency;
             // init speex states
             audioM.SetIndicator(SpeechIndicator);
             bool valB = false;
@@ -176,6 +180,17 @@ namespace AndroidMic
                 Expander2.IsExpanded = false;
             if (!exception.Equals(Expander3))
                 Expander3.IsExpanded = false;
+        }
+
+        // volume slider change callback
+        private void LatencySlider_PropertyChange(object sender, RoutedPropertyChangedEventArgs<double> e)
+        {
+            int desiredLatency = (int)e.NewValue;
+            if (windowInitialized)
+            {
+                audioM.PlayerDesiredLatency = desiredLatency;
+                Properties.Settings.Default.MainWindow_PlayerDesiredLatency = desiredLatency;
+            }
         }
 
         // noise cancelling enable state changed

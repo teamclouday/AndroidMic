@@ -37,7 +37,7 @@
                 <Slider Maximum="5.0" Minimum="0.0" x:Name="VolumeSlider" TickFrequency="0.1" Value="1.0"
                         TickPlacement="None" IsSnapToTickEnabled="True" ValueChanged="VolumeSlider_PropertyChange"/>
             </DockPanel>
-            <Button x:Name="AdvancedButton" Cursor="Hand" Content="Advanced Effects" HorizontalAlignment="Center" VerticalAlignment="Top"
+            <Button x:Name="AdvancedButton" Cursor="Hand" Content="Advanced" HorizontalAlignment="Center" VerticalAlignment="Top"
                     Margin="0,150,0,20" FontSize="18" Padding="6" Background="#FFEFFFA8" Click="AdvancedButton_Click"
                     ToolTip="Start Server" ToolTipService.ShowDuration="2000" FontFamily="Comic Sans MS" Width="200"/>
             <Label Content="Connection" HorizontalAlignment="Center" Margin="0,260,0,0" VerticalAlignment="Top" Width="200"
