@@ -1,6 +1,6 @@
 package com.example.androidmic.utils
 
-
+// debug file which help for Log
 
 data class CommandService(
     val dic: Map<Int, String> = mapOf(
