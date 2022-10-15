@@ -4,13 +4,14 @@ plugins {
 }
 
 android {
-    compileSdkVersion 32
+    namespace 'com.example.androidmic'
+    compileSdk 33
     buildToolsVersion "30.0.3"
 
     defaultConfig {
-        applicationId "com.example.microphone"
-        minSdkVersion 23
-        targetSdkVersion 32
+        applicationId "com.example.androidmic"
+        minSdk 23
+        targetSdk 33
         versionCode 8
         versionName "1.9"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -19,12 +20,28 @@ android {
                 arguments += "-DANDROID_STL=c++_shared"
             }
         }
+        vectorDrawables {
+            useSupportLibrary true
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path file('src/main/cpp/CMakeLists.txt')
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+
+        // for experimental api
+        kotlin {
+            kotlinOptions {
+                freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
+            }
         }
     }
 
@@ -36,32 +53,62 @@ android {
     kotlinOptions {
         jvmTarget = '1.8'
     }
-
-    externalNativeBuild {
-        cmake {
-            path file('src/main/cpp/CMakeLists.txt')
-        }
-    }
-
     buildFeatures {
         prefab true
+        compose true
+    }
+    composeOptions {
+        kotlinCompilerExtensionVersion '1.1.1'
     }
 
-    lintOptions {
+    lint {
         checkReleaseBuilds false
+    }
+
+    packagingOptions {
+        resources {
+            excludes += '/META-INF/{AL2.0,LGPL2.1}'
+        }
     }
 }
 
 dependencies {
+    // lib audio
     implementation 'com.google.oboe:oboe:1.6.1'
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
+
+    //kotlin
+    implementation 'androidx.core:core-ktx:1.9.0'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.5.1'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4'
-    implementation 'androidx.core:core-ktx:1.8.0'
-    implementation 'androidx.appcompat:appcompat:1.5.0'
-    implementation 'com.google.android.material:material:1.6.1'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+
+
+    implementation 'androidx.appcompat:appcompat:1.5.1'
+    
+    // compose
+    implementation 'androidx.activity:activity-compose:1.6.0'
+    implementation "androidx.compose.ui:ui:$compose_ui_version"
+    implementation "androidx.compose.ui:ui-tooling-preview:$compose_ui_version"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.6.0-alpha02"
+
+    //material
+    implementation 'androidx.compose.material:material:1.2.1'
+    //material3
+    implementation("androidx.compose.material3:material3:1.0.0-rc01")
+    implementation("androidx.compose.material3:material3-window-size-class:1.0.0-rc01")
+
+
+    //compose permission
+    implementation "com.google.accompanist:accompanist-permissions:0.24.13-rc"
+
+
+    // test
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.3'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+
+    //test compose
+    androidTestImplementation "androidx.compose.ui:ui-test-junit4:$compose_ui_version"
+    debugImplementation "androidx.compose.ui:ui-tooling:$compose_ui_version"
+    debugImplementation "androidx.compose.ui:ui-test-manifest:$compose_ui_version"
 }

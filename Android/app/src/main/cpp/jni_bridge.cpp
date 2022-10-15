@@ -7,7 +7,7 @@
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_example_microphone_audio_OboeRecorder_setDeviceId(JNIEnv *, jobject,
+Java_com_example_androidmic_domain_audio_OboeRecorder_setDeviceId(JNIEnv *, jobject,
                                                            jint device_id) {
     auto recorder = OboeRecorder::Instance();
     recorder->SetDeviceId(device_id);
@@ -15,7 +15,7 @@ Java_com_example_microphone_audio_OboeRecorder_setDeviceId(JNIEnv *, jobject,
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_example_microphone_audio_OboeRecorder_setSampleRate(JNIEnv *, jobject,
+Java_com_example_androidmic_domain_audio_OboeRecorder_setSampleRate(JNIEnv *, jobject,
                                                              jint sample_rate) {
     auto recorder = OboeRecorder::Instance();
     recorder->SetSampleRate(sample_rate);
@@ -23,7 +23,7 @@ Java_com_example_microphone_audio_OboeRecorder_setSampleRate(JNIEnv *, jobject,
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_example_microphone_audio_OboeRecorder_setBufferSizeInFrames(JNIEnv *, jobject,
+Java_com_example_androidmic_domain_audio_OboeRecorder_setBufferSizeInFrames(JNIEnv *, jobject,
                                                                      jint frames) {
     auto recorder = OboeRecorder::Instance();
     recorder->SetBufferSizeInFrames(frames);
@@ -31,21 +31,21 @@ Java_com_example_microphone_audio_OboeRecorder_setBufferSizeInFrames(JNIEnv *, j
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_example_microphone_audio_OboeRecorder_startRecordingInternal(JNIEnv *, jobject) {
+Java_com_example_androidmic_domain_audio_OboeRecorder_startRecordingInternal(JNIEnv *, jobject) {
     auto recorder = OboeRecorder::Instance();
     recorder->StartRecord();
 }
 
 extern "C"
 JNIEXPORT void JNICALL
-Java_com_example_microphone_audio_OboeRecorder_stopRecordingInternal(JNIEnv *, jobject) {
+Java_com_example_androidmic_domain_audio_OboeRecorder_stopRecordingInternal(JNIEnv *, jobject) {
     auto recorder = OboeRecorder::Instance();
     recorder->StopRecord();
 }
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_example_microphone_audio_OboeRecorder_readInternalBytes(JNIEnv *env, jobject,
+Java_com_example_androidmic_domain_audio_OboeRecorder_readInternalBytes(JNIEnv *env, jobject,
                                                                  jbyteArray buffer,
                                                                  jint offset, jint len) {
     auto recorder = OboeRecorder::Instance();
@@ -74,7 +74,7 @@ Java_com_example_microphone_audio_OboeRecorder_readInternalBytes(JNIEnv *env, jo
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_example_microphone_audio_OboeRecorder_readInternalShorts(JNIEnv *env, jobject,
+Java_com_example_androidmic_domain_audio_OboeRecorder_readInternalShorts(JNIEnv *env, jobject,
                                                                   jshortArray buffer,
                                                                   jint offset, jint len) {
     auto recorder = OboeRecorder::Instance();
@@ -89,7 +89,7 @@ Java_com_example_microphone_audio_OboeRecorder_readInternalShorts(JNIEnv *env, j
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_example_microphone_audio_OboeRecorder_readInternalBytesBlocking(JNIEnv *env, jobject,
+Java_com_example_androidmic_domain_audio_OboeRecorder_readInternalBytesBlocking(JNIEnv *env, jobject,
                                                                          jbyteArray buffer,
                                                                          jint offset, jint len) {
     auto recorder = OboeRecorder::Instance();
@@ -123,7 +123,7 @@ Java_com_example_microphone_audio_OboeRecorder_readInternalBytesBlocking(JNIEnv 
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_example_microphone_audio_OboeRecorder_readInternalShortsBlocking(JNIEnv *env, jobject,
+Java_com_example_androidmic_domain_audio_OboeRecorder_readInternalShortsBlocking(JNIEnv *env, jobject,
                                                                           jshortArray buffer,
                                                                           jint offset, jint len) {
     auto recorder = OboeRecorder::Instance();

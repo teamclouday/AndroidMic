@@ -1,10 +1,24 @@
 <resources>
-    <string name="app_name">Mic</string>
-    <string name="connect">Connect Device</string>
-    <string name="disconnect">Disconnect Device</string>
+    <string name="app_name">AndroidMic</string>
+
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    
     <string name="turn_audio">Record Audio</string>
-    <string name="activity_name">AndroidMic</string>
-    <string name="notification_text">Microphone is in use</string>
+    
+    <string name="drawerHeader">Setting</string>
+    <string name="drawerIpPort">IP/PORT:\ </string>
+    <string name="drawerMode">Mode:\ </string>
+    
     <string name="dialog_ip">IP</string>
     <string name="dialog_port">PORT</string>
+    <string name="save_ip_port">Save</string>
+    <string name="cancel_ip_port">Cancel</string>
+    
+    <string name="mode_wifi">WIFI</string>
+    <string name="mode_bluetooth">BLUETOOTH</string>
+    <string name="mode_usb">USB</string>
+
+    <string name="notification_text_audio">Microphone is in use</string>
+    <string name="notification_text_stream">Microphone stream started</string>
 </resources>
