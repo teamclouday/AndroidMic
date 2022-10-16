@@ -117,7 +117,7 @@ class ForegroundService : Service() {
         val replyData = Bundle()
         // check connection state
         if (states.isStreamStarted.get()) {
-            replyData.putString("reply", "Stream already started")
+            replyData.putString("reply", this.getString(R.string.stream_already_started))
             reply(sender, replyData, COMMAND_START_STREAM, true)
             return
         } else if (jobStreamM?.isActive == true) {
@@ -142,7 +142,7 @@ class ForegroundService : Service() {
             } catch (e: IllegalArgumentException) {
                 val debugModes = DebugModes()
                 Log.d(TAG, "start stream with mode ${debugModes.dic[mode]} failed:\n${e.message}")
-                replyData.putString("reply", "Error:\n" + e.message)
+                replyData.putString("reply", applicationContext.getString(R.string.error) + e.message)
                 reply(sender, replyData, COMMAND_START_STREAM, false)
                 cancel()
                 awaitCancellation()
@@ -150,22 +150,23 @@ class ForegroundService : Service() {
             states.streamShouldStop.set(false)
 
             sharedBuffer.clear()
-            messageui.showMessage("Starting streaming")
             if (managerStream?.start() == true && managerStream?.isConnected() == true) {
-                messageui.showMessage("Device connected")
                 replyData.putString(
                     "reply",
-                    "Connected Device\n${managerStream?.getInfo()}"
+                    applicationContext.getString(R.string.connected_device) +
+                    managerStream?.getInfo()
                 )
                 reply(sender, replyData, COMMAND_START_STREAM, true)
                 Log.d(TAG, "startStream [connected]")
             } else {
-                replyData.putString("reply", "Failed to connect")
+                replyData.putString("reply", applicationContext.getString(R.string.failed_to_connect))
                 reply(sender, replyData, COMMAND_START_STREAM, false)
                 managerStream?.shutdown()
                 cancel()
                 awaitCancellation()
             }
+            messageui.showMessage(applicationContext.getString(R.string.start_streaming))
+            messageui.showNotification(getString(R.string.notification_text_stream), 0)
             states.isStreamStarted.set(true)
             states.streamShouldStop.set(false)
             while (!states.streamShouldStop.get()) {
@@ -173,12 +174,13 @@ class ForegroundService : Service() {
                     managerStream?.stream(sharedBuffer)
                     delay(MicStreamManager.STREAM_DELAY)
                 } else {
-                    replyData.putString("reply", "Device disconnected")
-                    messageui.showMessage("Device disconnected")
+                    replyData.putString("reply", applicationContext.getString(R.string.device_disconnected))
+                    messageui.showMessage(applicationContext.getString(R.string.stop_streaming))
                     reply(sender, replyData, COMMAND_DISC_STREAM, false)
                     break
                 }
             }
+            messageui.removeNotification(0)
             states.isStreamStarted.set(false)
         }
     }
@@ -196,8 +198,10 @@ class ForegroundService : Service() {
         }
         managerStream = null
         jobStreamM = null
-        messageui.showMessage("Device disconnected")
+        replyData.putString("reply", applicationContext.getString(R.string.device_disconnected))
+        messageui.showMessage(applicationContext.getString(R.string.stop_streaming))
         states.isStreamStarted.set(false)
+        messageui.removeNotification(0)
         reply(sender, replyData, COMMAND_STOP_STREAM, true)
     }
 
@@ -207,7 +211,7 @@ class ForegroundService : Service() {
         val replyData = Bundle()
         // check audio state
         if (states.isAudioStarted.get()) {
-            replyData.putString("reply", "Microphone already started")
+            replyData.putString("reply", this.getString(R.string.microphone_already_started))
             reply(sender, replyData, COMMAND_START_AUDIO, true)
             return
         } else if (jobAudioM?.isActive == true) {
@@ -222,7 +226,7 @@ class ForegroundService : Service() {
             managerAudio = try {
                 MicAudioManager(applicationContext)
             } catch (e: IllegalArgumentException) {
-                replyData.putString("reply", "Error:\n" + e.message)
+                replyData.putString("reply", application.getString(R.string.error) + e.message)
                 reply(sender, replyData, COMMAND_START_AUDIO, false)
                 cancel()
                 awaitCancellation()
@@ -231,8 +235,8 @@ class ForegroundService : Service() {
             sharedBuffer.clear()
             managerAudio?.start()
             messageui.showNotification(getString(R.string.notification_text_audio), 1)
-            messageui.showMessage("Recording started")
-            replyData.putString("reply", "Microphone starts recording")
+            messageui.showMessage(application.getString(R.string.start_recording))
+            replyData.putString("reply", application.getString(R.string.mic_start_recording))
             reply(sender, replyData, COMMAND_START_AUDIO, true)
             Log.d(TAG, "startAudio [recording]")
             // record into buffer
@@ -260,7 +264,8 @@ class ForegroundService : Service() {
         }
         managerAudio = null
         jobAudioM = null
-        messageui.showMessage("Recording stopped")
+        replyData.putString("reply", application.getString(R.string.recording_stopped))
+        messageui.showMessage(application.getString(R.string.stop_recording))
         messageui.removeNotification(1)
         states.isAudioStarted.set(false)
         reply(sender, replyData, COMMAND_STOP_AUDIO, true)
