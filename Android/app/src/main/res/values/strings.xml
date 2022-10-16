@@ -7,8 +7,8 @@
     <string name="turn_audio">Record Audio</string>
     
     <string name="drawerHeader">Setting</string>
-    <string name="drawerIpPort">IP/PORT:\ </string>
-    <string name="drawerMode">Mode:\ </string>
+    <string name="drawerIpPort">IP:PORT</string>
+    <string name="drawerMode">Connection mode</string>
     
     <string name="dialog_ip">IP</string>
     <string name="dialog_port">PORT</string>

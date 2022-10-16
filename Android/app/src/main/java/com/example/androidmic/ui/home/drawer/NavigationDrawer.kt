@@ -11,22 +11,15 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.example.androidmic.R
 import com.example.androidmic.ui.Event
 import com.example.androidmic.ui.MainViewModel
 import com.example.androidmic.ui.home.DialogIpPort
 import com.example.androidmic.ui.home.DialogMode
-import com.example.androidmic.utils.Modes.Companion.MODE_BLUETOOTH
-import com.example.androidmic.utils.Modes.Companion.MODE_USB
-import com.example.androidmic.utils.Modes.Companion.MODE_WIFI
 import com.example.androidmic.utils.States
 
 @Composable
@@ -60,8 +53,7 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
             ),
             MenuItem(
                 id = R.string.drawerMode,
-                title =
-                stringResource(id = R.string.drawerMode),
+                title = stringResource(id = R.string.drawerMode),
                 contentDescription = "set mode",
                 icon = Icons.Default.Info
             )
@@ -89,28 +81,38 @@ fun DrawerBodyList(
                     .clickable {
                         onItemClick(item)
                     }
-                    .padding(16.dp)
-            ) {
+                    .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+            ){
                 Icon(
                     imageVector = item.icon,
-                    contentDescription = item.contentDescription
+                    contentDescription = item.contentDescription,
+                    tint = MaterialTheme.colorScheme.onBackground
                 )
                 Spacer(modifier = Modifier.width(16.dp))
-                when(item.id) {
-                    R.string.drawerIpPort ->
-                        Text(
-                        text = item.title + uiStates.IP + "/" + uiStates.PORT,
-                        style = MaterialTheme.typography.bodyMedium,
-                        modifier = Modifier.weight(1f),
+                Column {
+                    Text(
+                        text = item.title,
+                        style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onBackground
-                        )
-                    R.string.drawerMode ->
-                        Text(
-                            text = item.title + uiStates.textMode,
-                            style = MaterialTheme.typography.bodyMedium,
-                            modifier = Modifier.weight(1f),
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
+                    )
+
+                    when (item.id) {
+                        R.string.drawerIpPort -> {
+                            Text(
+                                text = uiStates.IP + ":" + uiStates.PORT,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                        R.string.drawerMode -> {
+                            Text(
+                                text = uiStates.textMode,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                    }
                 }
             }
         }

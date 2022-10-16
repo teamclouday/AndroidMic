@@ -1,7 +1,6 @@
 package com.example.androidmic.ui.home
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -38,7 +37,6 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                 mainViewModel.onEvent(Event.DismissDialog(R.string.drawerIpPort)) }
         ) {
             Surface(
-                modifier = Modifier,
                 shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.background,
                 contentColor = MaterialTheme.colorScheme.onBackground
@@ -46,36 +44,60 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                 Column ( horizontalAlignment = Alignment.CenterHorizontally) {
                     // ip field
                     OutlinedTextField(
+                        modifier = Modifier.padding(10.dp),
                         value = tempIP.value,
                         onValueChange = { tempIP.value = it },
                         enabled = true,
                         singleLine = true,
-                        label = { Text(stringResource(id = R.string.dialog_ip)) }
+                        label = { Text(stringResource(id = R.string.dialog_ip)) },
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                        colors = TextFieldDefaults.textFieldColors(
+                            textColor = MaterialTheme.colorScheme.onBackground,
+                            containerColor = MaterialTheme.colorScheme.background)
                     )
 
-                    Divider(modifier = Modifier.padding(top = 5.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
                     // port field
                     OutlinedTextField(
+                        modifier = Modifier.padding(10.dp),
                         value = tempPort.value,
                         onValueChange = { tempPort.value = it },
                         enabled = true,
                         singleLine = true,
-                        label = { Text(stringResource(id = R.string.dialog_port)) }
+                        label = { Text(stringResource(id = R.string.dialog_port)) },
+                        textStyle = MaterialTheme.typography.bodyMedium,
+                        colors = TextFieldDefaults.textFieldColors(
+                            textColor = MaterialTheme.colorScheme.onBackground,
+                            containerColor = MaterialTheme.colorScheme.background)
                     )
+
+                    Spacer(modifier = Modifier.height(15.dp))
 
                     // save Button
                     ManagerButton(
-                        onClick = { mainViewModel.onEvent(Event.SetIpPort(tempIP.value, tempPort.value)) },
+                        onClick = {
+                            mainViewModel.onEvent(
+                                Event.SetIpPort(
+                                    tempIP.value,
+                                    tempPort.value
+                                )
+                            )
+                        },
                         text = stringResource(id = R.string.save_ip_port)
                     )
 
+                    Spacer(modifier = Modifier.height(10.dp))
+
                     // cancel Button
                     ManagerButton(
-                        onClick = { tempIP.value = uiStates.IP; tempPort.value = uiStates.PORT
-                            mainViewModel.onEvent(Event.DismissDialog(R.string.drawerIpPort)) },
+                        onClick = {
+                            tempIP.value = uiStates.IP; tempPort.value = uiStates.PORT
+                            mainViewModel.onEvent(Event.DismissDialog(R.string.drawerIpPort))
+                        },
                         text = stringResource(id = R.string.cancel_ip_port)
                     )
+                    Spacer(modifier = Modifier.height(10.dp))
                 }
             }
         }
@@ -97,14 +119,15 @@ fun DialogMode(mainViewModel: MainViewModel, uiStates: States.UiStates) {
             ) {
                 Column ( horizontalAlignment = Alignment.CenterHorizontally) {
 
+                    Spacer(modifier = Modifier.height(10.dp))
+
                     // wifi
                     ManagerButton(
                         onClick = { mainViewModel.onEvent(Event.SetMode(MODE_WIFI)) },
                         text = stringResource(id = R.string.mode_wifi)
                     )
 
-                    Divider(
-                        modifier = Modifier.padding(top = 5.dp))
+                    Divider(modifier = Modifier.padding(10.dp))
 
                     // bluetooth
                     ManagerButton(
@@ -112,14 +135,14 @@ fun DialogMode(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                         text = stringResource(id = R.string.mode_bluetooth)
                     )
 
-                    Divider(
-                        modifier = Modifier.padding(top = 5.dp))
+                    Divider(modifier = Modifier.padding(10.dp))
 
                     // usb
                     ManagerButton(
                         onClick = { mainViewModel.onEvent(Event.SetMode(MODE_USB)) },
                         text = stringResource(id = R.string.mode_usb)
                     )
+                    Spacer(modifier = Modifier.height(10.dp))
                 }
             }
         }

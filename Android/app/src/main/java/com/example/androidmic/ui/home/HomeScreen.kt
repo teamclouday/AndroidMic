@@ -125,6 +125,7 @@ private fun Log(states: States.UiStates, currentWindowInfo: WindowInfo) {
     {
         Text(text = states.textLog,
             color = MaterialTheme.colorScheme.onSecondary,
+            style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier
                 .verticalScroll(ScrollState(0))
                 .padding(10.dp)
@@ -184,7 +185,11 @@ private fun SwitchAudio(mainViewModel: MainViewModel, states: States.UiStates) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(text = stringResource(id = R.string.turn_audio),
-            color = MaterialTheme.colorScheme.onBackground)
+            color = MaterialTheme.colorScheme.onBackground,
+            style = MaterialTheme.typography.labelLarge)
+
+        Spacer(Modifier.width(10.dp))
+
         Switch(
             checked = states.isAudioStarted,
             onCheckedChange = {

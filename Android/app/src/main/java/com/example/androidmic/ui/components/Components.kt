@@ -18,13 +18,12 @@ fun ManagerButton(
     Button(
         onClick = onClick,
         modifier = Modifier
-            .padding(10.dp)
             .background(MaterialTheme.colorScheme.primary)
     ) {
         Text(
             text = text,
             color = MaterialTheme.colorScheme.onPrimary,
-            fontSize = 15.sp
+            style = MaterialTheme.typography.labelLarge
         )
     }
 }

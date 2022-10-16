@@ -18,14 +18,14 @@ private val DarkColorScheme = darkColorScheme(
     primary = Purple500,
     onPrimary = Color.White,
 
-    secondary = Teal700,
+    secondary = Teal200,
     onSecondary = Color.Black,
 
     tertiary = Color.Black,
     onTertiary = Color.White,
 
-    surface = Color(0xFFFFFBFE),
-    onSurface = Color(0xFF1C1B1F),
+    surface = Purple500,
+    onSurface = Color.White,
 
     background = Color.Black,
     onBackground = Color.White,
@@ -52,7 +52,7 @@ private val LightColorScheme = lightColorScheme(
 fun AndroidMicTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
