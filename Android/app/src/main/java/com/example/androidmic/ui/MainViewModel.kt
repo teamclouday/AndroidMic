@@ -10,6 +10,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.viewModelScope
 import com.example.androidmic.AndroidMicApp
 import com.example.androidmic.R
 import com.example.androidmic.domain.service.ForegroundService
@@ -20,6 +21,7 @@ import com.example.androidmic.utils.Command.Companion.COMMAND_GET_STATUS
 import com.example.androidmic.utils.CommandService
 import com.example.androidmic.utils.Modes.Companion.MODE_WIFI
 import com.example.androidmic.utils.States
+import kotlinx.coroutines.launch
 
 
 class MainViewModel(application: Application,
@@ -236,6 +238,10 @@ class MainViewModel(application: Application,
     // helper function to append log message to textview
     private fun addLogMessage(message: String) {
         savedStateHandle["uiStates"] = uiStates.value.copy(
-            textLog = uiStates.value.textLog + message + "\n")
+            textLog = uiStates.value.textLog + message + "\n",
+            scrollState = uiStates.value.scrollState.apply {
+                viewModelScope.launch{ scrollTo(maxValue) }
+            }
+        )
     }
 }

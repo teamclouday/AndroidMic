@@ -1,6 +1,7 @@
 package com.example.androidmic.utils
 
 
+import androidx.compose.foundation.ScrollState
 import com.example.androidmic.utils.Modes.Companion.MODE_WIFI
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
@@ -19,6 +20,7 @@ sealed interface States :java.io.Serializable {
         val textMode: String = "",
 
         val textLog: String = "",
+        val scrollState: ScrollState = ScrollState(0),
 
         val dialogModesIsVisible: Boolean = false,
         val dialogIpPortIsVisible: Boolean = false

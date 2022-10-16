@@ -60,8 +60,6 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                     .fillMaxSize()
                     .background(color = MaterialTheme.colorScheme.background)) {
                 Column {
-                    //DrawerHeader()
-                    //Divider(color = MaterialTheme.colorScheme.onBackground)
                     DrawerBody(mainViewModel, uiStates.value)
                 }
             }
@@ -129,7 +127,7 @@ private fun Log(states: States.UiStates, currentWindowInfo: WindowInfo) {
             color = MaterialTheme.colorScheme.onSecondary,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier
-                .verticalScroll(ScrollState(0))
+                .verticalScroll(states.scrollState)
                 .padding(10.dp)
         )
     }
