@@ -60,8 +60,8 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                     .fillMaxSize()
                     .background(color = MaterialTheme.colorScheme.background)) {
                 Column {
-                    DrawerHeader()
-                    Divider(color = MaterialTheme.colorScheme.onBackground)
+                    //DrawerHeader()
+                    //Divider(color = MaterialTheme.colorScheme.onBackground)
                     DrawerBody(mainViewModel, uiStates.value)
                 }
             }
@@ -83,7 +83,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                         }
                         )
                         Log(uiStates.value, currentWindowInfo)
-                        ButtonConnect(mainViewModel = mainViewModel, uiStates = uiStates.value)
+                        ButtonConnect(mainViewModel = mainViewModel, uiStates = uiStates.value, currentWindowInfo)
                         SwitchAudio(mainViewModel = mainViewModel, states = uiStates.value)
                     }
                     else {
@@ -95,7 +95,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ){
-                                ButtonConnect(mainViewModel = mainViewModel, uiStates = uiStates.value)
+                                ButtonConnect(mainViewModel = mainViewModel, uiStates = uiStates.value, currentWindowInfo)
                                 SwitchAudio(mainViewModel = mainViewModel, states = uiStates.value)
                             }
                         }
@@ -138,7 +138,7 @@ private fun Log(states: States.UiStates, currentWindowInfo: WindowInfo) {
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-private fun ButtonConnect(mainViewModel: MainViewModel, uiStates: States.UiStates) {
+private fun ButtonConnect(mainViewModel: MainViewModel, uiStates: States.UiStates, currentWindowInfo: WindowInfo) {
     val list = mutableListOf(
         Manifest.permission.BLUETOOTH
     )
@@ -167,7 +167,12 @@ private fun ButtonConnect(mainViewModel: MainViewModel, uiStates: States.UiState
         if(uiStates.isStreamStarted)
             stringResource(id = R.string.disconnect)
         else
-            stringResource(id = R.string.connect)
+            stringResource(id = R.string.connect),
+        modifier =
+        if(currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact)
+            Modifier.fillMaxWidth(0.4F)
+        else
+            Modifier.fillMaxWidth(0.9F)
     )
 }
 
