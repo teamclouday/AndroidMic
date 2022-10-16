@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.DrawerValue
 import androidx.compose.material.ModalDrawer
 import androidx.compose.material.rememberDrawerState
+import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -59,7 +60,6 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                     .fillMaxSize()
                     .background(color = MaterialTheme.colorScheme.background)) {
                 Column {
-                    DrawerHeader()
                     DrawerBody(mainViewModel, uiStates.value)
                 }
             }
@@ -81,7 +81,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                         }
                         )
                         Log(uiStates.value, currentWindowInfo)
-                        ButtonConnect(mainViewModel = mainViewModel, uiStates = uiStates.value)
+                        ButtonConnect(mainViewModel = mainViewModel, uiStates = uiStates.value, currentWindowInfo)
                         SwitchAudio(mainViewModel = mainViewModel, states = uiStates.value)
                     }
                     else {
@@ -93,7 +93,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
                             ){
-                                ButtonConnect(mainViewModel = mainViewModel, uiStates = uiStates.value)
+                                ButtonConnect(mainViewModel = mainViewModel, uiStates = uiStates.value, currentWindowInfo)
                                 SwitchAudio(mainViewModel = mainViewModel, states = uiStates.value)
                             }
                         }
@@ -125,8 +125,9 @@ private fun Log(states: States.UiStates, currentWindowInfo: WindowInfo) {
     {
         Text(text = states.textLog,
             color = MaterialTheme.colorScheme.onSecondary,
+            style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier
-                .verticalScroll(ScrollState(0))
+                .verticalScroll(states.scrollState)
                 .padding(10.dp)
         )
     }
@@ -135,7 +136,7 @@ private fun Log(states: States.UiStates, currentWindowInfo: WindowInfo) {
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-private fun ButtonConnect(mainViewModel: MainViewModel, uiStates: States.UiStates) {
+private fun ButtonConnect(mainViewModel: MainViewModel, uiStates: States.UiStates, currentWindowInfo: WindowInfo) {
     val list = mutableListOf(
         Manifest.permission.BLUETOOTH
     )
@@ -164,7 +165,12 @@ private fun ButtonConnect(mainViewModel: MainViewModel, uiStates: States.UiState
         if(uiStates.isStreamStarted)
             stringResource(id = R.string.disconnect)
         else
-            stringResource(id = R.string.connect)
+            stringResource(id = R.string.connect),
+        modifier =
+        if(currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact)
+            Modifier.fillMaxWidth(0.4F)
+        else
+            Modifier.fillMaxWidth(0.9F)
     )
 }
 
@@ -184,7 +190,11 @@ private fun SwitchAudio(mainViewModel: MainViewModel, states: States.UiStates) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(text = stringResource(id = R.string.turn_audio),
-            color = MaterialTheme.colorScheme.onBackground)
+            color = MaterialTheme.colorScheme.onBackground,
+            style = MaterialTheme.typography.labelLarge)
+
+        Spacer(Modifier.width(10.dp))
+
         Switch(
             checked = states.isAudioStarted,
             onCheckedChange = {

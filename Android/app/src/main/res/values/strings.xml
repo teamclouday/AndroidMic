@@ -7,8 +7,8 @@
     <string name="turn_audio">Record Audio</string>
     
     <string name="drawerHeader">Setting</string>
-    <string name="drawerIpPort">IP/PORT:\ </string>
-    <string name="drawerMode">Mode:\ </string>
+    <string name="drawerIpPort">IP:PORT</string>
+    <string name="drawerMode">Connection mode</string>
     
     <string name="dialog_ip">IP</string>
     <string name="dialog_port">PORT</string>
@@ -21,4 +21,26 @@
 
     <string name="notification_text_audio">Microphone is in use</string>
     <string name="notification_text_stream">Microphone stream started</string>
+
+    <string name="error">Error\n</string>
+    <string name="failed_to_connect">Failed to connect</string>
+    <string name="stream_already_started">Stream already started</string>
+    <string name="microphone_already_started">Microphone already started</string>
+
+
+    <string name="connected_device">Connected Device:\n</string>
+    <string name="mic_start_recording">Microphone has started to record</string>
+
+    <string name="device_disconnected">Device disconnected</string>
+    <string name="recording_stopped">Recording stopped</string>
+
+    <string name="start_streaming">Start streaming</string>
+    <string name="start_recording">Start recording</string>
+    <string name="stop_streaming">Stop streaming</string>
+    <string name="stop_recording">Stop recording</string>
+
+
+
+
+
 </resources>
