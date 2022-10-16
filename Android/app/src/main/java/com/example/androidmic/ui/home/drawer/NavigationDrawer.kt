@@ -7,12 +7,15 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.androidmic.R
@@ -27,8 +30,7 @@ fun DrawerHeader() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 64.dp),
-        contentAlignment = Alignment.Center
+            .padding(vertical = 64.dp).padding(start = 30.dp)
     ) {
         Text(text = stringResource(id = R.string.drawerHeader),
             style = MaterialTheme.typography.titleLarge,
@@ -48,14 +50,14 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                 id = R.string.drawerIpPort,
                 title = stringResource(id = R.string.drawerIpPort),
                 contentDescription = "set ip and port",
-                icon = Icons.Default.Settings
+                icon = painterResource(id = R.drawable.ic_baseline_wifi_24)
 
             ),
             MenuItem(
                 id = R.string.drawerMode,
                 title = stringResource(id = R.string.drawerMode),
                 contentDescription = "set mode",
-                icon = Icons.Default.Info
+                icon = rememberVectorPainter(Icons.Default.Settings)
             )
         ),
         onItemClick = {
@@ -85,7 +87,7 @@ fun DrawerBodyList(
                     verticalAlignment = Alignment.CenterVertically
             ){
                 Icon(
-                    imageVector = item.icon,
+                    painter = item.icon,
                     contentDescription = item.contentDescription,
                     tint = MaterialTheme.colorScheme.onBackground
                 )
@@ -115,6 +117,7 @@ fun DrawerBodyList(
                     }
                 }
             }
+            Divider(color = MaterialTheme.colorScheme.onBackground)
         }
     }
 }

@@ -10,6 +10,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.DrawerValue
 import androidx.compose.material.ModalDrawer
 import androidx.compose.material.rememberDrawerState
+import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -60,6 +61,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                     .background(color = MaterialTheme.colorScheme.background)) {
                 Column {
                     DrawerHeader()
+                    Divider(color = MaterialTheme.colorScheme.onBackground)
                     DrawerBody(mainViewModel, uiStates.value)
                 }
             }

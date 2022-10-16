@@ -7,6 +7,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -38,8 +39,8 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
         ) {
             Surface(
                 shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface
             ) {
                 Column ( horizontalAlignment = Alignment.CenterHorizontally) {
                     // ip field
@@ -52,8 +53,8 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                         label = { Text(stringResource(id = R.string.dialog_ip)) },
                         textStyle = MaterialTheme.typography.bodyMedium,
                         colors = TextFieldDefaults.textFieldColors(
-                            textColor = MaterialTheme.colorScheme.onBackground,
-                            containerColor = MaterialTheme.colorScheme.background)
+                            textColor = MaterialTheme.colorScheme.onSurface,
+                            containerColor = MaterialTheme.colorScheme.surface)
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -68,8 +69,8 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                         label = { Text(stringResource(id = R.string.dialog_port)) },
                         textStyle = MaterialTheme.typography.bodyMedium,
                         colors = TextFieldDefaults.textFieldColors(
-                            textColor = MaterialTheme.colorScheme.onBackground,
-                            containerColor = MaterialTheme.colorScheme.background)
+                            textColor = MaterialTheme.colorScheme.onSurface,
+                            containerColor = MaterialTheme.colorScheme.surface)
                     )
 
                     Spacer(modifier = Modifier.height(15.dp))
@@ -84,7 +85,8 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                                 )
                             )
                         },
-                        text = stringResource(id = R.string.save_ip_port)
+                        text = stringResource(id = R.string.save_ip_port),
+                        modifier = Modifier.fillMaxWidth(0.5F)
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -95,7 +97,8 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                             tempIP.value = uiStates.IP; tempPort.value = uiStates.PORT
                             mainViewModel.onEvent(Event.DismissDialog(R.string.drawerIpPort))
                         },
-                        text = stringResource(id = R.string.cancel_ip_port)
+                        text = stringResource(id = R.string.cancel_ip_port),
+                        modifier = Modifier.fillMaxWidth(0.5F)
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                 }
@@ -114,8 +117,8 @@ fun DialogMode(mainViewModel: MainViewModel, uiStates: States.UiStates) {
             Surface(
                 modifier = Modifier,
                 shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.background,
-                contentColor = MaterialTheme.colorScheme.onBackground
+                color = MaterialTheme.colorScheme.surface,
+                contentColor = MaterialTheme.colorScheme.onSurface
             ) {
                 Column ( horizontalAlignment = Alignment.CenterHorizontally) {
 
@@ -124,23 +127,30 @@ fun DialogMode(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                     // wifi
                     ManagerButton(
                         onClick = { mainViewModel.onEvent(Event.SetMode(MODE_WIFI)) },
-                        text = stringResource(id = R.string.mode_wifi)
+                        text = stringResource(id = R.string.mode_wifi),
+                        modifier = Modifier.fillMaxWidth(0.6F)
                     )
 
-                    Divider(modifier = Modifier.padding(10.dp))
+                    Divider(
+                        modifier = Modifier.padding(10.dp),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
 
                     // bluetooth
                     ManagerButton(
                         onClick = { mainViewModel.onEvent(Event.SetMode(MODE_BLUETOOTH)) },
-                        text = stringResource(id = R.string.mode_bluetooth)
+                        text = stringResource(id = R.string.mode_bluetooth),
+                        modifier = Modifier.fillMaxWidth(0.6F)
                     )
 
-                    Divider(modifier = Modifier.padding(10.dp))
+                    Divider(modifier = Modifier.padding(10.dp),
+                        color = MaterialTheme.colorScheme.onSurface)
 
                     // usb
                     ManagerButton(
                         onClick = { mainViewModel.onEvent(Event.SetMode(MODE_USB)) },
-                        text = stringResource(id = R.string.mode_usb)
+                        text = stringResource(id = R.string.mode_usb),
+                        modifier = Modifier.fillMaxWidth(0.6F)
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                 }
