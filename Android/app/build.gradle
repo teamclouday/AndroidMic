@@ -58,10 +58,11 @@ android {
         compose true
     }
     composeOptions {
+        kotlinCompilerVersion '1.6.10'
         kotlinCompilerExtensionVersion '1.1.1'
     }
 
-    lint {
+    lintOptions {
         checkReleaseBuilds false
     }
 
