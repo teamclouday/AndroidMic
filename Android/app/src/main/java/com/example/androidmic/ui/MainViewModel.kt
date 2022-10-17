@@ -86,8 +86,7 @@ class MainViewModel(application: Application,
         savedStateHandle["uiStates"] = uiStates.value.copy(
             IP = ipPort.first,
             PORT = ipPort.second.toString(),
-            mode = mode,
-            textMode = preferences.getModeText(mode)
+            mode = mode
         )
     }
 
@@ -157,8 +156,7 @@ class MainViewModel(application: Application,
                 preferences.setMode(event.mode)
                 savedStateHandle["uiStates"] = uiStates.value.copy(
                     mode = event.mode,
-                    dialogModesIsVisible = false,
-                    textMode = preferences.getModeText(event.mode)
+                    dialogModesIsVisible = false
                 )
             }
 

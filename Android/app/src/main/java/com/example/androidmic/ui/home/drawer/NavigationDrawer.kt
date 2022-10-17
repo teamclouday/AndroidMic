@@ -22,6 +22,10 @@ import com.example.androidmic.ui.Event
 import com.example.androidmic.ui.MainViewModel
 import com.example.androidmic.ui.home.DialogIpPort
 import com.example.androidmic.ui.home.DialogMode
+import com.example.androidmic.utils.Modes
+import com.example.androidmic.utils.Modes.Companion.MODE_BLUETOOTH
+import com.example.androidmic.utils.Modes.Companion.MODE_USB
+import com.example.androidmic.utils.Modes.Companion.MODE_WIFI
 import com.example.androidmic.utils.States
 
 @Composable
@@ -112,7 +116,12 @@ fun DrawerBodyList(
                         }
                         R.string.drawerMode -> {
                             Text(
-                                text = uiStates.textMode,
+                                text = when(uiStates.mode) {
+                                    MODE_WIFI       -> stringResource(id = R.string.mode_wifi)
+                                    MODE_BLUETOOTH  -> stringResource(id = R.string.mode_bluetooth)
+                                    MODE_USB        -> stringResource(id = R.string.mode_usb)
+                                    else            -> "NONE"
+                                },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onBackground
                             )

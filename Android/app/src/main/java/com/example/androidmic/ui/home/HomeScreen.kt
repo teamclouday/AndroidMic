@@ -148,14 +148,14 @@ private fun ButtonConnect(mainViewModel: MainViewModel, uiStates: States.UiState
     ManagerButton(
         onClick = {
             when(uiStates.mode) {
+                MODE_WIFI -> {
+                    mainViewModel.onEvent(Event.ConnectButton)
+                }
                 MODE_BLUETOOTH -> {
                     if(!permissionsState.allPermissionsGranted)
                         permissionsState.launchMultiplePermissionRequest()
                     else
                         mainViewModel.onEvent(Event.ConnectButton)
-                }
-                MODE_WIFI -> {
-                    mainViewModel.onEvent(Event.ConnectButton)
                 }
                 MODE_USB -> {
 
