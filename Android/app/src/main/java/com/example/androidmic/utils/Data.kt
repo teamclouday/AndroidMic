@@ -17,7 +17,7 @@ data class CommandService(
 
 data class DebugModes(
     val dic: Map<Int, String> = mapOf(
-        1  to "MODE_WIFI",
-        2  to "MODE_BLUETOOTH",
-        3  to "MODE_USB")
+        1  to "WIFI",
+        2  to "BLUETOOTH",
+        3  to "USB")
 )

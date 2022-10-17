@@ -17,7 +17,6 @@ sealed interface States :java.io.Serializable {
 
         val IP: String = "",
         val PORT: String = "",
-        val textMode: String = "",
 
         val textLog: String = "",
         val scrollState: ScrollState = ScrollState(0),
