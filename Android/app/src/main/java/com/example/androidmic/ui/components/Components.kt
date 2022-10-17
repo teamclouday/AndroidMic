@@ -19,7 +19,8 @@ fun ManagerButton(
         shape = RoundedCornerShape(20),
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
         onClick = onClick,
-        modifier = modifier.fillMaxWidth(0.4f)    ) {
+        //modifier = modifier.fillMaxWidth(0.4f)
+        ) {
         Text(
             text = text,
             color = MaterialTheme.colorScheme.onPrimary,

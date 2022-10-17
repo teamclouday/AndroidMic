@@ -3,14 +3,12 @@ package com.example.androidmic.ui.home
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.DrawerValue
 import androidx.compose.material.ModalDrawer
 import androidx.compose.material.rememberDrawerState
-import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -26,7 +24,6 @@ import com.example.androidmic.ui.Event
 import com.example.androidmic.ui.MainViewModel
 import com.example.androidmic.ui.components.ManagerButton
 import com.example.androidmic.ui.home.drawer.DrawerBody
-import com.example.androidmic.ui.home.drawer.DrawerHeader
 import com.example.androidmic.ui.utils.WindowInfo
 import com.example.androidmic.utils.Modes.Companion.MODE_BLUETOOTH
 import com.example.androidmic.utils.Modes.Companion.MODE_USB
@@ -35,7 +32,6 @@ import com.example.androidmic.utils.States
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.launch
-
 
 @Composable
 fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
@@ -72,17 +68,20 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
             ) {
                 Column (
                     modifier = Modifier
-                        .fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                        .fillMaxSize()
                 ) {
                     if(currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
                         AppBar(onNavigationIconClick = {
-                            scope.launch { drawerState.open() }
-                        }
-                        )
+                            scope.launch { drawerState.open() } })
                         Log(uiStates.value, currentWindowInfo)
-                        ButtonConnect(mainViewModel = mainViewModel, uiStates = uiStates.value, currentWindowInfo)
-                        SwitchAudio(mainViewModel = mainViewModel, states = uiStates.value)
+                        Column(
+                            Modifier.fillMaxSize(),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.SpaceAround
+                        ) {
+                            ButtonConnect(mainViewModel = mainViewModel, uiStates = uiStates.value, currentWindowInfo)
+                            SwitchAudio(mainViewModel = mainViewModel, states = uiStates.value)
+                        }
                     }
                     else {
                         Row {
@@ -94,6 +93,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                                 verticalArrangement = Arrangement.Center
                             ){
                                 ButtonConnect(mainViewModel = mainViewModel, uiStates = uiStates.value, currentWindowInfo)
+                                Spacer(modifier = Modifier.height(10.dp))
                                 SwitchAudio(mainViewModel = mainViewModel, states = uiStates.value)
                             }
                         }
@@ -112,15 +112,16 @@ private fun Log(states: States.UiStates, currentWindowInfo: WindowInfo) {
         Modifier
             .fillMaxWidth()
             .fillMaxHeight(0.82f)
+            .padding(16.dp)
     } else {
         Modifier
-            .fillMaxWidth(0.75f)
+            .fillMaxWidth(0.70f)
             .fillMaxHeight()
+            .padding(start = 16.dp, top = 16.dp, bottom = 16.dp)
     }
 
     Box(
         modifier = modifier
-            .padding(16.dp)
             .background(color = MaterialTheme.colorScheme.secondary))
     {
         Text(text = states.textLog,
@@ -165,12 +166,7 @@ private fun ButtonConnect(mainViewModel: MainViewModel, uiStates: States.UiState
         if(uiStates.isStreamStarted)
             stringResource(id = R.string.disconnect)
         else
-            stringResource(id = R.string.connect),
-        modifier =
-        if(currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact)
-            Modifier.fillMaxWidth(0.4F)
-        else
-            Modifier.fillMaxWidth(0.9F)
+            stringResource(id = R.string.connect)
     )
 }
 
@@ -184,8 +180,7 @@ private fun SwitchAudio(mainViewModel: MainViewModel, states: States.UiStates) {
 
     Row (
         modifier = Modifier
-            .fillMaxWidth()
-            .padding(10.dp),
+            .fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -193,7 +188,7 @@ private fun SwitchAudio(mainViewModel: MainViewModel, states: States.UiStates) {
             color = MaterialTheme.colorScheme.onBackground,
             style = MaterialTheme.typography.labelLarge)
 
-        Spacer(Modifier.width(10.dp))
+        Spacer(Modifier.width(12.dp))
 
         Switch(
             checked = states.isAudioStarted,
