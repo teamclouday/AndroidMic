@@ -6,6 +6,8 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.SavedStateViewModelFactory
+import androidx.lifecycle.ViewModelProvider
 import com.example.androidmic.ui.utils.rememberWindowInfo
 import com.example.androidmic.ui.home.HomeScreen
 import com.example.androidmic.ui.theme.AndroidMicTheme
@@ -17,7 +19,7 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate")
-        val mainViewModel = MainViewModel(application, SavedStateHandle())
+        val mainViewModel = ViewModelProvider(this, SavedStateViewModelFactory(application, this))[MainViewModel::class.java]
 
         setContent {
             AndroidMicTheme {
