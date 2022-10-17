@@ -14,6 +14,8 @@
     <string name="dialog_port">PORT</string>
     <string name="save_ip_port">Save</string>
     <string name="cancel_ip_port">Cancel</string>
+
+    <string name="invalid_ip">IP:PORT invalid</string>
     
     <string name="mode_wifi">WIFI</string>
     <string name="mode_bluetooth">BLUETOOTH</string>

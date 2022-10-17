@@ -114,7 +114,7 @@ class MainViewModel(application: Application,
                             data.putString("IP", ip)
                             data.putInt("PORT", port)
                         } catch (e: Exception) {
-                            Toast.makeText(getApplication(), "Ip/Port invalid", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(getApplication(), getApplication<AndroidMicApp>().getString(R.string.invalid_ip), Toast.LENGTH_SHORT).show()
                             return
                         }
                     }
@@ -143,7 +143,7 @@ class MainViewModel(application: Application,
                 try {
                     preferences.setIpPort(Pair(event.ip, event.port))
                 } catch (e: Exception) {
-                    Toast.makeText(getApplication(), "Ip/Port invalid", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(getApplication(), getApplication<AndroidMicApp>().getString(R.string.invalid_ip), Toast.LENGTH_SHORT).show()
                     return
                 }
                 savedStateHandle["uiStates"] = uiStates.value.copy(
