@@ -54,7 +54,7 @@ class MainViewModel(application: Application,
         }
     }
 
-    private fun HandlerServiceResponse() {
+    private fun handlerServiceResponse() {
         handlerThread = HandlerThread("activity", Process.THREAD_PRIORITY_BACKGROUND)
         handlerThread.start()
         mMessengerLooper = handlerThread.looper
@@ -67,7 +67,7 @@ class MainViewModel(application: Application,
             Log.d(TAG, "onServiceConnected")
             mService = Messenger(service)
             mBound = true
-            HandlerServiceResponse()
+            handlerServiceResponse()
             askForStatus()
         }
         override fun onServiceDisconnected(name: ComponentName?) {
