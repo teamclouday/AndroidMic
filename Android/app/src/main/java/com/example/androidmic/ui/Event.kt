@@ -1,6 +1,6 @@
 package com.example.androidmic.ui
 
-sealed class Event {
+open class Event {
     object ConnectButton: Event()
     object AudioSwitch: Event()
 

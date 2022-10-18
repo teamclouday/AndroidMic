@@ -16,7 +16,6 @@ import kotlinx.coroutines.*
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
-import java.net.InetSocketAddress
 import java.util.*
 
 class BluetoothStreamer(private val ctx: Context) : Streamer {

@@ -1,6 +1,5 @@
 package com.example.androidmic.ui.components
 
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -14,13 +13,13 @@ fun ManagerButton(
     onClick: () -> Unit,
     text: String,
     modifier: Modifier = Modifier
-)  {
+) {
     Button(
         shape = RoundedCornerShape(20),
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
         onClick = onClick,
         modifier = modifier
-        ) {
+    ) {
         Text(
             text = text,
             color = MaterialTheme.colorScheme.onPrimary,

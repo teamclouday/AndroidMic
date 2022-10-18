@@ -17,9 +17,9 @@ import com.example.androidmic.utils.Command.Companion.COMMAND_START_AUDIO
 import com.example.androidmic.utils.Command.Companion.COMMAND_START_STREAM
 import com.example.androidmic.utils.Command.Companion.COMMAND_STOP_AUDIO
 import com.example.androidmic.utils.Command.Companion.COMMAND_STOP_STREAM
+import com.example.androidmic.utils.DebugModes
 import com.example.androidmic.utils.States
 import com.example.androidmic.utils.ignore
-import com.example.androidmic.utils.DebugModes
 import kotlinx.coroutines.*
 
 class ForegroundService : Service() {
@@ -142,7 +142,10 @@ class ForegroundService : Service() {
             } catch (e: IllegalArgumentException) {
                 val debugModes = DebugModes()
                 Log.d(TAG, "start stream with mode ${debugModes.dic[mode]} failed:\n${e.message}")
-                replyData.putString("reply", applicationContext.getString(R.string.error) + e.message)
+                replyData.putString(
+                    "reply",
+                    applicationContext.getString(R.string.error) + e.message
+                )
                 reply(sender, replyData, COMMAND_START_STREAM, false)
                 cancel()
                 awaitCancellation()
@@ -154,12 +157,15 @@ class ForegroundService : Service() {
                 replyData.putString(
                     "reply",
                     applicationContext.getString(R.string.connected_device) +
-                    managerStream?.getInfo()
+                            managerStream?.getInfo()
                 )
                 reply(sender, replyData, COMMAND_START_STREAM, true)
                 Log.d(TAG, "startStream [connected]")
             } else {
-                replyData.putString("reply", applicationContext.getString(R.string.failed_to_connect))
+                replyData.putString(
+                    "reply",
+                    applicationContext.getString(R.string.failed_to_connect)
+                )
                 reply(sender, replyData, COMMAND_START_STREAM, false)
                 managerStream?.shutdown()
                 cancel()
@@ -174,7 +180,10 @@ class ForegroundService : Service() {
                     managerStream?.stream(sharedBuffer)
                     delay(MicStreamManager.STREAM_DELAY)
                 } else {
-                    replyData.putString("reply", applicationContext.getString(R.string.device_disconnected))
+                    replyData.putString(
+                        "reply",
+                        applicationContext.getString(R.string.device_disconnected)
+                    )
                     messageui.showMessage(applicationContext.getString(R.string.stop_streaming))
                     reply(sender, replyData, COMMAND_DISC_STREAM, false)
                     break

@@ -1,7 +1,6 @@
 package com.example.androidmic.domain.streaming
 
 import com.example.androidmic.domain.audio.AudioBuffer
-import java.net.InetSocketAddress
 
 interface Streamer {
     fun connect(): Boolean

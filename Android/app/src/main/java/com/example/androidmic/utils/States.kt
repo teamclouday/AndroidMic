@@ -6,7 +6,7 @@ import com.example.androidmic.utils.Modes.Companion.MODE_WIFI
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
-sealed interface States :java.io.Serializable {
+sealed interface States : java.io.Serializable {
     data class UiStates(
         val isStreamStarted: Boolean = false,
         val isAudioStarted: Boolean = false,
@@ -23,7 +23,7 @@ sealed interface States :java.io.Serializable {
 
         val dialogModesIsVisible: Boolean = false,
         val dialogIpPortIsVisible: Boolean = false
-    ): States
+    ) : States
 
     data class ServiceStates(
         var isStreamStarted: AtomicBoolean = AtomicBoolean(false),
@@ -31,7 +31,7 @@ sealed interface States :java.io.Serializable {
         var isAudioStarted: AtomicBoolean = AtomicBoolean(false),
         var audioShouldStop: AtomicBoolean = AtomicBoolean(false),
         var mode: AtomicInteger = AtomicInteger(MODE_WIFI)
-    ): States
+    ) : States
 }
 
 class Modes {

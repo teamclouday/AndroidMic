@@ -54,7 +54,8 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
             Box(
                 Modifier
                     .fillMaxSize()
-                    .background(color = MaterialTheme.colorScheme.background)) {
+                    .background(color = MaterialTheme.colorScheme.background)
+            ) {
                 Column {
                     DrawerBody(mainViewModel, uiStates.value)
                 }
@@ -66,33 +67,41 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                     .background(color = MaterialTheme.colorScheme.background)
                     .fillMaxSize()
             ) {
-                Column (
+                Column(
                     modifier = Modifier
                         .fillMaxSize()
                 ) {
-                    if(currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
+                    if (currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
                         AppBar(onNavigationIconClick = {
-                            scope.launch { drawerState.open() } })
+                            scope.launch { drawerState.open() }
+                        })
                         Log(uiStates.value, currentWindowInfo)
                         Column(
                             Modifier.fillMaxSize(),
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.SpaceAround
                         ) {
-                            ButtonConnect(mainViewModel = mainViewModel, uiStates = uiStates.value, currentWindowInfo)
+                            ButtonConnect(
+                                mainViewModel = mainViewModel,
+                                uiStates = uiStates.value,
+                                currentWindowInfo
+                            )
                             SwitchAudio(mainViewModel = mainViewModel, states = uiStates.value)
                         }
-                    }
-                    else {
+                    } else {
                         Row {
                             Log(uiStates.value, currentWindowInfo)
-                            Column (
+                            Column(
                                 modifier = Modifier
                                     .fillMaxSize(),
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.Center
-                            ){
-                                ButtonConnect(mainViewModel = mainViewModel, uiStates = uiStates.value, currentWindowInfo)
+                            ) {
+                                ButtonConnect(
+                                    mainViewModel = mainViewModel,
+                                    uiStates = uiStates.value,
+                                    currentWindowInfo
+                                )
                                 Spacer(modifier = Modifier.height(10.dp))
                                 SwitchAudio(mainViewModel = mainViewModel, states = uiStates.value)
                             }
@@ -108,23 +117,26 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
 @Composable
 private fun Log(states: States.UiStates, currentWindowInfo: WindowInfo) {
 
-    val modifier : Modifier = if(currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
-        Modifier
-            .fillMaxWidth()
-            .fillMaxHeight(0.82f)
-            .padding(16.dp)
-    } else {
-        Modifier
-            .fillMaxWidth(0.70f)
-            .fillMaxHeight()
-            .padding(start = 16.dp, top = 16.dp, bottom = 16.dp)
-    }
+    val modifier: Modifier =
+        if (currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
+            Modifier
+                .fillMaxWidth()
+                .fillMaxHeight(0.82f)
+                .padding(16.dp)
+        } else {
+            Modifier
+                .fillMaxWidth(0.70f)
+                .fillMaxHeight()
+                .padding(start = 16.dp, top = 16.dp, bottom = 16.dp)
+        }
 
     Box(
         modifier = modifier
-            .background(color = MaterialTheme.colorScheme.secondary))
+            .background(color = MaterialTheme.colorScheme.secondary)
+    )
     {
-        Text(text = states.textLog,
+        Text(
+            text = states.textLog,
             color = MaterialTheme.colorScheme.onSecondary,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier
@@ -137,7 +149,11 @@ private fun Log(states: States.UiStates, currentWindowInfo: WindowInfo) {
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-private fun ButtonConnect(mainViewModel: MainViewModel, uiStates: States.UiStates, currentWindowInfo: WindowInfo) {
+private fun ButtonConnect(
+    mainViewModel: MainViewModel,
+    uiStates: States.UiStates,
+    currentWindowInfo: WindowInfo
+) {
     val list = mutableListOf(
         Manifest.permission.BLUETOOTH
     )
@@ -147,12 +163,12 @@ private fun ButtonConnect(mainViewModel: MainViewModel, uiStates: States.UiState
 
     ManagerButton(
         onClick = {
-            when(uiStates.mode) {
+            when (uiStates.mode) {
                 MODE_WIFI -> {
                     mainViewModel.onEvent(Event.ConnectButton)
                 }
                 MODE_BLUETOOTH -> {
-                    if(!permissionsState.allPermissionsGranted)
+                    if (!permissionsState.allPermissionsGranted)
                         permissionsState.launchMultiplePermissionRequest()
                     else
                         mainViewModel.onEvent(Event.ConnectButton)
@@ -163,7 +179,7 @@ private fun ButtonConnect(mainViewModel: MainViewModel, uiStates: States.UiState
             }
         },
         text =
-        if(uiStates.isStreamStarted)
+        if (uiStates.isStreamStarted)
             stringResource(id = R.string.disconnect)
         else
             stringResource(id = R.string.connect)
@@ -178,15 +194,17 @@ private fun SwitchAudio(mainViewModel: MainViewModel, states: States.UiStates) {
         permissions = listOf(Manifest.permission.RECORD_AUDIO)
     )
 
-    Row (
+    Row(
         modifier = Modifier
             .fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = stringResource(id = R.string.turn_audio),
+        Text(
+            text = stringResource(id = R.string.turn_audio),
             color = MaterialTheme.colorScheme.onBackground,
-            style = MaterialTheme.typography.labelLarge)
+            style = MaterialTheme.typography.labelLarge
+        )
 
         Spacer(Modifier.width(12.dp))
 
@@ -194,7 +212,7 @@ private fun SwitchAudio(mainViewModel: MainViewModel, states: States.UiStates) {
             checked = states.isAudioStarted,
             onCheckedChange = {
                 // check for audio permission
-                if(!permissionsState.allPermissionsGranted)
+                if (!permissionsState.allPermissionsGranted)
                     permissionsState.launchMultiplePermissionRequest()
                 else
                     mainViewModel.onEvent(Event.AudioSwitch)

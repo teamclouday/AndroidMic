@@ -22,7 +22,6 @@ import com.example.androidmic.ui.Event
 import com.example.androidmic.ui.MainViewModel
 import com.example.androidmic.ui.home.DialogIpPort
 import com.example.androidmic.ui.home.DialogMode
-import com.example.androidmic.utils.Modes
 import com.example.androidmic.utils.Modes.Companion.MODE_BLUETOOTH
 import com.example.androidmic.utils.Modes.Companion.MODE_USB
 import com.example.androidmic.utils.Modes.Companion.MODE_WIFI
@@ -33,11 +32,14 @@ fun DrawerHeader() {
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 64.dp).padding(start = 30.dp)
+            .padding(vertical = 64.dp)
+            .padding(start = 30.dp)
     ) {
-        Text(text = stringResource(id = R.string.drawerHeader),
+        Text(
+            text = stringResource(id = R.string.drawerHeader),
             style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onBackground)
+            color = MaterialTheme.colorScheme.onBackground
+        )
     }
 }
 
@@ -80,7 +82,7 @@ fun DrawerBodyList(
 ) {
     LazyColumn(modifier) {
         item {
-            DrawerHeader ()
+            DrawerHeader()
             Divider(color = MaterialTheme.colorScheme.onBackground)
         }
         items(items) { item ->
@@ -91,8 +93,8 @@ fun DrawerBodyList(
                         onItemClick(item)
                     }
                     .padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-            ){
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Icon(
                     painter = item.icon,
                     contentDescription = item.contentDescription,
@@ -116,11 +118,11 @@ fun DrawerBodyList(
                         }
                         R.string.drawerMode -> {
                             Text(
-                                text = when(uiStates.mode) {
-                                    MODE_WIFI       -> stringResource(id = R.string.mode_wifi)
-                                    MODE_BLUETOOTH  -> stringResource(id = R.string.mode_bluetooth)
-                                    MODE_USB        -> stringResource(id = R.string.mode_usb)
-                                    else            -> "NONE"
+                                text = when (uiStates.mode) {
+                                    MODE_WIFI -> stringResource(id = R.string.mode_wifi)
+                                    MODE_BLUETOOTH -> stringResource(id = R.string.mode_bluetooth)
+                                    MODE_USB -> stringResource(id = R.string.mode_usb)
+                                    else -> "NONE"
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onBackground

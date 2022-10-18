@@ -24,16 +24,17 @@ import com.example.androidmic.utils.States
 import kotlinx.coroutines.launch
 
 
-class MainViewModel(application: Application,
-                    private val savedStateHandle: SavedStateHandle
-                    ): AndroidViewModel(application) {
+class MainViewModel(
+    application: Application,
+    private val savedStateHandle: SavedStateHandle
+) : AndroidViewModel(application) {
 
     private val TAG = "MainViewModel"
     private val WAIT_PERIOD = 500L
 
     val uiStates = savedStateHandle.getStateFlow("uiStates", States.UiStates())
 
-    private  val preferences = Preferences(application as AndroidMicApp)
+    private val preferences = Preferences(application as AndroidMicApp)
 
     private var mService: Messenger? = null
     private var mBound = false
@@ -46,10 +47,10 @@ class MainViewModel(application: Application,
     private inner class ReplyHandler(looper: Looper) : Handler(looper) {
         override fun handleMessage(msg: Message) {
             when (msg.what) {
-                COMMAND_DISC_STREAM     -> handleDisconnect(msg)
-                COMMAND_GET_STATUS      -> handleGetStatus(msg)
+                COMMAND_DISC_STREAM -> handleDisconnect(msg)
+                COMMAND_GET_STATUS -> handleGetStatus(msg)
 
-                else                    -> handleResult(msg)
+                else -> handleResult(msg)
             }
         }
     }
@@ -70,6 +71,7 @@ class MainViewModel(application: Application,
             handlerServiceResponse()
             askForStatus()
         }
+
         override fun onServiceDisconnected(name: ComponentName?) {
             mService = null
             mBound = false
@@ -91,30 +93,33 @@ class MainViewModel(application: Application,
     }
 
     fun onEvent(event: Event) {
-        if(!mBound) {
+        if (!mBound) {
             Log.d(TAG, "Service not available")
             return
         }
         var reply: Message? = null
-        when(event) {
+        when (event) {
             is Event.ConnectButton -> {
                 // lock button to avoid duplicate events
                 savedStateHandle["uiStates"] = uiStates.value.copy(
                     buttonConnectIsClickable = false
                 )
-                if(uiStates.value.isStreamStarted) {
+                if (uiStates.value.isStreamStarted) {
                     Log.d(TAG, "onConnectButton: stop stream")
                     reply = Message.obtain(null, Command.COMMAND_STOP_STREAM)
-                }
-                else {
+                } else {
                     val data = Bundle()
-                    if(uiStates.value.mode == MODE_WIFI) {
+                    if (uiStates.value.mode == MODE_WIFI) {
                         try {
                             val (ip, port) = preferences.getIpPort(false)
                             data.putString("IP", ip)
                             data.putInt("PORT", port)
                         } catch (e: Exception) {
-                            Toast.makeText(getApplication(), getApplication<AndroidMicApp>().getString(R.string.invalid_ip), Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                getApplication(),
+                                getApplication<AndroidMicApp>().getString(R.string.invalid_ip),
+                                Toast.LENGTH_SHORT
+                            ).show()
                             return
                         }
                     }
@@ -130,7 +135,7 @@ class MainViewModel(application: Application,
                 savedStateHandle["uiStates"] = uiStates.value.copy(
                     switchAudioIsClickable = false
                 )
-                reply = if(uiStates.value.isAudioStarted) {
+                reply = if (uiStates.value.isAudioStarted) {
                     Log.d(TAG, "onAudioSwitch: stop audio")
                     Message.obtain(null, Command.COMMAND_STOP_AUDIO)
                 } else {
@@ -143,7 +148,11 @@ class MainViewModel(application: Application,
                 try {
                     preferences.setIpPort(Pair(event.ip, event.port))
                 } catch (e: Exception) {
-                    Toast.makeText(getApplication(), getApplication<AndroidMicApp>().getString(R.string.invalid_ip), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        getApplication(),
+                        getApplication<AndroidMicApp>().getString(R.string.invalid_ip),
+                        Toast.LENGTH_SHORT
+                    ).show()
                     return
                 }
                 savedStateHandle["uiStates"] = uiStates.value.copy(
@@ -162,14 +171,18 @@ class MainViewModel(application: Application,
 
             is Event.ShowDialog -> {
                 when (event.id) {
-                    R.string.drawerIpPort -> savedStateHandle["uiStates"] = uiStates.value.copy(dialogIpPortIsVisible = true)
-                    R.string.drawerMode -> savedStateHandle["uiStates"] = uiStates.value.copy(dialogModesIsVisible = true)
+                    R.string.drawerIpPort -> savedStateHandle["uiStates"] =
+                        uiStates.value.copy(dialogIpPortIsVisible = true)
+                    R.string.drawerMode -> savedStateHandle["uiStates"] =
+                        uiStates.value.copy(dialogModesIsVisible = true)
                 }
             }
             is Event.DismissDialog -> {
                 when (event.id) {
-                    R.string.drawerIpPort -> savedStateHandle["uiStates"] = uiStates.value.copy(dialogIpPortIsVisible = false)
-                    R.string.drawerMode -> savedStateHandle["uiStates"] = uiStates.value.copy(dialogModesIsVisible = false)
+                    R.string.drawerIpPort -> savedStateHandle["uiStates"] =
+                        uiStates.value.copy(dialogIpPortIsVisible = false)
+                    R.string.drawerMode -> savedStateHandle["uiStates"] =
+                        uiStates.value.copy(dialogModesIsVisible = false)
                 }
             }
         }
@@ -207,20 +220,24 @@ class MainViewModel(application: Application,
             switchAudioIsClickable = true,
             buttonConnectIsClickable = true
         )
-        val log = if(result) "handleSuccess" else "handleFailure"
+        val log = if (result) "handleSuccess" else "handleFailure"
         // for log
         val commandService = CommandService()
         Log.d(TAG, "$log: ${commandService.dic[msg.what]}")
         when (msg.what) {
             Command.COMMAND_START_STREAM -> savedStateHandle["uiStates"] = uiStates.value.copy(
-                isStreamStarted = result)
+                isStreamStarted = result
+            )
             Command.COMMAND_STOP_STREAM -> savedStateHandle["uiStates"] = uiStates.value.copy(
-                isStreamStarted = !result)
+                isStreamStarted = !result
+            )
 
             Command.COMMAND_START_AUDIO -> savedStateHandle["uiStates"] = uiStates.value.copy(
-                isAudioStarted = result)
+                isAudioStarted = result
+            )
             Command.COMMAND_STOP_AUDIO -> savedStateHandle["uiStates"] = uiStates.value.copy(
-                isAudioStarted = !result)
+                isAudioStarted = !result
+            )
         }
     }
 
@@ -230,7 +247,8 @@ class MainViewModel(application: Application,
         if (reply != null) addLogMessage(reply)
         savedStateHandle["uiStates"] = uiStates.value.copy(
             isStreamStarted = false,
-            buttonConnectIsClickable = true)
+            buttonConnectIsClickable = true
+        )
     }
 
     // helper function to append log message to textview
@@ -238,7 +256,7 @@ class MainViewModel(application: Application,
         savedStateHandle["uiStates"] = uiStates.value.copy(
             textLog = uiStates.value.textLog + message + "\n",
             scrollState = uiStates.value.scrollState.apply {
-                viewModelScope.launch{ scrollTo(maxValue) }
+                viewModelScope.launch { scrollTo(maxValue) }
             }
         )
     }

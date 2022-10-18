@@ -31,17 +31,19 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
         mutableStateOf(uiStates.PORT)
     }
 
-    if(uiStates.dialogIpPortIsVisible) {
+    if (uiStates.dialogIpPortIsVisible) {
         Dialog(
-            onDismissRequest = { tempIP.value = uiStates.IP; tempPort.value = uiStates.PORT
-                mainViewModel.onEvent(Event.DismissDialog(R.string.drawerIpPort)) }
+            onDismissRequest = {
+                tempIP.value = uiStates.IP; tempPort.value = uiStates.PORT
+                mainViewModel.onEvent(Event.DismissDialog(R.string.drawerIpPort))
+            }
         ) {
             Surface(
                 shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface
             ) {
-                Column ( horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     // ip field
                     OutlinedTextField(
                         modifier = Modifier.padding(10.dp),
@@ -53,7 +55,8 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                         textStyle = MaterialTheme.typography.bodyMedium,
                         colors = TextFieldDefaults.textFieldColors(
                             textColor = MaterialTheme.colorScheme.onSurface,
-                            containerColor = MaterialTheme.colorScheme.surface)
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -69,7 +72,8 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                         textStyle = MaterialTheme.typography.bodyMedium,
                         colors = TextFieldDefaults.textFieldColors(
                             textColor = MaterialTheme.colorScheme.onSurface,
-                            containerColor = MaterialTheme.colorScheme.surface)
+                            containerColor = MaterialTheme.colorScheme.surface
+                        )
                     )
 
                     Spacer(modifier = Modifier.height(15.dp))
@@ -109,7 +113,7 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
 @Composable
 fun DialogMode(mainViewModel: MainViewModel, uiStates: States.UiStates) {
 
-    if(uiStates.dialogModesIsVisible) {
+    if (uiStates.dialogModesIsVisible) {
         Dialog(
             onDismissRequest = { mainViewModel.onEvent(Event.DismissDialog(R.string.drawerMode)) }
         ) {
@@ -119,7 +123,7 @@ fun DialogMode(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                 color = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface
             ) {
-                Column ( horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
 
                     Spacer(modifier = Modifier.height(10.dp))
 
@@ -142,8 +146,10 @@ fun DialogMode(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                         modifier = Modifier.fillMaxWidth(0.6F)
                     )
 
-                    Divider(modifier = Modifier.padding(10.dp),
-                        color = MaterialTheme.colorScheme.onSurface)
+                    Divider(
+                        modifier = Modifier.padding(10.dp),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
 
                     // usb
                     ManagerButton(

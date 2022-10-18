@@ -19,8 +19,10 @@ fun AppBar(
 ) {
     CenterAlignedTopAppBar(
         title = {
-            Text(text = stringResource(id = R.string.app_name),
-                style = MaterialTheme.typography.titleMedium)
+            Text(
+                text = stringResource(id = R.string.app_name),
+                style = MaterialTheme.typography.titleMedium
+            )
         },
         navigationIcon = {
             IconButton(onClick = onNavigationIconClick) {
@@ -34,6 +36,7 @@ fun AppBar(
         colors = TopAppBarDefaults.mediumTopAppBarColors(
             containerColor = MaterialTheme.colorScheme.primary,
             titleContentColor = MaterialTheme.colorScheme.onPrimary,
-            navigationIconContentColor = MaterialTheme.colorScheme.onPrimary)
+            navigationIconContentColor = MaterialTheme.colorScheme.onPrimary
+        )
     )
 }

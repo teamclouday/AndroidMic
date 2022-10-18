@@ -31,8 +31,8 @@ data class WindowInfo(
     val screenHeight: Dp
 ) {
     sealed class WindowType {
-        object Compact: WindowType()
-        object Medium: WindowType()
-        object Expanded: WindowType()
+        object Compact : WindowType()
+        object Medium : WindowType()
+        object Expanded : WindowType()
     }
 }

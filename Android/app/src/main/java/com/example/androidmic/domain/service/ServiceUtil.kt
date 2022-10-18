@@ -17,8 +17,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 
-
-
 fun reply(sender: Messenger, data: Bundle, what: Int, success: Boolean) {
     data.putBoolean("result", success)
     val reply = Message()
@@ -26,7 +24,6 @@ fun reply(sender: Messenger, data: Bundle, what: Int, success: Boolean) {
     reply.what = what
     sender.send(reply)
 }
-
 
 
 class MessageUi(private val ctx: Context) {
@@ -59,12 +56,13 @@ class MessageUi(private val ctx: Context) {
             }
         }
     }
+
     // id : 0 for audioStream, 1 for audioRecord, 2 for all
     fun removeNotification(id: Int) {
         CoroutineScope(Dispatchers.Main).launch {
             with(NotificationManagerCompat.from(ctx))
             {
-                if(id == 2)
+                if (id == 2)
                     cancelAll()
                 else
                     cancel(id)

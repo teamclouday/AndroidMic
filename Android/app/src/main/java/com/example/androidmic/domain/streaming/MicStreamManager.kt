@@ -2,10 +2,10 @@ package com.example.androidmic.domain.streaming
 
 import android.content.Context
 import com.example.androidmic.domain.audio.AudioBuffer
+import com.example.androidmic.utils.DebugModes
 import com.example.androidmic.utils.Modes.Companion.MODE_BLUETOOTH
 import com.example.androidmic.utils.Modes.Companion.MODE_USB
 import com.example.androidmic.utils.Modes.Companion.MODE_WIFI
-import com.example.androidmic.utils.DebugModes
 
 // StreamManager acts as a minimal RTSP server for audio data
 // reference: https://www.medialan.de/usecase0001.html
@@ -26,7 +26,7 @@ class MicStreamManager(private val ctx: Context) {
         if (isConnected())
             throw IllegalArgumentException("Streaming already running")
 
-        when(mode) {
+        when (mode) {
             MODE_WIFI -> {
                 streamer = WifiStreamer(ctx, ip, port)
             }

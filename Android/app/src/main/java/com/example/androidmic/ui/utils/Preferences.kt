@@ -7,19 +7,21 @@ import com.example.androidmic.utils.Modes
 import com.example.androidmic.utils.Modes.Companion.MODE_WIFI
 import java.net.InetSocketAddress
 
-private const val PREFERENCES_NAME = "AndroidMicUserSettings"
-
-private const val USER_SETTINGS_DEFAULT_IP_KEY = "DEFAULT_IP"
-private const val USER_SETTINGS_DEFAULT_PORT_KEY = "DEFAULT_PORT"
-private const val USER_SETTINGS_DEFAULT_MODE_KEY = "DEFAULT_MODE"
-
-
-private const val DEFAULT_IP = "192.168."
-private const val DEFAULT_PORT = 55555
-
-private const val DEFAULT_MODE = MODE_WIFI
 
 class Preferences(private val androidMicApp: AndroidMicApp) {
+
+    companion object {
+        private const val PREFERENCES_NAME = "AndroidMicUserSettings"
+        private const val USER_SETTINGS_DEFAULT_IP_KEY = "DEFAULT_IP"
+
+        private const val USER_SETTINGS_DEFAULT_PORT_KEY = "DEFAULT_PORT"
+        private const val USER_SETTINGS_DEFAULT_MODE_KEY = "DEFAULT_MODE"
+
+        private const val DEFAULT_IP = "192.168."
+        private const val DEFAULT_PORT = 55555
+
+        private const val DEFAULT_MODE = MODE_WIFI
+    }
 
     fun setIpPort(pair: Pair<String, String>) {
         val ip = pair.first
@@ -28,7 +30,8 @@ class Preferences(private val androidMicApp: AndroidMicApp) {
 
         val userSettings = androidMicApp.getSharedPreferences(
             PREFERENCES_NAME,
-            AppCompatActivity.MODE_PRIVATE)
+            AppCompatActivity.MODE_PRIVATE
+        )
 
         val editor = userSettings.edit()
         editor.putString(USER_SETTINGS_DEFAULT_IP_KEY, ip)
@@ -39,26 +42,26 @@ class Preferences(private val androidMicApp: AndroidMicApp) {
     fun getIpPort(withDefaultValue: Boolean): Pair<String, Int> {
         val userSettings = androidMicApp.getSharedPreferences(
             PREFERENCES_NAME,
-            AppCompatActivity.MODE_PRIVATE)
+            AppCompatActivity.MODE_PRIVATE
+        )
 
         var ip: String?
         val port: Int
 
-        if(withDefaultValue) {
+        if (withDefaultValue) {
             ip = userSettings.getString(USER_SETTINGS_DEFAULT_IP_KEY, DEFAULT_IP)
             port = userSettings.getInt(USER_SETTINGS_DEFAULT_PORT_KEY, DEFAULT_PORT)
-        }
-        else {
+        } else {
             ip = userSettings.getString(USER_SETTINGS_DEFAULT_IP_KEY, "")
             port = userSettings.getInt(USER_SETTINGS_DEFAULT_PORT_KEY, 0)
         }
 
         // case if we want to send ip/port to service
-        if(!withDefaultValue && (ip.isNullOrEmpty() || port == 0)) {
+        if (!withDefaultValue && (ip.isNullOrEmpty() || port == 0)) {
             throw IllegalArgumentException()
         }
 
-        if(ip == null)
+        if (ip == null)
             ip = ""
         return ip to port
     }
@@ -66,7 +69,8 @@ class Preferences(private val androidMicApp: AndroidMicApp) {
     fun setMode(mode: Int) {
         val userSettings = androidMicApp.getSharedPreferences(
             PREFERENCES_NAME,
-            AppCompatActivity.MODE_PRIVATE)
+            AppCompatActivity.MODE_PRIVATE
+        )
 
         val editor = userSettings.edit()
         editor.putInt(USER_SETTINGS_DEFAULT_MODE_KEY, mode)
@@ -76,17 +80,21 @@ class Preferences(private val androidMicApp: AndroidMicApp) {
     fun getMode(): Int {
         val userSettings = androidMicApp.getSharedPreferences(
             PREFERENCES_NAME,
-            AppCompatActivity.MODE_PRIVATE)
+            AppCompatActivity.MODE_PRIVATE
+        )
 
         return userSettings.getInt(USER_SETTINGS_DEFAULT_MODE_KEY, DEFAULT_MODE)
     }
 
 
     fun getModeText(mode: Int): String {
-        return when(mode) {
+        return when (mode) {
             MODE_WIFI -> androidMicApp.getString(R.string.mode_wifi)
             Modes.MODE_BLUETOOTH -> androidMicApp.getString(R.string.mode_bluetooth)
             Modes.MODE_USB -> androidMicApp.getString(R.string.mode_usb)
-            else -> {"NONE"}}
+            else -> {
+                "NONE"
+            }
+        }
     }
 }
