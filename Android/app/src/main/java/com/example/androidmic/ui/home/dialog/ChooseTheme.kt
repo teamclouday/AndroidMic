@@ -67,6 +67,10 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                             tempSystemTheme.value = true
                             tempLightTheme.value = false
                             tempDarkTheme.value = false
+                            mainViewModel.onEvent(
+                                Event.SetTheme(SYSTEM_THEME)
+                            )
+
                         },
                         text = stringResource(id = R.string.system_theme)
                     )
@@ -80,6 +84,9 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                             tempSystemTheme.value = false
                             tempLightTheme.value = true
                             tempDarkTheme.value = false
+                            mainViewModel.onEvent(
+                                Event.SetTheme(LIGHT_THEME)
+                            )
                         },
                         text = stringResource(id = R.string.light_theme)
                     )
@@ -93,6 +100,9 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                             tempSystemTheme.value = false
                             tempLightTheme.value = false
                             tempDarkTheme.value = true
+                            mainViewModel.onEvent(
+                                Event.SetTheme(DARK_THEME)
+                            )
                         },
                         text = stringResource(id = R.string.dark_theme)
                     )
@@ -107,55 +117,13 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                         checked = tempDynamicColor.value,
                         onClick =  {
                             tempDynamicColor.value = it
+                            mainViewModel.onEvent(
+                                Event.SetDynamicColor(it)
+                            )
                         },
                         text = stringResource(id = R.string.dynamic_color)
                     )
-
-                    Spacer(modifier = Modifier.height(15.dp))
-
-
-                    // save Button
-                    ManagerButton(
-                        onClick = {
-                            val theme: Int =
-                                if (tempSystemTheme.value)
-                                    SYSTEM_THEME
-                                else {
-                                    if (tempLightTheme.value)
-                                        LIGHT_THEME
-                                    else {
-                                        if (tempDarkTheme.value)
-                                            DARK_THEME
-                                        else SYSTEM_THEME
-                                    }
-                                }
-
-                            mainViewModel.onEvent(
-                                Event.SetThemeAndDynamicColor(
-                                    theme,
-                                    tempDynamicColor.value
-                                )
-                            )
-                        },
-                        text = stringResource(id = R.string.save),
-                        modifier = Modifier.fillMaxWidth(0.5F)
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // cancel Button
-                    ManagerButton(
-                        onClick = {
-                            tempSystemTheme.value = uiStates.theme == SYSTEM_THEME
-                            tempLightTheme.value = uiStates.theme == LIGHT_THEME
-                            tempDarkTheme.value = uiStates.theme == DARK_THEME
-                            tempDynamicColor.value = uiStates.dynamicColor
-                            mainViewModel.onEvent(Event.DismissDialog(R.string.drawerTheme))
-                        },
-                        text = stringResource(id = R.string.cancel),
-                        modifier = Modifier.fillMaxWidth(0.5F)
-                    )
-
+                    
                     Spacer(modifier = Modifier.height(10.dp))
                 }
             }

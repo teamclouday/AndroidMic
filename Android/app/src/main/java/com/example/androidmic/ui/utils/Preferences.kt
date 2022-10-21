@@ -93,25 +93,42 @@ class Preferences(private val androidMicApp: AndroidMicApp) {
     }
 
 
-    fun setThemeAndDynamicColor(pair: Pair<Int, Boolean>) {
+    fun setTheme(theme: Int) {
         val userSettings = androidMicApp.getSharedPreferences(
             PREFERENCES_NAME,
             AppCompatActivity.MODE_PRIVATE
         )
 
         val editor = userSettings.edit()
-        editor.putInt(THEME_KEY, pair.first)
-        editor.putBoolean(DYNAMIC_COLOR_KEY, pair.second)
+        editor.putInt(THEME_KEY, theme)
         editor.apply()
     }
 
-    fun getThemeAndDynamicColor(): Pair<Int, Boolean> {
+    fun getTheme(): Int {
         val userSettings = androidMicApp.getSharedPreferences(
             PREFERENCES_NAME,
             AppCompatActivity.MODE_PRIVATE
         )
-        val theme = userSettings.getInt(THEME_KEY, DEFAULT_THEME)
-        val dynamicColor = userSettings.getBoolean(DYNAMIC_COLOR_KEY, DEFAULT_DYNAMIC_COLOR)
-        return theme to dynamicColor
+        return userSettings.getInt(THEME_KEY, DEFAULT_THEME)
+    }
+
+
+    fun setDynamicColor(dynamicColor: Boolean) {
+        val userSettings = androidMicApp.getSharedPreferences(
+            PREFERENCES_NAME,
+            AppCompatActivity.MODE_PRIVATE
+        )
+
+        val editor = userSettings.edit()
+        editor.putBoolean(DYNAMIC_COLOR_KEY, dynamicColor)
+        editor.apply()
+    }
+
+    fun getDynamicColor(): Boolean {
+        val userSettings = androidMicApp.getSharedPreferences(
+            PREFERENCES_NAME,
+            AppCompatActivity.MODE_PRIVATE
+        )
+        return userSettings.getBoolean(DYNAMIC_COLOR_KEY, DEFAULT_DYNAMIC_COLOR)
     }
 }

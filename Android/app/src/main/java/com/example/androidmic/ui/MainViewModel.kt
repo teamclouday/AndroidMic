@@ -84,13 +84,14 @@ class MainViewModel(
 
         val ipPort = preferences.getIpPort(true)
         val mode = preferences.getMode()
-        val themeAndDynamicColor = preferences.getThemeAndDynamicColor()
+        val theme = preferences.getTheme()
+        val dynamicColor = preferences.getDynamicColor()
         savedStateHandle["uiStates"] = uiStates.value.copy(
             IP = ipPort.first,
             PORT = ipPort.second.toString(),
             mode = mode,
-            theme = themeAndDynamicColor.first,
-            dynamicColor = themeAndDynamicColor.second
+            theme = theme,
+            dynamicColor = dynamicColor
         )
     }
 
@@ -192,14 +193,20 @@ class MainViewModel(
                 }
             }
 
-            is Event.SetThemeAndDynamicColor -> {
-                preferences.setThemeAndDynamicColor(event.theme to event.dynamicColor)
+            is Event.SetTheme -> {
+                preferences.setTheme(event.theme)
                 savedStateHandle["uiStates"] =
                 uiStates.value.copy(
-                    dialogThemeIsVisible = false,
-                    theme = event.theme,
-                    dynamicColor = event.dynamicColor
+                    theme = event.theme
                 )
+            }
+
+            is Event.SetDynamicColor -> {
+                preferences.setDynamicColor(event.dynamicColor)
+                savedStateHandle["uiStates"] =
+                    uiStates.value.copy(
+                        dynamicColor = event.dynamicColor
+                    )
             }
         }
         if (reply != null) {

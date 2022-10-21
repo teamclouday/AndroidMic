@@ -10,5 +10,6 @@ open class Event {
     data class SetMode(val mode: Int): Event()
     data class SetIpPort(val ip: String, val port: String): Event()
 
-    data class SetThemeAndDynamicColor(val theme: Int, val dynamicColor: Boolean): Event()
+    data class SetTheme(val theme: Int): Event()
+    data class SetDynamicColor(val dynamicColor: Boolean): Event()
 }
