@@ -83,8 +83,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                         ) {
                             ButtonConnect(
                                 mainViewModel = mainViewModel,
-                                uiStates = uiStates.value,
-                                currentWindowInfo
+                                uiStates = uiStates.value
                             )
                             SwitchAudio(mainViewModel = mainViewModel, states = uiStates.value)
                         }
@@ -99,8 +98,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                             ) {
                                 ButtonConnect(
                                     mainViewModel = mainViewModel,
-                                    uiStates = uiStates.value,
-                                    currentWindowInfo
+                                    uiStates = uiStates.value
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
                                 SwitchAudio(mainViewModel = mainViewModel, states = uiStates.value)
@@ -151,8 +149,7 @@ private fun Log(states: States.UiStates, currentWindowInfo: WindowInfo) {
 @Composable
 private fun ButtonConnect(
     mainViewModel: MainViewModel,
-    uiStates: States.UiStates,
-    currentWindowInfo: WindowInfo
+    uiStates: States.UiStates
 ) {
     val list = mutableListOf(
         Manifest.permission.BLUETOOTH
