@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">AndroidMic</string>
+    <string name="app_name" translatable="false">AndroidMic</string>
 
     <string name="connect">Connect</string>
     <string name="disconnect">Disconnect</string>
@@ -9,7 +9,7 @@
     <string name="drawerHeader">Setting</string>
     <string name="drawerIpPort">IP:PORT</string>
     <string name="drawerMode">Connection mode</string>
-    <string name="drawerTheme">Theme</string>
+    <string name="drawerTheme">Themes</string>
 
     <string name="system_theme">System theme</string>
     <string name="light_theme">Light theme</string>
@@ -28,7 +28,7 @@
     <string name="mode_bluetooth">BLUETOOTH</string>
     <string name="mode_usb">USB</string>
 
-    <string name="notification_text_audio">Microphone is in use</string>
+    <string name="notification_text_audio">Record audio started</string>
     <string name="notification_text_stream">Microphone stream started</string>
 
     <string name="error">Error\n</string>
@@ -47,9 +47,5 @@
     <string name="start_recording">Start recording</string>
     <string name="stop_streaming">Stop streaming</string>
     <string name="stop_recording">Stop recording</string>
-
-
-
-
 
 </resources>
