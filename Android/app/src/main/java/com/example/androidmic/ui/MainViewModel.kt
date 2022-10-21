@@ -254,10 +254,7 @@ class MainViewModel(
     // helper function to append log message to textview
     private fun addLogMessage(message: String) {
         savedStateHandle["uiStates"] = uiStates.value.copy(
-            textLog = uiStates.value.textLog + message + "\n",
-            scrollState = uiStates.value.scrollState.apply {
-                viewModelScope.launch { scrollTo(maxValue) }
-            }
+            textLog = uiStates.value.textLog + message + "\n"
         )
     }
 }

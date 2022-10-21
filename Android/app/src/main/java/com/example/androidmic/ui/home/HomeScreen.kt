@@ -3,6 +3,7 @@ package com.example.androidmic.ui.home
 import android.Manifest
 import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.verticalScroll
@@ -138,7 +139,7 @@ private fun Log(states: States.UiStates, currentWindowInfo: WindowInfo) {
             color = MaterialTheme.colorScheme.onSecondary,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier
-                .verticalScroll(states.scrollState)
+                .verticalScroll(ScrollState(Int.MAX_VALUE))
                 .padding(10.dp)
         )
     }
