@@ -3,6 +3,7 @@ package com.example.androidmic.ui.utils
 import androidx.appcompat.app.AppCompatActivity
 import com.example.androidmic.AndroidMicApp
 import com.example.androidmic.R
+import com.example.androidmic.utils.Languages.Companion.SYSTEM_LANGUAGE
 import com.example.androidmic.utils.Modes
 import com.example.androidmic.utils.Modes.Companion.MODE_WIFI
 import com.example.androidmic.utils.Themes.Companion.SYSTEM_THEME
@@ -27,6 +28,10 @@ class Preferences(private val androidMicApp: AndroidMicApp) {
 
         private const val DYNAMIC_COLOR_KEY = "DEFAULT_DYNAMIC_COLOR"
         private const val DEFAULT_DYNAMIC_COLOR = true
+
+        private const val LANGUAGE_KEY = "DEFAULT_LANGUAGE"
+        private const val DEFAULT_LANGUAGE = SYSTEM_LANGUAGE
+
     }
 
     fun setIpPort(pair: Pair<String, String>) {
@@ -130,5 +135,25 @@ class Preferences(private val androidMicApp: AndroidMicApp) {
             AppCompatActivity.MODE_PRIVATE
         )
         return userSettings.getBoolean(DYNAMIC_COLOR_KEY, DEFAULT_DYNAMIC_COLOR)
+    }
+
+
+    fun setLanguage(language: Int) {
+        val userSettings = androidMicApp.getSharedPreferences(
+            PREFERENCES_NAME,
+            AppCompatActivity.MODE_PRIVATE
+        )
+
+        val editor = userSettings.edit()
+        editor.putInt(LANGUAGE_KEY, language)
+        editor.apply()
+    }
+
+    fun getLanguage(): Int {
+        val userSettings = androidMicApp.getSharedPreferences(
+            PREFERENCES_NAME,
+            AppCompatActivity.MODE_PRIVATE
+        )
+        return userSettings.getInt(LANGUAGE_KEY, DEFAULT_LANGUAGE)
     }
 }

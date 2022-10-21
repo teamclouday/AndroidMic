@@ -123,7 +123,7 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                         },
                         text = stringResource(id = R.string.dynamic_color)
                     )
-                    
+
                     Spacer(modifier = Modifier.height(10.dp))
                 }
             }

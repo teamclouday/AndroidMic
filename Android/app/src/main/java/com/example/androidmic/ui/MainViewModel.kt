@@ -5,12 +5,15 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.content.res.Configuration
+import android.content.res.Resources
 import android.os.*
 import android.util.Log
 import android.widget.Toast
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.viewModelScope
 import com.example.androidmic.AndroidMicApp
 import com.example.androidmic.R
 import com.example.androidmic.domain.service.ForegroundService
@@ -21,7 +24,7 @@ import com.example.androidmic.utils.Command.Companion.COMMAND_GET_STATUS
 import com.example.androidmic.utils.CommandService
 import com.example.androidmic.utils.Modes.Companion.MODE_WIFI
 import com.example.androidmic.utils.States
-import kotlinx.coroutines.launch
+import java.util.*
 
 
 class MainViewModel(
@@ -86,12 +89,14 @@ class MainViewModel(
         val mode = preferences.getMode()
         val theme = preferences.getTheme()
         val dynamicColor = preferences.getDynamicColor()
+        val language = preferences.getLanguage()
         savedStateHandle["uiStates"] = uiStates.value.copy(
             IP = ipPort.first,
             PORT = ipPort.second.toString(),
             mode = mode,
             theme = theme,
-            dynamicColor = dynamicColor
+            dynamicColor = dynamicColor,
+            language = language
         )
     }
 
@@ -180,6 +185,8 @@ class MainViewModel(
                         uiStates.value.copy(dialogModesIsVisible = true)
                     R.string.drawerTheme -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogThemeIsVisible = true)
+                    R.string.drawerLanguage -> savedStateHandle["uiStates"] =
+                        uiStates.value.copy(dialogLanguageIsVisible = true)
                 }
             }
             is Event.DismissDialog -> {
@@ -190,6 +197,8 @@ class MainViewModel(
                         uiStates.value.copy(dialogModesIsVisible = false)
                     R.string.drawerTheme -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogThemeIsVisible = false)
+                    R.string.drawerLanguage -> savedStateHandle["uiStates"] =
+                        uiStates.value.copy(dialogLanguageIsVisible = false)
                 }
             }
 
@@ -206,6 +215,19 @@ class MainViewModel(
                 savedStateHandle["uiStates"] =
                     uiStates.value.copy(
                         dynamicColor = event.dynamicColor
+                    )
+            }
+
+            is Event.SetLanguage -> {
+
+
+
+
+                preferences.setLanguage(event.language)
+                savedStateHandle["uiStates"] =
+                    uiStates.value.copy(
+                        language = event.language,
+                        dialogLanguageIsVisible = false
                     )
             }
         }

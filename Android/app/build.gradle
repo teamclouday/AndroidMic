@@ -23,6 +23,7 @@ android {
         vectorDrawables {
             useSupportLibrary true
         }
+        resConfigs "en", "fr"
     }
 
     externalNativeBuild {
@@ -58,7 +59,7 @@ android {
         compose true
     }
     composeOptions {
-        //kotlinCompilerVersion '1.6.10'
+        kotlinCompilerVersion '1.6.10'
         kotlinCompilerExtensionVersion '1.1.1'
     }
 

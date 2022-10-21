@@ -21,8 +21,12 @@ import com.example.androidmic.R
 import com.example.androidmic.ui.Event
 import com.example.androidmic.ui.MainViewModel
 import com.example.androidmic.ui.home.dialog.DialogIpPort
+import com.example.androidmic.ui.home.dialog.DialogLanguage
 import com.example.androidmic.ui.home.dialog.DialogMode
 import com.example.androidmic.ui.home.dialog.DialogTheme
+import com.example.androidmic.utils.Languages.Companion.ENGLISH_LANGUAGE
+import com.example.androidmic.utils.Languages.Companion.FRENCH_LANGUAGE
+import com.example.androidmic.utils.Languages.Companion.SYSTEM_LANGUAGE
 import com.example.androidmic.utils.Modes.Companion.MODE_BLUETOOTH
 import com.example.androidmic.utils.Modes.Companion.MODE_USB
 import com.example.androidmic.utils.Modes.Companion.MODE_WIFI
@@ -53,6 +57,7 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
     DialogIpPort(mainViewModel = mainViewModel, uiStates = uiStates)
     DialogMode(mainViewModel = mainViewModel, uiStates = uiStates)
     DialogTheme(mainViewModel = mainViewModel, uiStates = uiStates)
+    DialogLanguage(mainViewModel = mainViewModel, uiStates = uiStates)
 
     DrawerBodyList(
         items = listOf(
@@ -73,6 +78,12 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                 id = R.string.drawerTheme,
                 title = stringResource(id = R.string.drawerTheme),
                 contentDescription = "set theme",
+                icon = rememberVectorPainter(Icons.Default.Settings)
+            ),
+            MenuItem(
+                id = R.string.drawerLanguage,
+                title = stringResource(id = R.string.drawerLanguage),
+                contentDescription = "set language",
                 icon = rememberVectorPainter(Icons.Default.Settings)
             )
         ),
@@ -145,6 +156,18 @@ fun DrawerBodyList(
                                     SYSTEM_THEME -> stringResource(id = R.string.system_theme)
                                     LIGHT_THEME -> stringResource(id = R.string.light_theme)
                                     DARK_THEME -> stringResource(id = R.string.dark_theme)
+                                    else -> "NONE"
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                        R.string.drawerLanguage -> {
+                            Text(
+                                text = when (uiStates.language) {
+                                    SYSTEM_LANGUAGE -> stringResource(id = R.string.system_language)
+                                    ENGLISH_LANGUAGE -> stringResource(id = R.string.english_language)
+                                    FRENCH_LANGUAGE -> stringResource(id = R.string.french_language)
                                     else -> "NONE"
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
