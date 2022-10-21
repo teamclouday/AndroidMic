@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.SavedStateViewModelFactory
 import androidx.lifecycle.ViewModelProvider
 import com.example.androidmic.ui.home.HomeScreen
@@ -23,7 +24,11 @@ class MainActivity : ComponentActivity() {
         )[MainViewModel::class.java]
 
         setContent {
-            AndroidMicTheme {
+            val uiStates = mainViewModel.uiStates.collectAsState()
+            AndroidMicTheme(
+                theme = uiStates.value.theme,
+                dynamicColor = uiStates.value.dynamicColor
+            ) {
                 // get windowInfo for rotation change
                 val windowInfo = rememberWindowInfo()
 

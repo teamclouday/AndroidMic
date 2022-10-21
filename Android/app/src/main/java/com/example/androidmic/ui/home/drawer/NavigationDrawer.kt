@@ -20,12 +20,16 @@ import androidx.compose.ui.unit.dp
 import com.example.androidmic.R
 import com.example.androidmic.ui.Event
 import com.example.androidmic.ui.MainViewModel
-import com.example.androidmic.ui.home.DialogIpPort
-import com.example.androidmic.ui.home.DialogMode
+import com.example.androidmic.ui.home.dialog.DialogIpPort
+import com.example.androidmic.ui.home.dialog.DialogMode
+import com.example.androidmic.ui.home.dialog.DialogTheme
 import com.example.androidmic.utils.Modes.Companion.MODE_BLUETOOTH
 import com.example.androidmic.utils.Modes.Companion.MODE_USB
 import com.example.androidmic.utils.Modes.Companion.MODE_WIFI
 import com.example.androidmic.utils.States
+import com.example.androidmic.utils.Themes.Companion.DARK_THEME
+import com.example.androidmic.utils.Themes.Companion.LIGHT_THEME
+import com.example.androidmic.utils.Themes.Companion.SYSTEM_THEME
 
 @Composable
 fun DrawerHeader() {
@@ -48,6 +52,7 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
 
     DialogIpPort(mainViewModel = mainViewModel, uiStates = uiStates)
     DialogMode(mainViewModel = mainViewModel, uiStates = uiStates)
+    DialogTheme(mainViewModel = mainViewModel, uiStates = uiStates)
 
     DrawerBodyList(
         items = listOf(
@@ -62,6 +67,12 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                 id = R.string.drawerMode,
                 title = stringResource(id = R.string.drawerMode),
                 contentDescription = "set mode",
+                icon = rememberVectorPainter(Icons.Default.Settings)
+            ),
+            MenuItem(
+                id = R.string.drawerTheme,
+                title = stringResource(id = R.string.drawerTheme),
+                contentDescription = "set theme",
                 icon = rememberVectorPainter(Icons.Default.Settings)
             )
         ),
@@ -122,6 +133,18 @@ fun DrawerBodyList(
                                     MODE_WIFI -> stringResource(id = R.string.mode_wifi)
                                     MODE_BLUETOOTH -> stringResource(id = R.string.mode_bluetooth)
                                     MODE_USB -> stringResource(id = R.string.mode_usb)
+                                    else -> "NONE"
+                                },
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onBackground
+                            )
+                        }
+                        R.string.drawerTheme -> {
+                            Text(
+                                text = when (uiStates.theme) {
+                                    SYSTEM_THEME -> stringResource(id = R.string.system_theme)
+                                    LIGHT_THEME -> stringResource(id = R.string.light_theme)
+                                    DARK_THEME -> stringResource(id = R.string.dark_theme)
                                     else -> "NONE"
                                 },
                                 style = MaterialTheme.typography.bodyMedium,

@@ -12,6 +12,9 @@ import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import com.example.androidmic.utils.Themes.Companion.DARK_THEME
+import com.example.androidmic.utils.Themes.Companion.LIGHT_THEME
+import com.example.androidmic.utils.Themes.Companion.SYSTEM_THEME
 
 
 private val DarkColorScheme = darkColorScheme(
@@ -50,11 +53,17 @@ private val LightColorScheme = lightColorScheme(
 
 @Composable
 fun AndroidMicTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
+    theme: Int,
     // Dynamic color is available on Android 12+
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean,
     content: @Composable () -> Unit
 ) {
+    val darkTheme = when(theme) {
+        SYSTEM_THEME -> isSystemInDarkTheme()
+        LIGHT_THEME -> false
+        DARK_THEME -> true
+        else -> isSystemInDarkTheme()
+    }
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current

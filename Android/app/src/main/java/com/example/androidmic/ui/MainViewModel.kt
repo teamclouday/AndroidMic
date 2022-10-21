@@ -84,10 +84,13 @@ class MainViewModel(
 
         val ipPort = preferences.getIpPort(true)
         val mode = preferences.getMode()
+        val themeAndDynamicColor = preferences.getThemeAndDynamicColor()
         savedStateHandle["uiStates"] = uiStates.value.copy(
             IP = ipPort.first,
             PORT = ipPort.second.toString(),
-            mode = mode
+            mode = mode,
+            theme = themeAndDynamicColor.first,
+            dynamicColor = themeAndDynamicColor.second
         )
     }
 
@@ -174,6 +177,8 @@ class MainViewModel(
                         uiStates.value.copy(dialogIpPortIsVisible = true)
                     R.string.drawerMode -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogModesIsVisible = true)
+                    R.string.drawerTheme -> savedStateHandle["uiStates"] =
+                        uiStates.value.copy(dialogThemeIsVisible = true)
                 }
             }
             is Event.DismissDialog -> {
@@ -182,7 +187,19 @@ class MainViewModel(
                         uiStates.value.copy(dialogIpPortIsVisible = false)
                     R.string.drawerMode -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogModesIsVisible = false)
+                    R.string.drawerTheme -> savedStateHandle["uiStates"] =
+                        uiStates.value.copy(dialogThemeIsVisible = false)
                 }
+            }
+
+            is Event.SetThemeAndDynamicColor -> {
+                preferences.setThemeAndDynamicColor(event.theme to event.dynamicColor)
+                savedStateHandle["uiStates"] =
+                uiStates.value.copy(
+                    dialogThemeIsVisible = false,
+                    theme = event.theme,
+                    dynamicColor = event.dynamicColor
+                )
             }
         }
         if (reply != null) {

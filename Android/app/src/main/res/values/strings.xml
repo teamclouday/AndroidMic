@@ -9,11 +9,18 @@
     <string name="drawerHeader">Setting</string>
     <string name="drawerIpPort">IP:PORT</string>
     <string name="drawerMode">Connection mode</string>
+    <string name="drawerTheme">Theme</string>
+
+    <string name="system_theme">System theme</string>
+    <string name="light_theme">Light theme</string>
+    <string name="dark_theme">Dark theme</string>
+    <string name="dynamic_color">Dynamic color\n(only on Android 12 or >)</string>
     
     <string name="dialog_ip">IP</string>
     <string name="dialog_port">PORT</string>
-    <string name="save_ip_port">Save</string>
-    <string name="cancel_ip_port">Cancel</string>
+
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
 
     <string name="invalid_ip">IP:PORT invalid</string>
     
