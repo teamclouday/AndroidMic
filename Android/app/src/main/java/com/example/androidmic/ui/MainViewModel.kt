@@ -30,7 +30,6 @@ class MainViewModel(
 ) : AndroidViewModel(application) {
 
     private val TAG = "MainViewModel"
-    private val WAIT_PERIOD = 500L
 
     val uiStates = savedStateHandle.getStateFlow("uiStates", States.UiStates())
 

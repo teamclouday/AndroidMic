@@ -115,19 +115,33 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
 
 @Composable
 private fun Log(states: States.UiStates, currentWindowInfo: WindowInfo) {
-
+    
     val modifier: Modifier =
-        if (currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
+        // for split screen
+        if(currentWindowInfo.screenHeightInfo == WindowInfo.WindowType.Compact &&
+            currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
             Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.82f)
+                .fillMaxHeight(0.60f)
                 .padding(16.dp)
-        } else {
-            Modifier
-                .fillMaxWidth(0.70f)
-                .fillMaxHeight()
-                .padding(start = 16.dp, top = 16.dp, bottom = 16.dp)
         }
+        else {
+            // portrait mode
+            if (currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
+                Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.82f)
+                    .padding(16.dp)
+            }
+            // landscape mode
+            else {
+                Modifier
+                    .fillMaxWidth(0.70f)
+                    .fillMaxHeight()
+                    .padding(start = 16.dp, top = 16.dp, bottom = 16.dp)
+            }
+        }
+
 
     Box(
         modifier = modifier
