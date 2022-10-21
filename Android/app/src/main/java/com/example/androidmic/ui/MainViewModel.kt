@@ -30,7 +30,6 @@ class MainViewModel(
 ) : AndroidViewModel(application) {
 
     private val TAG = "MainViewModel"
-    private val WAIT_PERIOD = 500L
 
     val uiStates = savedStateHandle.getStateFlow("uiStates", States.UiStates())
 
@@ -85,10 +84,14 @@ class MainViewModel(
 
         val ipPort = preferences.getIpPort(true)
         val mode = preferences.getMode()
+        val theme = preferences.getTheme()
+        val dynamicColor = preferences.getDynamicColor()
         savedStateHandle["uiStates"] = uiStates.value.copy(
             IP = ipPort.first,
             PORT = ipPort.second.toString(),
-            mode = mode
+            mode = mode,
+            theme = theme,
+            dynamicColor = dynamicColor
         )
     }
 
@@ -175,6 +178,8 @@ class MainViewModel(
                         uiStates.value.copy(dialogIpPortIsVisible = true)
                     R.string.drawerMode -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogModesIsVisible = true)
+                    R.string.drawerTheme -> savedStateHandle["uiStates"] =
+                        uiStates.value.copy(dialogThemeIsVisible = true)
                 }
             }
             is Event.DismissDialog -> {
@@ -183,7 +188,25 @@ class MainViewModel(
                         uiStates.value.copy(dialogIpPortIsVisible = false)
                     R.string.drawerMode -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogModesIsVisible = false)
+                    R.string.drawerTheme -> savedStateHandle["uiStates"] =
+                        uiStates.value.copy(dialogThemeIsVisible = false)
                 }
+            }
+
+            is Event.SetTheme -> {
+                preferences.setTheme(event.theme)
+                savedStateHandle["uiStates"] =
+                uiStates.value.copy(
+                    theme = event.theme
+                )
+            }
+
+            is Event.SetDynamicColor -> {
+                preferences.setDynamicColor(event.dynamicColor)
+                savedStateHandle["uiStates"] =
+                    uiStates.value.copy(
+                        dynamicColor = event.dynamicColor
+                    )
             }
         }
         if (reply != null) {
@@ -254,10 +277,7 @@ class MainViewModel(
     // helper function to append log message to textview
     private fun addLogMessage(message: String) {
         savedStateHandle["uiStates"] = uiStates.value.copy(
-            textLog = uiStates.value.textLog + message + "\n",
-            scrollState = uiStates.value.scrollState.apply {
-                viewModelScope.launch { scrollTo(maxValue) }
-            }
+            textLog = uiStates.value.textLog + message + "\n"
         )
     }
 }
