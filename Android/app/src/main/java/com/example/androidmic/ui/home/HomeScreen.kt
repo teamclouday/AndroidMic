@@ -24,7 +24,6 @@ import com.example.androidmic.R
 import com.example.androidmic.ui.Event
 import com.example.androidmic.ui.MainViewModel
 import com.example.androidmic.ui.components.ManagerButton
-import com.example.androidmic.ui.home.drawer.DrawerBody
 import com.example.androidmic.ui.utils.WindowInfo
 import com.example.androidmic.ui.utils.getBluetoothPermission
 import com.example.androidmic.ui.utils.getRecordAudioPermission

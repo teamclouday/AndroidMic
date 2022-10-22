@@ -1,4 +1,4 @@
-package com.example.androidmic.ui.home.drawer
+package com.example.androidmic.ui.home
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -13,6 +13,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -31,21 +32,13 @@ import com.example.androidmic.utils.Themes.Companion.DARK_THEME
 import com.example.androidmic.utils.Themes.Companion.LIGHT_THEME
 import com.example.androidmic.utils.Themes.Companion.SYSTEM_THEME
 
-@Composable
-fun DrawerHeader() {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 64.dp)
-            .padding(start = 30.dp)
-    ) {
-        Text(
-            text = stringResource(id = R.string.drawerHeader),
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onBackground
-        )
-    }
-}
+data class MenuItem(
+    val id: Int,
+    val title: String,
+    val subTitle: String,
+    val contentDescription: String,
+    val icon: Painter
+)
 
 @Composable
 fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
@@ -54,11 +47,12 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
     DialogMode(mainViewModel = mainViewModel, uiStates = uiStates)
     DialogTheme(mainViewModel = mainViewModel, uiStates = uiStates)
 
-    DrawerBodyList(
-        items = listOf(
+
+        val items = listOf(
             MenuItem(
                 id = R.string.drawerIpPort,
                 title = stringResource(id = R.string.drawerIpPort),
+                subTitle = uiStates.IP + ":" + uiStates.PORT,
                 contentDescription = "set ip and port",
                 icon = painterResource(id = R.drawable.ic_baseline_wifi_24)
 
@@ -66,34 +60,43 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
             MenuItem(
                 id = R.string.drawerMode,
                 title = stringResource(id = R.string.drawerMode),
+                subTitle = when (uiStates.mode) {
+                    MODE_WIFI -> stringResource(id = R.string.mode_wifi)
+                    MODE_BLUETOOTH -> stringResource(id = R.string.mode_bluetooth)
+                    MODE_USB -> stringResource(id = R.string.mode_usb)
+                    else -> "NONE"
+                },
                 contentDescription = "set mode",
                 icon = rememberVectorPainter(Icons.Default.Settings)
             ),
             MenuItem(
                 id = R.string.drawerTheme,
                 title = stringResource(id = R.string.drawerTheme),
+                subTitle = when (uiStates.theme) {
+                    SYSTEM_THEME -> stringResource(id = R.string.system_theme)
+                    LIGHT_THEME -> stringResource(id = R.string.light_theme)
+                    DARK_THEME -> stringResource(id = R.string.dark_theme)
+                    else -> "NONE"
+                },
                 contentDescription = "set theme",
                 icon = rememberVectorPainter(Icons.Default.Settings)
             )
-        ),
-        onItemClick = {
-            mainViewModel.onEvent(Event.ShowDialog(it.id))
-        },
-        uiStates = uiStates
-    )
-}
+        )
 
-
-@Composable
-fun DrawerBodyList(
-    items: List<MenuItem>,
-    onItemClick: (MenuItem) -> Unit,
-    modifier: Modifier = Modifier,
-    uiStates: States.UiStates
-) {
-    LazyColumn(modifier) {
+    LazyColumn {
         item {
-            DrawerHeader()
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 64.dp)
+                    .padding(start = 30.dp)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.drawerHeader),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
             Divider(color = MaterialTheme.colorScheme.onBackground)
         }
         items(items) { item ->
@@ -101,7 +104,7 @@ fun DrawerBodyList(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable {
-                        onItemClick(item)
+                        mainViewModel.onEvent(Event.ShowDialog(item.id))
                     }
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
@@ -119,39 +122,11 @@ fun DrawerBodyList(
                         color = MaterialTheme.colorScheme.onBackground
                     )
 
-                    when (item.id) {
-                        R.string.drawerIpPort -> {
-                            Text(
-                                text = uiStates.IP + ":" + uiStates.PORT,
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                        }
-                        R.string.drawerMode -> {
-                            Text(
-                                text = when (uiStates.mode) {
-                                    MODE_WIFI -> stringResource(id = R.string.mode_wifi)
-                                    MODE_BLUETOOTH -> stringResource(id = R.string.mode_bluetooth)
-                                    MODE_USB -> stringResource(id = R.string.mode_usb)
-                                    else -> "NONE"
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                        }
-                        R.string.drawerTheme -> {
-                            Text(
-                                text = when (uiStates.theme) {
-                                    SYSTEM_THEME -> stringResource(id = R.string.system_theme)
-                                    LIGHT_THEME -> stringResource(id = R.string.light_theme)
-                                    DARK_THEME -> stringResource(id = R.string.dark_theme)
-                                    else -> "NONE"
-                                },
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onBackground
-                            )
-                        }
-                    }
+                    Text(
+                        text = item.subTitle,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
                 }
             }
             Divider(color = MaterialTheme.colorScheme.onBackground)
