@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace AndroidMic.Audio
 {
@@ -13,7 +14,13 @@ namespace AndroidMic.Audio
         private int regionLeft = 0;
         private int regionRight = 0;
 
-        private static readonly object mutex = new object();
+        // can be accessed from at most one thread at a time
+        private readonly SemaphoreSlim semaphore = new SemaphoreSlim(1, 1);
+
+        ~AudioBuffer()
+        {
+            semaphore.Dispose();
+        }
 
         /// <summary>
         /// Open buffer region to read from
@@ -21,11 +28,12 @@ namespace AndroidMic.Audio
         /// <param name="requestSize"></param>
         /// <param name="actualSize"></param>
         /// <param name="offset"></param>
-        public void OpenReadRegion(int requestSize, out int actualSize, out int offset)
+        public async Task<Tuple<int, int>> OpenReadRegion(int requestSize)
         {
-            Monitor.Enter(mutex);
-            actualSize = Math.Min(Math.Min(requestSize, regionSize), Capacity - regionLeft);
-            offset = regionLeft;
+            await semaphore.WaitAsync();
+            int actualSize = Math.Min(Math.Min(requestSize, regionSize), Capacity - regionLeft);
+            int offset = regionLeft;
+            return new Tuple<int, int>(actualSize, offset);
         }
 
         /// <summary>
@@ -36,7 +44,7 @@ namespace AndroidMic.Audio
         {
             regionLeft = (regionLeft + readSize) % Capacity;
             regionSize -= Math.Min(readSize, regionSize);
-            Monitor.Exit(mutex);
+            semaphore.Release();
         }
 
         /// <summary>
@@ -45,11 +53,12 @@ namespace AndroidMic.Audio
         /// <param name="requestSize"></param>
         /// <param name="actualSize"></param>
         /// <param name="offset"></param>
-        public void OpenWriteRegion(int requestSize, out int actualSize, out int offset)
+        public async Task<Tuple<int, int>> OpenWriteRegion(int requestSize)
         {
-            Monitor.Enter(mutex);
-            actualSize = Math.Min(Math.Min(requestSize, Capacity - regionSize), Capacity - regionRight);
-            offset = regionRight;
+            await semaphore.WaitAsync();
+            int actualSize = Math.Min(Math.Min(requestSize, Capacity - regionSize), Capacity - regionRight);
+            int offset = regionRight;
+            return new Tuple<int, int>(actualSize, offset);
         }
 
         /// <summary>
@@ -60,7 +69,7 @@ namespace AndroidMic.Audio
         {
             regionRight = (regionRight + writeSize) % Capacity;
             regionSize = Math.Min(regionSize + writeSize, Capacity);
-            Monitor.Exit(mutex);
+            semaphore.Release();
         }
 
         /// <summary>
@@ -69,10 +78,10 @@ namespace AndroidMic.Audio
         /// <returns></returns>
         public int Size()
         {
-            lock (mutex)
-            {
-                return regionSize;
-            }
+            semaphore.Wait();
+            var result = regionSize;
+            semaphore.Release();
+            return result;
         }
 
         /// <summary>
@@ -81,10 +90,10 @@ namespace AndroidMic.Audio
         /// <returns></returns>
         public bool IsEmpty()
         {
-            lock (mutex)
-            {
-                return regionSize == 0;
-            }
+            semaphore.Wait();
+            var result = regionSize == 0;
+            semaphore.Release();
+            return result;
         }
 
         /// <summary>
@@ -92,12 +101,11 @@ namespace AndroidMic.Audio
         /// </summary>
         public void Clear()
         {
-            lock (mutex)
-            {
-                regionLeft = 0;
-                regionRight = 0;
-                regionSize = 0;
-            }
+            semaphore.Wait();
+            regionLeft = 0;
+            regionRight = 0;
+            regionSize = 0;
+            semaphore.Release();
         }
     }
 }

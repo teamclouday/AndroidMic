@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Threading;
+using System.Threading.Tasks;
 using AndroidMic.Audio;
 
 namespace AndroidMic.Streaming
@@ -17,8 +19,9 @@ namespace AndroidMic.Streaming
         private volatile ConnectionType type = ConnectionType.BLUETOOTH;
         private readonly AudioBuffer sharedBuffer;
         private Streamer server;
-        private Thread processThread;
+        private Task processTask;
         private volatile bool processAllowed;
+        private CancellationTokenSource cancellationTokenSource;
 
         public event EventHandler<MessageArgs> AddLogEvent;
         public event EventHandler ServerListeningEvent;
@@ -34,7 +37,7 @@ namespace AndroidMic.Streaming
         public void Start()
         {
             // skip if already started
-            if (processThread != null && processThread.IsAlive)
+            if (processTask?.IsCompleted == false)
             {
                 AddLog("Server already started");
                 return;
@@ -58,14 +61,9 @@ namespace AndroidMic.Streaming
                 AddLog("Error: " + e.Message);
                 return;
             }
-            if (processThread != null && processThread.IsAlive)
-            {
-                processAllowed = false;
-                processThread.Join(MAX_WAIT_TIME);
-            }
             processAllowed = true;
-            processThread = new Thread(new ThreadStart(Process));
-            processThread.Start();
+            cancellationTokenSource = new CancellationTokenSource();
+            processTask = Task.Factory.StartNew(Process, cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
             ServerListeningEvent?.Invoke(this, EventArgs.Empty);
             AddLog("Server Starts Listening...\n" + server.GetServerInfo());
         }
@@ -77,16 +75,34 @@ namespace AndroidMic.Streaming
             Thread.Sleep(MAX_WAIT_TIME);
             server?.Shutdown();
             server = null;
-            if (processThread != null && processThread.IsAlive)
-                processThread.Join(MAX_WAIT_TIME);
+            if (processTask?.IsCompleted == false)
+            {
+                cancellationTokenSource.Cancel();
+                try
+                {
+                    processTask?.Wait();
+                }
+                catch (OperationCanceledException err)
+                {
+                    Debug.WriteLine("[StreamManager] Stop -> " + err.Message);
+                }
+                finally
+                {
+                    processTask?.Dispose();
+                }
+            }
         }
 
         // process received data on thread
-        public void Process()
+        public async void Process()
         {
             // first wait for client connection
             while (processAllowed)
             {
+                if(cancellationTokenSource.IsCancellationRequested)
+                {
+                    break;
+                }
                 if (server == null)
                 {
                     processAllowed = false;
@@ -98,17 +114,21 @@ namespace AndroidMic.Streaming
                     AddLog("Client Connected\n" + server.GetClientInfo());
                     break;
                 }
-                Thread.Sleep(MIN_WAIT_TIME);
+                await Task.Delay(MIN_WAIT_TIME);
             }
             // then start process data
             while (processAllowed)
             {
+                if (cancellationTokenSource.IsCancellationRequested)
+                {
+                    break;
+                }
                 if (server == null || !server.IsAlive())
                 {
                     processAllowed = false;
                     break;
                 }
-                server.Process(sharedBuffer);
+                await server.Process(sharedBuffer);
             }
             ClientDisconnectedEvent?.Invoke(this, EventArgs.Empty);
             AddLog("Client Disconnected");

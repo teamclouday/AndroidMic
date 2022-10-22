@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Windows.Shapes;
@@ -46,8 +47,9 @@ namespace AndroidMic.Audio
         private readonly Dictionary<AdvancedFilterType, bool> providerPipelineStates;
 
         private readonly AudioBuffer sharedBuffer;
-        private readonly Thread processThread;
+        private readonly Task processTask;
         private volatile bool processAllowed;
+        private CancellationTokenSource cancellationTokenSource;
 
         private readonly SynchronizationContext uiContext;
 
@@ -76,19 +78,31 @@ namespace AndroidMic.Audio
             // build filter pipeline
             BuildPipeline();
             processAllowed = true;
-            processThread = new Thread(new ThreadStart(Process));
-            processThread.Start();
+            cancellationTokenSource = new CancellationTokenSource();
+            processTask = Task.Factory.StartNew(Process, cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
             DebugLog("Playing");
         }
 
         // shutdown manager
         public void Shutdown()
         {
+            processAllowed = false;
             if (player.PlaybackState == PlaybackState.Playing) player.Stop();
-            if (processThread != null && processThread.IsAlive)
+            if (processTask?.IsCompleted == false)
             {
-                processAllowed = false;
-                processThread.Join(MAX_WAIT_TIME);
+                cancellationTokenSource.Cancel();
+                try
+                {
+                    processTask?.Wait();
+                }
+                catch (OperationCanceledException err)
+                {
+                    DebugLog("Shutdown -> " + err.Message);
+                }
+                finally
+                {
+                    processTask?.Dispose();
+                }
             }
             player.Dispose();
             speexProvider.Dispose();
@@ -101,17 +115,23 @@ namespace AndroidMic.Audio
         }
 
         // process audio data
-        public void Process()
+        public async void Process()
         {
             while (processAllowed)
             {
+                if(cancellationTokenSource.IsCancellationRequested)
+                {
+                    break;
+                }
                 if (sharedBuffer.IsEmpty() || player == null ||
                     player.PlaybackState != PlaybackState.Playing)
                 {
-                    Thread.Sleep(5);
+                    await Task.Delay(5);
                     continue;
                 }
-                sharedBuffer.OpenReadRegion(Streaming.Streamer.BUFFER_SIZE, out var count, out var offset);
+                var result = await sharedBuffer.OpenReadRegion(Streaming.Streamer.BUFFER_SIZE);
+                var count = result.Item1;
+                var offset = result.Item2;
                 if (bufferedProvider.BufferedDuration.TotalMilliseconds <= PlayerDesiredLatency)
                 {
                     bufferedProvider.AddSamples(sharedBuffer.Buffer, offset, count);

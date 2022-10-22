@@ -1,4 +1,5 @@
 ﻿using AndroidMic.Audio;
+using System.Threading.Tasks;
 
 namespace AndroidMic.Streaming
 {
@@ -6,8 +7,8 @@ namespace AndroidMic.Streaming
     {
         // shutdown server
         public abstract void Shutdown();
-        // process data
-        public abstract void Process(AudioBuffer sharedBuffer);
+        // waitable process data
+        public abstract Task Process(AudioBuffer sharedBuffer);
         // check if streamer is alive
         public abstract bool IsAlive();
         // get client info
