@@ -12,6 +12,4 @@ open class Event {
 
     data class SetTheme(val theme: Int): Event()
     data class SetDynamicColor(val dynamicColor: Boolean): Event()
-
-    data class SetLanguage(val language: Int): Event()
 }

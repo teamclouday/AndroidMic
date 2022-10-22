@@ -23,7 +23,7 @@ android {
         vectorDrawables {
             useSupportLibrary true
         }
-        resConfigs "en", "fr"
+        resConfigs ("en", "fr")
     }
 
     externalNativeBuild {
@@ -59,7 +59,7 @@ android {
         compose true
     }
     composeOptions {
-        kotlinCompilerVersion '1.6.10'
+        //kotlinCompilerVersion '1.6.10'
         kotlinCompilerExtensionVersion '1.1.1'
     }
 
@@ -85,7 +85,7 @@ dependencies {
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4'
 
 
-    implementation 'androidx.appcompat:appcompat:1.5.1'
+    implementation 'androidx.appcompat:appcompat:1.7.0-alpha01'
     
     // compose
     implementation 'androidx.activity:activity-compose:1.6.0'

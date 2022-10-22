@@ -12,6 +12,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.androidmic.ui.home.HomeScreen
 import com.example.androidmic.ui.theme.AndroidMicTheme
 import com.example.androidmic.ui.utils.rememberWindowInfo
+import java.util.*
 
 
 class MainActivity : ComponentActivity() {
@@ -25,14 +26,9 @@ class MainActivity : ComponentActivity() {
             SavedStateViewModelFactory(application, this)
         )[MainViewModel::class.java]
 
-        val appLocale: LocaleListCompat = LocaleListCompat.forLanguageTags("xx-YY")
-        // Call this on the main thread as it may require Activity.restart()
-        AppCompatDelegate.setApplicationLocales(appLocale)
-
-        AppCompatDelegate.getApplicationLocales()
-
         setContent {
             val uiStates = mainViewModel.uiStates.collectAsState()
+
             AndroidMicTheme(
                 theme = uiStates.value.theme,
                 dynamicColor = uiStates.value.dynamicColor

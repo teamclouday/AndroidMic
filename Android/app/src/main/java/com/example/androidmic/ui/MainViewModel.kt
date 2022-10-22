@@ -89,14 +89,13 @@ class MainViewModel(
         val mode = preferences.getMode()
         val theme = preferences.getTheme()
         val dynamicColor = preferences.getDynamicColor()
-        val language = preferences.getLanguage()
+
         savedStateHandle["uiStates"] = uiStates.value.copy(
             IP = ipPort.first,
             PORT = ipPort.second.toString(),
             mode = mode,
             theme = theme,
-            dynamicColor = dynamicColor,
-            language = language
+            dynamicColor = dynamicColor
         )
     }
 
@@ -185,8 +184,6 @@ class MainViewModel(
                         uiStates.value.copy(dialogModesIsVisible = true)
                     R.string.drawerTheme -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogThemeIsVisible = true)
-                    R.string.drawerLanguage -> savedStateHandle["uiStates"] =
-                        uiStates.value.copy(dialogLanguageIsVisible = true)
                 }
             }
             is Event.DismissDialog -> {
@@ -197,8 +194,6 @@ class MainViewModel(
                         uiStates.value.copy(dialogModesIsVisible = false)
                     R.string.drawerTheme -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogThemeIsVisible = false)
-                    R.string.drawerLanguage -> savedStateHandle["uiStates"] =
-                        uiStates.value.copy(dialogLanguageIsVisible = false)
                 }
             }
 
@@ -215,19 +210,6 @@ class MainViewModel(
                 savedStateHandle["uiStates"] =
                     uiStates.value.copy(
                         dynamicColor = event.dynamicColor
-                    )
-            }
-
-            is Event.SetLanguage -> {
-
-
-
-
-                preferences.setLanguage(event.language)
-                savedStateHandle["uiStates"] =
-                    uiStates.value.copy(
-                        language = event.language,
-                        dialogLanguageIsVisible = false
                     )
             }
         }
