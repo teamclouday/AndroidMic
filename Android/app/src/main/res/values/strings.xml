@@ -10,7 +10,6 @@
     <string name="drawerIpPort">IP:PORT</string>
     <string name="drawerMode">Connection mode</string>
     <string name="drawerTheme">Themes</string>
-    <string name="drawerLanguage">Languages</string>
 
     <string name="system_theme">System theme</string>
     <string name="light_theme">Light theme</string>
@@ -48,13 +47,5 @@
     <string name="start_recording">Start recording</string>
     <string name="stop_streaming">Stop streaming</string>
     <string name="stop_recording">Stop recording</string>
-
-
-    <string name="system_language">System language</string>
-    <string name="english_language">English</string>
-    <string name="french_language">French</string>
-
-    <string name="english_language_native" translatable="false">english</string>
-    <string name="french_language_native" translatable="false">francais</string>
 
 </resources>
