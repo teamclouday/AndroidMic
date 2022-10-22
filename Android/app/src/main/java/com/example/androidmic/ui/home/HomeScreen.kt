@@ -1,8 +1,7 @@
 package com.example.androidmic.ui.home
 
-import android.Manifest
-import android.os.Build
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.verticalScroll
@@ -23,8 +22,10 @@ import com.example.androidmic.R
 import com.example.androidmic.ui.Event
 import com.example.androidmic.ui.MainViewModel
 import com.example.androidmic.ui.components.ManagerButton
-import com.example.androidmic.ui.home.drawer.DrawerBody
 import com.example.androidmic.ui.utils.WindowInfo
+import com.example.androidmic.ui.utils.getBluetoothPermission
+import com.example.androidmic.ui.utils.getRecordAudioPermission
+import com.example.androidmic.ui.utils.getWifiPermission
 import com.example.androidmic.utils.Modes.Companion.MODE_BLUETOOTH
 import com.example.androidmic.utils.Modes.Companion.MODE_USB
 import com.example.androidmic.utils.Modes.Companion.MODE_WIFI
@@ -83,8 +84,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                         ) {
                             ButtonConnect(
                                 mainViewModel = mainViewModel,
-                                uiStates = uiStates.value,
-                                currentWindowInfo
+                                uiStates = uiStates.value
                             )
                             SwitchAudio(mainViewModel = mainViewModel, states = uiStates.value)
                         }
@@ -99,8 +99,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                             ) {
                                 ButtonConnect(
                                     mainViewModel = mainViewModel,
-                                    uiStates = uiStates.value,
-                                    currentWindowInfo
+                                    uiStates = uiStates.value
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
                                 SwitchAudio(mainViewModel = mainViewModel, states = uiStates.value)
@@ -118,17 +117,31 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
 private fun Log(states: States.UiStates, currentWindowInfo: WindowInfo) {
 
     val modifier: Modifier =
-        if (currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
+        // for split screen
+        if (currentWindowInfo.screenHeightInfo == WindowInfo.WindowType.Compact &&
+            currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact
+        ) {
             Modifier
                 .fillMaxWidth()
-                .fillMaxHeight(0.82f)
+                .fillMaxHeight(0.60f)
                 .padding(16.dp)
         } else {
-            Modifier
-                .fillMaxWidth(0.70f)
-                .fillMaxHeight()
-                .padding(start = 16.dp, top = 16.dp, bottom = 16.dp)
+            // portrait mode
+            if (currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
+                Modifier
+                    .fillMaxWidth()
+                    .fillMaxHeight(0.82f)
+                    .padding(16.dp)
+            }
+            // landscape mode
+            else {
+                Modifier
+                    .fillMaxWidth(0.70f)
+                    .fillMaxHeight()
+                    .padding(start = 16.dp, top = 16.dp, bottom = 16.dp)
+            }
         }
+
 
     Box(
         modifier = modifier
@@ -140,7 +153,7 @@ private fun Log(states: States.UiStates, currentWindowInfo: WindowInfo) {
             color = MaterialTheme.colorScheme.onSecondary,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier
-                .verticalScroll(states.scrollState)
+                .verticalScroll(ScrollState(Int.MAX_VALUE))
                 .padding(10.dp)
         )
     }
@@ -151,25 +164,27 @@ private fun Log(states: States.UiStates, currentWindowInfo: WindowInfo) {
 @Composable
 private fun ButtonConnect(
     mainViewModel: MainViewModel,
-    uiStates: States.UiStates,
-    currentWindowInfo: WindowInfo
+    uiStates: States.UiStates
 ) {
-    val list = mutableListOf(
-        Manifest.permission.BLUETOOTH
+    val wifiPermissionsState = rememberMultiplePermissionsState(
+        permissions = getWifiPermission()
     )
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S)
-        list.add(Manifest.permission.BLUETOOTH_CONNECT)
-    val permissionsState = rememberMultiplePermissionsState(permissions = list)
+    val bluetoothPermissionsState = rememberMultiplePermissionsState(
+        permissions = getBluetoothPermission()
+    )
 
     ManagerButton(
         onClick = {
             when (uiStates.mode) {
                 MODE_WIFI -> {
-                    mainViewModel.onEvent(Event.ConnectButton)
+                    if (!wifiPermissionsState.allPermissionsGranted)
+                        wifiPermissionsState.launchMultiplePermissionRequest()
+                    else
+                        mainViewModel.onEvent(Event.ConnectButton)
                 }
                 MODE_BLUETOOTH -> {
-                    if (!permissionsState.allPermissionsGranted)
-                        permissionsState.launchMultiplePermissionRequest()
+                    if (!bluetoothPermissionsState.allPermissionsGranted)
+                        bluetoothPermissionsState.launchMultiplePermissionRequest()
                     else
                         mainViewModel.onEvent(Event.ConnectButton)
                 }
@@ -191,7 +206,7 @@ private fun ButtonConnect(
 private fun SwitchAudio(mainViewModel: MainViewModel, states: States.UiStates) {
 
     val permissionsState = rememberMultiplePermissionsState(
-        permissions = listOf(Manifest.permission.RECORD_AUDIO)
+        permissions = getRecordAudioPermission()
     )
 
     Row(

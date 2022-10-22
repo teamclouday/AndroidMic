@@ -10,7 +10,6 @@ import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.viewModelScope
 import com.example.androidmic.AndroidMicApp
 import com.example.androidmic.R
 import com.example.androidmic.domain.service.ForegroundService
@@ -21,7 +20,6 @@ import com.example.androidmic.utils.Command.Companion.COMMAND_GET_STATUS
 import com.example.androidmic.utils.CommandService
 import com.example.androidmic.utils.Modes.Companion.MODE_WIFI
 import com.example.androidmic.utils.States
-import kotlinx.coroutines.launch
 
 
 class MainViewModel(
@@ -30,7 +28,6 @@ class MainViewModel(
 ) : AndroidViewModel(application) {
 
     private val TAG = "MainViewModel"
-    private val WAIT_PERIOD = 500L
 
     val uiStates = savedStateHandle.getStateFlow("uiStates", States.UiStates())
 
@@ -85,10 +82,15 @@ class MainViewModel(
 
         val ipPort = preferences.getIpPort(true)
         val mode = preferences.getMode()
+        val theme = preferences.getTheme()
+        val dynamicColor = preferences.getDynamicColor()
+
         savedStateHandle["uiStates"] = uiStates.value.copy(
             IP = ipPort.first,
             PORT = ipPort.second.toString(),
-            mode = mode
+            mode = mode,
+            theme = theme,
+            dynamicColor = dynamicColor
         )
     }
 
@@ -175,6 +177,8 @@ class MainViewModel(
                         uiStates.value.copy(dialogIpPortIsVisible = true)
                     R.string.drawerMode -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogModesIsVisible = true)
+                    R.string.drawerTheme -> savedStateHandle["uiStates"] =
+                        uiStates.value.copy(dialogThemeIsVisible = true)
                 }
             }
             is Event.DismissDialog -> {
@@ -183,7 +187,25 @@ class MainViewModel(
                         uiStates.value.copy(dialogIpPortIsVisible = false)
                     R.string.drawerMode -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogModesIsVisible = false)
+                    R.string.drawerTheme -> savedStateHandle["uiStates"] =
+                        uiStates.value.copy(dialogThemeIsVisible = false)
                 }
+            }
+
+            is Event.SetTheme -> {
+                preferences.setTheme(event.theme)
+                savedStateHandle["uiStates"] =
+                    uiStates.value.copy(
+                        theme = event.theme
+                    )
+            }
+
+            is Event.SetDynamicColor -> {
+                preferences.setDynamicColor(event.dynamicColor)
+                savedStateHandle["uiStates"] =
+                    uiStates.value.copy(
+                        dynamicColor = event.dynamicColor
+                    )
             }
         }
         if (reply != null) {
@@ -254,10 +276,7 @@ class MainViewModel(
     // helper function to append log message to textview
     private fun addLogMessage(message: String) {
         savedStateHandle["uiStates"] = uiStates.value.copy(
-            textLog = uiStates.value.textLog + message + "\n",
-            scrollState = uiStates.value.scrollState.apply {
-                viewModelScope.launch { scrollTo(maxValue) }
-            }
+            textLog = uiStates.value.textLog + message + "\n"
         )
     }
 }

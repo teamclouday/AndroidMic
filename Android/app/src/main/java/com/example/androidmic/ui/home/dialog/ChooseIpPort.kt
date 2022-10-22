@@ -1,4 +1,4 @@
-package com.example.androidmic.ui.home
+package com.example.androidmic.ui.home.dialog
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
@@ -14,11 +14,7 @@ import com.example.androidmic.R
 import com.example.androidmic.ui.Event
 import com.example.androidmic.ui.MainViewModel
 import com.example.androidmic.ui.components.ManagerButton
-import com.example.androidmic.utils.Modes.Companion.MODE_BLUETOOTH
-import com.example.androidmic.utils.Modes.Companion.MODE_USB
-import com.example.androidmic.utils.Modes.Companion.MODE_WIFI
 import com.example.androidmic.utils.States
-
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -43,7 +39,9 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                 color = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     // ip field
                     OutlinedTextField(
                         modifier = Modifier.padding(10.dp),
@@ -88,8 +86,8 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                                 )
                             )
                         },
-                        text = stringResource(id = R.string.save_ip_port),
-                        modifier = Modifier.fillMaxWidth(0.5F)
+                        text = stringResource(id = R.string.save),
+                        modifier = Modifier.fillMaxWidth(0.6f)
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -100,62 +98,8 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                             tempIP.value = uiStates.IP; tempPort.value = uiStates.PORT
                             mainViewModel.onEvent(Event.DismissDialog(R.string.drawerIpPort))
                         },
-                        text = stringResource(id = R.string.cancel_ip_port),
-                        modifier = Modifier.fillMaxWidth(0.5F)
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun DialogMode(mainViewModel: MainViewModel, uiStates: States.UiStates) {
-
-    if (uiStates.dialogModesIsVisible) {
-        Dialog(
-            onDismissRequest = { mainViewModel.onEvent(Event.DismissDialog(R.string.drawerMode)) }
-        ) {
-            Surface(
-                modifier = Modifier,
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurface
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // wifi
-                    ManagerButton(
-                        onClick = { mainViewModel.onEvent(Event.SetMode(MODE_WIFI)) },
-                        text = stringResource(id = R.string.mode_wifi),
-                        modifier = Modifier.fillMaxWidth(0.6F)
-                    )
-
-                    Divider(
-                        modifier = Modifier.padding(10.dp),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    // bluetooth
-                    ManagerButton(
-                        onClick = { mainViewModel.onEvent(Event.SetMode(MODE_BLUETOOTH)) },
-                        text = stringResource(id = R.string.mode_bluetooth),
-                        modifier = Modifier.fillMaxWidth(0.6F)
-                    )
-
-                    Divider(
-                        modifier = Modifier.padding(10.dp),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    // usb
-                    ManagerButton(
-                        onClick = { mainViewModel.onEvent(Event.SetMode(MODE_USB)) },
-                        text = stringResource(id = R.string.mode_usb),
-                        modifier = Modifier.fillMaxWidth(0.6F)
+                        text = stringResource(id = R.string.cancel),
+                        modifier = Modifier.fillMaxWidth(0.6f)
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                 }

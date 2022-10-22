@@ -1,6 +1,5 @@
 package com.example.androidmic.domain.service
 
-import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -35,14 +34,15 @@ class MessageUi(private val ctx: Context) {
     }
 
     // id : 0 for audioStream, 1 for audioRecord
-    @SuppressLint("MissingPermission")
     fun showNotification(contentText: String, id: Int) {
         CoroutineScope(Dispatchers.Main).launch {
-            val onTap = Intent(ctx, MainActivity::class.java).apply {
-                addFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT)
+            val intent = Intent(ctx, MainActivity::class.java).apply {
+                flags =
+                    (Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT)
             }
             val pendingIntent =
-                PendingIntent.getActivity(ctx, 0, onTap, PendingIntent.FLAG_IMMUTABLE)
+                PendingIntent.getActivity(ctx, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+
             val builder = NotificationCompat.Builder(ctx, "service")
                 .setSmallIcon(R.drawable.icon)
                 .setContentTitle(ctx.getString(R.string.app_name))
@@ -50,6 +50,7 @@ class MessageUi(private val ctx: Context) {
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setContentIntent(pendingIntent)
                 .setOngoing(true)
+
             with(NotificationManagerCompat.from(ctx))
             {
                 notify(id, builder.build())

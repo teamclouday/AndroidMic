@@ -1,0 +1,50 @@
+<resources>
+
+    <string name="connect">Connecter</string>
+    <string name="disconnect">Deconnecter</string>
+
+    <string name="turn_audio">Enregister l\'audio</string>
+
+    <string name="drawerHeader">Paramètre</string>
+    <string name="drawerIpPort">IP:PORT</string>
+    <string name="drawerMode">Mode de connection</string>
+    <string name="drawerTheme">Thèmes</string>
+
+    <string name="system_theme">Theme du system</string>
+    <string name="light_theme">Thème clair</string>
+    <string name="dark_theme">Thème sombre</string>
+    <string name="dynamic_color">Couleur dynamique\n(A12 et +)</string>
+
+    <string name="dialog_ip">IP</string>
+    <string name="dialog_port">PORT</string>
+
+    <string name="save">Enregistrer</string>
+    <string name="cancel">Annuler</string>
+
+    <string name="invalid_ip">IP:PORT invalide</string>
+
+    <string name="mode_wifi">WIFI</string>
+    <string name="mode_bluetooth">BLUETOOTH</string>
+    <string name="mode_usb">USB</string>
+
+    <string name="notification_text_audio">L\enregistrement a commencé</string>
+    <string name="notification_text_stream">Le stream audio a commencé</string>
+
+    <string name="error">Erreur\n</string>
+    <string name="failed_to_connect">Echec de connection</string>
+    <string name="stream_already_started">Le stream a déjà commencé</string>
+    <string name="microphone_already_started">Le microphone enregistre déjà</string>
+
+
+    <string name="connected_device">Appareil connecté:\n</string>
+    <string name="mic_start_recording">Le microphone a commencé à enregister</string>
+
+    <string name="device_disconnected">Appareil déconnecté</string>
+    <string name="recording_stopped">Arrêt de l\'enregistrement</string>
+
+    <string name="start_streaming">Début stream</string>
+    <string name="start_recording">Début enregistrement</string>
+    <string name="stop_streaming">Arrêt stream</string>
+    <string name="stop_recording">Arrêt enregistrement</string>
+
+</resources>
