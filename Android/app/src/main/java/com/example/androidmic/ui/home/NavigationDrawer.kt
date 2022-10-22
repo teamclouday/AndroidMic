@@ -48,40 +48,40 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
     DialogTheme(mainViewModel = mainViewModel, uiStates = uiStates)
 
 
-        val items = listOf(
-            MenuItem(
-                id = R.string.drawerIpPort,
-                title = stringResource(id = R.string.drawerIpPort),
-                subTitle = uiStates.IP + ":" + uiStates.PORT,
-                contentDescription = "set ip and port",
-                icon = painterResource(id = R.drawable.ic_baseline_wifi_24)
+    val items = listOf(
+        MenuItem(
+            id = R.string.drawerIpPort,
+            title = stringResource(id = R.string.drawerIpPort),
+            subTitle = uiStates.IP + ":" + uiStates.PORT,
+            contentDescription = "set ip and port",
+            icon = painterResource(id = R.drawable.ic_baseline_wifi_24)
 
-            ),
-            MenuItem(
-                id = R.string.drawerMode,
-                title = stringResource(id = R.string.drawerMode),
-                subTitle = when (uiStates.mode) {
-                    MODE_WIFI -> stringResource(id = R.string.mode_wifi)
-                    MODE_BLUETOOTH -> stringResource(id = R.string.mode_bluetooth)
-                    MODE_USB -> stringResource(id = R.string.mode_usb)
-                    else -> "NONE"
-                },
-                contentDescription = "set mode",
-                icon = rememberVectorPainter(Icons.Default.Settings)
-            ),
-            MenuItem(
-                id = R.string.drawerTheme,
-                title = stringResource(id = R.string.drawerTheme),
-                subTitle = when (uiStates.theme) {
-                    SYSTEM_THEME -> stringResource(id = R.string.system_theme)
-                    LIGHT_THEME -> stringResource(id = R.string.light_theme)
-                    DARK_THEME -> stringResource(id = R.string.dark_theme)
-                    else -> "NONE"
-                },
-                contentDescription = "set theme",
-                icon = rememberVectorPainter(Icons.Default.Settings)
-            )
+        ),
+        MenuItem(
+            id = R.string.drawerMode,
+            title = stringResource(id = R.string.drawerMode),
+            subTitle = when (uiStates.mode) {
+                MODE_WIFI -> stringResource(id = R.string.mode_wifi)
+                MODE_BLUETOOTH -> stringResource(id = R.string.mode_bluetooth)
+                MODE_USB -> stringResource(id = R.string.mode_usb)
+                else -> "NONE"
+            },
+            contentDescription = "set mode",
+            icon = rememberVectorPainter(Icons.Default.Settings)
+        ),
+        MenuItem(
+            id = R.string.drawerTheme,
+            title = stringResource(id = R.string.drawerTheme),
+            subTitle = when (uiStates.theme) {
+                SYSTEM_THEME -> stringResource(id = R.string.system_theme)
+                LIGHT_THEME -> stringResource(id = R.string.light_theme)
+                DARK_THEME -> stringResource(id = R.string.dark_theme)
+                else -> "NONE"
+            },
+            contentDescription = "set theme",
+            icon = rememberVectorPainter(Icons.Default.Settings)
         )
+    )
 
     LazyColumn {
         item {

@@ -5,13 +5,9 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.content.res.Configuration
-import android.content.res.Resources
 import android.os.*
 import android.util.Log
 import android.widget.Toast
-import androidx.appcompat.app.AppCompatDelegate
-import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import com.example.androidmic.AndroidMicApp
@@ -24,7 +20,6 @@ import com.example.androidmic.utils.Command.Companion.COMMAND_GET_STATUS
 import com.example.androidmic.utils.CommandService
 import com.example.androidmic.utils.Modes.Companion.MODE_WIFI
 import com.example.androidmic.utils.States
-import java.util.*
 
 
 class MainViewModel(
@@ -200,9 +195,9 @@ class MainViewModel(
             is Event.SetTheme -> {
                 preferences.setTheme(event.theme)
                 savedStateHandle["uiStates"] =
-                uiStates.value.copy(
-                    theme = event.theme
-                )
+                    uiStates.value.copy(
+                        theme = event.theme
+                    )
             }
 
             is Event.SetDynamicColor -> {

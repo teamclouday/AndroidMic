@@ -4,15 +4,12 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.appcompat.app.AppCompatDelegate
 import androidx.compose.runtime.collectAsState
-import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.SavedStateViewModelFactory
 import androidx.lifecycle.ViewModelProvider
 import com.example.androidmic.ui.home.HomeScreen
 import com.example.androidmic.ui.theme.AndroidMicTheme
 import com.example.androidmic.ui.utils.rememberWindowInfo
-import java.util.*
 
 
 class MainActivity : ComponentActivity() {

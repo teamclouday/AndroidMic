@@ -1,7 +1,9 @@
 package com.example.androidmic.ui.home.dialog
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -16,7 +18,6 @@ import androidx.compose.ui.window.Dialog
 import com.example.androidmic.R
 import com.example.androidmic.ui.Event
 import com.example.androidmic.ui.MainViewModel
-import com.example.androidmic.ui.components.ManagerButton
 import com.example.androidmic.ui.components.ManagerCheckBox
 import com.example.androidmic.utils.States
 import com.example.androidmic.utils.Themes.Companion.DARK_THEME
@@ -55,15 +56,15 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                 color = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface
             ) {
-                Column (
+                Column(
                     horizontalAlignment = Alignment.CenterHorizontally
-                ){
+                ) {
                     Spacer(modifier = Modifier.height(10.dp))
 
                     // system
                     ManagerCheckBox(
                         checked = tempSystemTheme.value,
-                        onClick =  {
+                        onClick = {
                             tempSystemTheme.value = true
                             tempLightTheme.value = false
                             tempDarkTheme.value = false
@@ -80,7 +81,7 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                     // light
                     ManagerCheckBox(
                         checked = tempLightTheme.value,
-                        onClick =  {
+                        onClick = {
                             tempSystemTheme.value = false
                             tempLightTheme.value = true
                             tempDarkTheme.value = false
@@ -96,7 +97,7 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                     // dark
                     ManagerCheckBox(
                         checked = tempDarkTheme.value,
-                        onClick =  {
+                        onClick = {
                             tempSystemTheme.value = false
                             tempLightTheme.value = false
                             tempDarkTheme.value = true
@@ -115,7 +116,7 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                     // dynamic color
                     ManagerCheckBox(
                         checked = tempDynamicColor.value,
-                        onClick =  {
+                        onClick = {
                             tempDynamicColor.value = it
                             mainViewModel.onEvent(
                                 Event.SetDynamicColor(it)
