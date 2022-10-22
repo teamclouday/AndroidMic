@@ -2,8 +2,6 @@ package com.example.androidmic.ui.utils
 
 import androidx.appcompat.app.AppCompatActivity
 import com.example.androidmic.AndroidMicApp
-import com.example.androidmic.R
-import com.example.androidmic.utils.Modes
 import com.example.androidmic.utils.Modes.Companion.MODE_WIFI
 import com.example.androidmic.utils.Themes.Companion.SYSTEM_THEME
 import java.net.InetSocketAddress

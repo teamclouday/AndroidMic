@@ -6,7 +6,7 @@ import android.os.Build
 fun getWifiPermission(): MutableList<String> {
     val list = mutableListOf<String>()
 
-    if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
         list.add(Manifest.permission.POST_NOTIFICATIONS)
 
     return list
@@ -15,7 +15,7 @@ fun getWifiPermission(): MutableList<String> {
 fun getBluetoothPermission(): MutableList<String> {
     val list = mutableListOf<String>()
 
-    if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
         list.add(Manifest.permission.POST_NOTIFICATIONS)
 
     list.add(Manifest.permission.BLUETOOTH)
@@ -29,7 +29,7 @@ fun getBluetoothPermission(): MutableList<String> {
 fun getRecordAudioPermission(): MutableList<String> {
     val list = mutableListOf<String>()
 
-    if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
         list.add(Manifest.permission.POST_NOTIFICATIONS)
 
     list.add(Manifest.permission.RECORD_AUDIO)

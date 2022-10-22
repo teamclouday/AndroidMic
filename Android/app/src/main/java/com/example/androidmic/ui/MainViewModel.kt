@@ -10,7 +10,6 @@ import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
-import androidx.lifecycle.viewModelScope
 import com.example.androidmic.AndroidMicApp
 import com.example.androidmic.R
 import com.example.androidmic.domain.service.ForegroundService
@@ -21,7 +20,6 @@ import com.example.androidmic.utils.Command.Companion.COMMAND_GET_STATUS
 import com.example.androidmic.utils.CommandService
 import com.example.androidmic.utils.Modes.Companion.MODE_WIFI
 import com.example.androidmic.utils.States
-import kotlinx.coroutines.launch
 
 
 class MainViewModel(
@@ -86,6 +84,7 @@ class MainViewModel(
         val mode = preferences.getMode()
         val theme = preferences.getTheme()
         val dynamicColor = preferences.getDynamicColor()
+
         savedStateHandle["uiStates"] = uiStates.value.copy(
             IP = ipPort.first,
             PORT = ipPort.second.toString(),
@@ -196,9 +195,9 @@ class MainViewModel(
             is Event.SetTheme -> {
                 preferences.setTheme(event.theme)
                 savedStateHandle["uiStates"] =
-                uiStates.value.copy(
-                    theme = event.theme
-                )
+                    uiStates.value.copy(
+                        theme = event.theme
+                    )
             }
 
             is Event.SetDynamicColor -> {

@@ -25,6 +25,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val uiStates = mainViewModel.uiStates.collectAsState()
+
             AndroidMicTheme(
                 theme = uiStates.value.theme,
                 dynamicColor = uiStates.value.dynamicColor

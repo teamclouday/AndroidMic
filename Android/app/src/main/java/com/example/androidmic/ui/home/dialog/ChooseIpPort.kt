@@ -87,7 +87,7 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                             )
                         },
                         text = stringResource(id = R.string.save),
-                        modifier = Modifier.fillMaxWidth(0.5F)
+                        modifier = Modifier.fillMaxWidth(0.6f)
                     )
 
                     Spacer(modifier = Modifier.height(10.dp))
@@ -99,7 +99,7 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                             mainViewModel.onEvent(Event.DismissDialog(R.string.drawerIpPort))
                         },
                         text = stringResource(id = R.string.cancel),
-                        modifier = Modifier.fillMaxWidth(0.5F)
+                        modifier = Modifier.fillMaxWidth(0.6f)
                     )
                     Spacer(modifier = Modifier.height(10.dp))
                 }

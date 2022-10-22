@@ -1,7 +1,6 @@
 package com.example.androidmic.utils
 
 
-import androidx.compose.foundation.ScrollState
 import com.example.androidmic.utils.Modes.Companion.MODE_WIFI
 import com.example.androidmic.utils.Themes.Companion.SYSTEM_THEME
 import java.util.concurrent.atomic.AtomicBoolean
@@ -48,8 +47,8 @@ class Modes {
 
 class Themes {
     companion object {
-        const val SYSTEM_THEME: Int = 1
-        const val DARK_THEME: Int = 2
-        const val LIGHT_THEME: Int = 3
+        const val SYSTEM_THEME: Int = 0
+        const val DARK_THEME: Int = 1
+        const val LIGHT_THEME: Int = 2
     }
 }

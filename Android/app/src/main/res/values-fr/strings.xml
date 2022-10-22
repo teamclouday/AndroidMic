@@ -9,11 +9,12 @@
     <string name="drawerIpPort">IP:PORT</string>
     <string name="drawerMode">Mode de connection</string>
     <string name="drawerTheme">Thèmes</string>
+    <string name="drawerLanguage">Langages</string>
 
     <string name="system_theme">Theme du system</string>
     <string name="light_theme">Thème clair</string>
     <string name="dark_theme">Thème sombre</string>
-    <string name="dynamic_color">Couleur dynamique\n(Que sur Android 12 ou >)</string>
+    <string name="dynamic_color">Couleur dynamique\n(A12 et +)</string>
 
     <string name="dialog_ip">IP</string>
     <string name="dialog_port">PORT</string>
@@ -46,5 +47,9 @@
     <string name="start_recording">Début enregistrement</string>
     <string name="stop_streaming">Arrêt stream</string>
     <string name="stop_recording">Arrêt enregistrement</string>
+
+    <string name="system_language">Langage du stytème</string>
+    <string name="english_language">Anglais</string>
+    <string name="french_language">Français</string>
 
 </resources>

@@ -1,6 +1,5 @@
 package com.example.androidmic.domain.service
 
-import android.annotation.SuppressLint
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
@@ -38,7 +37,8 @@ class MessageUi(private val ctx: Context) {
     fun showNotification(contentText: String, id: Int) {
         CoroutineScope(Dispatchers.Main).launch {
             val intent = Intent(ctx, MainActivity::class.java).apply {
-                flags = (Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT)
+                flags =
+                    (Intent.FLAG_ACTIVITY_SINGLE_TOP or Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_BROUGHT_TO_FRONT)
             }
             val pendingIntent =
                 PendingIntent.getActivity(ctx, 0, intent, PendingIntent.FLAG_IMMUTABLE)

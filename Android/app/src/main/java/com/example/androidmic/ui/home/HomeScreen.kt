@@ -1,7 +1,5 @@
 package com.example.androidmic.ui.home
 
-import android.Manifest
-import android.os.Build
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -24,7 +22,6 @@ import com.example.androidmic.R
 import com.example.androidmic.ui.Event
 import com.example.androidmic.ui.MainViewModel
 import com.example.androidmic.ui.components.ManagerButton
-import com.example.androidmic.ui.home.drawer.DrawerBody
 import com.example.androidmic.ui.utils.WindowInfo
 import com.example.androidmic.ui.utils.getBluetoothPermission
 import com.example.androidmic.ui.utils.getRecordAudioPermission
@@ -121,14 +118,14 @@ private fun Log(states: States.UiStates, currentWindowInfo: WindowInfo) {
 
     val modifier: Modifier =
         // for split screen
-        if(currentWindowInfo.screenHeightInfo == WindowInfo.WindowType.Compact &&
-            currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
+        if (currentWindowInfo.screenHeightInfo == WindowInfo.WindowType.Compact &&
+            currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact
+        ) {
             Modifier
                 .fillMaxWidth()
                 .fillMaxHeight(0.60f)
                 .padding(16.dp)
-        }
-        else {
+        } else {
             // portrait mode
             if (currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
                 Modifier
@@ -170,9 +167,11 @@ private fun ButtonConnect(
     uiStates: States.UiStates
 ) {
     val wifiPermissionsState = rememberMultiplePermissionsState(
-        permissions = getWifiPermission())
+        permissions = getWifiPermission()
+    )
     val bluetoothPermissionsState = rememberMultiplePermissionsState(
-        permissions = getBluetoothPermission())
+        permissions = getBluetoothPermission()
+    )
 
     ManagerButton(
         onClick = {
