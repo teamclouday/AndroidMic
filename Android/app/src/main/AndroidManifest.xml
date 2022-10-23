@@ -24,6 +24,12 @@
         android:localeConfig="@xml/locales_config"
         tools:targetApi="tiramisu">
 
+        <receiver android:name="com.example.androidmic.AndroidMicApp$UnboundReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="ACTION_STOP_SERVICE"/>
+            </intent-filter>
+        </receiver>
+
         <activity
             android:name="com.example.androidmic.ui.MainActivity"
             android:exported="true"

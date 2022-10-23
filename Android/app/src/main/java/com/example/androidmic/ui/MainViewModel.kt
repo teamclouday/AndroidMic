@@ -1,10 +1,6 @@
 package com.example.androidmic.ui
 
 import android.app.Application
-import android.content.ComponentName
-import android.content.Context
-import android.content.Intent
-import android.content.ServiceConnection
 import android.os.*
 import android.util.Log
 import android.widget.Toast
@@ -12,7 +8,6 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import com.example.androidmic.AndroidMicApp
 import com.example.androidmic.R
-import com.example.androidmic.domain.service.ForegroundService
 import com.example.androidmic.ui.utils.Preferences
 import com.example.androidmic.utils.Command
 import com.example.androidmic.utils.Command.Companion.COMMAND_DISC_STREAM
@@ -34,11 +29,11 @@ class MainViewModel(
     private val preferences = Preferences(application as AndroidMicApp)
 
     private var mService: Messenger? = null
-    private var mBound = false
+    var mBound = false
 
-    private lateinit var handlerThread: HandlerThread
+    lateinit var handlerThread: HandlerThread
     private lateinit var mMessenger: Messenger
-    private lateinit var mMessengerLooper: Looper
+    lateinit var mMessengerLooper: Looper
     private lateinit var mMessengerHandler: ReplyHandler
 
     private inner class ReplyHandler(looper: Looper) : Handler(looper) {
@@ -52,7 +47,7 @@ class MainViewModel(
         }
     }
 
-    private fun handlerServiceResponse() {
+    fun handlerServiceResponse() {
         handlerThread = HandlerThread("activity", Process.THREAD_PRIORITY_BACKGROUND)
         handlerThread.start()
         mMessengerLooper = handlerThread.looper
@@ -60,26 +55,8 @@ class MainViewModel(
         mMessenger = Messenger(mMessengerHandler)
     }
 
-    private val mConnection = object : ServiceConnection {
-        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            Log.d(TAG, "onServiceConnected")
-            mService = Messenger(service)
-            mBound = true
-            handlerServiceResponse()
-            askForStatus()
-        }
-
-        override fun onServiceDisconnected(name: ComponentName?) {
-            mService = null
-            mBound = false
-        }
-    }
-
     init {
         Log.d(TAG, "init")
-        val intent = Intent(application, ForegroundService::class.java)
-        application.bindService(intent, mConnection, Context.BIND_AUTO_CREATE)
-
         val ipPort = preferences.getIpPort(true)
         val mode = preferences.getMode()
         val theme = preferences.getTheme()
@@ -94,14 +71,34 @@ class MainViewModel(
         )
     }
 
-    fun onEvent(event: Event) {
+    fun refreshAppVariables(showErrorMessage: Boolean): Boolean {
+        mBound = getApplication<AndroidMicApp>().mBound
+        mService = getApplication<AndroidMicApp>().mService
+
         if (!mBound) {
-            Log.d(TAG, "Service not available")
-            return
+            getApplication<AndroidMicApp>().bindService()
+            savedStateHandle["uiStates"] = uiStates.value.copy(
+                isAudioStarted = false,
+                isStreamStarted = false,
+                buttonConnectIsClickable = true,
+                switchAudioIsClickable = true
+            )
         }
+        if (showErrorMessage && !mBound) {
+            Toast.makeText(
+                getApplication(),
+                getApplication<AndroidMicApp>().getString(R.string.service_unbound),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
+        return mBound
+    }
+
+    fun onEvent(event: Event) {
         var reply: Message? = null
         when (event) {
             is Event.ConnectButton -> {
+                if (!refreshAppVariables(true)) return
                 // lock button to avoid duplicate events
                 savedStateHandle["uiStates"] = uiStates.value.copy(
                     buttonConnectIsClickable = false
@@ -133,6 +130,7 @@ class MainViewModel(
             }
 
             is Event.AudioSwitch -> {
+                if (!refreshAppVariables(true)) return
                 // lock switch to avoid duplicate events
                 savedStateHandle["uiStates"] = uiStates.value.copy(
                     switchAudioIsClickable = false
@@ -215,7 +213,7 @@ class MainViewModel(
     }
 
     // ask foreground service for current status
-    private fun askForStatus() {
+    fun askForStatus() {
         if (!mBound) return
         val reply = Message.obtain(null, COMMAND_GET_STATUS)
         reply.replyTo = mMessenger
