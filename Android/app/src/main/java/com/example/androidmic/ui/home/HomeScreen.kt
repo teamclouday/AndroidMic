@@ -86,7 +86,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                                 mainViewModel = mainViewModel,
                                 uiStates = uiStates.value
                             )
-                            SwitchAudio(mainViewModel = mainViewModel, states = uiStates.value)
+                            SwitchAudio(mainViewModel = mainViewModel, uiStates = uiStates.value)
                         }
                     } else {
                         Row {
@@ -102,7 +102,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                                     uiStates = uiStates.value
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
-                                SwitchAudio(mainViewModel = mainViewModel, states = uiStates.value)
+                                SwitchAudio(mainViewModel = mainViewModel, uiStates = uiStates.value)
                             }
                         }
                     }
@@ -114,7 +114,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
 
 
 @Composable
-private fun Log(states: States.UiStates, currentWindowInfo: WindowInfo) {
+private fun Log(uiStates: States.UiStates, currentWindowInfo: WindowInfo) {
 
     val modifier: Modifier =
         // for split screen
@@ -149,7 +149,7 @@ private fun Log(states: States.UiStates, currentWindowInfo: WindowInfo) {
     )
     {
         Text(
-            text = states.textLog,
+            text = uiStates.textLog,
             color = MaterialTheme.colorScheme.onSecondary,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier
@@ -197,13 +197,14 @@ private fun ButtonConnect(
         if (uiStates.isStreamStarted)
             stringResource(id = R.string.disconnect)
         else
-            stringResource(id = R.string.connect)
+            stringResource(id = R.string.connect),
+        enabled = uiStates.buttonConnectIsClickable
     )
 }
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-private fun SwitchAudio(mainViewModel: MainViewModel, states: States.UiStates) {
+private fun SwitchAudio(mainViewModel: MainViewModel, uiStates: States.UiStates) {
 
     val permissionsState = rememberMultiplePermissionsState(
         permissions = getRecordAudioPermission()
@@ -224,7 +225,7 @@ private fun SwitchAudio(mainViewModel: MainViewModel, states: States.UiStates) {
         Spacer(Modifier.width(12.dp))
 
         Switch(
-            checked = states.isAudioStarted,
+            checked = uiStates.isAudioStarted,
             onCheckedChange = {
                 // check for audio permission
                 if (!permissionsState.allPermissionsGranted)
@@ -233,7 +234,8 @@ private fun SwitchAudio(mainViewModel: MainViewModel, states: States.UiStates) {
                     mainViewModel.onEvent(Event.AudioSwitch)
 
             },
-            modifier = Modifier
+            modifier = Modifier,
+            enabled = uiStates.switchAudioIsClickable
         )
     }
 }

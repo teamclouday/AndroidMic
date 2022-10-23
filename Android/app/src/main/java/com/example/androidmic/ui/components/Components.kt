@@ -14,13 +14,15 @@ import androidx.compose.ui.unit.dp
 fun ManagerButton(
     onClick: () -> Unit,
     text: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled : Boolean = true
 ) {
     Button(
         shape = RoundedCornerShape(20),
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
         onClick = onClick,
-        modifier = modifier
+        modifier = modifier,
+        enabled = enabled
     ) {
         Text(
             text = text,
