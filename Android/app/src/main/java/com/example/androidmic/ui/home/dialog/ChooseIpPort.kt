@@ -1,6 +1,7 @@
 package com.example.androidmic.ui.home.dialog
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
@@ -8,6 +9,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.example.androidmic.R
@@ -41,7 +43,7 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                 color = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface
             ) {
-                Column (
+                Column(
                     horizontalAlignment = Alignment.End
                 ) {
                     // reset button
@@ -69,7 +71,8 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                             colors = TextFieldDefaults.textFieldColors(
                                 textColor = MaterialTheme.colorScheme.onSurface,
                                 containerColor = MaterialTheme.colorScheme.surface
-                            )
+                            ),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                         )
 
                         Spacer(modifier = Modifier.height(10.dp))
@@ -86,7 +89,8 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                             colors = TextFieldDefaults.textFieldColors(
                                 textColor = MaterialTheme.colorScheme.onSurface,
                                 containerColor = MaterialTheme.colorScheme.surface
-                            )
+                            ),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                         )
 
                         Spacer(modifier = Modifier.height(15.dp))

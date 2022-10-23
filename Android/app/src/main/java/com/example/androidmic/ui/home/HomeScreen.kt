@@ -3,7 +3,6 @@ package com.example.androidmic.ui.home
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.verticalScroll
@@ -105,7 +104,10 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                                     uiStates = uiStates.value
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
-                                SwitchAudio(mainViewModel = mainViewModel, uiStates = uiStates.value)
+                                SwitchAudio(
+                                    mainViewModel = mainViewModel,
+                                    uiStates = uiStates.value
+                                )
                             }
                         }
                     }
@@ -117,7 +119,11 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
 
 
 @Composable
-private fun Log(mainViewModel: MainViewModel, uiStates: States.UiStates, currentWindowInfo: WindowInfo) {
+private fun Log(
+    mainViewModel: MainViewModel,
+    uiStates: States.UiStates,
+    currentWindowInfo: WindowInfo
+) {
 
     val modifier: Modifier =
         // for split screen
