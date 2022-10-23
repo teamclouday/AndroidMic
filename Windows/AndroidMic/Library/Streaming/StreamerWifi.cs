@@ -2,6 +2,7 @@
 using System.IO;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Collections.Generic;
 using System.Net;
@@ -122,15 +123,17 @@ namespace AndroidMic.Streaming
         }
 
         // process data
-        public override void Process(AudioBuffer sharedBuffer)
+        public override async Task Process(AudioBuffer sharedBuffer)
         {
             if (!IsAlive()) return;
             int count = 0;
             try
             {
                 var stream = new NetworkStream(client);
-                sharedBuffer.OpenWriteRegion(BUFFER_SIZE, out count, out var offset);
-                count = stream.Read(sharedBuffer.Buffer, offset, count);
+                var result = await sharedBuffer.OpenWriteRegion(BUFFER_SIZE);
+                count = result.Item1;
+                var offset = result.Item2;
+                count = await stream.ReadAsync(sharedBuffer.Buffer, offset, count);
             }
             catch (IOException e)
             {
