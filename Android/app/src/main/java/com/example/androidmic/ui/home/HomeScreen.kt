@@ -3,6 +3,7 @@ package com.example.androidmic.ui.home
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.DrawerValue
@@ -16,6 +17,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.androidmic.R
@@ -76,7 +78,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                         AppBar(onNavigationIconClick = {
                             scope.launch { drawerState.open() }
                         })
-                        Log(uiStates.value, currentWindowInfo)
+                        Log(mainViewModel, uiStates.value, currentWindowInfo)
                         Column(
                             Modifier.fillMaxSize(),
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -86,11 +88,11 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                                 mainViewModel = mainViewModel,
                                 uiStates = uiStates.value
                             )
-                            SwitchAudio(mainViewModel = mainViewModel, states = uiStates.value)
+                            SwitchAudio(mainViewModel = mainViewModel, uiStates = uiStates.value)
                         }
                     } else {
                         Row {
-                            Log(uiStates.value, currentWindowInfo)
+                            Log(mainViewModel, uiStates.value, currentWindowInfo)
                             Column(
                                 modifier = Modifier
                                     .fillMaxSize(),
@@ -102,7 +104,10 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                                     uiStates = uiStates.value
                                 )
                                 Spacer(modifier = Modifier.height(10.dp))
-                                SwitchAudio(mainViewModel = mainViewModel, states = uiStates.value)
+                                SwitchAudio(
+                                    mainViewModel = mainViewModel,
+                                    uiStates = uiStates.value
+                                )
                             }
                         }
                     }
@@ -114,7 +119,11 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
 
 
 @Composable
-private fun Log(states: States.UiStates, currentWindowInfo: WindowInfo) {
+private fun Log(
+    mainViewModel: MainViewModel,
+    uiStates: States.UiStates,
+    currentWindowInfo: WindowInfo
+) {
 
     val modifier: Modifier =
         // for split screen
@@ -146,10 +155,17 @@ private fun Log(states: States.UiStates, currentWindowInfo: WindowInfo) {
     Box(
         modifier = modifier
             .background(color = MaterialTheme.colorScheme.secondary)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onDoubleTap = {
+                        mainViewModel.onEvent(Event.CleanLog)
+                    }
+                )
+            }
     )
     {
         Text(
-            text = states.textLog,
+            text = uiStates.textLog,
             color = MaterialTheme.colorScheme.onSecondary,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier
@@ -197,13 +213,14 @@ private fun ButtonConnect(
         if (uiStates.isStreamStarted)
             stringResource(id = R.string.disconnect)
         else
-            stringResource(id = R.string.connect)
+            stringResource(id = R.string.connect),
+        enabled = uiStates.buttonConnectIsClickable
     )
 }
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-private fun SwitchAudio(mainViewModel: MainViewModel, states: States.UiStates) {
+private fun SwitchAudio(mainViewModel: MainViewModel, uiStates: States.UiStates) {
 
     val permissionsState = rememberMultiplePermissionsState(
         permissions = getRecordAudioPermission()
@@ -224,7 +241,7 @@ private fun SwitchAudio(mainViewModel: MainViewModel, states: States.UiStates) {
         Spacer(Modifier.width(12.dp))
 
         Switch(
-            checked = states.isAudioStarted,
+            checked = uiStates.isAudioStarted,
             onCheckedChange = {
                 // check for audio permission
                 if (!permissionsState.allPermissionsGranted)
@@ -233,7 +250,8 @@ private fun SwitchAudio(mainViewModel: MainViewModel, states: States.UiStates) {
                     mainViewModel.onEvent(Event.AudioSwitch)
 
             },
-            modifier = Modifier
+            modifier = Modifier,
+            enabled = uiStates.switchAudioIsClickable
         )
     }
 }

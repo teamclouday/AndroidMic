@@ -14,8 +14,8 @@ class Preferences(private val androidMicApp: AndroidMicApp) {
 
         private const val IP_KEY = "DEFAULT_IP"
         private const val PORT_KEY = "DEFAULT_PORT"
-        private const val DEFAULT_IP = "192.168."
-        private const val DEFAULT_PORT = 55555
+        const val DEFAULT_IP = "192.168."
+        const val DEFAULT_PORT = 55555
 
         private const val MODE_KEY = "DEFAULT_MODE"
         private const val DEFAULT_MODE = MODE_WIFI

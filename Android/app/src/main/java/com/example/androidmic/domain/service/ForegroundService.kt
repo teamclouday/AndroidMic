@@ -55,7 +55,9 @@ class ForegroundService : Service() {
     private val states = States.ServiceStates()
     private lateinit var messageui: MessageUi
 
+
     override fun onCreate() {
+        Log.d(TAG, "onCreate")
         // create message handler
         handlerThread = HandlerThread("MicServiceStart", Process.THREAD_PRIORITY_BACKGROUND)
         handlerThread.start()
@@ -68,29 +70,49 @@ class ForegroundService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val name = getString(R.string.app_name)
             val importance = NotificationManager.IMPORTANCE_DEFAULT
-            val channel = NotificationChannel("service", name, importance)
+            val channel = NotificationChannel(CHANNEL_ID, name, importance)
             // Register the channel with the system
             val notificationManager: NotificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
         }
         messageui = MessageUi(this)
-        messageui.removeNotification(2)
     }
 
     override fun onBind(intent: Intent?): IBinder? {
+        Log.d(TAG, "onBind")
+
         return serviceMessenger.binder
     }
 
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand")
+
         return START_NOT_STICKY
+    }
+
+    override fun onUnbind(intent: Intent?): Boolean {
+        super.onUnbind(intent)
+        Log.d(TAG, "onUnbind")
+
+        if ((!states.isAudioStarted.get() || states.audioShouldStop.get()) &&
+            (!states.isStreamStarted.get() || states.streamShouldStop.get()))
+        {
+            Log.d(TAG, "stopService")
+            stopService()
+        }
+
+        return true
     }
 
     override fun onDestroy() {
         super.onDestroy()
         Log.d(TAG, "onDestroy")
-        messageui.removeNotification(2)
+        stopService()
+    }
+
+    private fun stopService() {
         managerAudio?.shutdown()
         managerStream?.shutdown()
         states.streamShouldStop.set(true)
@@ -104,12 +126,14 @@ class ForegroundService : Service() {
         }
         serviceLooper.quitSafely()
         ignore { handlerThread.join(WAIT_PERIOD) }
-    }
 
-    override fun onTaskRemoved(rootIntent: Intent?) {
-        Log.d(TAG, "onTaskRemoved")
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        }
         stopSelf()
     }
+
 
     // start streaming
     private fun startStream(msg: Message) {
@@ -172,7 +196,6 @@ class ForegroundService : Service() {
                 awaitCancellation()
             }
             messageui.showMessage(applicationContext.getString(R.string.start_streaming))
-            messageui.showNotification(getString(R.string.notification_text_stream), 0)
             states.isStreamStarted.set(true)
             states.streamShouldStop.set(false)
             while (!states.streamShouldStop.get()) {
@@ -189,7 +212,6 @@ class ForegroundService : Service() {
                     break
                 }
             }
-            messageui.removeNotification(0)
             states.isStreamStarted.set(false)
         }
     }
@@ -210,7 +232,6 @@ class ForegroundService : Service() {
         replyData.putString("reply", applicationContext.getString(R.string.device_disconnected))
         messageui.showMessage(applicationContext.getString(R.string.stop_streaming))
         states.isStreamStarted.set(false)
-        messageui.removeNotification(0)
         reply(sender, replyData, COMMAND_STOP_STREAM, true)
     }
 
@@ -243,7 +264,15 @@ class ForegroundService : Service() {
             // start recording
             sharedBuffer.clear()
             managerAudio?.start()
-            messageui.showNotification(getString(R.string.notification_text_audio), 1)
+
+            startForeground(3, messageui.getNotification())
+
+            // the id is not important here
+            // we need to start in foreground to use the mic
+            // but no need to specified a flag because we declared
+            // the type in manifest
+            startForeground(3, messageui.getNotification())
+
             messageui.showMessage(application.getString(R.string.start_recording))
             replyData.putString("reply", application.getString(R.string.mic_start_recording))
             reply(sender, replyData, COMMAND_START_AUDIO, true)
@@ -255,8 +284,10 @@ class ForegroundService : Service() {
                 managerAudio?.record(sharedBuffer)
                 delay(MicAudioManager.RECORD_DELAY)
             }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
+            }
             states.isAudioStarted.set(false)
-            messageui.removeNotification(1)
         }
     }
 
@@ -271,17 +302,20 @@ class ForegroundService : Service() {
             delay(WAIT_PERIOD)
             jobAudioM?.cancel()
         }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
+        }
         managerAudio = null
         jobAudioM = null
         replyData.putString("reply", application.getString(R.string.recording_stopped))
         messageui.showMessage(application.getString(R.string.stop_recording))
-        messageui.removeNotification(1)
         states.isAudioStarted.set(false)
         reply(sender, replyData, COMMAND_STOP_AUDIO, true)
     }
 
 
     private fun getStatus(msg: Message) {
+        Log.d(TAG, "getStatus")
         val sender = msg.replyTo
         val replyData = Bundle()
         replyData.putBoolean("isStreamStarted", states.isStreamStarted.get())

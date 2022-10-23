@@ -23,7 +23,7 @@ android {
         vectorDrawables {
             useSupportLibrary true
         }
-        resConfigs ("en", "fr")
+        resConfigs 'en', 'fr'
     }
 
     externalNativeBuild {
@@ -63,14 +63,14 @@ android {
         kotlinCompilerExtensionVersion '1.1.1'
     }
 
-    lintOptions {
-        checkReleaseBuilds false
-    }
 
     packagingOptions {
         resources {
             excludes += '/META-INF/{AL2.0,LGPL2.1}'
         }
+    }
+    lint {
+        checkReleaseBuilds false
     }
 }
 

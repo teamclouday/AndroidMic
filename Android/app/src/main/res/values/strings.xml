@@ -1,47 +1,59 @@
 <resources>
     <string name="app_name" translatable="false">AndroidMic</string>
 
+    <!--
+    Main UI
+    -->
     <string name="connect">Connect</string>
     <string name="disconnect">Disconnect</string>
-    
     <string name="turn_audio">Record Audio</string>
-    
-    <string name="drawerHeader">Setting</string>
-    <string name="drawerIpPort">IP:PORT</string>
-    <string name="drawerMode">Connection mode</string>
-    <string name="drawerTheme">Themes</string>
 
-    <string name="system_theme">System theme</string>
-    <string name="light_theme">Light theme</string>
-    <string name="dark_theme">Dark theme</string>
-    <string name="dynamic_color">Dynamic color\n(A12 and +)</string>
-    
+    <!--
+    Setting
+    -->
+    <string name="drawerHeader">Setting</string>
+
+    <string name="drawerIpPort">IP:PORT</string>
     <string name="dialog_ip">IP</string>
     <string name="dialog_port">PORT</string>
 
-    <string name="save">Save</string>
-    <string name="cancel">Cancel</string>
-
-    <string name="invalid_ip">IP:PORT invalid</string>
-    
+    <string name="drawerMode">Connection mode</string>
     <string name="mode_wifi">WIFI</string>
     <string name="mode_bluetooth">BLUETOOTH</string>
     <string name="mode_usb">USB</string>
 
-    <string name="notification_text_audio">Record audio started</string>
-    <string name="notification_text_stream">Microphone stream started</string>
+    <string name="drawerTheme">Themes</string>
+    <string name="system_theme">System theme</string>
+    <string name="light_theme">Light theme</string>
+    <string name="dark_theme">Dark theme</string>
+    <string name="dynamic_color">Dynamic color\n(Android 12 and +)</string>
+
+    <string name="reset">Reset</string>
+    <string name="save">Save</string>
+    <string name="cancel">Cancel</string>
+
+
+    <!--
+    Error messages
+    -->
+    <string name="invalid_ip">IP:PORT invalid</string>
+    <string name="service_unbound">The service will be restarted, please retry</string>
 
     <string name="error">Error\n</string>
     <string name="failed_to_connect">Failed to connect</string>
     <string name="stream_already_started">Stream already started</string>
     <string name="microphone_already_started">Microphone already started</string>
 
-
     <string name="connected_device">Connected Device:\n</string>
     <string name="mic_start_recording">Microphone has started to record</string>
 
     <string name="device_disconnected">Device disconnected</string>
     <string name="recording_stopped">Recording stopped</string>
+
+    <!--
+    Service
+    -->
+    <string name="notification_info">Notification to allow record audio in background</string>
 
     <string name="start_streaming">Start streaming</string>
     <string name="start_recording">Start recording</string>

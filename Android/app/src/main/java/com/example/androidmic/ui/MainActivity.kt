@@ -1,5 +1,6 @@
 package com.example.androidmic.ui
 
+import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -7,21 +8,28 @@ import androidx.activity.compose.setContent
 import androidx.compose.runtime.collectAsState
 import androidx.lifecycle.SavedStateViewModelFactory
 import androidx.lifecycle.ViewModelProvider
+import com.example.androidmic.AndroidMicApp
 import com.example.androidmic.ui.home.HomeScreen
 import com.example.androidmic.ui.theme.AndroidMicTheme
 import com.example.androidmic.ui.utils.rememberWindowInfo
+import com.example.androidmic.utils.ignore
 
 
 class MainActivity : ComponentActivity() {
     private val TAG = "MainActivity"
 
+    private val WAIT_PERIOD = 500L
+
+    private lateinit var mainViewModel: MainViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate")
-        val mainViewModel = ViewModelProvider(
+        mainViewModel = ViewModelProvider(
             this,
             SavedStateViewModelFactory(application, this)
         )[MainViewModel::class.java]
+
 
         setContent {
             val uiStates = mainViewModel.uiStates.collectAsState()
@@ -38,4 +46,34 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        if (intent?.extras?.getBoolean("ForegroundServiceBound") == true) {
+            Log.d(TAG, "onNewIntent -> ForegroundServiceBound")
+            // get variable from application
+            mainViewModel.refreshAppVariables()
+            // get status
+            mainViewModel.askForStatus()
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        Log.d(TAG, "onStart")
+        mainViewModel.handlerServiceResponse()
+        // get variable from application
+        mainViewModel.refreshAppVariables()
+
+        (application as AndroidMicApp).bindService()
+    }
+
+
+    override fun onStop() {
+        super.onStop()
+        Log.d(TAG, "onStop")
+        mainViewModel.mMessengerLooper.quitSafely()
+        ignore { mainViewModel.handlerThread.join(WAIT_PERIOD) }
+
+        (application as AndroidMicApp).unBindService()
+    }
 }

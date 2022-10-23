@@ -1,7 +1,10 @@
 package com.example.androidmic.ui.components
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.Surface
 import androidx.compose.material3.*
@@ -14,13 +17,15 @@ import androidx.compose.ui.unit.dp
 fun ManagerButton(
     onClick: () -> Unit,
     text: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    enabled: Boolean = true
 ) {
     Button(
         shape = RoundedCornerShape(20),
         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary),
         onClick = onClick,
-        modifier = modifier
+        modifier = modifier,
+        enabled = enabled
     ) {
         Text(
             text = text,
@@ -42,8 +47,7 @@ fun ManagerCheckBox(
         shape = RoundedCornerShape(20),
         color = MaterialTheme.colorScheme.primary,
         modifier = modifier
-            .padding(start = 10.dp, end = 10.dp)
-            .fillMaxWidth()
+            .fillMaxWidth(0.8f)
             .clickable {
                 onClick(!checked)
             }
