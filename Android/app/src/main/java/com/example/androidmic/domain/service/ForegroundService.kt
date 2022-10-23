@@ -79,6 +79,9 @@ class ForegroundService : Service() {
         messageui = MessageUi(this)
 
         // the id is not important here
+        // we need to start in foreground to use the mic
+        // but no need to specified a flag because we declared
+        // the type in manifest
         startForeground(3, messageui.getNotification())
     }
 
@@ -274,8 +277,6 @@ class ForegroundService : Service() {
             while (!states.audioShouldStop.get()) {
                 managerAudio?.record(sharedBuffer)
                 delay(MicAudioManager.RECORD_DELAY)
-                delay(1000L)
-                Log.d(TAG, "record")
             }
             states.isAudioStarted.set(false)
         }
