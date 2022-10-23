@@ -3,6 +3,8 @@ package com.example.androidmic.ui.home
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.DrawerValue
@@ -16,6 +18,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.androidmic.R
@@ -76,7 +79,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                         AppBar(onNavigationIconClick = {
                             scope.launch { drawerState.open() }
                         })
-                        Log(uiStates.value, currentWindowInfo)
+                        Log(mainViewModel, uiStates.value, currentWindowInfo)
                         Column(
                             Modifier.fillMaxSize(),
                             horizontalAlignment = Alignment.CenterHorizontally,
@@ -90,7 +93,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                         }
                     } else {
                         Row {
-                            Log(uiStates.value, currentWindowInfo)
+                            Log(mainViewModel, uiStates.value, currentWindowInfo)
                             Column(
                                 modifier = Modifier
                                     .fillMaxSize(),
@@ -114,7 +117,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
 
 
 @Composable
-private fun Log(uiStates: States.UiStates, currentWindowInfo: WindowInfo) {
+private fun Log(mainViewModel: MainViewModel, uiStates: States.UiStates, currentWindowInfo: WindowInfo) {
 
     val modifier: Modifier =
         // for split screen
@@ -146,6 +149,13 @@ private fun Log(uiStates: States.UiStates, currentWindowInfo: WindowInfo) {
     Box(
         modifier = modifier
             .background(color = MaterialTheme.colorScheme.secondary)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onDoubleTap = {
+                        mainViewModel.onEvent(Event.CleanLog)
+                    }
+                )
+            }
     )
     {
         Text(

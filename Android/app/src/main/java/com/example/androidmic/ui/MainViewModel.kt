@@ -205,6 +205,13 @@ class MainViewModel(
                         dynamicColor = event.dynamicColor
                     )
             }
+
+            is Event.CleanLog -> {
+                savedStateHandle["uiStates"] =
+                    uiStates.value.copy(
+                        textLog = ""
+                    )
+            }
         }
         if (reply != null) {
             reply.replyTo = mMessenger
