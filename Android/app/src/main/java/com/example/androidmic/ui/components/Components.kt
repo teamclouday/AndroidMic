@@ -42,8 +42,7 @@ fun ManagerCheckBox(
         shape = RoundedCornerShape(20),
         color = MaterialTheme.colorScheme.primary,
         modifier = modifier
-            .padding(start = 10.dp, end = 10.dp)
-            .fillMaxWidth()
+            .fillMaxWidth(0.8f)
             .clickable {
                 onClick(!checked)
             }
