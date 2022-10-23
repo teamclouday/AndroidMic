@@ -15,21 +15,7 @@ class AndroidMicApp : Application() {
     var mService: Messenger? = null
     var mBound = false
 
-    class UnboundReceiver : BroadcastReceiver() {
-        private val TAG = "UnboundReceiver"
-
-        override fun onReceive(context: Context, intent: Intent) {
-            Log.d(TAG, "ACTION_STOP_SERVICE")
-
-            val app: AndroidMicApp = context.applicationContext as AndroidMicApp
-            app.unbindService(app.mConnection)
-            app.mService = null
-            app.mBound = false
-        }
-    }
-
-
-    private val mConnection = object : ServiceConnection {
+    val mConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             Log.d(TAG, "onServiceConnected")
             mService = Messenger(service)
@@ -56,9 +42,10 @@ class AndroidMicApp : Application() {
         bindService()
     }
 
+    // start and bind to service
     fun bindService() {
-        // start and bind to service
         val intent = Intent(this, ForegroundService::class.java)
+        startService(intent)
         bindService(intent, mConnection, Context.BIND_AUTO_CREATE)
     }
 }

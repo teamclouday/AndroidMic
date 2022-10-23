@@ -71,12 +71,11 @@ class MainViewModel(
         )
     }
 
-    fun refreshAppVariables(showErrorMessage: Boolean): Boolean {
+    fun refreshAppVariables() {
         mBound = getApplication<AndroidMicApp>().mBound
         mService = getApplication<AndroidMicApp>().mService
 
         if (!mBound) {
-            getApplication<AndroidMicApp>().bindService()
             savedStateHandle["uiStates"] = uiStates.value.copy(
                 isAudioStarted = false,
                 isStreamStarted = false,
@@ -84,21 +83,13 @@ class MainViewModel(
                 switchAudioIsClickable = true
             )
         }
-        if (showErrorMessage && !mBound) {
-            Toast.makeText(
-                getApplication(),
-                getApplication<AndroidMicApp>().getString(R.string.service_unbound),
-                Toast.LENGTH_SHORT
-            ).show()
-        }
-        return mBound
     }
 
     fun onEvent(event: Event) {
         var reply: Message? = null
         when (event) {
             is Event.ConnectButton -> {
-                if (!refreshAppVariables(true)) return
+                if (!mBound) return
                 // lock button to avoid duplicate events
                 savedStateHandle["uiStates"] = uiStates.value.copy(
                     buttonConnectIsClickable = false
@@ -130,7 +121,7 @@ class MainViewModel(
             }
 
             is Event.AudioSwitch -> {
-                if (!refreshAppVariables(true)) return
+                if (!mBound) return
                 // lock switch to avoid duplicate events
                 savedStateHandle["uiStates"] = uiStates.value.copy(
                     switchAudioIsClickable = false

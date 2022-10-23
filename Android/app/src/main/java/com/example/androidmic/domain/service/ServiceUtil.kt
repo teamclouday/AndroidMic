@@ -27,8 +27,6 @@ fun reply(sender: Messenger, data: Bundle, what: Int, success: Boolean) {
 
 
 const val CHANNEL_ID = "Service"
-const val ACTION_STOP_SERVICE = "ACTION_STOP_SERVICE"
-
 
 class MessageUi(private val ctx: ForegroundService) {
     // show message on UI
@@ -48,18 +46,6 @@ class MessageUi(private val ctx: ForegroundService) {
         val pLaunchIntent =
             PendingIntent.getActivity(ctx, 0, launchIntent, PendingIntent.FLAG_IMMUTABLE)
 
-        // cancel foreground service
-        val stopIntent = Intent(ctx, AndroidMicApp.UnboundReceiver::class.java).apply {
-            action = ACTION_STOP_SERVICE
-        }
-        val pStopIntent =
-            PendingIntent.getBroadcast(
-                ctx,
-                0,
-                stopIntent,
-                PendingIntent.FLAG_CANCEL_CURRENT or PendingIntent.FLAG_IMMUTABLE
-            )
-
 
         val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
             .setSmallIcon(R.drawable.icon)
@@ -68,11 +54,6 @@ class MessageUi(private val ctx: ForegroundService) {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pLaunchIntent)
             .setOngoing(true)
-            .addAction(
-                R.drawable.ic_baseline_wifi_24,
-                ctx.getString(R.string.notification_stop_service),
-                pStopIntent
-            )
 
         return builder.build()
     }

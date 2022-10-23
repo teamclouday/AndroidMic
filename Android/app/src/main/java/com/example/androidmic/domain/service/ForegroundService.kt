@@ -77,16 +77,11 @@ class ForegroundService : Service() {
             notificationManager.createNotificationChannel(channel)
         }
         messageui = MessageUi(this)
-
-        // the id is not important here
-        // we need to start in foreground to use the mic
-        // but no need to specified a flag because we declared
-        // the type in manifest
-        startForeground(3, messageui.getNotification())
     }
 
     override fun onBind(intent: Intent?): IBinder? {
         Log.d(TAG, "onBind")
+
         return serviceMessenger.binder
     }
 
@@ -99,11 +94,14 @@ class ForegroundService : Service() {
 
     override fun onUnbind(intent: Intent?): Boolean {
         super.onUnbind(intent)
-
         Log.d(TAG, "onUnbind")
-        stopService()
 
-        return false
+        if(!states.isAudioStarted.get() && !states.isStreamStarted.get()) {
+            Log.d(TAG, "stopService")
+            stopService()
+        }
+
+        return true
     }
 
     override fun onDestroy() {
@@ -267,6 +265,12 @@ class ForegroundService : Service() {
 
             startForeground(3, messageui.getNotification())
 
+            // the id is not important here
+            // we need to start in foreground to use the mic
+            // but no need to specified a flag because we declared
+            // the type in manifest
+            startForeground(3, messageui.getNotification())
+
             messageui.showMessage(application.getString(R.string.start_recording))
             replyData.putString("reply", application.getString(R.string.mic_start_recording))
             reply(sender, replyData, COMMAND_START_AUDIO, true)
@@ -277,6 +281,9 @@ class ForegroundService : Service() {
             while (!states.audioShouldStop.get()) {
                 managerAudio?.record(sharedBuffer)
                 delay(MicAudioManager.RECORD_DELAY)
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                stopForeground(STOP_FOREGROUND_REMOVE)
             }
             states.isAudioStarted.set(false)
         }
@@ -292,6 +299,9 @@ class ForegroundService : Service() {
             managerAudio?.shutdown()
             delay(WAIT_PERIOD)
             jobAudioM?.cancel()
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            stopForeground(STOP_FOREGROUND_REMOVE)
         }
         managerAudio = null
         jobAudioM = null

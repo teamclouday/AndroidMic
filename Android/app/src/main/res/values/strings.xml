@@ -53,8 +53,7 @@
     <!--
     Service
     -->
-    <string name="notification_info">Notification to keep foreground service alive</string>
-    <string name="notification_stop_service">Tap to stop the service</string>
+    <string name="notification_info">Notification to allow record audio in background</string>
 
     <string name="start_streaming">Start streaming</string>
     <string name="start_recording">Start recording</string>

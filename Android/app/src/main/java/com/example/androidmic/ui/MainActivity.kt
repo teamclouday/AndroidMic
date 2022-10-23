@@ -51,7 +51,7 @@ class MainActivity : ComponentActivity() {
         if (intent?.extras?.getBoolean("ForegroundServiceBound") == true) {
             Log.d(TAG, "onNewIntent -> ForegroundServiceBound")
             // get variable from application
-            mainViewModel.refreshAppVariables(false)
+            mainViewModel.refreshAppVariables()
             // get status
             mainViewModel.askForStatus()
         }
@@ -61,8 +61,8 @@ class MainActivity : ComponentActivity() {
         super.onStart()
         Log.d(TAG, "onStart")
         mainViewModel.handlerServiceResponse()
-        // get variable from application, bind the service if necessary
-        mainViewModel.refreshAppVariables(false)
+        // get variable from application
+        mainViewModel.refreshAppVariables()
 
         if (!mainViewModel.mBound) {
             (application as AndroidMicApp).bindService()
@@ -78,5 +78,10 @@ class MainActivity : ComponentActivity() {
         Log.d(TAG, "onStop")
         mainViewModel.mMessengerLooper.quitSafely()
         ignore { mainViewModel.handlerThread.join(WAIT_PERIOD) }
+
+        val app = (application as AndroidMicApp)
+        app.unbindService(app.mConnection)
+        app.mService = null
+        app.mBound =  false
     }
 }
