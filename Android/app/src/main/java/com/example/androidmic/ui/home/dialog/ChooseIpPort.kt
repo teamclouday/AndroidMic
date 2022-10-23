@@ -14,6 +14,8 @@ import com.example.androidmic.R
 import com.example.androidmic.ui.Event
 import com.example.androidmic.ui.MainViewModel
 import com.example.androidmic.ui.components.ManagerButton
+import com.example.androidmic.ui.utils.Preferences.Companion.DEFAULT_IP
+import com.example.androidmic.ui.utils.Preferences.Companion.DEFAULT_PORT
 import com.example.androidmic.utils.States
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -39,69 +41,83 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                 color = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface
             ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
+                Column (
+                    horizontalAlignment = Alignment.End
                 ) {
-                    // ip field
-                    OutlinedTextField(
-                        modifier = Modifier.padding(10.dp),
-                        value = tempIP.value,
-                        onValueChange = { tempIP.value = it },
-                        enabled = true,
-                        singleLine = true,
-                        label = { Text(stringResource(id = R.string.dialog_ip)) },
-                        textStyle = MaterialTheme.typography.bodyMedium,
-                        colors = TextFieldDefaults.textFieldColors(
-                            textColor = MaterialTheme.colorScheme.onSurface,
-                            containerColor = MaterialTheme.colorScheme.surface
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    // port field
-                    OutlinedTextField(
-                        modifier = Modifier.padding(10.dp),
-                        value = tempPort.value,
-                        onValueChange = { tempPort.value = it },
-                        enabled = true,
-                        singleLine = true,
-                        label = { Text(stringResource(id = R.string.dialog_port)) },
-                        textStyle = MaterialTheme.typography.bodyMedium,
-                        colors = TextFieldDefaults.textFieldColors(
-                            textColor = MaterialTheme.colorScheme.onSurface,
-                            containerColor = MaterialTheme.colorScheme.surface
-                        )
-                    )
-
-                    Spacer(modifier = Modifier.height(15.dp))
-
-                    // save Button
+                    // reset button
                     ManagerButton(
                         onClick = {
-                            mainViewModel.onEvent(
-                                Event.SetIpPort(
-                                    tempIP.value,
-                                    tempPort.value
-                                )
+                            tempIP.value = DEFAULT_IP; tempPort.value = DEFAULT_PORT.toString()
+                        },
+                        text = stringResource(id = R.string.reset),
+                        modifier = Modifier.padding(10.dp),
+                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+
+
+                        // ip field
+                        OutlinedTextField(
+                            modifier = Modifier.padding(10.dp),
+                            value = tempIP.value,
+                            onValueChange = { tempIP.value = it },
+                            enabled = true,
+                            singleLine = true,
+                            label = { Text(stringResource(id = R.string.dialog_ip)) },
+                            textStyle = MaterialTheme.typography.bodyMedium,
+                            colors = TextFieldDefaults.textFieldColors(
+                                textColor = MaterialTheme.colorScheme.onSurface,
+                                containerColor = MaterialTheme.colorScheme.surface
                             )
-                        },
-                        text = stringResource(id = R.string.save),
-                        modifier = Modifier.fillMaxWidth(0.6f)
-                    )
+                        )
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                        Spacer(modifier = Modifier.height(10.dp))
 
-                    // cancel Button
-                    ManagerButton(
-                        onClick = {
-                            tempIP.value = uiStates.IP; tempPort.value = uiStates.PORT
-                            mainViewModel.onEvent(Event.DismissDialog(R.string.drawerIpPort))
-                        },
-                        text = stringResource(id = R.string.cancel),
-                        modifier = Modifier.fillMaxWidth(0.6f)
-                    )
-                    Spacer(modifier = Modifier.height(10.dp))
+                        // port field
+                        OutlinedTextField(
+                            modifier = Modifier.padding(10.dp),
+                            value = tempPort.value,
+                            onValueChange = { tempPort.value = it },
+                            enabled = true,
+                            singleLine = true,
+                            label = { Text(stringResource(id = R.string.dialog_port)) },
+                            textStyle = MaterialTheme.typography.bodyMedium,
+                            colors = TextFieldDefaults.textFieldColors(
+                                textColor = MaterialTheme.colorScheme.onSurface,
+                                containerColor = MaterialTheme.colorScheme.surface
+                            )
+                        )
+
+                        Spacer(modifier = Modifier.height(15.dp))
+
+                        // save Button
+                        ManagerButton(
+                            onClick = {
+                                mainViewModel.onEvent(
+                                    Event.SetIpPort(
+                                        tempIP.value,
+                                        tempPort.value
+                                    )
+                                )
+                            },
+                            text = stringResource(id = R.string.save),
+                            modifier = Modifier.fillMaxWidth(0.6f)
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        // cancel Button
+                        ManagerButton(
+                            onClick = {
+                                tempIP.value = uiStates.IP; tempPort.value = uiStates.PORT
+                                mainViewModel.onEvent(Event.DismissDialog(R.string.drawerIpPort))
+                            },
+                            text = stringResource(id = R.string.cancel),
+                            modifier = Modifier.fillMaxWidth(0.6f)
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
                 }
             }
         }

@@ -26,6 +26,7 @@
     <string name="dark_theme">Thème sombre</string>
     <string name="dynamic_color">Couleur dynamique\n(Android 12 et +)</string>
 
+    <string name="reset">Réinitialiser</string>
     <string name="save">Enregistrer</string>
     <string name="cancel">Annuler</string>
 
