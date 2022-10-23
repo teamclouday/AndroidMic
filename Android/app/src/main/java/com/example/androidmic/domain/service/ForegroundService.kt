@@ -96,7 +96,9 @@ class ForegroundService : Service() {
         super.onUnbind(intent)
         Log.d(TAG, "onUnbind")
 
-        if (!states.isAudioStarted.get() && !states.isStreamStarted.get()) {
+        if ((!states.isAudioStarted.get() || states.audioShouldStop.get()) &&
+            (!states.isStreamStarted.get() || states.streamShouldStop.get()))
+        {
             Log.d(TAG, "stopService")
             stopService()
         }
