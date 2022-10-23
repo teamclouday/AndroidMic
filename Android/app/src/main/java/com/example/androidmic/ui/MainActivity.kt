@@ -64,12 +64,7 @@ class MainActivity : ComponentActivity() {
         // get variable from application
         mainViewModel.refreshAppVariables()
 
-        if (!mainViewModel.mBound) {
-            (application as AndroidMicApp).bindService()
-        } else {
-            // get status
-            mainViewModel.askForStatus()
-        }
+        (application as AndroidMicApp).bindService()
     }
 
 
@@ -79,9 +74,6 @@ class MainActivity : ComponentActivity() {
         mainViewModel.mMessengerLooper.quitSafely()
         ignore { mainViewModel.handlerThread.join(WAIT_PERIOD) }
 
-        val app = (application as AndroidMicApp)
-        app.unbindService(app.mConnection)
-        app.mService = null
-        app.mBound =  false
+        (application as AndroidMicApp).unBindService()
     }
 }

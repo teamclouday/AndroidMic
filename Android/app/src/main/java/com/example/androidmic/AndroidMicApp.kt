@@ -1,7 +1,10 @@
 package com.example.androidmic
 
 import android.app.Application
-import android.content.*
+import android.content.ComponentName
+import android.content.Context
+import android.content.Intent
+import android.content.ServiceConnection
 import android.os.IBinder
 import android.os.Messenger
 import android.util.Log
@@ -41,5 +44,11 @@ class AndroidMicApp : Application() {
         val intent = Intent(this, ForegroundService::class.java)
         startService(intent)
         bindService(intent, mConnection, Context.BIND_AUTO_CREATE)
+    }
+
+    fun unBindService() {
+        unbindService(mConnection)
+        mService = null
+        mBound = false
     }
 }

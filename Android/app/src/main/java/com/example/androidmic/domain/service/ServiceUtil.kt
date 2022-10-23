@@ -9,7 +9,6 @@ import android.os.Message
 import android.os.Messenger
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
-import com.example.androidmic.AndroidMicApp
 import com.example.androidmic.R
 import com.example.androidmic.ui.MainActivity
 import kotlinx.coroutines.CoroutineScope
