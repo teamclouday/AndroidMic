@@ -36,12 +36,6 @@ class AndroidMicApp : Application() {
         }
     }
 
-    override fun onCreate() {
-        super.onCreate()
-        Log.d(TAG, "onCreate")
-        bindService()
-    }
-
     // start and bind to service
     fun bindService() {
         val intent = Intent(this, ForegroundService::class.java)
