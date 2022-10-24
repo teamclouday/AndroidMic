@@ -4,12 +4,12 @@ plugins {
 }
 
 android {
-    namespace 'com.example.androidmic'
+    namespace 'com.example.androidMic'
     compileSdk 33
     buildToolsVersion "30.0.3"
 
     defaultConfig {
-        applicationId "com.example.androidmic"
+        applicationId "com.example.androidMic"
         minSdk 23
         targetSdk 33
         versionCode 8

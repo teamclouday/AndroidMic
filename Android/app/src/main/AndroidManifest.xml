@@ -20,12 +20,12 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.AndroidMic"
-        android:name="com.example.androidmic.AndroidMicApp"
+        android:name="com.example.androidMic.AndroidMicApp"
         android:localeConfig="@xml/locales_config"
         tools:targetApi="tiramisu">
 
         <activity
-            android:name="com.example.androidmic.ui.MainActivity"
+            android:name="com.example.androidMic.ui.MainActivity"
             android:exported="true"
             android:theme="@style/Theme.AndroidMic">
             <intent-filter>
@@ -34,7 +34,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <service android:name="com.example.androidmic.domain.service.ForegroundService"
+        <service android:name="com.example.androidMic.domain.service.ForegroundService"
             android:foregroundServiceType="microphone"/>
 
     </application>
