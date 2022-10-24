@@ -37,7 +37,6 @@
     Error messages
     -->
     <string name="invalid_ip">IP:PORT invalid</string>
-    <string name="service_unbound">The service will be restarted, please retry</string>
 
     <string name="error">Error\n</string>
     <string name="failed_to_connect">Failed to connect</string>

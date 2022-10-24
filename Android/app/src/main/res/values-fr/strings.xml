@@ -35,7 +35,6 @@
     Error messages
     -->
     <string name="invalid_ip">IP:PORT invalide</string>
-    <string name="service_unbound">Le service va être redemarré, veuillez réessayer</string>
 
     <string name="error">Erreur\n</string>
     <string name="failed_to_connect">Echec de connection</string>

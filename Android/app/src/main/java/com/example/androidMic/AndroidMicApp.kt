@@ -18,7 +18,7 @@ class AndroidMicApp : Application() {
     var mService: Messenger? = null
     var mBound = false
 
-    val mConnection = object : ServiceConnection {
+    private val mConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             Log.d(TAG, "onServiceConnected")
             mService = Messenger(service)

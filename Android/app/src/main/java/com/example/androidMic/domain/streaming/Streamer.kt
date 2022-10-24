@@ -11,8 +11,8 @@ interface Streamer {
     fun isAlive(): Boolean
 
     companion object {
-        val DEVICE_CHECK = "AndroidMicCheck"
-        val DEVICE_CHECK_EXPECT = "AndroidMicCheckAck"
-        val BUFFER_SIZE = 1024
+        const val DEVICE_CHECK = "AndroidMicCheck"
+        const val DEVICE_CHECK_EXPECT = "AndroidMicCheckAck"
+        const val BUFFER_SIZE = 1024
     }
 }
