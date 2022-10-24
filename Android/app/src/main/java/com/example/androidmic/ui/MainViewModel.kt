@@ -88,10 +88,6 @@ class MainViewModel(
         when (event) {
             is Event.ConnectButton -> {
                 if (!mBound) return
-                // lock button to avoid duplicate events
-                savedStateHandle["uiStates"] = uiStates.value.copy(
-                    buttonConnectIsClickable = false
-                )
                 if (uiStates.value.isStreamStarted) {
                     Log.d(TAG, "onConnectButton: stop stream")
                     reply = Message.obtain(null, Command.COMMAND_STOP_STREAM)
@@ -111,6 +107,10 @@ class MainViewModel(
                             return
                         }
                     }
+                    // lock button to avoid duplicate events
+                    savedStateHandle["uiStates"] = uiStates.value.copy(
+                        buttonConnectIsClickable = false
+                    )
                     data.putInt("MODE", uiStates.value.mode)
                     reply = Message.obtain(null, Command.COMMAND_START_STREAM)
                     reply.data = data
