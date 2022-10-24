@@ -90,7 +90,7 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 64.dp)
-                    .padding(start = 30.dp)
+                    .padding(start = 25.dp)
             ) {
                 Text(
                     text = stringResource(id = R.string.drawerHeader),
