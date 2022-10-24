@@ -75,8 +75,6 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                         )
 
-                        Spacer(modifier = Modifier.height(10.dp))
-
                         // port field
                         OutlinedTextField(
                             modifier = Modifier.padding(10.dp),

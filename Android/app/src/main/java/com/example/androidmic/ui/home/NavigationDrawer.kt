@@ -14,6 +14,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.painter.Painter
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.vector.rememberVectorPainter
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -37,7 +38,7 @@ data class MenuItem(
     val title: String,
     val subTitle: String,
     val contentDescription: String,
-    val icon: Painter
+    val icon: Int
 )
 
 @Composable
@@ -54,7 +55,7 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
             title = stringResource(id = R.string.drawerIpPort),
             subTitle = uiStates.IP + ":" + uiStates.PORT,
             contentDescription = "set ip and port",
-            icon = painterResource(id = R.drawable.ic_baseline_wifi_24)
+            icon = R.drawable.wifi_24px
 
         ),
         MenuItem(
@@ -67,7 +68,7 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                 else -> "NONE"
             },
             contentDescription = "set mode",
-            icon = rememberVectorPainter(Icons.Default.Settings)
+            icon = R.drawable.settings_24px
         ),
         MenuItem(
             id = R.string.drawerTheme,
@@ -79,7 +80,7 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                 else -> "NONE"
             },
             contentDescription = "set theme",
-            icon = rememberVectorPainter(Icons.Default.Settings)
+            icon = R.drawable.dark_mode_24px
         )
     )
 
@@ -110,7 +111,7 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Icon(
-                    painter = item.icon,
+                    painter = painterResource(id = item.icon),
                     contentDescription = item.contentDescription,
                     tint = MaterialTheme.colorScheme.onBackground
                 )
