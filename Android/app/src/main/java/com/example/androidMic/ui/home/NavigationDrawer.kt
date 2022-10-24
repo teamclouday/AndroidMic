@@ -14,6 +14,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.androidMic.R
 import com.example.androidMic.ui.Event
 import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.home.dialog.DialogIpPort
@@ -26,7 +27,6 @@ import com.example.androidMic.utils.States
 import com.example.androidMic.utils.Themes.Companion.DARK_THEME
 import com.example.androidMic.utils.Themes.Companion.LIGHT_THEME
 import com.example.androidMic.utils.Themes.Companion.SYSTEM_THEME
-import com.example.androidMic.R
 
 data class MenuItem(
     val id: Int,
