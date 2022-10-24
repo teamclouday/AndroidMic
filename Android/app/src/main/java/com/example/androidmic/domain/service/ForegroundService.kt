@@ -98,14 +98,14 @@ class ForegroundService : Service() {
         Log.d(TAG, "onUnbind")
 
         if ((!states.isAudioStarted.get() || states.audioShouldStop.get()) &&
-            (!states.isStreamStarted.get() || states.streamShouldStop.get()))
-        {
+            (!states.isStreamStarted.get() || states.streamShouldStop.get())
+        ) {
             // delay to handle reconfiguration
             // (Service is not destroy when the screen rotate)
             serviceShouldStop = true
             scope.launch {
                 delay(3000L)
-                if(serviceShouldStop)
+                if (serviceShouldStop)
                     stopService()
             }
         }
@@ -271,8 +271,6 @@ class ForegroundService : Service() {
             // start recording
             sharedBuffer.clear()
             managerAudio?.start()
-
-            startForeground(3, messageui.getNotification())
 
             // the id is not important here
             // we need to start in foreground to use the mic
