@@ -75,14 +75,12 @@ class MainViewModel(
         mBound = getApplication<AndroidMicApp>().mBound
         mService = getApplication<AndroidMicApp>().mService
 
-        if (!mBound) {
-            savedStateHandle["uiStates"] = uiStates.value.copy(
-                isAudioStarted = false,
-                isStreamStarted = false,
-                buttonConnectIsClickable = true,
-                switchAudioIsClickable = true
-            )
-        }
+        savedStateHandle["uiStates"] = uiStates.value.copy(
+            isAudioStarted = false,
+            isStreamStarted = false,
+            buttonConnectIsClickable = false,
+            switchAudioIsClickable = false
+        )
     }
 
     fun onEvent(event: Event) {
