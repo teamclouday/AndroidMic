@@ -85,10 +85,11 @@ class ForegroundService : Service() {
         return serviceMessenger.binder
     }
 
+    private var serviceShouldStop = false
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand")
-
+        serviceShouldStop = false
         return START_NOT_STICKY
     }
 
@@ -99,10 +100,15 @@ class ForegroundService : Service() {
         if ((!states.isAudioStarted.get() || states.audioShouldStop.get()) &&
             (!states.isStreamStarted.get() || states.streamShouldStop.get()))
         {
-            Log.d(TAG, "stopService")
-            stopService()
+            // delay to handle reconfiguration
+            // (Service is not destroy when the screen rotate)
+            serviceShouldStop = true
+            scope.launch {
+                delay(3000L)
+                if(serviceShouldStop)
+                    stopService()
+            }
         }
-
         return true
     }
 
@@ -113,6 +119,7 @@ class ForegroundService : Service() {
     }
 
     private fun stopService() {
+        Log.d(TAG, "stopService")
         managerAudio?.shutdown()
         managerStream?.shutdown()
         states.streamShouldStop.set(true)
