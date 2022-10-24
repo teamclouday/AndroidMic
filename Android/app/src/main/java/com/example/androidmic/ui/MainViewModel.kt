@@ -104,26 +104,25 @@ class MainViewModel(
                                 getApplication<AndroidMicApp>().getString(R.string.invalid_ip),
                                 Toast.LENGTH_SHORT
                             ).show()
+                            savedStateHandle["uiStates"] = uiStates.value.copy(
+                                dialogIpPortIsVisible = true
+                            )
                             return
                         }
                     }
-                    // lock button to avoid duplicate events
-                    savedStateHandle["uiStates"] = uiStates.value.copy(
-                        buttonConnectIsClickable = false
-                    )
                     data.putInt("MODE", uiStates.value.mode)
                     reply = Message.obtain(null, Command.COMMAND_START_STREAM)
                     reply.data = data
                     Log.d(TAG, "onConnectButton: start stream")
+                    // lock button to avoid duplicate events
+                    savedStateHandle["uiStates"] = uiStates.value.copy(
+                        buttonConnectIsClickable = false
+                    )
                 }
             }
 
             is Event.AudioSwitch -> {
                 if (!mBound) return
-                // lock switch to avoid duplicate events
-                savedStateHandle["uiStates"] = uiStates.value.copy(
-                    switchAudioIsClickable = false
-                )
                 reply = if (uiStates.value.isAudioStarted) {
                     Log.d(TAG, "onAudioSwitch: stop audio")
                     Message.obtain(null, Command.COMMAND_STOP_AUDIO)
@@ -131,6 +130,10 @@ class MainViewModel(
                     Log.d(TAG, "onAudioSwitch: start audio")
                     Message.obtain(null, Command.COMMAND_START_AUDIO)
                 }
+                // lock switch to avoid duplicate events
+                savedStateHandle["uiStates"] = uiStates.value.copy(
+                    switchAudioIsClickable = false
+                )
             }
 
             is Event.SetIpPort -> {
@@ -242,17 +245,21 @@ class MainViewModel(
         Log.d(TAG, "$log: ${commandService.dic[msg.what]}")
         when (msg.what) {
             Command.COMMAND_START_STREAM -> savedStateHandle["uiStates"] = uiStates.value.copy(
-                isStreamStarted = result
+                isStreamStarted = result,
+                buttonConnectIsClickable = true
             )
             Command.COMMAND_STOP_STREAM -> savedStateHandle["uiStates"] = uiStates.value.copy(
-                isStreamStarted = !result
+                isStreamStarted = !result,
+                buttonConnectIsClickable = true
             )
 
             Command.COMMAND_START_AUDIO -> savedStateHandle["uiStates"] = uiStates.value.copy(
-                isAudioStarted = result
+                isAudioStarted = result,
+                switchAudioIsClickable = true
             )
             Command.COMMAND_STOP_AUDIO -> savedStateHandle["uiStates"] = uiStates.value.copy(
-                isAudioStarted = !result
+                isAudioStarted = !result,
+                switchAudioIsClickable = true
             )
         }
     }
@@ -262,8 +269,7 @@ class MainViewModel(
         val reply = msg.data.getString("reply")
         if (reply != null) addLogMessage(reply)
         savedStateHandle["uiStates"] = uiStates.value.copy(
-            isStreamStarted = false,
-            buttonConnectIsClickable = true
+            isStreamStarted = false
         )
     }
 
