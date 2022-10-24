@@ -29,6 +29,7 @@ android {
     externalNativeBuild {
         cmake {
             path file('src/main/cpp/CMakeLists.txt')
+            version '3.24.0'
         }
     }
 
@@ -59,7 +60,6 @@ android {
         compose true
     }
     composeOptions {
-        kotlinCompilerVersion '1.6.10'
         kotlinCompilerExtensionVersion '1.1.1'
     }
 
