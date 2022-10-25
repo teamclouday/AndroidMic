@@ -24,10 +24,7 @@ import com.example.androidMic.R
 import com.example.androidMic.ui.Event
 import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.components.ManagerButton
-import com.example.androidMic.ui.utils.WindowInfo
-import com.example.androidMic.ui.utils.getBluetoothPermission
-import com.example.androidMic.ui.utils.getRecordAudioPermission
-import com.example.androidMic.ui.utils.getWifiPermission
+import com.example.androidMic.ui.utils.*
 import com.example.androidMic.utils.Modes.Companion.MODE_BLUETOOTH
 import com.example.androidMic.utils.Modes.Companion.MODE_USB
 import com.example.androidMic.utils.Modes.Companion.MODE_WIFI
@@ -188,6 +185,9 @@ private fun ButtonConnect(
     val bluetoothPermissionsState = rememberMultiplePermissionsState(
         permissions = getBluetoothPermission()
     )
+    val usbPermissionsState = rememberMultiplePermissionsState(
+        permissions = getUsbPermission()
+    )
 
     ManagerButton(
         onClick = {
@@ -205,7 +205,10 @@ private fun ButtonConnect(
                         mainViewModel.onEvent(Event.ConnectButton)
                 }
                 MODE_USB -> {
-
+                    if (!usbPermissionsState.allPermissionsGranted)
+                        usbPermissionsState.launchMultiplePermissionRequest()
+                    else
+                        mainViewModel.onEvent(Event.ConnectButton)
                 }
             }
         },
