@@ -148,6 +148,7 @@
     <Compile Include="Library\Streaming\StreamerBluetooth.cs" />
     <Compile Include="Library\Streaming\StreamerWifi.cs" />
     <Compile Include="Library\Streaming\StreamManager.cs" />
+    <Compile Include="Library\Streaming\StreamerAdb.cs" />
     <Compile Include="SelectNetworkWindow.xaml.cs">
       <DependentUpon>SelectNetworkWindow.xaml</DependentUpon>
     </Compile>

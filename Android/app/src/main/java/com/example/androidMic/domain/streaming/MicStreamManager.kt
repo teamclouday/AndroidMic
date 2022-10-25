@@ -34,7 +34,7 @@ class MicStreamManager(private val ctx: Context) {
                 BluetoothStreamer(ctx)
             }
             MODE_USB -> {
-                UsbAdbStreamer(ctx, 6000)
+                AdbStreamer(ctx, 6000)
             }
             else -> throw IllegalArgumentException("Unknown mode")
         }
