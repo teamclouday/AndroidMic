@@ -27,12 +27,9 @@ namespace AndroidMic.Streaming
         private TcpClient mTcpClient = null;
 
         private bool isTryConnectAllowed = false;
-        private bool isProcessAllowed = false;
         private bool isForwardCreated = false;
 
         private Thread mThreadTryConnect = null;
-        private Thread mThreadProcess = null;
-
 
         private readonly string LOCAL_ADDRESS = "localhost";
         private readonly int port_local = 6000;
@@ -41,14 +38,18 @@ namespace AndroidMic.Streaming
 
         public StreamerAdb()
         {
+            Debug.WriteLine("[StreamerAdb] init");
             mServer.StartServer("./../../ADB/adb.exe", false);
             Status = ServerStatus.LISTENING;
+
             isTryConnectAllowed = true;
-            TryConnect();
+            mThreadTryConnect = new Thread(new ThreadStart(TryConnect));
+            mThreadTryConnect.Start();
         }
 
         private void TryConnect()
         {
+            Debug.WriteLine("[StreamerAdb] TryConnect");
             while (isTryConnectAllowed)
             {
                 if (RefreshDevice())
@@ -62,11 +63,11 @@ namespace AndroidMic.Streaming
                     if (mAdbClient.CreateForward(mDevice, port_local, port_remote) > 0)
                     {
                         isForwardCreated = true;
-
+                        Debug.WriteLine("[StreamerAdb] foward created");
                         // if forward tcp created, try to connect with TCP
                         if (Connect())
                         {
-                            isProcessAllowed = true;
+                            DebugLog("Device connected\nclient [Model]: " + mDevice.Model);
                             isTryConnectAllowed = false;
                             Status = ServerStatus.CONNECTED;
                             break;
@@ -74,19 +75,18 @@ namespace AndroidMic.Streaming
                         // else remove TCP client and loop again
                         else
                         {
-                            isTryConnectAllowed = false;
-                            break;
+                            Disconnect();
                         }
                     }
                     else
                     {
                         Debug.WriteLine("[ADBHelper] failed to CreateForward on port " + port_local);
+                        DebugLog("TPC port (" + port_local + ") has been taken\nUnable to start USB connection");
                         isTryConnectAllowed = false;
-                        isProcessAllowed = false;
                         break;
                     }
-
                 }
+                Thread.Sleep(500); // refresh every 0.5s
             }
         }
 
@@ -162,20 +162,25 @@ namespace AndroidMic.Streaming
 
         public override void Shutdown()
         {
-            DebugLog("Shutdown");
             // stop try connect thread
             isTryConnectAllowed = false;
             if (mThreadTryConnect != null && mThreadTryConnect.IsAlive)
             {
                 if (!mThreadTryConnect.Join(MAX_WAIT_TIME)) mThreadTryConnect.Abort();
             }
-            // stop process thread
-            isProcessAllowed = false;
-            if (mThreadProcess != null && mThreadProcess.IsAlive)
-            {
-                if (!mThreadProcess.Join(MAX_WAIT_TIME)) mThreadProcess.Abort();
-            }
-            // disconnect
+
+            Disconnect();
+
+            // stop forwarding
+            if(isForwardCreated)
+                mAdbClient.RemoveAllForwards(mDevice);
+            Status = ServerStatus.DEFAULT;
+            DebugLog("Shutdown");
+        }
+
+        // disconnect from tcp server
+        private void Disconnect()
+        {
             if (mTcpClient != null)
             {
                 mTcpClient.Close();
@@ -183,8 +188,6 @@ namespace AndroidMic.Streaming
                 mTcpClient = null;
             }
             Debug.WriteLine("[ADBHelper] disconnected");
-            // stop forwarding
-            mAdbClient.RemoveAllForwards(mDevice);
         }
 
 

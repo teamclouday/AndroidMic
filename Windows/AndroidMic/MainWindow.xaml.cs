@@ -309,11 +309,15 @@ namespace AndroidMic
                     if (windowInitialized)
                         Properties.Settings.Default.MainWindow_ConnectViaBluetooth = true;
                 }
-                else
+                else if(rb.Content.ToString().StartsWith("W"))
                 {
                     streamM?.SetConnectionType(StreamManager.ConnectionType.WIFI);
                     if (windowInitialized)
                         Properties.Settings.Default.MainWindow_ConnectViaBluetooth = false;
+                }
+                else
+                {
+                    streamM?.SetConnectionType(StreamManager.ConnectionType.USB);
                 }
             }
         }

@@ -17,7 +17,7 @@ class AdbStreamer(private val ctx: Context,
 
     private val TAG: String = "UsbAdbStreamer"
 
-    private val MAX_WAIT_TIME = 1500 // timeout
+    private val MAX_WAIT_TIME = 10000 // timeout
 
 
     private var mServer : ServerSocket
@@ -32,17 +32,19 @@ class AdbStreamer(private val ctx: Context,
             Log.d(TAG, "init failed: ${e.message}")
             throw IllegalArgumentException("USB tcp is not initialized successfully")
         }
+        Log.d(TAG, "init success")
     }
 
     override fun connect(): Boolean
     {
         mSocket = try {
             mServer.accept()
-        } catch (e : java.lang.Exception) {
-            Log.d(TAG, "accept failed: ${e.message}")
+        } catch (e : java.net.SocketTimeoutException) {
+            Log.d(TAG, "accept failed: ${e.message}\n${e.printStackTrace()}")
             null
         } ?: return false
         mSocket?.keepAlive = true
+        Log.d(TAG, "connect success")
         return true
     }
 
@@ -65,6 +67,7 @@ class AdbStreamer(private val ctx: Context,
     {
         disconnect()
         ignore { mServer.close() }
+        Log.d(TAG, "shutdown")
     }
 
     override suspend fun stream(audioBuffer: AudioBuffer) = withContext(Dispatchers.IO)

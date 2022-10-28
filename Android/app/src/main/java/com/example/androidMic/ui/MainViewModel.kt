@@ -235,10 +235,7 @@ class MainViewModel(
         if (reply != null) addLogMessage(reply)
 
         val result = msg.data.getBoolean("result")
-        savedStateHandle["uiStates"] = uiStates.value.copy(
-            switchAudioIsClickable = true,
-            buttonConnectIsClickable = true
-        )
+
         val log = if (result) "handleSuccess" else "handleFailure"
         // for log
         val commandService = CommandService()
