@@ -1,6 +1,5 @@
 package com.example.androidMic.ui.utils
 
-import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.example.androidMic.AndroidMicApp
 import com.example.androidMic.utils.Modes.Companion.MODE_WIFI

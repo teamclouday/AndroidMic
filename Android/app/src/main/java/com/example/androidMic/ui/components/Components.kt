@@ -3,12 +3,16 @@ package com.example.androidMic.ui.components
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.Surface
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.example.androidMic.ui.Event
 import com.example.androidMic.ui.MainViewModel
@@ -78,7 +82,7 @@ fun ManagerCheckBox(
 }
 
 @Composable
-fun ManagerSetting(mainViewModel : MainViewModel, item : MenuItem) {
+fun ManagerSetting(mainViewModel: MainViewModel, item: MenuItem) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -108,4 +112,23 @@ fun ManagerSetting(mainViewModel : MainViewModel, item : MenuItem) {
             )
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ManagerOutlinedTextField(temp: MutableState<String>, id: Int) {
+    OutlinedTextField(
+        modifier = Modifier.padding(horizontal = 10.dp),
+        value = temp.value,
+        onValueChange = { temp.value = it },
+        enabled = true,
+        singleLine = true,
+        label = { Text(stringResource(id = id)) },
+        textStyle = MaterialTheme.typography.bodyMedium,
+        colors = TextFieldDefaults.textFieldColors(
+            textColor = MaterialTheme.colorScheme.onSurface,
+            containerColor = MaterialTheme.colorScheme.surface
+        ),
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+    )
 }

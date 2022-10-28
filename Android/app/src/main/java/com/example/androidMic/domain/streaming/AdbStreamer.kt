@@ -7,7 +7,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import java.io.IOException
-import java.lang.IllegalArgumentException
 import java.net.ServerSocket
 import java.net.Socket
 
@@ -18,26 +17,24 @@ class AdbStreamer(port: Int) : Streamer {
     private val MAX_WAIT_TIME = 10000 // timeout
 
 
-    private var mServer : ServerSocket
-    private var mSocket : Socket? = null
+    private var mServer: ServerSocket
+    private var mSocket: Socket? = null
 
-    init
-    {
+    init {
         try {
             mServer = ServerSocket(port)
             mServer.soTimeout = MAX_WAIT_TIME
-        } catch (e : Exception) {
+        } catch (e: Exception) {
             Log.d(TAG, "init failed: ${e.message}")
             throw IllegalArgumentException("USB tcp is not initialized successfully")
         }
         Log.d(TAG, "init success")
     }
 
-    override fun connect(): Boolean
-    {
+    override fun connect(): Boolean {
         mSocket = try {
             mServer.accept()
-        } catch (e : java.net.SocketTimeoutException) {
+        } catch (e: java.net.SocketTimeoutException) {
             Log.d(TAG, "accept failed: ${e.message}\n${e.printStackTrace()}")
             null
         } ?: return false
@@ -46,12 +43,11 @@ class AdbStreamer(port: Int) : Streamer {
         return true
     }
 
-    override fun disconnect(): Boolean
-    {
-        if(mSocket == null) return false
+    override fun disconnect(): Boolean {
+        if (mSocket == null) return false
         try {
             mSocket?.close()
-        } catch(e : IOException) {
+        } catch (e: IOException) {
             Log.d(TAG, "disconnect [close]: ${e.message}")
             mSocket = null
             return false
@@ -61,8 +57,7 @@ class AdbStreamer(port: Int) : Streamer {
         return true
     }
 
-    override fun shutdown()
-    {
+    override fun shutdown() {
         disconnect()
         ignore { mServer.close() }
         Log.d(TAG, "shutdown")
@@ -94,14 +89,12 @@ class AdbStreamer(port: Int) : Streamer {
         }
     }
 
-    override fun getInfo(): String
-    {
-        if(mSocket == null || mSocket?.isConnected != true) return ""
+    override fun getInfo(): String {
+        if (mSocket == null || mSocket?.isConnected != true) return ""
         return "[Device Address]:${mSocket?.remoteSocketAddress}"
     }
 
-    override fun isAlive(): Boolean
-    {
+    override fun isAlive(): Boolean {
         return (mSocket != null && mSocket?.isConnected == true)
     }
 

@@ -94,8 +94,7 @@ class MainViewModel(
                 if (uiStates.value.isStreamStarted) {
                     Log.d(TAG, "onConnectButton: stop stream")
                     reply = Message.obtain(null, Command.COMMAND_STOP_STREAM)
-                }
-                else {
+                } else {
                     val data = Bundle()
                     if (uiStates.value.mode == MODE_WIFI) {
                         try {
@@ -114,7 +113,7 @@ class MainViewModel(
                             return
                         }
                     }
-                    if(uiStates.value.mode == MODE_USB) {
+                    if (uiStates.value.mode == MODE_USB) {
                         val port = preferences.getUsbPort()
                         data.putInt("PORT", port)
                     }
@@ -165,7 +164,7 @@ class MainViewModel(
             is Event.SetUsbPort -> {
                 try {
                     preferences.setUsbPort(event.port)
-                } catch (e : Exception) {
+                } catch (e: Exception) {
                     Toast.makeText(
                         getApplication(),
                         getApplication<AndroidMicApp>().getString(R.string.invalid_port),

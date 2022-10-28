@@ -59,7 +59,7 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(25.dp))
 
                     // system
                     ManagerCheckBox(
@@ -76,7 +76,7 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                         text = stringResource(id = R.string.system_theme)
                     )
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     // light
                     ManagerCheckBox(
@@ -92,7 +92,7 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                         text = stringResource(id = R.string.light_theme)
                     )
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     // dark
                     ManagerCheckBox(
@@ -109,7 +109,7 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                     )
 
                     Divider(
-                        modifier = Modifier.padding(10.dp),
+                        modifier = Modifier.padding(20.dp),
                         color = MaterialTheme.colorScheme.onSurface
                     )
 
@@ -125,7 +125,7 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                         text = stringResource(id = R.string.dynamic_color)
                     )
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(25.dp))
                 }
             }
         }

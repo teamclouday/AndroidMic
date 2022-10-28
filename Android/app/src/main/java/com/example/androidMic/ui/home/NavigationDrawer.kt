@@ -1,27 +1,24 @@
 package com.example.androidMic.ui.home
 
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Divider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.androidMic.R
-import com.example.androidMic.ui.Event
 import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.components.ManagerSetting
-import com.example.androidMic.ui.home.dialog.DialogWifiIpPort
 import com.example.androidMic.ui.home.dialog.DialogMode
 import com.example.androidMic.ui.home.dialog.DialogTheme
 import com.example.androidMic.ui.home.dialog.DialogUsbPort
+import com.example.androidMic.ui.home.dialog.DialogWifiIpPort
 import com.example.androidMic.utils.Modes.Companion.MODE_BLUETOOTH
 import com.example.androidMic.utils.Modes.Companion.MODE_USB
 import com.example.androidMic.utils.Modes.Companion.MODE_WIFI
@@ -80,16 +77,16 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
 
     val otherItems = listOf(
         MenuItem(
-        id = R.string.drawerTheme,
-        title = stringResource(id = R.string.drawerTheme),
-        subTitle = when (uiStates.theme) {
-            SYSTEM_THEME -> stringResource(id = R.string.system_theme)
-            LIGHT_THEME -> stringResource(id = R.string.light_theme)
-            DARK_THEME -> stringResource(id = R.string.dark_theme)
-            else -> "NONE"
-        },
-        contentDescription = "set theme",
-        icon = R.drawable.dark_mode_24px
+            id = R.string.drawerTheme,
+            title = stringResource(id = R.string.drawerTheme),
+            subTitle = when (uiStates.theme) {
+                SYSTEM_THEME -> stringResource(id = R.string.system_theme)
+                LIGHT_THEME -> stringResource(id = R.string.light_theme)
+                DARK_THEME -> stringResource(id = R.string.dark_theme)
+                else -> "NONE"
+            },
+            contentDescription = "set theme",
+            icon = R.drawable.dark_mode_24px
         )
     )
 
