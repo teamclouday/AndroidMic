@@ -177,7 +177,13 @@ namespace AndroidMic.Streaming
 
             // stop forwarding
             if(isForwardCreated)
-                mAdbClient.RemoveAllForwards(mDevice);
+                try {
+                    mAdbClient.RemoveAllForwards(mDevice);
+                } catch (Exception e)
+                {
+                    DebugLog("Process: " + e.Message);
+                }
+                
             Status = ServerStatus.DEFAULT;
             DebugLog("Shutdown");
         }
