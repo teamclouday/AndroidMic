@@ -28,7 +28,9 @@ namespace AndroidMic.Streaming
         private readonly AdbServer mServer = new AdbServer();
         private readonly AdvancedAdbClient mAdbClient = new AdvancedAdbClient();
         private DeviceData mDevice = null;
+
         private TcpClient mTcpClient = null;
+        private NetworkStream stream = null;
 
         private bool isTryConnectAllowed = false;
         private bool isForwardCreated = false;
@@ -36,7 +38,7 @@ namespace AndroidMic.Streaming
         private Thread mThreadTryConnect = null;
 
         private readonly string LOCAL_ADDRESS = "localhost";
-        private readonly int port_local = 6000;
+        private readonly int port_local = 5999;
         private readonly int port_remote = 6000;
 
 
@@ -127,10 +129,22 @@ namespace AndroidMic.Streaming
             }
             mTcpClient.EndConnect(connection);
             Debug.WriteLine("[ADBHelper] mTcpClient.Connected = " + mTcpClient.Connected);
+
+            try
+            {
+                stream = mTcpClient.GetStream();
+            }
+            catch (Exception e)
+            {
+                DebugLog("Process: " + e.Message);
+                return false;
+            }
             return mTcpClient.Connected;
         }
 
-        
+
+
+
 
 
         public override async Task Process(AudioBuffer sharedBuffer)
@@ -140,7 +154,6 @@ namespace AndroidMic.Streaming
 
             try
             {
-                var stream = mTcpClient.GetStream();
                 var result = await sharedBuffer.OpenWriteRegion(BUFFER_SIZE);
                 count = result.Item1;
                 var offset = result.Item2;
@@ -176,14 +189,16 @@ namespace AndroidMic.Streaming
             Disconnect();
 
             // stop forwarding
-            if(isForwardCreated)
-                try {
+            if (isForwardCreated)
+                try
+                {
                     mAdbClient.RemoveAllForwards(mDevice);
-                } catch (Exception e)
+                }
+                catch (Exception e)
                 {
                     DebugLog("Process: " + e.Message);
                 }
-                
+
             Status = ServerStatus.DEFAULT;
             DebugLog("Shutdown");
         }
@@ -209,7 +224,7 @@ namespace AndroidMic.Streaming
 
         public override string GetServerInfo()
         {
-            
+
             return "[Local_port]: " + port_local + "\n[remote_port]: " + port_remote;
         }
 

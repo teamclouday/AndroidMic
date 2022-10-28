@@ -22,7 +22,7 @@ import com.example.androidMic.utils.States
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
+fun DialogWifiIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
 
     val tempIP = remember {
         mutableStateOf(uiStates.IP)
@@ -35,7 +35,7 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
         Dialog(
             onDismissRequest = {
                 tempIP.value = uiStates.IP; tempPort.value = uiStates.PORT
-                mainViewModel.onEvent(Event.DismissDialog(R.string.drawerIpPort))
+                mainViewModel.onEvent(Event.DismissDialog(R.string.drawerWifiIpPort))
             }
         ) {
             Surface(
@@ -97,7 +97,7 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                         ManagerButton(
                             onClick = {
                                 mainViewModel.onEvent(
-                                    Event.SetIpPort(
+                                    Event.SetWifiIpPort(
                                         tempIP.value,
                                         tempPort.value
                                     )
@@ -113,7 +113,7 @@ fun DialogIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                         ManagerButton(
                             onClick = {
                                 tempIP.value = uiStates.IP; tempPort.value = uiStates.PORT
-                                mainViewModel.onEvent(Event.DismissDialog(R.string.drawerIpPort))
+                                mainViewModel.onEvent(Event.DismissDialog(R.string.drawerWifiIpPort))
                             },
                             text = stringResource(id = R.string.cancel),
                             modifier = Modifier.fillMaxWidth(0.6f)

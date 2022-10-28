@@ -10,17 +10,10 @@
     Setting
     -->
     <string name="drawerHeader">Paramètre</string>
-
-    <string name="drawerIpPort">IP:PORT</string>
-    <string name="dialog_ip">IP</string>
-    <string name="dialog_port">PORT</string>
-
-    <string name="drawerUsbPort">PORT</string>
+    <string name="drawer_subtitle_connection">Connection</string>
+    <string name="drawer_subtitle_other">Autre</string>
 
     <string name="drawerMode">Mode de connection</string>
-    <string name="mode_wifi">WIFI</string>
-    <string name="mode_bluetooth">BLUETOOTH</string>
-    <string name="mode_usb">USB (ADB)</string>
 
     <string name="drawerTheme">Thèmes</string>
     <string name="system_theme">Theme du system</string>
@@ -36,7 +29,8 @@
     <!--
     Error messages
     -->
-    <string name="invalid_ip">IP:PORT invalide</string>
+    <string name="invalid_ip_port">IP:PORT invalide</string>
+    <string name="invalid_port">PORT invalide</string>
 
     <string name="error">Erreur\n</string>
     <string name="failed_to_connect">Echec de connection</string>

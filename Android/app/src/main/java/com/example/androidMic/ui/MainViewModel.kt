@@ -58,7 +58,7 @@ class MainViewModel(
 
     init {
         Log.d(TAG, "init")
-        val ipPort = preferences.getIpPort(true)
+        val ipPort = preferences.getWifiIpPort(true)
         val usbPort = preferences.getUsbPort()
         val mode = preferences.getMode()
         val theme = preferences.getTheme()
@@ -99,13 +99,13 @@ class MainViewModel(
                     val data = Bundle()
                     if (uiStates.value.mode == MODE_WIFI) {
                         try {
-                            val (ip, port) = preferences.getIpPort(false)
+                            val (ip, port) = preferences.getWifiIpPort(false)
                             data.putString("IP", ip)
                             data.putInt("PORT", port)
                         } catch (e: Exception) {
                             Toast.makeText(
                                 getApplication(),
-                                getApplication<AndroidMicApp>().getString(R.string.invalid_ip),
+                                getApplication<AndroidMicApp>().getString(R.string.invalid_ip_port),
                                 Toast.LENGTH_SHORT
                             ).show()
                             savedStateHandle["uiStates"] = uiStates.value.copy(
@@ -144,13 +144,13 @@ class MainViewModel(
                 )
             }
 
-            is Event.SetIpPort -> {
+            is Event.SetWifiIpPort -> {
                 try {
-                    preferences.setIpPort(Pair(event.ip, event.port))
+                    preferences.setWifiIpPort(Pair(event.ip, event.port))
                 } catch (e: Exception) {
                     Toast.makeText(
                         getApplication(),
-                        getApplication<AndroidMicApp>().getString(R.string.invalid_ip),
+                        getApplication<AndroidMicApp>().getString(R.string.invalid_ip_port),
                         Toast.LENGTH_SHORT
                     ).show()
                     return
@@ -163,7 +163,17 @@ class MainViewModel(
             }
 
             is Event.SetUsbPort -> {
-                preferences.setUsbPort(event.port)
+                try {
+                    preferences.setUsbPort(event.port)
+                } catch (e : Exception) {
+                    Toast.makeText(
+                        getApplication(),
+                        getApplication<AndroidMicApp>().getString(R.string.invalid_port),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return
+                }
+
 
                 savedStateHandle["uiStates"] = uiStates.value.copy(
                     usbPort = event.port,
@@ -180,7 +190,7 @@ class MainViewModel(
 
             is Event.ShowDialog -> {
                 when (event.id) {
-                    R.string.drawerIpPort -> savedStateHandle["uiStates"] =
+                    R.string.drawerWifiIpPort -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogIpPortIsVisible = true)
                     R.string.drawerUsbPort -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogUsbPortIsVisible = true)
@@ -192,7 +202,7 @@ class MainViewModel(
             }
             is Event.DismissDialog -> {
                 when (event.id) {
-                    R.string.drawerIpPort -> savedStateHandle["uiStates"] =
+                    R.string.drawerWifiIpPort -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogIpPortIsVisible = false)
                     R.string.drawerUsbPort -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogUsbPortIsVisible = false)

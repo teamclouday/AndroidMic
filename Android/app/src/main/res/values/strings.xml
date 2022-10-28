@@ -12,17 +12,19 @@
     Setting
     -->
     <string name="drawerHeader">Setting</string>
+    <string name="drawer_subtitle_connection">Connection</string>
+    <string name="drawer_subtitle_other">Other</string>
 
-    <string name="drawerIpPort">IP:PORT</string>
-    <string name="dialog_ip">IP</string>
-    <string name="dialog_port">PORT</string>
+    <string name="drawerWifiIpPort" translatable="false">IP:PORT</string>
+    <string name="dialog_ip" translatable="false">IP</string>
+    <string name="dialog_port" translatable="false">PORT</string>
 
-    <string name="drawerUsbPort">PORT</string>
+    <string name="drawerUsbPort" translatable="false">PORT</string>
 
     <string name="drawerMode">Connection mode</string>
-    <string name="mode_wifi">WIFI</string>
-    <string name="mode_bluetooth">BLUETOOTH</string>
-    <string name="mode_usb">USB (ADB)</string>
+    <string name="mode_wifi" translatable="false">WIFI</string>
+    <string name="mode_bluetooth" translatable="false">BLUETOOTH</string>
+    <string name="mode_usb" translatable="false">USB (ADB)</string>
 
     <string name="drawerTheme">Themes</string>
     <string name="system_theme">System theme</string>
@@ -38,7 +40,8 @@
     <!--
     Error messages
     -->
-    <string name="invalid_ip">IP:PORT invalid</string>
+    <string name="invalid_ip_port">IP:PORT invalid</string>
+    <string name="invalid_port">IP:PORT invalid</string>
 
     <string name="error">Error\n</string>
     <string name="failed_to_connect">Failed to connect</string>

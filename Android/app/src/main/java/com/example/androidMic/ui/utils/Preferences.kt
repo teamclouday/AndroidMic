@@ -1,5 +1,6 @@
 package com.example.androidMic.ui.utils
 
+import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import com.example.androidMic.AndroidMicApp
 import com.example.androidMic.utils.Modes.Companion.MODE_WIFI
@@ -30,7 +31,7 @@ class Preferences(private val androidMicApp: AndroidMicApp) {
         private const val DEFAULT_DYNAMIC_COLOR = true
     }
 
-    fun setIpPort(pair: Pair<String, String>) {
+    fun setWifiIpPort(pair: Pair<String, String>) {
         val ip = pair.first
         val port = pair.second.toInt()
         InetSocketAddress(ip, port)
@@ -46,7 +47,7 @@ class Preferences(private val androidMicApp: AndroidMicApp) {
         editor.apply()
     }
 
-    fun getIpPort(withDefaultValue: Boolean): Pair<String, Int> {
+    fun getWifiIpPort(withDefaultValue: Boolean): Pair<String, Int> {
         val userSettings = androidMicApp.getSharedPreferences(
             PREFERENCES_NAME,
             AppCompatActivity.MODE_PRIVATE
@@ -74,14 +75,15 @@ class Preferences(private val androidMicApp: AndroidMicApp) {
     }
 
 
-    fun setUsbPort(port: String) {
+    fun setUsbPort(_port: String) {
+        val port = _port.toInt()
         val userSettings = androidMicApp.getSharedPreferences(
             PREFERENCES_NAME,
             AppCompatActivity.MODE_PRIVATE
         )
 
         val editor = userSettings.edit()
-        editor.putString(USB_PORT_KEY, port)
+        editor.putInt(USB_PORT_KEY, port)
         editor.apply()
     }
 
