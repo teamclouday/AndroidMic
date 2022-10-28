@@ -3,6 +3,7 @@ package com.example.androidMic.ui.home
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
@@ -20,6 +21,7 @@ import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.home.dialog.DialogIpPort
 import com.example.androidMic.ui.home.dialog.DialogMode
 import com.example.androidMic.ui.home.dialog.DialogTheme
+import com.example.androidMic.ui.home.dialog.DialogUsbPort
 import com.example.androidMic.utils.Modes.Companion.MODE_BLUETOOTH
 import com.example.androidMic.utils.Modes.Companion.MODE_USB
 import com.example.androidMic.utils.Modes.Companion.MODE_WIFI
@@ -40,19 +42,12 @@ data class MenuItem(
 fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
 
     DialogIpPort(mainViewModel = mainViewModel, uiStates = uiStates)
+    DialogUsbPort(mainViewModel = mainViewModel, uiStates = uiStates)
     DialogMode(mainViewModel = mainViewModel, uiStates = uiStates)
     DialogTheme(mainViewModel = mainViewModel, uiStates = uiStates)
 
 
     val items = listOf(
-        MenuItem(
-            id = R.string.drawerIpPort,
-            title = stringResource(id = R.string.drawerIpPort),
-            subTitle = uiStates.IP + ":" + uiStates.PORT,
-            contentDescription = "set ip and port",
-            icon = R.drawable.wifi_24px
-
-        ),
         MenuItem(
             id = R.string.drawerMode,
             title = stringResource(id = R.string.drawerMode),
@@ -64,6 +59,22 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
             },
             contentDescription = "set mode",
             icon = R.drawable.settings_24px
+        ),
+        MenuItem(
+            id = R.string.drawerIpPort,
+            title = stringResource(id = R.string.drawerIpPort),
+            subTitle = uiStates.IP + ":" + uiStates.PORT,
+            contentDescription = "set ip and port",
+            icon = R.drawable.wifi_24px
+
+        ),
+        MenuItem(
+            id = R.string.drawerUsbPort,
+            title = stringResource(id = R.string.drawerUsbPort),
+            subTitle = uiStates.usbPort,
+            contentDescription = "set usb port",
+            icon = R.drawable.usb_24px
+
         ),
         MenuItem(
             id = R.string.drawerTheme,
@@ -80,6 +91,7 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
     )
 
     LazyColumn {
+        // setting title
         item {
             Box(
                 modifier = Modifier
@@ -96,36 +108,47 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
             Divider(color = MaterialTheme.colorScheme.onBackground)
         }
         items(items) { item ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        mainViewModel.onEvent(Event.ShowDialog(item.id))
-                    }
-                    .padding(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Icon(
-                    painter = painterResource(id = item.icon),
-                    contentDescription = item.contentDescription,
-                    tint = MaterialTheme.colorScheme.onBackground
-                )
-                Spacer(modifier = Modifier.width(16.dp))
-                Column {
-                    Text(
-                        text = item.title,
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-
-                    Text(
-                        text = item.subTitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
+            var shouldShowItem = true
+            when (uiStates.mode) {
+                MODE_WIFI -> if (item.id == R.string.drawerUsbPort) shouldShowItem = false
+                MODE_USB -> if (item.id == R.string.drawerIpPort) shouldShowItem = false
+                MODE_BLUETOOTH -> {
+                    if (item.id == R.string.drawerUsbPort) shouldShowItem = false
+                    if (item.id == R.string.drawerIpPort) shouldShowItem = false
                 }
             }
-            Divider(color = MaterialTheme.colorScheme.onBackground)
+            if (shouldShowItem) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            mainViewModel.onEvent(Event.ShowDialog(item.id))
+                        }
+                        .padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        painter = painterResource(id = item.icon),
+                        contentDescription = item.contentDescription,
+                        tint = MaterialTheme.colorScheme.onBackground
+                    )
+                    Spacer(modifier = Modifier.width(16.dp))
+                    Column {
+                        Text(
+                            text = item.title,
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+
+                        Text(
+                            text = item.subTitle,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                }
+                Divider(color = MaterialTheme.colorScheme.onBackground)
+            }
         }
     }
 }

@@ -18,10 +18,13 @@ sealed interface States : java.io.Serializable {
         val IP: String = "",
         val PORT: String = "",
 
+        val usbPort: String = "",
+
         val textLog: String = "",
 
         val dialogModesIsVisible: Boolean = false,
         val dialogIpPortIsVisible: Boolean = false,
+        val dialogUsbPortIsVisible: Boolean = false,
         val dialogThemeIsVisible: Boolean = false,
 
         val theme: Int = SYSTEM_THEME,

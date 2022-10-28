@@ -13,6 +13,7 @@ import com.example.androidMic.utils.Command
 import com.example.androidMic.utils.Command.Companion.COMMAND_DISC_STREAM
 import com.example.androidMic.utils.Command.Companion.COMMAND_GET_STATUS
 import com.example.androidMic.utils.CommandService
+import com.example.androidMic.utils.Modes.Companion.MODE_USB
 import com.example.androidMic.utils.Modes.Companion.MODE_WIFI
 import com.example.androidMic.utils.States
 
@@ -58,6 +59,7 @@ class MainViewModel(
     init {
         Log.d(TAG, "init")
         val ipPort = preferences.getIpPort(true)
+        val usbPort = preferences.getUsbPort()
         val mode = preferences.getMode()
         val theme = preferences.getTheme()
         val dynamicColor = preferences.getDynamicColor()
@@ -65,6 +67,7 @@ class MainViewModel(
         savedStateHandle["uiStates"] = uiStates.value.copy(
             IP = ipPort.first,
             PORT = ipPort.second.toString(),
+            usbPort = usbPort.toString(),
             mode = mode,
             theme = theme,
             dynamicColor = dynamicColor
@@ -91,7 +94,8 @@ class MainViewModel(
                 if (uiStates.value.isStreamStarted) {
                     Log.d(TAG, "onConnectButton: stop stream")
                     reply = Message.obtain(null, Command.COMMAND_STOP_STREAM)
-                } else {
+                }
+                else {
                     val data = Bundle()
                     if (uiStates.value.mode == MODE_WIFI) {
                         try {
@@ -109,6 +113,10 @@ class MainViewModel(
                             )
                             return
                         }
+                    }
+                    if(uiStates.value.mode == MODE_USB) {
+                        val port = preferences.getUsbPort()
+                        data.putInt("PORT", port)
                     }
                     data.putInt("MODE", uiStates.value.mode)
                     reply = Message.obtain(null, Command.COMMAND_START_STREAM)
@@ -153,6 +161,15 @@ class MainViewModel(
                     dialogIpPortIsVisible = false
                 )
             }
+
+            is Event.SetUsbPort -> {
+                preferences.setUsbPort(event.port)
+
+                savedStateHandle["uiStates"] = uiStates.value.copy(
+                    usbPort = event.port,
+                    dialogUsbPortIsVisible = false
+                )
+            }
             is Event.SetMode -> {
                 preferences.setMode(event.mode)
                 savedStateHandle["uiStates"] = uiStates.value.copy(
@@ -165,6 +182,8 @@ class MainViewModel(
                 when (event.id) {
                     R.string.drawerIpPort -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogIpPortIsVisible = true)
+                    R.string.drawerUsbPort -> savedStateHandle["uiStates"] =
+                        uiStates.value.copy(dialogUsbPortIsVisible = true)
                     R.string.drawerMode -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogModesIsVisible = true)
                     R.string.drawerTheme -> savedStateHandle["uiStates"] =
@@ -175,6 +194,8 @@ class MainViewModel(
                 when (event.id) {
                     R.string.drawerIpPort -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogIpPortIsVisible = false)
+                    R.string.drawerUsbPort -> savedStateHandle["uiStates"] =
+                        uiStates.value.copy(dialogUsbPortIsVisible = false)
                     R.string.drawerMode -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogModesIsVisible = false)
                     R.string.drawerTheme -> savedStateHandle["uiStates"] =

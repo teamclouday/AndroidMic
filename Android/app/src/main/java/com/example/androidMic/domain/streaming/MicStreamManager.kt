@@ -28,13 +28,13 @@ class MicStreamManager(private val ctx: Context) {
 
         streamer = when (mode) {
             MODE_WIFI -> {
-                WifiStreamer(ctx, ip, port)
+                WifiStreamer(ctx, ip!!, port!!)
             }
             MODE_BLUETOOTH -> {
                 BluetoothStreamer(ctx)
             }
             MODE_USB -> {
-                AdbStreamer(ctx, 6000)
+                AdbStreamer(port!!)
             }
             else -> throw IllegalArgumentException("Unknown mode")
         }

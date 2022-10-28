@@ -17,10 +17,12 @@
     <string name="dialog_ip">IP</string>
     <string name="dialog_port">PORT</string>
 
+    <string name="drawerUsbPort">PORT</string>
+
     <string name="drawerMode">Connection mode</string>
     <string name="mode_wifi">WIFI</string>
     <string name="mode_bluetooth">BLUETOOTH</string>
-    <string name="mode_usb">USB</string>
+    <string name="mode_usb">USB (ADB)</string>
 
     <string name="drawerTheme">Themes</string>
     <string name="system_theme">System theme</string>

@@ -8,6 +8,10 @@ using System.Net.Sockets;
 
 using AndroidMic.Audio;
 using System.Threading.Tasks;
+using AdvancedSharpAdbClient.DeviceCommands;
+using NAudio.CoreAudioApi;
+using System.Linq;
+using System.Net;
 
 
 // Reference: https://stackoverflow.com/questions/21748790/how-to-send-a-message-from-android-to-windows-using-usb
@@ -193,12 +197,14 @@ namespace AndroidMic.Streaming
 
         public override string GetClientInfo()
         {
-            return "GetClientInfo";
+
+            return "[Model]: " + mDevice.Model;
         }
 
         public override string GetServerInfo()
         {
-            return "GetServerInfo";
+            
+            return "[Local_port]: " + port_local + "\n[remote_port]: " + port_remote;
         }
 
         public override bool IsAlive()

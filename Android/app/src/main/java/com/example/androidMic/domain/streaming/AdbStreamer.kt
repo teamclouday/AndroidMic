@@ -1,6 +1,5 @@
 package com.example.androidMic.domain.streaming
 
-import android.content.Context
 import android.util.Log
 import com.example.androidMic.domain.audio.AudioBuffer
 import com.example.androidMic.utils.ignore
@@ -12,8 +11,7 @@ import java.lang.IllegalArgumentException
 import java.net.ServerSocket
 import java.net.Socket
 
-class AdbStreamer(private val ctx: Context,
-                  private val port: Int?) : Streamer {
+class AdbStreamer(port: Int) : Streamer {
 
     private val TAG: String = "UsbAdbStreamer"
 
@@ -26,7 +24,7 @@ class AdbStreamer(private val ctx: Context,
     init
     {
         try {
-            mServer = ServerSocket(port!!)
+            mServer = ServerSocket(port)
             mServer.soTimeout = MAX_WAIT_TIME
         } catch (e : Exception) {
             Log.d(TAG, "init failed: ${e.message}")
@@ -99,7 +97,7 @@ class AdbStreamer(private val ctx: Context,
     override fun getInfo(): String
     {
         if(mSocket == null || mSocket?.isConnected != true) return ""
-        return "[USB Mode]\n[Device Address] ${mSocket?.remoteSocketAddress}"
+        return "[Device Address]:${mSocket?.remoteSocketAddress}"
     }
 
     override fun isAlive(): Boolean
