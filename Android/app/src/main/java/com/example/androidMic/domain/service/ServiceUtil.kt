@@ -47,7 +47,7 @@ class MessageUi(private val ctx: ForegroundService) {
 
 
         val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
-            .setSmallIcon(R.drawable.icon)
+            .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(ctx.getString(R.string.app_name))
             .setContentText(ctx.getString(R.string.notification_info))
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
