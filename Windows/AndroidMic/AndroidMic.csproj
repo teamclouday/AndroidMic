@@ -228,6 +228,9 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="ADB\adb.exe" />
+    <Content Include="ADB\AdbWinApi.dll" />
+    <Content Include="ADB\AdbWinUsbApi.dll" />
     <Content Include="libspeexdsp.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
