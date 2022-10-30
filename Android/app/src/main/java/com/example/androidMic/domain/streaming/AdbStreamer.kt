@@ -3,73 +3,54 @@ package com.example.androidMic.domain.streaming
 import android.util.Log
 import com.example.androidMic.domain.audio.AudioBuffer
 import com.example.androidMic.utils.ignore
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
+import java.io.DataInputStream
+import java.io.DataOutputStream
 import java.io.IOException
+import java.net.InetSocketAddress
 import java.net.ServerSocket
 import java.net.Socket
+import java.net.SocketTimeoutException
 
-class AdbStreamer(port: Int) : Streamer {
+class AdbStreamer(val port: Int) : Streamer {
 
     private val TAG: String = "UsbAdbStreamer"
 
-    private val MAX_WAIT_TIME = 10000 // timeout
+    private val MAX_WAIT_TIME = 1500 // timeout
 
+    private var socket: Socket? = null
+    private val address: String = "127.0.0.1"
 
-    private var mServer: ServerSocket
-    private var mSocket: Socket? = null
-
-    init {
-        try {
-            mServer = ServerSocket(port)
-            mServer.soTimeout = MAX_WAIT_TIME
-        } catch (e: Exception) {
-            Log.d(TAG, "init failed: ${e.message}")
-            throw IllegalArgumentException("USB tcp is not initialized successfully")
-        }
-        Log.d(TAG, "init success")
-    }
-
+    // connect to server
     override fun connect(): Boolean {
-        mSocket = try {
-            mServer.accept()
-        } catch (e: java.net.SocketTimeoutException) {
-            Log.d(TAG, "accept failed: ${e.message}\n${e.printStackTrace()}")
+        // create socket
+        socket = Socket()
+        try {
+            socket?.connect(InetSocketAddress(address, port), MAX_WAIT_TIME)
+        } catch (e: IOException) {
+            Log.d(TAG, "connect [Socket]: ${e.message}")
+            null
+        } catch (e: SocketTimeoutException) {
+            Log.d(TAG, "connect [Socket]: ${e.message}")
             null
         } ?: return false
-        mSocket?.keepAlive = true
-        Log.d(TAG, "connect success")
-        return true
-    }
-
-    override fun disconnect(): Boolean {
-        if (mSocket == null) return false
-        try {
-            mSocket?.close()
-        } catch (e: IOException) {
-            Log.d(TAG, "disconnect [close]: ${e.message}")
-            mSocket = null
+        socket?.soTimeout = MAX_WAIT_TIME
+        // test server
+        if (!testConnection(socket!!)) {
+            socket?.close()
+            socket = null
             return false
         }
-        mSocket = null
-        Log.d(TAG, "disconnect: complete")
         return true
     }
 
-    override fun shutdown() {
-        disconnect()
-        ignore { mServer.close() }
-        Log.d(TAG, "shutdown")
-    }
-
+    // stream data through socket
     override suspend fun stream(audioBuffer: AudioBuffer) = withContext(Dispatchers.IO)
     {
-        if (mSocket == null || mSocket?.isConnected != true || audioBuffer.isEmpty()) return@withContext
+        if (socket == null || socket?.isConnected != true || audioBuffer.isEmpty()) return@withContext
         var readSize = 0
-
         try {
-            val streamOut = mSocket!!.outputStream
+            val streamOut = socket!!.outputStream
             val region = audioBuffer.openReadRegion(Streamer.BUFFER_SIZE)
             val regionSize = region.first
             val regionOffset = region.second
@@ -89,13 +70,69 @@ class AdbStreamer(port: Int) : Streamer {
         }
     }
 
-    override fun getInfo(): String {
-        if (mSocket == null || mSocket?.isConnected != true) return ""
-        return "[Device Address]:${mSocket?.remoteSocketAddress}"
+    // disconnect from server
+    override fun disconnect(): Boolean {
+        if (socket == null) return false
+        try {
+            socket?.close()
+        } catch (e: IOException) {
+            Log.d(TAG, "disconnect [close]: ${e.message}")
+            socket = null
+            return false
+        }
+        socket = null
+        Log.d(TAG, "disconnect: complete")
+        return true
     }
 
+    // shutdown streamer
+    override fun shutdown() {
+        disconnect()
+    }
+
+    // test connection
+    private fun testConnection(socket: Socket): Boolean {
+        if (!socket.isConnected) return false
+        var isValid = false
+        runBlocking(Dispatchers.IO) {
+            val job = launch {
+                ignore {
+                    val streamOut = DataOutputStream(socket.outputStream)
+                    streamOut.write(Streamer.DEVICE_CHECK.toByteArray(Charsets.UTF_8))
+                    streamOut.flush()
+                    val streamIn = DataInputStream(socket.inputStream)
+                    val buffer = ByteArray(100)
+                    val size = streamIn.read(buffer, 0, 100)
+                    val received = String(buffer, 0, size, Charsets.UTF_8)
+                    if (received == Streamer.DEVICE_CHECK_EXPECT) {
+                        isValid = true
+                        Log.d(TAG, "testConnection: device matched!")
+                    } else
+                        Log.d(TAG, "testConnection: device mismatch with $received!")
+                }
+            }
+            var time = 5
+            while (!job.isCompleted && time < MAX_WAIT_TIME) {
+                delay(5)
+                time += 5
+            }
+            if (!job.isCompleted) {
+                job.cancel()
+                Log.d(TAG, "testConnection: timeout!")
+            }
+        }
+        return isValid
+    }
+
+    // get connected server information
+    override fun getInfo(): String {
+        if (socket == null) return ""
+        return "[Device Address]:${socket?.remoteSocketAddress}"
+    }
+
+    // return true if is connected for streaming
     override fun isAlive(): Boolean {
-        return (mSocket != null && mSocket?.isConnected == true)
+        return (socket != null && socket?.isConnected == true)
     }
 
 }

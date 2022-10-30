@@ -35,7 +35,7 @@ namespace AndroidMic.Streaming
             Status = ServerStatus.LISTENING;
             DebugLog("Server Started");
             isConnectionAllowed = true;
-            listener.BeginAccept(new AsyncCallback(AcceptCallback), listener);
+            listener.BeginAccept(AcceptCallback, listener);
         }
 
         // loop and select a valid port
@@ -84,7 +84,7 @@ namespace AndroidMic.Streaming
                 catch (Exception e)
                 {
                     DebugLog("AcceptCallback: " + e.Message);
-                    listener.BeginAccept(new AsyncCallback(AcceptCallback), listener);
+                    listener.BeginAccept(AcceptCallback, listener);
                     return;
                 }
                 DebugLog("AcceptCallback: checking client " + client.RemoteEndPoint);
@@ -100,7 +100,7 @@ namespace AndroidMic.Streaming
                     client.Dispose();
                     client.Close();
                     DebugLog("AcceptCallback: invalid client");
-                    listener.BeginAccept(new AsyncCallback(AcceptCallback), listener);
+                    listener.BeginAccept(AcceptCallback, listener);
                 }
             }
         }

@@ -1,18 +1,15 @@
-﻿using AdvancedSharpAdbClient;
-using System;
+﻿using System;
 using System.IO;
-using System.Windows;
-using System.Threading;
-using System.Diagnostics;
-using System.Net.Sockets;
-
-using AndroidMic.Audio;
-using System.Threading.Tasks;
-using AdvancedSharpAdbClient.DeviceCommands;
-using NAudio.CoreAudioApi;
-using System.Linq;
 using System.Net;
-
+using System.Linq;
+using System.Text;
+using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Diagnostics;
+using AdvancedSharpAdbClient;
+using AdvancedSharpAdbClient.Exceptions;
+using AndroidMic.Audio;
 
 // Reference: https://stackoverflow.com/questions/21748790/how-to-send-a-message-from-android-to-windows-using-usb
 
@@ -25,135 +22,201 @@ namespace AndroidMic.Streaming
     {
         private readonly string TAG = "StreamerAdb";
 
-        private readonly AdbServer mServer = new AdbServer();
-        private readonly AdvancedAdbClient mAdbClient = new AdvancedAdbClient();
-        private DeviceData mDevice = null;
+        private readonly AdbServer adbServer;
+        private readonly AdvancedAdbClient adbClient;
 
-        private TcpClient mTcpClient = null;
-        private NetworkStream stream = null;
+        private readonly Socket listener;
+        private Socket client;
 
-        private bool isTryConnectAllowed = false;
-        private bool isForwardCreated = false;
+        private bool isRunAdbAllowed = false;
+        private bool isConnectionAllowed = false;
 
-        private Thread mThreadTryConnect = null;
+        private readonly int androidPort = 6000; // for Android
+        private int pcPort = 5999; // for PC
 
-        private readonly string LOCAL_ADDRESS = "localhost";
-        private readonly int port_local = 5999;
-        private readonly int port_remote = 6000;
-
+        private readonly int REFRESH_FREQ = 500; // refresh adb info every 0.5s
+        private readonly string ADB_EXE_PATH = "ADB/adb.exe"; // this file is always copied to output path
 
         public StreamerAdb()
         {
             Debug.WriteLine("[StreamerAdb] init");
-            mServer.StartServer("./../../ADB/adb.exe", false);
-            Status = ServerStatus.LISTENING;
 
-            isTryConnectAllowed = true;
-            mThreadTryConnect = new Thread(new ThreadStart(TryConnect));
-            mThreadTryConnect.Start();
+            // prepare TCP server socket
+            listener = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+            BindPort();
+            listener.Listen(5);
+            Status = ServerStatus.LISTENING;
+            isConnectionAllowed = true;
+            listener.BeginAccept(AcceptCallback, listener);
+
+            // prepare adb connection
+            adbServer = new AdbServer();
+            adbClient = new AdvancedAdbClient();
+
+            // start async Task to start adb server
+            // and detect connected device
+            isRunAdbAllowed = true;
+            _ = Task.Factory.StartNew(RunAdb, TaskCreationOptions.LongRunning);
         }
 
-        private void TryConnect()
+        // loop and select a valid port
+        private void BindPort()
         {
-            Debug.WriteLine("[StreamerAdb] TryConnect");
-            while (isTryConnectAllowed)
+            int p = pcPort;
+            for (; p <= 65535; p++)
             {
-                if (RefreshDevice())
+                DebugLog("SelectPort: testing port " + p);
+                try
                 {
-                    if (isForwardCreated)
+                    listener.Bind(new IPEndPoint(IPAddress.Loopback, p));
+                }
+                catch (SocketException e)
+                {
+                    DebugLog("SelectPort: port " + p + " invalid, " + e.Message);
+                    continue;
+                }
+                catch (ObjectDisposedException e)
+                {
+                    DebugLog("SelectPort: listener has been disposed " + e.Message);
+                    break;
+                }
+                DebugLog("SelectPort: valid port " + p);
+                break;
+            }
+            if (p > 65535)
+                throw new ArgumentException("No valid port can be found for localhost");
+            pcPort = p;
+        }
+
+        // check adb info
+        private async void RunAdb()
+        {
+            while (isRunAdbAllowed)
+            {
+                // first start adb server
+                try
+                {
+                    adbServer.StartServer(ADB_EXE_PATH, false);
+                }
+                catch (AdbException e)
+                {
+                    DebugLog($"Failed to start adb server! {e}");
+                    await Task.Delay(REFRESH_FREQ);
+                    continue;
+                }
+
+                // refresh for all devices (only if not connected)
+                if (Status != ServerStatus.CONNECTED)
+                {
+                    RefreshDevices();
+                }
+
+                await Task.Delay(REFRESH_FREQ);
+            }
+        }
+
+        // set reverse forwarding on connected devices
+        private void RefreshDevices(bool shutdown = false)
+        {
+            var devices = adbClient.GetDevices();
+            foreach (var device in devices)
+            {
+                if (shutdown)
+                {
+                    adbClient.RemoveAllReverseForwards(device);
+                }
+                else
+                {
+                    var remote = $"tcp:{androidPort}";
+                    var local = $"tcp:{pcPort}";
+                    // create reverse forward on all connected devices
+                    var reversed = adbClient.ListReverseForward(device);
+                    if (!reversed.Any(p => p.Remote.Equals(local) && p.Local.Equals(remote)))
                     {
-                        mAdbClient.RemoveAllForwards(mDevice);
-                        isForwardCreated = false;
-                    }
-                    // if device is detected, try to start forward tcp
-                    if (mAdbClient.CreateForward(mDevice, port_local, port_remote) > 0)
-                    {
-                        isForwardCreated = true;
-                        Debug.WriteLine("[StreamerAdb] foward created");
-                        // if forward tcp created, try to connect with TCP
-                        if (Connect())
+                        try
                         {
-                            DebugLog("Device connected\nclient [Model]: " + mDevice.Model);
-                            isTryConnectAllowed = false;
-                            Status = ServerStatus.CONNECTED;
-                            break;
+                            // here adbClient's "remote" parameter should be our "local"
+                            adbClient.CreateReverseForward(device, remote, local, false);
+                            DebugLog($"Created reverse forward from {remote} to {local} with device ({device.Model})");
                         }
-                        // else remove TCP client and loop again
-                        else
+                        catch (Exception e)
                         {
-                            Disconnect();
+                            DebugLog($"Failed to create reverse forward from {remote} to {local} with device ({device.Model})\n{e}");
                         }
-                    }
-                    else
-                    {
-                        Debug.WriteLine("[ADBHelper] failed to CreateForward on port " + port_local);
-                        DebugLog("TPC port (" + port_local + ") has been taken\nUnable to start USB connection");
-                        isTryConnectAllowed = false;
-                        break;
                     }
                 }
-                Thread.Sleep(500); // refresh every 0.5s
             }
         }
 
-        // select the first device if connected
-        private bool RefreshDevice()
+        // async callback for server accept
+        private void AcceptCallback(IAsyncResult result)
         {
-            var devices = mAdbClient.GetDevices();
-            if (devices.Count > 0)
+            if (!isConnectionAllowed)
             {
-                mDevice = devices[0];
-                // clear previous forwards
-                mAdbClient.RemoveAllForwards(mDevice);
-                mAdbClient.RemoveAllReverseForwards(mDevice);
-                return true;
+                Status = ServerStatus.DEFAULT;
+                return;
             }
-            else
+            if (result.IsCompleted)
             {
-                mDevice = null; // else set to null
-                return false;
+                try
+                {
+                    client = listener.EndAccept(result);
+                }
+                catch (Exception e)
+                {
+                    DebugLog("AcceptCallback: " + e.Message);
+                    listener.BeginAccept(AcceptCallback, listener);
+                    return;
+                }
+                DebugLog("AcceptCallback: checking client " + client.RemoteEndPoint);
+                // validate client
+                if (TestClient(client))
+                {
+                    DebugLog("AcceptCallback: valid client");
+                    Status = ServerStatus.CONNECTED;
+                    DebugLog("AcceptCallback: client connected");
+                }
+                else
+                {
+                    client.Dispose();
+                    client.Close();
+                    DebugLog("AcceptCallback: invalid client");
+                    listener.BeginAccept(AcceptCallback, listener);
+                }
             }
         }
 
-        // connect to tcp server
-        private bool Connect()
+        // shutdown server
+        public override void Shutdown()
         {
-            Debug.WriteLine("[ADBHelper] Trying to connect");
-            mTcpClient = new TcpClient();
-            var connection = mTcpClient.BeginConnect(LOCAL_ADDRESS, port_local, null, null);
-            // wait for connection for 1 second
-            if (!connection.AsyncWaitHandle.WaitOne(TimeSpan.FromSeconds(1)))
+            // shutdown TCP server
+            isConnectionAllowed = false;
+            if (client != null)
             {
-                // failed to connect to server, meaning no server available
-                return false;
+                client.Dispose();
+                client.Close();
+                client = null;
             }
-            mTcpClient.EndConnect(connection);
-            Debug.WriteLine("[ADBHelper] mTcpClient.Connected = " + mTcpClient.Connected);
+            Thread.Sleep(MIN_WAIT_TIME);
+            listener.Dispose();
+            listener.Close();
 
-            try
-            {
-                stream = mTcpClient.GetStream();
-            }
-            catch (Exception e)
-            {
-                DebugLog("Process: " + e.Message);
-                return false;
-            }
-            return mTcpClient.Connected;
+            // shutdown adb
+            isRunAdbAllowed = false;
+            RefreshDevices(true);
+
+            DebugLog("Shutdown");
+            Status = ServerStatus.DEFAULT;
         }
 
-
-
-
-
-
+        // process data
         public override async Task Process(AudioBuffer sharedBuffer)
         {
             if (!IsAlive()) return;
             int count = 0;
-
             try
             {
+                var stream = new NetworkStream(client);
                 var result = await sharedBuffer.OpenWriteRegion(BUFFER_SIZE);
                 count = result.Item1;
                 var offset = result.Item2;
@@ -175,64 +238,56 @@ namespace AndroidMic.Streaming
             }
         }
 
-
-
-        public override void Shutdown()
+        // check if client is valid
+        private bool TestClient(Socket client)
         {
-            // stop try connect thread
-            isTryConnectAllowed = false;
-            if (mThreadTryConnect != null && mThreadTryConnect.IsAlive)
+            if (client == null || !client.Connected) return false;
+            byte[] receivePack = new byte[20];
+            byte[] sendPack = Encoding.UTF8.GetBytes(DEVICE_CHECK);
+            try
             {
-                if (!mThreadTryConnect.Join(MAX_WAIT_TIME)) mThreadTryConnect.Abort();
+                using (var stream = new NetworkStream(client))
+                {
+                    if (stream.CanTimeout)
+                    {
+                        stream.ReadTimeout = MAX_WAIT_TIME;
+                        stream.WriteTimeout = MAX_WAIT_TIME;
+                    }
+                    if (!stream.CanRead || !stream.CanWrite) return false;
+                    // check received bytes
+                    int size = stream.Read(receivePack, 0, receivePack.Length);
+                    if (size <= 0) return false;
+                    if (!Encoding.UTF8.GetString(receivePack, 0, size).Equals(DEVICE_CHECK_EXPECTED)) return false;
+                    // send back bytes
+                    stream.Write(sendPack, 0, sendPack.Length);
+                    stream.Flush();
+                }
             }
-
-            Disconnect();
-
-            // stop forwarding
-            if (isForwardCreated)
-                try
-                {
-                    mAdbClient.RemoveAllForwards(mDevice);
-                }
-                catch (Exception e)
-                {
-                    DebugLog("Process: " + e.Message);
-                }
-
-            Status = ServerStatus.DEFAULT;
-            DebugLog("Shutdown");
+            catch (IOException e)
+            {
+                DebugLog("TestClient: " + e.Message);
+                return false;
+            }
+            return true;
         }
 
-        // disconnect from tcp server
-        private void Disconnect()
-        {
-            if (mTcpClient != null)
-            {
-                mTcpClient.Close();
-                mTcpClient.Dispose();
-                mTcpClient = null;
-            }
-            Debug.WriteLine("[ADBHelper] disconnected");
-        }
-
-
+        // get client info
         public override string GetClientInfo()
         {
-
-            return "[Model]: " + mDevice.Model;
+            if (client == null) return "[null]";
+            return "[Adb Client]: " + client.RemoteEndPoint;
         }
 
+        // get server info
         public override string GetServerInfo()
         {
-
-            return "[Local_port]: " + port_local + "\n[remote_port]: " + port_remote;
+            return $"[Android Port]: {androidPort}";
         }
 
+        // check if streamer is alive
         public override bool IsAlive()
         {
-            return (Status == ServerStatus.CONNECTED) && (mAdbClient != null) &&
-                (mTcpClient != null) && (mTcpClient.Connected == true) &&
-                (mTcpClient.Client != null) && (mTcpClient.Client.Connected);
+            return Status == ServerStatus.CONNECTED && client != null && client.Connected;
         }
 
         // debug log
