@@ -11,7 +11,8 @@ namespace AndroidMic.Streaming
         public enum ConnectionType
         {
             BLUETOOTH,
-            WIFI
+            WIFI,
+            USB
         }
 
         public readonly int MAX_WAIT_TIME = 1000;
@@ -52,6 +53,9 @@ namespace AndroidMic.Streaming
                         break;
                     case ConnectionType.WIFI:
                         server = new StreamerWifi();
+                        break;
+                    case ConnectionType.USB:
+                        server = new StreamerAdb();
                         break;
                 }
             }
@@ -117,6 +121,7 @@ namespace AndroidMic.Streaming
                 await Task.Delay(MIN_WAIT_TIME);
             }
             // then start process data
+            Debug.WriteLine("[StreamManager] start process");
             while (processAllowed)
             {
                 if (cancellationTokenSource.IsCancellationRequested)

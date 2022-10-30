@@ -1,7 +1,9 @@
 package com.example.androidMic.ui.home.dialog
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.Divider
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -25,45 +27,43 @@ fun DialogMode(mainViewModel: MainViewModel, uiStates: States.UiStates) {
             onDismissRequest = { mainViewModel.onEvent(Event.DismissDialog(R.string.drawerMode)) }
         ) {
             Surface(
+                modifier = Modifier.fillMaxWidth(0.9f),
                 shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
 
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(25.dp))
 
                     // wifi
                     ManagerButton(
                         onClick = { mainViewModel.onEvent(Event.SetMode(Modes.MODE_WIFI)) },
                         text = stringResource(id = R.string.mode_wifi),
-                        modifier = Modifier.fillMaxWidth(0.6F)
+                        modifier = Modifier.fillMaxWidth(0.8f)
                     )
 
-                    Divider(
-                        modifier = Modifier.padding(10.dp),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    Spacer(modifier = Modifier.height(20.dp))
+
 
                     // bluetooth
                     ManagerButton(
                         onClick = { mainViewModel.onEvent(Event.SetMode(Modes.MODE_BLUETOOTH)) },
                         text = stringResource(id = R.string.mode_bluetooth),
-                        modifier = Modifier.fillMaxWidth(0.6F)
+                        modifier = Modifier.fillMaxWidth(0.8f)
                     )
 
-                    Divider(
-                        modifier = Modifier.padding(10.dp),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    Spacer(modifier = Modifier.height(20.dp))
 
                     // usb
                     ManagerButton(
                         onClick = { mainViewModel.onEvent(Event.SetMode(Modes.MODE_USB)) },
                         text = stringResource(id = R.string.mode_usb),
-                        modifier = Modifier.fillMaxWidth(0.6F)
+                        modifier = Modifier.fillMaxWidth(0.8f)
                     )
-                    Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(25.dp))
                 }
             }
         }

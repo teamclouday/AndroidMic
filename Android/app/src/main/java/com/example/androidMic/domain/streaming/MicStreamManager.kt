@@ -26,15 +26,15 @@ class MicStreamManager(private val ctx: Context) {
         if (isConnected())
             throw IllegalArgumentException("Streaming already running")
 
-        when (mode) {
+        streamer = when (mode) {
             MODE_WIFI -> {
-                streamer = WifiStreamer(ctx, ip, port)
+                WifiStreamer(ctx, ip!!, port!!)
             }
             MODE_BLUETOOTH -> {
-                streamer = BluetoothStreamer(ctx)
+                BluetoothStreamer(ctx)
             }
             MODE_USB -> {
-
+                AdbStreamer(port!!)
             }
             else -> throw IllegalArgumentException("Unknown mode")
         }

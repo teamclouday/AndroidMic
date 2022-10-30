@@ -122,16 +122,21 @@ namespace AndroidMic
                 audioM.SetVolume(volume);
                 VolumeSlider.Value = volume;
             }
-            // MainWindow_ConnectViaBluetooth
+            // MainWindow_ConnectMode
             if (settings.MainWindow_ConnectViaBluetooth)
             {
                 streamM.SetConnectionType(StreamManager.ConnectionType.BLUETOOTH);
                 RadioButton1.IsChecked = true;
             }
-            else
+            else if(settings.MainWindow_ConnectViaWifi)
             {
                 streamM.SetConnectionType(StreamManager.ConnectionType.WIFI);
                 RadioButton2.IsChecked = true;
+            }
+            else
+            {
+                streamM.SetConnectionType(StreamManager.ConnectionType.USB);
+                RadioButton3.IsChecked = true;
             }
             // MainWindow_PlayerDesiredLatency
             {
@@ -309,11 +314,15 @@ namespace AndroidMic
                     if (windowInitialized)
                         Properties.Settings.Default.MainWindow_ConnectViaBluetooth = true;
                 }
-                else
+                else if(rb.Content.ToString().StartsWith("W"))
                 {
                     streamM?.SetConnectionType(StreamManager.ConnectionType.WIFI);
                     if (windowInitialized)
                         Properties.Settings.Default.MainWindow_ConnectViaBluetooth = false;
+                }
+                else
+                {
+                    streamM?.SetConnectionType(StreamManager.ConnectionType.USB);
                 }
             }
         }

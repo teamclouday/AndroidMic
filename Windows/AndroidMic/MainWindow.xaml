@@ -46,6 +46,8 @@
                          VerticalAlignment="Top" Width="200" FontSize="18" Content="Bluetooth" FontFamily="Segoe UI" IsChecked="True" Checked="RadioButton_Checked"/>
             <RadioButton HorizontalAlignment="Center" x:Name="RadioButton2" GroupName="ConnectionType" Margin="0,350,0,0"
                          VerticalAlignment="Top" Width="200" FontSize="18" Content="Wifi / LAN" FontFamily="Segoe UI" Checked="RadioButton_Checked"/>
+            <RadioButton HorizontalAlignment="Center" x:Name="RadioButton3" GroupName="ConnectionType" Margin="0,380,0,0"
+                         VerticalAlignment="Top" Width="200" FontSize="18" Content="USB (ADB)" FontFamily="Segoe UI" Checked="RadioButton_Checked"/>
         </Grid>
     </Grid>
 </Window>

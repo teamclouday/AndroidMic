@@ -12,7 +12,7 @@
       <Value Profile="(Default)">1</Value>
     </Setting>
     <Setting Name="MainWindow_ConnectViaBluetooth" Type="System.Boolean" Scope="User">
-      <Value Profile="(Default)">True</Value>
+      <Value Profile="(Default)">False</Value>
     </Setting>
     <Setting Name="AdvancedWindow_PitchShifterVal" Type="System.Single" Scope="User">
       <Value Profile="(Default)">1</Value>
@@ -52,6 +52,12 @@
     </Setting>
     <Setting Name="MainWindow_PlayerDesiredLatency" Type="System.Int32" Scope="User">
       <Value Profile="(Default)">120</Value>
+    </Setting>
+    <Setting Name="MainWindow_ConnectViaWifi" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">True</Value>
+    </Setting>
+    <Setting Name="MainWindow_ConnectViaUsb" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
     </Setting>
   </Settings>
 </SettingsFile>

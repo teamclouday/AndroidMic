@@ -13,6 +13,7 @@ import com.example.androidMic.utils.Command
 import com.example.androidMic.utils.Command.Companion.COMMAND_DISC_STREAM
 import com.example.androidMic.utils.Command.Companion.COMMAND_GET_STATUS
 import com.example.androidMic.utils.CommandService
+import com.example.androidMic.utils.Modes.Companion.MODE_USB
 import com.example.androidMic.utils.Modes.Companion.MODE_WIFI
 import com.example.androidMic.utils.States
 
@@ -57,7 +58,8 @@ class MainViewModel(
 
     init {
         Log.d(TAG, "init")
-        val ipPort = preferences.getIpPort(true)
+        val ipPort = preferences.getWifiIpPort(true)
+        val usbPort = preferences.getUsbPort()
         val mode = preferences.getMode()
         val theme = preferences.getTheme()
         val dynamicColor = preferences.getDynamicColor()
@@ -65,6 +67,7 @@ class MainViewModel(
         savedStateHandle["uiStates"] = uiStates.value.copy(
             IP = ipPort.first,
             PORT = ipPort.second.toString(),
+            usbPort = usbPort.toString(),
             mode = mode,
             theme = theme,
             dynamicColor = dynamicColor
@@ -95,13 +98,13 @@ class MainViewModel(
                     val data = Bundle()
                     if (uiStates.value.mode == MODE_WIFI) {
                         try {
-                            val (ip, port) = preferences.getIpPort(false)
+                            val (ip, port) = preferences.getWifiIpPort(false)
                             data.putString("IP", ip)
                             data.putInt("PORT", port)
                         } catch (e: Exception) {
                             Toast.makeText(
                                 getApplication(),
-                                getApplication<AndroidMicApp>().getString(R.string.invalid_ip),
+                                getApplication<AndroidMicApp>().getString(R.string.invalid_ip_port),
                                 Toast.LENGTH_SHORT
                             ).show()
                             savedStateHandle["uiStates"] = uiStates.value.copy(
@@ -109,6 +112,10 @@ class MainViewModel(
                             )
                             return
                         }
+                    }
+                    if (uiStates.value.mode == MODE_USB) {
+                        val port = preferences.getUsbPort()
+                        data.putInt("PORT", port)
                     }
                     data.putInt("MODE", uiStates.value.mode)
                     reply = Message.obtain(null, Command.COMMAND_START_STREAM)
@@ -136,13 +143,13 @@ class MainViewModel(
                 )
             }
 
-            is Event.SetIpPort -> {
+            is Event.SetWifiIpPort -> {
                 try {
-                    preferences.setIpPort(Pair(event.ip, event.port))
+                    preferences.setWifiIpPort(Pair(event.ip, event.port))
                 } catch (e: Exception) {
                     Toast.makeText(
                         getApplication(),
-                        getApplication<AndroidMicApp>().getString(R.string.invalid_ip),
+                        getApplication<AndroidMicApp>().getString(R.string.invalid_ip_port),
                         Toast.LENGTH_SHORT
                     ).show()
                     return
@@ -151,6 +158,25 @@ class MainViewModel(
                     IP = event.ip,
                     PORT = event.port,
                     dialogIpPortIsVisible = false
+                )
+            }
+
+            is Event.SetUsbPort -> {
+                try {
+                    preferences.setUsbPort(event.port)
+                } catch (e: Exception) {
+                    Toast.makeText(
+                        getApplication(),
+                        getApplication<AndroidMicApp>().getString(R.string.invalid_port),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    return
+                }
+
+
+                savedStateHandle["uiStates"] = uiStates.value.copy(
+                    usbPort = event.port,
+                    dialogUsbPortIsVisible = false
                 )
             }
             is Event.SetMode -> {
@@ -163,8 +189,10 @@ class MainViewModel(
 
             is Event.ShowDialog -> {
                 when (event.id) {
-                    R.string.drawerIpPort -> savedStateHandle["uiStates"] =
+                    R.string.drawerWifiIpPort -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogIpPortIsVisible = true)
+                    R.string.drawerUsbPort -> savedStateHandle["uiStates"] =
+                        uiStates.value.copy(dialogUsbPortIsVisible = true)
                     R.string.drawerMode -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogModesIsVisible = true)
                     R.string.drawerTheme -> savedStateHandle["uiStates"] =
@@ -173,8 +201,10 @@ class MainViewModel(
             }
             is Event.DismissDialog -> {
                 when (event.id) {
-                    R.string.drawerIpPort -> savedStateHandle["uiStates"] =
+                    R.string.drawerWifiIpPort -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogIpPortIsVisible = false)
+                    R.string.drawerUsbPort -> savedStateHandle["uiStates"] =
+                        uiStates.value.copy(dialogUsbPortIsVisible = false)
                     R.string.drawerMode -> savedStateHandle["uiStates"] =
                         uiStates.value.copy(dialogModesIsVisible = false)
                     R.string.drawerTheme -> savedStateHandle["uiStates"] =
@@ -235,10 +265,7 @@ class MainViewModel(
         if (reply != null) addLogMessage(reply)
 
         val result = msg.data.getBoolean("result")
-        savedStateHandle["uiStates"] = uiStates.value.copy(
-            switchAudioIsClickable = true,
-            buttonConnectIsClickable = true
-        )
+
         val log = if (result) "handleSuccess" else "handleFailure"
         // for log
         val commandService = CommandService()

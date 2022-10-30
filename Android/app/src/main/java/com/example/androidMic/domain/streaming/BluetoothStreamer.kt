@@ -243,7 +243,7 @@ class BluetoothStreamer(private val ctx: Context) : Streamer {
             Log.d(TAG, "getInfo: ${e.message}")
             "null"
         }
-        return "[Device Name] ${deviceName}\n[Device Address] ${target?.address}"
+        return "[Device Name]:${deviceName}\n[Device Address]:${target?.address}"
     }
 
     // return true if is connected for streaming

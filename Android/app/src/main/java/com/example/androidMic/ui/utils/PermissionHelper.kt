@@ -26,6 +26,15 @@ fun getBluetoothPermission(): MutableList<String> {
     return list
 }
 
+fun getUsbPermission(): MutableList<String> {
+    val list = mutableListOf<String>()
+
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
+        list.add(Manifest.permission.POST_NOTIFICATIONS)
+
+    return list
+}
+
 fun getRecordAudioPermission(): MutableList<String> {
     val list = mutableListOf<String>()
 

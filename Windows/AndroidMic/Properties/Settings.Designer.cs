@@ -61,7 +61,7 @@ namespace AndroidMic.Properties {
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
         public bool MainWindow_ConnectViaBluetooth {
             get {
                 return ((bool)(this["MainWindow_ConnectViaBluetooth"]));
@@ -224,6 +224,30 @@ namespace AndroidMic.Properties {
             }
             set {
                 this["MainWindow_PlayerDesiredLatency"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool MainWindow_ConnectViaWifi {
+            get {
+                return ((bool)(this["MainWindow_ConnectViaWifi"]));
+            }
+            set {
+                this["MainWindow_ConnectViaWifi"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool MainWindow_ConnectViaUsb {
+            get {
+                return ((bool)(this["MainWindow_ConnectViaUsb"]));
+            }
+            set {
+                this["MainWindow_ConnectViaUsb"] = value;
             }
         }
     }

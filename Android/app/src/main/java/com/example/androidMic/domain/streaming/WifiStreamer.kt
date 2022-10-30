@@ -15,7 +15,7 @@ import java.net.NetworkInterface
 import java.net.Socket
 import java.net.SocketTimeoutException
 
-class WifiStreamer(private val ctx: Context, ip: String?, port: Int?) : Streamer {
+class WifiStreamer(private val ctx: Context, ip: String, port: Int) : Streamer {
     private val TAG: String = "MicStreamWIFI"
 
     private val MAX_WAIT_TIME = 1500 // timeout
@@ -36,14 +36,9 @@ class WifiStreamer(private val ctx: Context, ip: String?, port: Int?) : Streamer
         updateConnectionMode()
         require(mode != Mode.NONE) { "WIFI or USB tethering not connected" }
 
-        try {
-            val inetSocketAddress = InetSocketAddress(ip, port!!)
-            this.address = inetSocketAddress.hostName
-            this.port = inetSocketAddress.port
-        } catch (e: IllegalArgumentException) {
-            Log.d(TAG, "setIPInfo: ${e.message}")
-            throw IllegalArgumentException("Invalid IP Address ${ip}:${port}")
-        }
+        val inetSocketAddress = InetSocketAddress(ip, port)
+        this.address = inetSocketAddress.hostName
+        this.port = inetSocketAddress.port
     }
 
     // connect to server
@@ -182,7 +177,7 @@ class WifiStreamer(private val ctx: Context, ip: String?, port: Int?) : Streamer
     // get connected server information
     override fun getInfo(): String {
         if (socket == null) return ""
-        return "[WIFI Mode] ${mode.name}\n[Device Address] ${socket?.remoteSocketAddress}"
+        return "[WIFI Mode]:${mode.name}\n[Device Address]:${socket?.remoteSocketAddress}"
     }
 
     // return true if is connected for streaming
