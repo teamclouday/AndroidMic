@@ -14,9 +14,11 @@ import com.example.androidMic.R
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppBar(
-    onNavigationIconClick: () -> Unit
+    onNavigationIconClick: () -> Unit,
+    modifier: Modifier
 ) {
     CenterAlignedTopAppBar(
+        modifier = modifier,
         title = {
             Text(
                 text = stringResource(id = R.string.app_name),

@@ -8,16 +8,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import androidx.constraintlayout.compose.ConstraintLayout
+import androidx.constraintlayout.compose.Dimension
 import com.example.androidMic.R
 import com.example.androidMic.ui.Event
 import com.example.androidMic.ui.MainViewModel
@@ -27,7 +26,6 @@ import com.example.androidMic.utils.Modes.Companion.MODE_BLUETOOTH
 import com.example.androidMic.utils.Modes.Companion.MODE_USB
 import com.example.androidMic.utils.Modes.Companion.MODE_WIFI
 import com.example.androidMic.utils.States
-import com.example.androidMic.utils.showWindowsInfo
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.launch
@@ -35,7 +33,6 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
-    showWindowsInfo(currentWindowInfo)
     val uiStates = mainViewModel.uiStates.collectAsState()
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -60,51 +57,97 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                     DrawerBody(mainViewModel, uiStates.value)
                 }
             }
-        },
-        content = {
-            Box(
-                modifier = Modifier
-                    .background(color = MaterialTheme.colorScheme.background)
-                    .fillMaxSize()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxSize()
-                ) {
-                    if (currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
-                        AppBar(onNavigationIconClick = {
-                            scope.launch { drawerState.open() }
-                        })
-                        Log(mainViewModel, uiStates.value, currentWindowInfo)
-                        InteractionButton(
-                            mainViewModel = mainViewModel,
-                            uiStates = uiStates.value,
-                            currentWindowInfo = currentWindowInfo
-                        )
+        }
+    ) {
+        ConstraintLayout(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(color = MaterialTheme.colorScheme.background)
+        ) {
+            val (appBar, interactionButton, log) = createRefs()
 
-                    } else {
-                        if (currentWindowInfo.screenHeightInfo != WindowInfo.WindowType.Compact) {
-                            AppBar(onNavigationIconClick = {
-                                scope.launch { drawerState.open() }
-                            })
+            if (currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
+                AppBar(
+                    onNavigationIconClick = {
+                        scope.launch { drawerState.open() }
+                    },
+                    modifier = Modifier
+                        .constrainAs(appBar) {
+                            top.linkTo(parent.top)
+                            width = Dimension.matchParent
                         }
-                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
-                            Row {
-                                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
-                                    InteractionButton(
-                                        mainViewModel = mainViewModel,
-                                        uiStates = uiStates.value,
-                                        currentWindowInfo = currentWindowInfo
-                                    )
-                                    Log(mainViewModel, uiStates.value, currentWindowInfo)
-                                }
+                )
+
+                Log(
+                    mainViewModel = mainViewModel,
+                    uiStates = uiStates.value,
+                    modifier = Modifier
+                        .constrainAs(log) {
+                            linkTo(top = appBar.bottom, bottom = interactionButton.top)
+                            width = Dimension.matchParent
+                            height = Dimension.fillToConstraints
+                        }
+                        .padding(horizontal = 15.dp)
+                        .padding(top = 15.dp)
+                )
+                InteractionButton(
+                    mainViewModel = mainViewModel,
+                    uiStates = uiStates.value,
+                    modifier = Modifier
+                        .constrainAs(interactionButton) {
+                            bottom.linkTo(parent.bottom)
+                            width = Dimension.matchParent
+                        }
+                )
+
+            } else {
+                var appBarEnabled = false
+                if (currentWindowInfo.screenHeightInfo != WindowInfo.WindowType.Compact) {
+                    appBarEnabled = true
+                    AppBar(
+                        onNavigationIconClick = {
+                            scope.launch { drawerState.open() }
+                        },
+                        modifier = Modifier
+                            .constrainAs(appBar) {
+                                top.linkTo(parent.top)
+                                width = Dimension.matchParent
                             }
-                        }
-                    }
+                    )
                 }
+
+                Log(
+                    mainViewModel = mainViewModel,
+                    uiStates = uiStates.value,
+                    modifier = Modifier
+                        .constrainAs(log) {
+                            linkTo(start = parent.start, end = interactionButton.start)
+                            linkTo(
+                                top = if (appBarEnabled) appBar.bottom else parent.top,
+                                bottom = parent.bottom
+                            )
+                            width = Dimension.fillToConstraints
+                            height = Dimension.fillToConstraints
+                        }
+                        .padding(vertical = 15.dp)
+                        .padding(start = 15.dp)
+                )
+
+                InteractionButton(
+                    mainViewModel = mainViewModel,
+                    uiStates = uiStates.value,
+                    modifier = Modifier
+                        .constrainAs(interactionButton) {
+                            end.linkTo(parent.end)
+                            linkTo(
+                                top = if (appBarEnabled) appBar.bottom else parent.top,
+                                bottom = parent.bottom
+                            )
+                        }
+                )
             }
         }
-    )
+    }
 }
 
 
@@ -112,35 +155,8 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
 private fun Log(
     mainViewModel: MainViewModel,
     uiStates: States.UiStates,
-    currentWindowInfo: WindowInfo
+    modifier: Modifier
 ) {
-
-    val modifier: Modifier =
-        // for split screen
-        if (currentWindowInfo.screenHeightInfo == WindowInfo.WindowType.Compact &&
-            currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact
-        ) {
-            Modifier
-                .fillMaxWidth()
-                .fillMaxHeight(0.60f)
-                .padding(16.dp)
-        } else {
-            // portrait mode
-            if (currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
-                Modifier
-                    .fillMaxWidth()
-                    .fillMaxHeight(0.82f)
-                    .padding(16.dp)
-            }
-            // landscape mode
-            else {
-                Modifier
-                    .fillMaxSize()
-                    .padding(start = 16.dp, top = 16.dp, bottom = 16.dp)
-            }
-        }
-
-
     Box(
         modifier = modifier
             .background(color = MaterialTheme.colorScheme.secondary)
@@ -159,7 +175,7 @@ private fun Log(
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier
                 .verticalScroll(ScrollState(Int.MAX_VALUE))
-                .padding(10.dp)
+                .padding(15.dp)
         )
     }
 }
@@ -168,40 +184,20 @@ private fun Log(
 private fun InteractionButton(
     mainViewModel: MainViewModel,
     uiStates: States.UiStates,
-    currentWindowInfo: WindowInfo
+    modifier: Modifier
 ) {
-    if (currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
-        Column(
-            Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.SpaceAround
-        ) {
-            ButtonConnect(
-                mainViewModel = mainViewModel,
-                uiStates = uiStates
-            )
-            SwitchAudio(mainViewModel = mainViewModel, uiStates = uiStates)
-        }
-    }
-    else {
-        Column(
-            modifier = Modifier
-                .fillMaxHeight()
-                .wrapContentWidth(unbounded = true)
-                .padding(horizontal = 10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            ButtonConnect(
-                mainViewModel = mainViewModel,
-                uiStates = uiStates
-            )
-            Spacer(modifier = Modifier.height(10.dp))
-            SwitchAudio(
-                mainViewModel = mainViewModel,
-                uiStates = uiStates
-            )
-        }
+    Column(
+        modifier = modifier
+            .padding(vertical = 15.dp, horizontal = 15.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        ButtonConnect(
+            mainViewModel = mainViewModel,
+            uiStates = uiStates
+        )
+        Spacer(modifier = Modifier.height(10.dp))
+        SwitchAudio(mainViewModel = mainViewModel, uiStates = uiStates)
     }
 }
 
@@ -262,8 +258,6 @@ private fun SwitchAudio(mainViewModel: MainViewModel, uiStates: States.UiStates)
     )
 
     Row(
-        modifier = Modifier
-            .fillMaxWidth(),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -285,7 +279,6 @@ private fun SwitchAudio(mainViewModel: MainViewModel, uiStates: States.UiStates)
                     mainViewModel.onEvent(Event.AudioSwitch)
 
             },
-            modifier = Modifier,
             enabled = uiStates.switchAudioIsClickable
         )
     }
