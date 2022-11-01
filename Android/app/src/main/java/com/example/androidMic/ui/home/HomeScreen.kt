@@ -35,7 +35,6 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
-
     val uiStates = mainViewModel.uiStates.collectAsState()
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -88,6 +87,11 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                             SwitchAudio(mainViewModel = mainViewModel, uiStates = uiStates.value)
                         }
                     } else {
+                        if(currentWindowInfo.screenHeightInfo != WindowInfo.WindowType.Compact) {
+                            AppBar(onNavigationIconClick = {
+                                scope.launch { drawerState.open() }
+                            })
+                        }
                         Row {
                             Log(mainViewModel, uiStates.value, currentWindowInfo)
                             Column(
@@ -142,7 +146,7 @@ private fun Log(
             // landscape mode
             else {
                 Modifier
-                    .fillMaxWidth(0.70f)
+                    .fillMaxWidth(0.65f)
                     .fillMaxHeight()
                     .padding(start = 16.dp, top = 16.dp, bottom = 16.dp)
             }
