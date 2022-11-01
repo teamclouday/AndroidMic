@@ -30,14 +30,14 @@ data class DebugModes(
 fun showWindowsInfo(currentWindowInfo: WindowInfo) {
 
     var log = "Width: "
-    log += when(currentWindowInfo.screenWidthInfo) {
+    log += when (currentWindowInfo.screenWidthInfo) {
         WindowInfo.WindowType.Compact -> "Compact"
         WindowInfo.WindowType.Medium -> "Medium"
         WindowInfo.WindowType.Expanded -> "Expanded"
     }
 
     log += ", Height: "
-    log += when(currentWindowInfo.screenHeightInfo) {
+    log += when (currentWindowInfo.screenHeightInfo) {
         WindowInfo.WindowType.Compact -> "Compact"
         WindowInfo.WindowType.Medium -> "Medium"
         WindowInfo.WindowType.Expanded -> "Expanded"

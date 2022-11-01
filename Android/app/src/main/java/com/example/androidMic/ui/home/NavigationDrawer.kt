@@ -95,7 +95,6 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
         item {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
                     .padding(vertical = 64.dp)
                     .padding(start = 25.dp)
             ) {

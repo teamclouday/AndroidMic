@@ -6,12 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.DrawerValue
-import androidx.compose.material.ModalDrawer
-import androidx.compose.material.rememberDrawerState
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Switch
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
@@ -33,6 +28,7 @@ import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
     val uiStates = mainViewModel.uiStates.collectAsState()
@@ -44,15 +40,15 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
         scope.launch { drawerState.close() }
     }
 
-    //TODO("change ModalDrawer to material3 when api will be better")
-    ModalDrawer(
+    ModalNavigationDrawer(
         drawerState = drawerState,
         gesturesEnabled = true,
 
         drawerContent = {
             Box(
                 Modifier
-                    .fillMaxSize()
+                    .fillMaxHeight()
+                    .width(355.dp)
                     .background(color = MaterialTheme.colorScheme.background)
             ) {
                 Column {
@@ -87,7 +83,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                             SwitchAudio(mainViewModel = mainViewModel, uiStates = uiStates.value)
                         }
                     } else {
-                        if(currentWindowInfo.screenHeightInfo != WindowInfo.WindowType.Compact) {
+                        if (currentWindowInfo.screenHeightInfo != WindowInfo.WindowType.Compact) {
                             AppBar(onNavigationIconClick = {
                                 scope.launch { drawerState.open() }
                             })
