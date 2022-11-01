@@ -47,16 +47,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
         gesturesEnabled = true,
 
         drawerContent = {
-            Box(
-                Modifier
-                    .fillMaxHeight()
-                    .width(355.dp)
-                    .background(color = MaterialTheme.colorScheme.background)
-            ) {
-                Column {
-                    DrawerBody(mainViewModel, uiStates.value)
-                }
-            }
+            DrawerBody(mainViewModel, uiStates.value)
         }
     ) {
         ConstraintLayout(
