@@ -8,12 +8,15 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.example.androidMic.R
 import com.example.androidMic.ui.Event
@@ -24,6 +27,7 @@ import com.example.androidMic.utils.Modes.Companion.MODE_BLUETOOTH
 import com.example.androidMic.utils.Modes.Companion.MODE_USB
 import com.example.androidMic.utils.Modes.Companion.MODE_WIFI
 import com.example.androidMic.utils.States
+import com.example.androidMic.utils.showWindowsInfo
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.launch
@@ -31,6 +35,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
+    showWindowsInfo(currentWindowInfo)
     val uiStates = mainViewModel.uiStates.collectAsState()
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -71,40 +76,28 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                             scope.launch { drawerState.open() }
                         })
                         Log(mainViewModel, uiStates.value, currentWindowInfo)
-                        Column(
-                            Modifier.fillMaxSize(),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.SpaceAround
-                        ) {
-                            ButtonConnect(
-                                mainViewModel = mainViewModel,
-                                uiStates = uiStates.value
-                            )
-                            SwitchAudio(mainViewModel = mainViewModel, uiStates = uiStates.value)
-                        }
+                        InteractionButton(
+                            mainViewModel = mainViewModel,
+                            uiStates = uiStates.value,
+                            currentWindowInfo = currentWindowInfo
+                        )
+
                     } else {
                         if (currentWindowInfo.screenHeightInfo != WindowInfo.WindowType.Compact) {
                             AppBar(onNavigationIconClick = {
                                 scope.launch { drawerState.open() }
                             })
                         }
-                        Row {
-                            Log(mainViewModel, uiStates.value, currentWindowInfo)
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxSize(),
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center
-                            ) {
-                                ButtonConnect(
-                                    mainViewModel = mainViewModel,
-                                    uiStates = uiStates.value
-                                )
-                                Spacer(modifier = Modifier.height(10.dp))
-                                SwitchAudio(
-                                    mainViewModel = mainViewModel,
-                                    uiStates = uiStates.value
-                                )
+                        CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+                            Row {
+                                CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+                                    InteractionButton(
+                                        mainViewModel = mainViewModel,
+                                        uiStates = uiStates.value,
+                                        currentWindowInfo = currentWindowInfo
+                                    )
+                                    Log(mainViewModel, uiStates.value, currentWindowInfo)
+                                }
                             }
                         }
                     }
@@ -142,8 +135,7 @@ private fun Log(
             // landscape mode
             else {
                 Modifier
-                    .fillMaxWidth(0.65f)
-                    .fillMaxHeight()
+                    .fillMaxSize()
                     .padding(start = 16.dp, top = 16.dp, bottom = 16.dp)
             }
         }
@@ -172,6 +164,46 @@ private fun Log(
     }
 }
 
+@Composable
+private fun InteractionButton(
+    mainViewModel: MainViewModel,
+    uiStates: States.UiStates,
+    currentWindowInfo: WindowInfo
+) {
+    if (currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
+        Column(
+            Modifier.fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceAround
+        ) {
+            ButtonConnect(
+                mainViewModel = mainViewModel,
+                uiStates = uiStates
+            )
+            SwitchAudio(mainViewModel = mainViewModel, uiStates = uiStates)
+        }
+    }
+    else {
+        Column(
+            modifier = Modifier
+                .fillMaxHeight()
+                .wrapContentWidth(unbounded = true)
+                .padding(horizontal = 10.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            ButtonConnect(
+                mainViewModel = mainViewModel,
+                uiStates = uiStates
+            )
+            Spacer(modifier = Modifier.height(10.dp))
+            SwitchAudio(
+                mainViewModel = mainViewModel,
+                uiStates = uiStates
+            )
+        }
+    }
+}
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
