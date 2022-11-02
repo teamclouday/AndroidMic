@@ -76,6 +76,7 @@ class Preferences(private val androidMicApp: AndroidMicApp) {
 
     fun setUsbPort(_port: String) {
         val port = _port.toInt()
+        InetSocketAddress("127.0.0.1", port)
         val userSettings = androidMicApp.getSharedPreferences(
             PREFERENCES_NAME,
             AppCompatActivity.MODE_PRIVATE

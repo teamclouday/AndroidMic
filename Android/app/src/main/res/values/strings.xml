@@ -41,7 +41,7 @@
     Error messages
     -->
     <string name="invalid_ip_port">IP:PORT invalid</string>
-    <string name="invalid_port">IP:PORT invalid</string>
+    <string name="invalid_port">PORT invalid</string>
 
     <string name="error">Error\n</string>
     <string name="failed_to_connect">Failed to connect</string>
