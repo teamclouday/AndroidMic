@@ -1,8 +1,7 @@
 package com.example.androidMic.ui.home
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Divider
@@ -90,12 +89,16 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
         )
     )
 
-    LazyColumn {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxHeight()
+            .width(355.dp)
+            .background(color = MaterialTheme.colorScheme.background)
+    ) {
         // setting title
         item {
             Box(
                 modifier = Modifier
-                    .fillMaxWidth()
                     .padding(vertical = 64.dp)
                     .padding(start = 25.dp)
             ) {
