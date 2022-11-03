@@ -32,6 +32,10 @@ class AdbStreamer(val port: Int) : Streamer {
         } catch (e: SocketTimeoutException) {
             Log.d(TAG, "connect [Socket]: ${e.message}")
             null
+        }
+        catch (e: Exception) {
+            Log.d(TAG, "connect [Socket]: ${e.message}")
+            null
         } ?: return false
         socket?.soTimeout = MAX_WAIT_TIME
         // test server
