@@ -250,5 +250,17 @@ namespace AndroidMic.Properties {
                 this["MainWindow_ConnectViaUsb"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool AdvancedWindow_Rnnoise {
+            get {
+                return ((bool)(this["AdvancedWindow_Rnnoise"]));
+            }
+            set {
+                this["AdvancedWindow_Rnnoise"] = value;
+            }
+        }
     }
 }

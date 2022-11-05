@@ -15,6 +15,8 @@
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
     <IsWebBootstrapper>false</IsWebBootstrapper>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
     <PublishUrl>publish\</PublishUrl>
     <Install>true</Install>
     <InstallFrom>Disk</InstallFrom>
@@ -34,8 +36,6 @@
     <UseApplicationTrust>false</UseApplicationTrust>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
-    <NuGetPackageImportStamp>
-    </NuGetPackageImportStamp>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -159,10 +159,12 @@
     <Compile Include="AdvancedWindow.xaml.cs">
       <DependentUpon>AdvancedWindow.xaml</DependentUpon>
     </Compile>
+    <Compile Include="External\librnnoise\librnnoise.cs" />
     <Compile Include="External\libspeexdsp\libspeexdsp.cs" />
     <Compile Include="Library\Audio\AudioBuffer.cs" />
     <Compile Include="Library\Audio\AudioManager.cs" />
     <Compile Include="Library\Audio\Filters\FilterRepeatTrack.cs" />
+    <Compile Include="Library\Audio\Filters\FilterRnnoise.cs" />
     <Compile Include="Library\Audio\Filters\FilterSpeexDSP.cs" />
     <Compile Include="Library\Audio\Filters\FilterWhiteNoise.cs" />
     <Compile Include="Library\Audio\Filters\FilterPitchShifter.cs" />
@@ -249,8 +251,11 @@
     <Content Include="ADB\AdbWinUsbApi.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="librnnoise.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="libspeexdsp.dll">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

@@ -128,7 +128,7 @@ namespace AndroidMic
                 streamM.SetConnectionType(StreamManager.ConnectionType.BLUETOOTH);
                 RadioButton1.IsChecked = true;
             }
-            else if(settings.MainWindow_ConnectViaWifi)
+            else if (settings.MainWindow_ConnectViaWifi)
             {
                 streamM.SetConnectionType(StreamManager.ConnectionType.WIFI);
                 RadioButton2.IsChecked = true;
@@ -181,8 +181,8 @@ namespace AndroidMic
             bool valB;
             // AdvancedWindow_SpeexDenoise
             {
-                valB = settings.AdvancedWindow_SpeexDenoise;
-                audioM.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigDenoise, ref valB, true);
+                //valB = settings.AdvancedWindow_SpeexDenoise;
+                //audioM.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigDenoise, ref valB, true);
             }
             // AdvancedWindow_SpeexAGC
             {
@@ -198,6 +198,11 @@ namespace AndroidMic
             {
                 valB = settings.AdvancedWindow_SpeexEcho;
                 audioM.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigEcho, ref valB, true);
+            }
+
+            // AdvancedWindow_Rnnoise
+            {
+                audioM.UpdatePipelineFilter(AdvancedFilterType.FRnnoise, settings.AdvancedWindow_Rnnoise);
             }
         }
 
@@ -314,7 +319,7 @@ namespace AndroidMic
                     if (windowInitialized)
                         Properties.Settings.Default.MainWindow_ConnectViaBluetooth = true;
                 }
-                else if(rb.Content.ToString().StartsWith("W"))
+                else if (rb.Content.ToString().StartsWith("W"))
                 {
                     streamM?.SetConnectionType(StreamManager.ConnectionType.WIFI);
                     if (windowInitialized)

@@ -22,22 +22,27 @@ namespace AndroidMic.Audio
     // the filters once enabled
     public enum AdvancedFilterType
     {
-        FPitchShifter = 0,
-        FWhiteNoise = 1,
-        FRepeatTrack = 2
+        FRnnoise = 0,
+        FPitchShifter = 1,
+        FWhiteNoise = 2,
+        FRepeatTrack = 3,
+
+        Count
     }
 
     public class AudioManager
     {
         private readonly string TAG = "AudioManager";
         private readonly int MAX_WAIT_TIME = 1000;
-        private readonly int MAX_FILTERS_COUNT = 3;
 
         private MMDeviceCollection devices;
         private int selectedDeviceIdx;
         private IWavePlayer player;
         public volatile int PlayerDesiredLatency = 120; // in milliseconds
-        private readonly WaveFormat format;
+
+        private readonly int AUDIO_SAMPLE_RATE = 16000;
+        private readonly int AUDIO_BITS = 16;
+        private readonly int AUDIO_CHANNELS = 1;
 
         private readonly BufferedWaveProvider bufferedProvider;
         private readonly FilterSpeexDSP speexProvider;
@@ -62,21 +67,27 @@ namespace AndroidMic.Audio
             uiContext = context;
 
             selectedDeviceIdx = -1;
-            format = new WaveFormat(16000, 16, 1); // sample rate, bits, channels
+
             var deviceIter = new MMDeviceEnumerator();
             devices = deviceIter.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
             player = new WasapiOut(deviceIter.GetDefaultAudioEndpoint(DataFlow.Render, Role.Console), AudioClientShareMode.Shared, false, PlayerDesiredLatency);
-            providerPipeline = new ISampleProvider[MAX_FILTERS_COUNT];
+
+            providerPipeline = new ISampleProvider[(int)AdvancedFilterType.Count];
             providerPipelineStates = new Dictionary<AdvancedFilterType, bool>();
-            for (int i = 0; i < MAX_FILTERS_COUNT; i++)
+
+            for (int i = 0; i < (int)AdvancedFilterType.Count; i++)
                 providerPipelineStates[(AdvancedFilterType)i] = false;
-            bufferedProvider = new BufferedWaveProvider(format)
+
+            bufferedProvider = new BufferedWaveProvider(new WaveFormat(AUDIO_SAMPLE_RATE, AUDIO_BITS, AUDIO_CHANNELS))
             {
                 DiscardOnBufferOverflow = true
             };
+
             speexProvider = new FilterSpeexDSP(bufferedProvider, uiContext);
+
             // build filter pipeline
             BuildPipeline();
+
             processAllowed = true;
             cancellationTokenSource = new CancellationTokenSource();
             processTask = Task.Factory.StartNew(Process, cancellationTokenSource.Token, TaskCreationOptions.LongRunning, TaskScheduler.Default);
@@ -88,12 +99,13 @@ namespace AndroidMic.Audio
         {
             processAllowed = false;
             if (player.PlaybackState == PlaybackState.Playing) player.Stop();
+
             if (processTask?.IsCompleted == false)
             {
                 cancellationTokenSource.Cancel();
                 try
                 {
-                    processTask?.Wait();
+                    processTask?.Wait(MAX_WAIT_TIME);
                 }
                 catch (OperationCanceledException err)
                 {
@@ -104,12 +116,13 @@ namespace AndroidMic.Audio
                     processTask?.Dispose();
                 }
             }
+
             player.Dispose();
             speexProvider.Dispose();
-            for (int i = 0; i < MAX_FILTERS_COUNT; i++)
+
+            for (int i = 0; i < (int)AdvancedFilterType.Count; i++)
             {
-                var filter = providerPipeline[i] as IDisposable;
-                if (filter != null) filter.Dispose();
+                if (providerPipeline[i] is IDisposable filter) filter.Dispose();
             }
             DebugLog("Shutdown");
         }
@@ -119,23 +132,27 @@ namespace AndroidMic.Audio
         {
             while (processAllowed)
             {
-                if(cancellationTokenSource.IsCancellationRequested)
+                if (cancellationTokenSource.IsCancellationRequested)
                 {
                     break;
                 }
+
                 if (sharedBuffer.IsEmpty() || player == null ||
                     player.PlaybackState != PlaybackState.Playing)
                 {
                     await Task.Delay(5);
                     continue;
                 }
+
                 var result = await sharedBuffer.OpenReadRegion(Streaming.Streamer.BUFFER_SIZE);
                 var count = result.Item1;
                 var offset = result.Item2;
+
                 if (bufferedProvider.BufferedDuration.TotalMilliseconds <= PlayerDesiredLatency)
                 {
                     bufferedProvider.AddSamples(sharedBuffer.Buffer, offset, count);
                 }
+
                 sharedBuffer.CloseReadRegion(count);
             }
         }
@@ -147,19 +164,23 @@ namespace AndroidMic.Audio
                 selectedDeviceIdx = deviceIdx;
             else
                 selectedDeviceIdx = -1;
+
             // stop playing
             player.Stop();
             player.Dispose();
+
             // create new player
             var deviceIter = new MMDeviceEnumerator();
             var device = selectedDeviceIdx < 0 ? deviceIter.GetDefaultAudioEndpoint(DataFlow.Render, Role.Console) : devices[selectedDeviceIdx];
             player = new WasapiOut(device, AudioClientShareMode.Shared, false, PlayerDesiredLatency);
             bufferedProvider.ClearBuffer();
+
             // start playing
             player.Init(volumeProvider);
             player.Play();
             DebugLog("SelectAudioDevice: " + deviceIdx);
             AddLog("Device changed to " + ((deviceIdx < 0) ? "Default" : devices[deviceIdx].FriendlyName));
+
             RefreshAudioDevices();
         }
 
@@ -174,11 +195,14 @@ namespace AndroidMic.Audio
         {
             var deviceIter = new MMDeviceEnumerator();
             devices = deviceIter.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active);
+
             if (RefreshAudioDevicesEvent != null)
             {
                 string[] deviceNames = new string[devices.Count];
+
                 for (int i = 0; i < devices.Count; i++)
                     deviceNames[i] = devices[i].FriendlyName;
+
                 RefreshAudioDevicesEvent?.Invoke(this, new AudioDevicesArgs
                 {
                     Devices = deviceNames,
@@ -192,15 +216,20 @@ namespace AndroidMic.Audio
         {
             player.Stop();
             player.Dispose();
+
             // create new player
             var deviceIter = new MMDeviceEnumerator();
             var device = selectedDeviceIdx < 0 ? deviceIter.GetDefaultAudioEndpoint(DataFlow.Render, Role.Console) : devices[selectedDeviceIdx];
             player = new WasapiOut(device, AudioClientShareMode.Shared, false, PlayerDesiredLatency);
+
             bufferedProvider.ClearBuffer();
+
             ISampleProvider source = speexProvider.ToSampleProvider();
-            for (int i = 0; i < MAX_FILTERS_COUNT; i++)
+
+            for (int i = 0; i < (int)AdvancedFilterType.Count; i++)
             {
                 AdvancedFilterType type = (AdvancedFilterType)i;
+
                 // skip not enabled pipelines
                 if (!providerPipelineStates[type]) continue;
                 switch (type)
@@ -214,13 +243,19 @@ namespace AndroidMic.Audio
                     case AdvancedFilterType.FRepeatTrack:
                         source = providerPipeline[i] = new FilterRepeatTrack(source, providerPipeline[i] as FilterRepeatTrack);
                         break;
+                    case AdvancedFilterType.FRnnoise:
+                        source = providerPipeline[i] = new WdlResamplingSampleProvider(new FilterRnnoise(source, providerPipeline[i] as FilterRnnoise), AUDIO_SAMPLE_RATE);
+                        break;
                 }
             }
+
             rendererProvider = new FilterRenderer(source, uiContext, prev: rendererProvider);
+
             volumeProvider = new VolumeSampleProvider(rendererProvider)
             {
                 Volume = volumeProvider == null ? 1.0f : volumeProvider.Volume
             };
+
             player.Init(volumeProvider);
             player.Play();
         }

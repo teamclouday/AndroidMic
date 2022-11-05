@@ -45,14 +45,16 @@ namespace AndroidMic
             // init speex states
             audioM.SetIndicator(SpeechIndicator);
             bool valB = false;
-            audioM.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigDenoise, ref valB, false);
-            NoiseCancelEnableCheckbox.IsChecked = valB;
+            //audioM.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigDenoise, ref valB, false);
+            //NoiseCancelEnableCheckbox.IsChecked = valB;
             audioM.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigAGC, ref valB, false);
             AutomicGainEnableCheckbox.IsChecked = valB;
             audioM.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigVAD, ref valB, false);
             VADEnableCheckbox.IsChecked = valB;
             audioM.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigEcho, ref valB, false);
             EchoCancelEnableCheckbox.IsChecked = valB;
+            // init rnnoise state
+            NoiseCancelEnableCheckbox.IsChecked = audioM.IsEnabled(AdvancedFilterType.FRnnoise);
         }
 
         // pitch slider change callback
@@ -200,8 +202,11 @@ namespace AndroidMic
             if (checkBox != null)
             {
                 bool enabled = checkBox.IsChecked == true;
-                audioM?.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigDenoise, ref enabled, true);
-                Properties.Settings.Default.AdvancedWindow_SpeexDenoise = enabled;
+                //audioM?.ConfigSpeexDSP(FilterSpeexDSP.ConfigTypes.ConfigDenoise, ref enabled, true);
+                //Properties.Settings.Default.AdvancedWindow_SpeexDenoise = enabled;
+                audioM?.UpdatePipelineFilter(AdvancedFilterType.FRnnoise, enabled);
+                Properties.Settings.Default.AdvancedWindow_Rnnoise = enabled;
+
             }
         }
 

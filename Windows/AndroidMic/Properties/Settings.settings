@@ -59,5 +59,8 @@
     <Setting Name="MainWindow_ConnectViaUsb" Type="System.Boolean" Scope="User">
       <Value Profile="(Default)">False</Value>
     </Setting>
+    <Setting Name="AdvancedWindow_Rnnoise" Type="System.Boolean" Scope="User">
+      <Value Profile="(Default)">False</Value>
+    </Setting>
   </Settings>
 </SettingsFile>
