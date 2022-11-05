@@ -65,12 +65,12 @@
             <Slider Maximum="300.0" Minimum="50.0" x:Name="LatencySlider" TickFrequency="5" Value="100.0"
                         TickPlacement="None" IsSnapToTickEnabled="True" ValueChanged="LatencySlider_PropertyChange"/>
         </DockPanel>
-        <CheckBox Content="Echo Cancellation" VerticalContentAlignment="Center" x:Name="EchoCancelEnableCheckbox"
-                  FontSize="20" FontFamily="Comic Sans MS" VerticalAlignment="Bottom" Width="300"
-                  Checked="EchoCancelEnableCheckbox_StateChanged" Unchecked="EchoCancelEnableCheckbox_StateChanged" Margin="0,0,0,210"/>
         <CheckBox Content="Noise Cancellation" VerticalContentAlignment="Center" x:Name="NoiseCancelEnableCheckbox"
                   FontSize="20" FontFamily="Comic Sans MS" VerticalAlignment="Bottom" Width="300"
-                  Checked="NoiseCancelEnableCheckbox_StateChanged" Unchecked="NoiseCancelEnableCheckbox_StateChanged" Margin="0,0,0,170"/>
+                  Checked="NoiseCancelEnableCheckbox_StateChanged" Unchecked="NoiseCancelEnableCheckbox_StateChanged" Margin="0,0,0,210"/>
+        <CheckBox Content="Echo Cancellation" VerticalContentAlignment="Center" x:Name="EchoCancelEnableCheckbox"
+                  FontSize="20" FontFamily="Comic Sans MS" VerticalAlignment="Bottom" Width="300"
+                  Checked="EchoCancelEnableCheckbox_StateChanged" Unchecked="EchoCancelEnableCheckbox_StateChanged" Margin="0,0,0,170"/>
         <CheckBox Content="Automatic Gain Control" VerticalContentAlignment="Center" x:Name="AutomicGainEnableCheckbox"
                   FontSize="20" FontFamily="Comic Sans MS" VerticalAlignment="Bottom" Width="300"
                   Checked="AutomicGainEnableCheckbox_StateChanged" Unchecked="AutomicGainEnableCheckbox_StateChanged" Margin="0,0,0,130"/>
