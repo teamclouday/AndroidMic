@@ -153,7 +153,8 @@ Pre-built installers can be found [here](https://github.com/teamclouday/AndroidM
 
 ## Android Side
 
-<img src="Assets/p2.jpg" width="250" alt="Android Side">
+<img src="Assets/p2.png" width="250" alt="Android Side">
+<img src="Assets/p3.png" width="250" alt="Android Side">
 
-<img src="Assets/p3.jpg" width="500" alt="Android Side">
+<img src="Assets/p5.png" width="500" alt="Android Side">
 
