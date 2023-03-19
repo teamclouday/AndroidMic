@@ -8,7 +8,7 @@ Use your Android phone as a microphone to Windows PC
 * Android phone with bluetooth/wifi
 * Windows PC with bluetooth/wifi
 * Installed [Virtual Audio Cable (VAC)](https://vac.muzychenko.net/en/) on Windows, will hear "trial" voice if your driver is in trial mode\
-  I'm actually using [VB-Audio](https://vb-audio.com/Cable/) as alternative now since it is completely free
+  Also try using [VB-Audio](https://vb-audio.com/Cable/) as alternative now since it is completely free
 
 ------
 
@@ -41,7 +41,7 @@ Do not set to 512 smp since that will cause most buffers lost. If 2048 has no so
 <summary>Volume Control</summary>
 
 1. Run Windows side app
-2. Drag slider to control volune
+2. Drag slider to control volume
 
 </details>
 
