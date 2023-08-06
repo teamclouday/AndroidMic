@@ -1,9 +1,12 @@
 use anyhow::{self};
-use std::net::UdpSocket;
+use std::{net::UdpSocket, sync::{Mutex, Arc}};
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
     FromSample, Sample,
 };
+
+
+
 
 fn main() -> anyhow::Result<()> {
     // Replace this with the port you want to bind to.
@@ -12,8 +15,6 @@ fn main() -> anyhow::Result<()> {
     // Create a UDP socket and bind it to the specified port
     let socket = UdpSocket::bind(("0.0.0.0", bind_port)).expect("Failed to bind to socket");
 
-    // Buffer to store received data
-    let mut buf = [0u8; 1024];
 
     println!("Waiting for data...");
     let host = cpal::default_host();
@@ -24,18 +25,34 @@ fn main() -> anyhow::Result<()> {
     let sample_rate = config.sample_rate.0 as f32;
     let channels = config.channels as usize;
 
-    let mut sample_clock = 0f32;
-    let mut next_value = move || {
-        sample_clock = (sample_clock + 1.0) % sample_rate;
-        (sample_clock * 440.0 * 2.0 * std::f32::consts::PI / sample_rate).sin()
-    };
+    // Buffer to store received data
+    let mut buf = [0u8; 1024];
+    let shared_buf = Arc::new(Mutex::new(buf));
+
+ 
 
     let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
 
+    let audio_buf = shared_buf.clone();
     let stream = device.build_output_stream(
         &config,
         move |data: &mut [i16], _: &cpal::OutputCallbackInfo| {
-            write_data(data, channels, &mut next_value)
+            let inner_buf = audio_buf.lock().unwrap();
+            let mut i = 0;
+
+            // a frame has 480 samples
+            for frame in data.chunks_mut(channels) {
+                if i >= 1024 {
+                    break;
+                }
+                let value = i16::from_sample(inner_buf[i]); 
+                i += 1;
+
+                // a sample has two cases (probably left/right)
+                for sample in frame.iter_mut() {
+                    *sample = value;
+                }
+            }
         },
         err_fn,
         None,
@@ -43,12 +60,15 @@ fn main() -> anyhow::Result<()> {
     stream.play()?;
 
     loop {
+        let mut tmp_buf = [0u8; 1024];
         // Receive data into the buffer
-        match socket.recv_from(&mut buf) {
+        match socket.recv_from(&mut tmp_buf) {
             Ok((size, src_addr)) => {
-                let data = &buf[..size];
+                
+                let inner_buf = shared_buf.lock().unwrap();
+                let inner_buf = &buf[..size];
                 let src_addr = src_addr.to_string();
-                println!("Received {} bytes from {}: {:?}", size, src_addr, data);
+                println!("Received {} bytes from {}", size, src_addr);
             }
             Err(e) => {
                 eprintln!("Error while receiving data: {:?}", e);
