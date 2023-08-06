@@ -2,8 +2,9 @@ use anyhow::{self};
 use std::{net::UdpSocket, sync::{Mutex, Arc}};
 use cpal::{
     traits::{DeviceTrait, HostTrait, StreamTrait},
-    FromSample, Sample,
+    FromSample, Sample, StreamConfig, SampleRate, BufferSize,
 };
+use ringbuf::StaticRb;
 
 
 
@@ -19,7 +20,13 @@ fn main() -> anyhow::Result<()> {
     println!("Waiting for data...");
     let host = cpal::default_host();
     let device = host.default_output_device().unwrap();
-    let config: cpal::StreamConfig = device.default_output_config().unwrap().into();
+
+    let config = StreamConfig{
+        channels: 1,
+        sample_rate: SampleRate(16000),
+        buffer_size: BufferSize::Fixed(1024),
+    };
+
     println!("Default output config: {:?}", config);
 
     let sample_rate = config.sample_rate.0 as f32;
@@ -28,6 +35,10 @@ fn main() -> anyhow::Result<()> {
     // Buffer to store received data
     let mut buf = [0u8; 1024];
     let shared_buf = Arc::new(Mutex::new(buf));
+
+    const RB_SIZE: usize = 1024;
+    let mut rb = StaticRb::<u8, RB_SIZE>::default();
+    let (mut prod, mut cons) = rb.spl it_ref();
 
  
 
@@ -42,6 +53,13 @@ fn main() -> anyhow::Result<()> {
 
             // a frame has 480 samples
             for frame in data.chunks_mut(channels) {
+
+                match cons.pop() {
+                    Some(value) => {
+
+                    }
+                    None => { break; }
+                }
                 if i >= 1024 {
                     break;
                 }
@@ -64,6 +82,11 @@ fn main() -> anyhow::Result<()> {
         // Receive data into the buffer
         match socket.recv_from(&mut tmp_buf) {
             Ok((size, src_addr)) => {
+
+                for val in &buf[..size] {
+                    prod.push(*val).unwrap()
+                }
+
                 
                 let inner_buf = shared_buf.lock().unwrap();
                 let inner_buf = &buf[..size];
