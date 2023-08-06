@@ -6,6 +6,10 @@ use cpal::{
 };
 use ringbuf::StaticRb;
 
+use crate::circular_buffer::CircularBuffer;
+
+mod circular_buffer;
+
 
 
 
@@ -21,11 +25,12 @@ fn main() -> anyhow::Result<()> {
     let host = cpal::default_host();
     let device = host.default_output_device().unwrap();
 
-    let config = StreamConfig{
-        channels: 1,
-        sample_rate: SampleRate(16000),
-        buffer_size: BufferSize::Fixed(1024),
-    };
+    // let config = StreamConfig{
+    //     channels: 1,
+    //     sample_rate: SampleRate(16000),
+    //     buffer_size: BufferSize::Default(1024),
+    // };
+    let config: cpal::StreamConfig = device.default_output_config().unwrap().into();
 
     println!("Default output config: {:?}", config);
 
@@ -33,14 +38,8 @@ fn main() -> anyhow::Result<()> {
     let channels = config.channels as usize;
 
     // Buffer to store received data
-    let mut buf = [0u8; 1024];
-    let shared_buf = Arc::new(Mutex::new(buf));
-
-    const RB_SIZE: usize = 1024;
-    let mut rb = StaticRb::<u8, RB_SIZE>::default();
-    let (mut prod, mut cons) = rb.spl it_ref();
-
- 
+    let capacity = 5 * 1024;
+    let shared_buf = Arc::new(CircularBuffer::<u8>::new(capacity));
 
     let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
 
@@ -48,32 +47,21 @@ fn main() -> anyhow::Result<()> {
     let stream = device.build_output_stream(
         &config,
         move |data: &mut [i16], _: &cpal::OutputCallbackInfo| {
-            let inner_buf = audio_buf.lock().unwrap();
-            let mut i = 0;
-
             // a frame has 480 samples
             for frame in data.chunks_mut(channels) {
-
-                match cons.pop() {
-                    Some(value) => {
-
+                if let Some(value) = audio_buf.pop() {
+                    let convert_value = i16::from_sample(value); 
+                    // a sample has two cases (probably left/right)
+                    for sample in frame.iter_mut() {
+                        *sample = convert_value;
                     }
-                    None => { break; }
-                }
-                if i >= 1024 {
-                    break;
-                }
-                let value = i16::from_sample(inner_buf[i]); 
-                i += 1;
-
-                // a sample has two cases (probably left/right)
-                for sample in frame.iter_mut() {
-                    *sample = value;
+                } else {
+                    return;
                 }
             }
         },
         err_fn,
-        None,
+        None, // todo: try timeout
     )?;
     stream.play()?;
 
@@ -83,15 +71,11 @@ fn main() -> anyhow::Result<()> {
         match socket.recv_from(&mut tmp_buf) {
             Ok((size, src_addr)) => {
 
-                for val in &buf[..size] {
-                    prod.push(*val).unwrap()
+                for val in &tmp_buf[..size] {
+                    shared_buf.push(*val)
                 }
-
-                
-                let inner_buf = shared_buf.lock().unwrap();
-                let inner_buf = &buf[..size];
                 let src_addr = src_addr.to_string();
-                println!("Received {} bytes from {}", size, src_addr);
+                //println!("Received {} bytes from {}", size, src_addr);
             }
             Err(e) => {
                 eprintln!("Error while receiving data: {:?}", e);

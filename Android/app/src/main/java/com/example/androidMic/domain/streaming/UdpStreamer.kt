@@ -27,6 +27,7 @@ class UdpStreamer(val ip: String, val port: Int) : Streamer {
     }
 
     override suspend fun stream(audioBuffer: AudioBuffer) {
+        if (audioBuffer.isEmpty()) return
         var readSize = 0
         val region = audioBuffer.openReadRegion(Streamer.BUFFER_SIZE)
         val regionSize = region.first
