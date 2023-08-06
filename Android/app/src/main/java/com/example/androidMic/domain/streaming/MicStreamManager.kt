@@ -4,6 +4,7 @@ import android.content.Context
 import com.example.androidMic.domain.audio.AudioBuffer
 import com.example.androidMic.utils.DebugModes
 import com.example.androidMic.utils.Modes.Companion.MODE_BLUETOOTH
+import com.example.androidMic.utils.Modes.Companion.MODE_UDP
 import com.example.androidMic.utils.Modes.Companion.MODE_USB
 import com.example.androidMic.utils.Modes.Companion.MODE_WIFI
 
@@ -35,6 +36,9 @@ class MicStreamManager(private val ctx: Context) {
             }
             MODE_USB -> {
                 AdbStreamer(port!!)
+            }
+            MODE_UDP -> {
+                UdpStreamer(ip!!, port!!)
             }
             else -> throw IllegalArgumentException("Unknown mode")
         }

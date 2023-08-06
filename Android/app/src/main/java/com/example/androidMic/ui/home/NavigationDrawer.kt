@@ -19,6 +19,7 @@ import com.example.androidMic.ui.home.dialog.DialogTheme
 import com.example.androidMic.ui.home.dialog.DialogUsbPort
 import com.example.androidMic.ui.home.dialog.DialogWifiIpPort
 import com.example.androidMic.utils.Modes.Companion.MODE_BLUETOOTH
+import com.example.androidMic.utils.Modes.Companion.MODE_UDP
 import com.example.androidMic.utils.Modes.Companion.MODE_USB
 import com.example.androidMic.utils.Modes.Companion.MODE_WIFI
 import com.example.androidMic.utils.States
@@ -51,6 +52,7 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                 MODE_WIFI -> stringResource(id = R.string.mode_wifi)
                 MODE_BLUETOOTH -> stringResource(id = R.string.mode_bluetooth)
                 MODE_USB -> stringResource(id = R.string.mode_usb)
+                MODE_UDP -> stringResource(id = R.string.mode_udp)
                 else -> "NONE"
             },
             contentDescription = "set mode",
@@ -135,6 +137,7 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                     if (item.id == R.string.drawerUsbPort) shouldShowItem = false
                     if (item.id == R.string.drawerWifiIpPort) shouldShowItem = false
                 }
+                MODE_UDP -> if (item.id == R.string.drawerUsbPort) shouldShowItem = false
             }
             if (shouldShowItem) {
                 ManagerSetting(mainViewModel, item)

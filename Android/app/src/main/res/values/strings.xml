@@ -25,6 +25,7 @@
     <string name="mode_wifi" translatable="false">WIFI</string>
     <string name="mode_bluetooth" translatable="false">BLUETOOTH</string>
     <string name="mode_usb" translatable="false">USB (ADB)</string>
+    <string name="mode_udp" translatable="false">UDP</string>
 
     <string name="drawerTheme">Themes</string>
     <string name="system_theme">System theme</string>

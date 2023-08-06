@@ -47,7 +47,6 @@ fun DialogMode(mainViewModel: MainViewModel, uiStates: States.UiStates) {
 
                     Spacer(modifier = Modifier.height(20.dp))
 
-
                     // bluetooth
                     ManagerButton(
                         onClick = { mainViewModel.onEvent(Event.SetMode(Modes.MODE_BLUETOOTH)) },
@@ -63,6 +62,16 @@ fun DialogMode(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                         text = stringResource(id = R.string.mode_usb),
                         modifier = Modifier.fillMaxWidth(0.8f)
                     )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    // udp
+                    ManagerButton(
+                        onClick = { mainViewModel.onEvent(Event.SetMode(Modes.MODE_UDP)) },
+                        text = stringResource(id = R.string.mode_udp),
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    )
+
                     Spacer(modifier = Modifier.height(25.dp))
                 }
             }

@@ -22,7 +22,8 @@ import com.example.androidMic.utils.States
 import com.example.androidMic.utils.ignore
 import kotlinx.coroutines.*
 
-class ForegroundService : Service() {
+class
+ForegroundService : Service() {
     private val TAG = "MicService"
     private val scope = CoroutineScope(Dispatchers.Default)
     private val WAIT_PERIOD = 500L

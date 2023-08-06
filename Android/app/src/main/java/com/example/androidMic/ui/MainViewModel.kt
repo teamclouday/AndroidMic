@@ -13,6 +13,7 @@ import com.example.androidMic.utils.Command
 import com.example.androidMic.utils.Command.Companion.COMMAND_DISC_STREAM
 import com.example.androidMic.utils.Command.Companion.COMMAND_GET_STATUS
 import com.example.androidMic.utils.CommandService
+import com.example.androidMic.utils.Modes.Companion.MODE_UDP
 import com.example.androidMic.utils.Modes.Companion.MODE_USB
 import com.example.androidMic.utils.Modes.Companion.MODE_WIFI
 import com.example.androidMic.utils.States
@@ -96,7 +97,7 @@ class MainViewModel(
                     reply = Message.obtain(null, Command.COMMAND_STOP_STREAM)
                 } else {
                     val data = Bundle()
-                    if (uiStates.value.mode == MODE_WIFI) {
+                    if (uiStates.value.mode == MODE_WIFI || uiStates.value.mode == MODE_UDP) {
                         try {
                             val (ip, port) = preferences.getWifiIpPort(false)
                             data.putString("IP", ip)

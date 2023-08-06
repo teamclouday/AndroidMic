@@ -4,6 +4,7 @@ import android.util.Log
 import com.example.androidMic.ui.utils.WindowInfo
 
 // debug file which help for Log
+// todo: remove this file
 
 data class CommandService(
     val dic: Map<Int, String> = mapOf(
@@ -23,7 +24,8 @@ data class DebugModes(
     val dic: Map<Int, String> = mapOf(
         1 to "WIFI",
         2 to "BLUETOOTH",
-        3 to "USB"
+        3 to "USB",
+        4 to "UDP"
     )
 )
 

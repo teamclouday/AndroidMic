@@ -45,6 +45,7 @@ class Modes {
         const val MODE_WIFI: Int = 1
         const val MODE_BLUETOOTH: Int = 2
         const val MODE_USB: Int = 3
+        const val MODE_UDP: Int = 4
     }
 }
 

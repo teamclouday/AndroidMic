@@ -23,6 +23,7 @@ import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.components.ManagerButton
 import com.example.androidMic.ui.utils.*
 import com.example.androidMic.utils.Modes.Companion.MODE_BLUETOOTH
+import com.example.androidMic.utils.Modes.Companion.MODE_UDP
 import com.example.androidMic.utils.Modes.Companion.MODE_USB
 import com.example.androidMic.utils.Modes.Companion.MODE_WIFI
 import com.example.androidMic.utils.States
@@ -228,6 +229,9 @@ private fun ButtonConnect(
                         usbPermissionsState.launchMultiplePermissionRequest()
                     else
                         mainViewModel.onEvent(Event.ConnectButton)
+                }
+                MODE_UDP -> {
+                    mainViewModel.onEvent(Event.ConnectButton)
                 }
             }
         },
