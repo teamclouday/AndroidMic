@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 cpal = "0.15.2"
+anyhow = "1.0"
