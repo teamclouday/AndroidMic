@@ -58,7 +58,8 @@ android {
         compose true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion '1.1.1'
+        // https://developer.android.com/jetpack/androidx/releases/compose-kotlin?hl=fr#pre-release_kotlin_compatibility
+        kotlinCompilerExtensionVersion '1.4.3'
     }
 
 
