@@ -5,19 +5,13 @@ use cpal::{
 use rtrb::{chunks::ChunkError, Consumer, Producer, RingBuffer};
 use std::{
     io::{self},
-    net::UdpSocket, time::Duration,
+    net::UdpSocket,
 };
+use user_action::UserAction;
 
-use crossterm::{
-    cursor::position,
-    event::{DisableMouseCapture, EnableMouseCapture, Event, EventStream, KeyCode},
-    execute,
-    terminal::{disable_raw_mode, enable_raw_mode},
-};
+use std::sync::mpsc;
 
-
-use crossterm::event::{self, KeyEvent, KeyEventKind, KeyModifiers};
-
+mod user_action;
 
 struct App {
     audio_player: Option<cpal::Stream>,
@@ -36,7 +30,7 @@ fn main() {
     // Buffer to store received data
     let (mut producer, consumer) = RingBuffer::<u8>::new(capacity);
 
-    match audio(consumer) {
+    match setup_audio(consumer) {
         Err(e) => {
             eprintln!("{:?}", e);
             return;
@@ -47,45 +41,61 @@ fn main() {
                 eprintln!("{:?}", e);
                 return;
             }
-        },
+        }
     }
 
     let bind_port = 55555;
     let socket = UdpSocket::bind(("0.0.0.0", bind_port)).expect("Failed to bind to socket");
 
-    let tmp_buf = [0u8; 1024];
+    let udp_buf = [0u8; 1024];
 
+    let (tx, rx) = mpsc::channel::<UserAction>();
+    user_action::start_listening(tx);
+    user_action::print_avaible_action();
 
+    let mut iteration: u64 = 0;
+    let mut item_lossed: u64 = 0;
+    let mut item_moved: u64 = 0;
+
+    use std::time::Instant;
+    let now = Instant::now();
     loop {
-
-        
-        if let Ok(Event::Key(KeyEvent {
-            code: KeyCode::Char('q'),
-            ..
-        })) = event::read()
-        {
-            println!("quit requested");
-            break;
-        } else {
-            println!("eee")
+        if let Ok(action) = rx.try_recv() {
+            match action {
+                UserAction::Quit => {
+                    println!("quit requested");
+                    break;
+                }
+            }
         }
 
-        match write_to_buff(&socket, &mut producer, tmp_buf) {
+        match write_to_buff(&socket, &mut producer, udp_buf) {
             Ok(_) => {}
             Err(e) => match e {
                 WriteError::Udp(e) => {
                     eprintln!("{:?}", e);
                     break;
                 }
-                WriteError::BufferOverfilled(_, lossed) => {
-                    eprintln!("write loss: {}", lossed);
+                WriteError::BufferOverfilled(moved, lossed) => {
+                    item_lossed += lossed as u64;
+                    item_moved += moved as u64;
                 }
             },
         }
+        iteration += 1;
     }
+
+    println!("Elapsed: {:.2?}", now.elapsed());
+    println!(
+        "iteration: {}, item lossed: {}, item moved: {}",
+        iteration, item_lossed, item_moved
+    );
+    println!("ratio moved/lossed: {}", item_moved / item_lossed);
+    println!("moved by iteration: {}", item_moved / iteration);
+    println!("lossed by iteration: {}", item_lossed / iteration);
 }
 
-fn audio(mut consumer: Consumer<u8>) -> Result<cpal::Stream, BuildStreamError> {
+fn setup_audio(mut consumer: Consumer<u8>) -> Result<cpal::Stream, BuildStreamError> {
     let host = cpal::default_host();
     let device = host.default_output_device().unwrap();
 
@@ -95,8 +105,13 @@ fn audio(mut consumer: Consumer<u8>) -> Result<cpal::Stream, BuildStreamError> {
     //     buffer_size: BufferSize::Default(1024),
     // };
     let config: cpal::StreamConfig = device.default_output_config().unwrap().into();
-
-    println!("Default output config: {:?}", config);
+    
+    println!("");
+    println!("Audio config:");
+    println!("- number of channel: {}", config.channels);
+    println!("- sample rate: {}", config.sample_rate.0);
+    println!("- buffer size: {:?}", config.buffer_size);
+    println!("");
 
     let channels = config.channels as usize;
 
@@ -177,76 +192,4 @@ fn write_to_buff(
         },
         Err(e) => Err(WriteError::Udp(e)),
     }
-}
-
-#[test]
-fn benchmark_write_loss() {
-    println!("benchmark_write_loss");
-    use std::time::Instant;
-    use crossterm::event::{self, Event, KeyEvent, KeyCode, KeyEventKind, KeyModifiers};
-    let mut app = App::new();
-
-    let capacity = 5 * 1024;
-    // Buffer to store received data
-    let (mut producer, consumer) = RingBuffer::<u8>::new(capacity);
-
-    match audio(consumer) {
-        Err(e) => {
-            eprintln!("{:?}", e);
-            return;
-        }
-        Ok(steam) => match steam.play() {
-            Ok(_) => app.audio_player = Some(steam),
-            Err(e) => {
-                eprintln!("{:?}", e);
-                return;
-            }
-        },
-    }
-
-    let bind_port = 55555;
-    let socket = UdpSocket::bind(("0.0.0.0", bind_port)).expect("Failed to bind to socket");
-
-    let tmp_buf = [0u8; 1024];
-
-    let mut iteration: u64 = 0;
-    let mut item_lossed: u64 = 0;
-    let mut item_moved: u64 = 0;
-    let now = Instant::now();
-    loop {
-
-        if let Ok(Event::Key(KeyEvent {
-            code: KeyCode::Char('d'),
-            ..
-        })) = event::read()
-        {
-            println!("quit requested");
-            break;
-        }
-
-        match write_to_buff(&socket, &mut producer, tmp_buf) {
-            Ok(_) => {}
-            Err(e) => match e {
-                WriteError::Udp(e) => {
-                    eprintln!("{:?}", e);
-                    break;
-                }
-                WriteError::BufferOverfilled(moved, lossed) => {
-                    eprintln!("write loss: {}", lossed);
-                    item_lossed += lossed as u64;
-                    item_moved += moved as u64;
-                }
-            },
-        }
-        iteration += 1;
-    }
-
-    println!("Elapsed: {:.2?}", now.elapsed());
-    println!(
-        "iteration: {}, item lossed: {}, item moved: {}",
-        iteration, item_lossed, item_moved
-    );
-    println!("ratio moved/lossed: {}", item_moved / item_lossed);
-    println!("moved by iteration: {}", item_moved / iteration);
-    println!("lossed by iteration: {}", item_lossed / iteration);
 }
