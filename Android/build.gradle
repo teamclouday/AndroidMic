@@ -24,3 +24,9 @@ allprojects {
 tasks.register('clean', Delete) {
     delete rootProject.buildDir
 }
+
+// process to update dependencies
+// 1: AGP, Gradle: must be compatible
+// 2: Kotlin and Kotlin Compose compiler
+// 3: Android SDK
+// 4: app dependencies

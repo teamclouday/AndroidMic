@@ -88,9 +88,9 @@ fun ManagerOutlinedTextField(temp: MutableState<String>, id: Int) {
         singleLine = true,
         label = { Text(stringResource(id = id)) },
         textStyle = MaterialTheme.typography.bodyMedium,
-        colors = TextFieldDefaults.textFieldColors(
-            textColor = MaterialTheme.colorScheme.onSurface,
-            containerColor = MaterialTheme.colorScheme.surface
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            focusedContainerColor = MaterialTheme.colorScheme.surface
         ),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
     )
