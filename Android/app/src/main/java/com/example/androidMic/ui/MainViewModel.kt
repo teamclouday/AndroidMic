@@ -9,14 +9,9 @@ import androidx.lifecycle.SavedStateHandle
 import com.example.androidMic.AndroidMicApp
 import com.example.androidMic.R
 import com.example.androidMic.ui.utils.Preferences
-import com.example.androidMic.utils.Command
-import com.example.androidMic.utils.Command.Companion.COMMAND_DISC_STREAM
-import com.example.androidMic.utils.Command.Companion.COMMAND_GET_STATUS
-import com.example.androidMic.utils.CommandService
-import com.example.androidMic.utils.Modes.Companion.MODE_UDP
-import com.example.androidMic.utils.Modes.Companion.MODE_USB
-import com.example.androidMic.utils.Modes.Companion.MODE_WIFI
-import com.example.androidMic.utils.States
+import com.example.androidMic.domain.service.Command
+import com.example.androidMic.domain.service.Command.Companion.COMMAND_DISC_STREAM
+import com.example.androidMic.domain.service.Command.Companion.COMMAND_GET_STATUS
 
 
 class MainViewModel(
@@ -97,7 +92,7 @@ class MainViewModel(
                     reply = Message.obtain(null, Command.COMMAND_STOP_STREAM)
                 } else {
                     val data = Bundle()
-                    if (uiStates.value.mode == MODE_WIFI || uiStates.value.mode == MODE_UDP) {
+                    if (uiStates.value.mode == Modes.WIFI || uiStates.value.mode == Modes.UDP) {
                         try {
                             val (ip, port) = preferences.getWifiIpPort(false)
                             data.putString("IP", ip)
@@ -114,11 +109,11 @@ class MainViewModel(
                             return
                         }
                     }
-                    if (uiStates.value.mode == MODE_USB) {
+                    if (uiStates.value.mode == Modes.USB) {
                         val port = preferences.getUsbPort()
                         data.putInt("PORT", port)
                     }
-                    data.putInt("MODE", uiStates.value.mode)
+                    data.putInt("MODE", uiStates.value.mode.ordinal)
                     reply = Message.obtain(null, Command.COMMAND_START_STREAM)
                     reply.data = data
                     Log.d(TAG, "onConnectButton: start stream")
@@ -267,10 +262,6 @@ class MainViewModel(
 
         val result = msg.data.getBoolean("result")
 
-        val log = if (result) "handleSuccess" else "handleFailure"
-        // for log
-        val commandService = CommandService()
-        Log.d(TAG, "$log: ${commandService.dic[msg.what]}")
         when (msg.what) {
             Command.COMMAND_START_STREAM -> savedStateHandle["uiStates"] = uiStates.value.copy(
                 isStreamStarted = result,

@@ -1,9 +1,10 @@
 package com.example.androidMic.ui.utils
 
+import android.content.res.Resources.Theme
 import androidx.appcompat.app.AppCompatActivity
 import com.example.androidMic.AndroidMicApp
-import com.example.androidMic.utils.Modes.Companion.MODE_WIFI
-import com.example.androidMic.utils.Themes.Companion.SYSTEM_THEME
+import com.example.androidMic.ui.Modes
+import com.example.androidMic.ui.Themes
 import java.net.InetSocketAddress
 
 
@@ -21,10 +22,10 @@ class Preferences(private val androidMicApp: AndroidMicApp) {
         const val DEFAULT_USB_PORT = 6000
 
         private const val MODE_KEY = "DEFAULT_MODE"
-        private const val DEFAULT_MODE = MODE_WIFI
+        private val DEFAULT_MODE = Modes.WIFI.ordinal
 
         private const val THEME_KEY = "DEFAULT_THEME"
-        private const val DEFAULT_THEME = SYSTEM_THEME
+        private val DEFAULT_THEME = Themes.SYSTEM.ordinal
 
         private const val DYNAMIC_COLOR_KEY = "DEFAULT_DYNAMIC_COLOR"
         private const val DEFAULT_DYNAMIC_COLOR = true
@@ -96,44 +97,48 @@ class Preferences(private val androidMicApp: AndroidMicApp) {
     }
 
 
-    fun setMode(mode: Int) {
+    fun setMode(mode: Modes) {
         val userSettings = androidMicApp.getSharedPreferences(
             PREFERENCES_NAME,
             AppCompatActivity.MODE_PRIVATE
         )
 
         val editor = userSettings.edit()
-        editor.putInt(MODE_KEY, mode)
+        editor.putInt(MODE_KEY, mode.ordinal)
         editor.apply()
     }
 
-    fun getMode(): Int {
+    fun getMode(): Modes {
         val userSettings = androidMicApp.getSharedPreferences(
             PREFERENCES_NAME,
             AppCompatActivity.MODE_PRIVATE
         )
 
-        return userSettings.getInt(MODE_KEY, DEFAULT_MODE)
+        return userSettings.getInt(MODE_KEY, DEFAULT_MODE).let {
+            Modes.values()[it]
+        }
     }
 
 
-    fun setTheme(theme: Int) {
+    fun setTheme(theme: Themes) {
         val userSettings = androidMicApp.getSharedPreferences(
             PREFERENCES_NAME,
             AppCompatActivity.MODE_PRIVATE
         )
 
         val editor = userSettings.edit()
-        editor.putInt(THEME_KEY, theme)
+        editor.putInt(THEME_KEY, theme.ordinal)
         editor.apply()
     }
 
-    fun getTheme(): Int {
+    fun getTheme(): Themes {
         val userSettings = androidMicApp.getSharedPreferences(
             PREFERENCES_NAME,
             AppCompatActivity.MODE_PRIVATE
         )
-        return userSettings.getInt(THEME_KEY, DEFAULT_THEME)
+        return userSettings.getInt(THEME_KEY, DEFAULT_THEME).let {
+            Themes.values()[it]
+        }
     }
 
 

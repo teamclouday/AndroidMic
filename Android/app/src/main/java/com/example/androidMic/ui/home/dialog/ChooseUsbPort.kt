@@ -17,7 +17,7 @@ import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.components.ManagerButton
 import com.example.androidMic.ui.components.ManagerOutlinedTextField
 import com.example.androidMic.ui.utils.Preferences.Companion.DEFAULT_USB_PORT
-import com.example.androidMic.utils.States
+import com.example.androidMic.ui.States
 
 @Composable
 fun DialogUsbPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {

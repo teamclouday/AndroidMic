@@ -11,14 +11,14 @@ import com.example.androidMic.R
 import com.example.androidMic.domain.audio.AudioBuffer
 import com.example.androidMic.domain.audio.MicAudioManager
 import com.example.androidMic.domain.streaming.MicStreamManager
-import com.example.androidMic.utils.Command.Companion.COMMAND_DISC_STREAM
-import com.example.androidMic.utils.Command.Companion.COMMAND_GET_STATUS
-import com.example.androidMic.utils.Command.Companion.COMMAND_START_AUDIO
-import com.example.androidMic.utils.Command.Companion.COMMAND_START_STREAM
-import com.example.androidMic.utils.Command.Companion.COMMAND_STOP_AUDIO
-import com.example.androidMic.utils.Command.Companion.COMMAND_STOP_STREAM
-import com.example.androidMic.utils.DebugModes
-import com.example.androidMic.utils.States
+import com.example.androidMic.domain.service.Command.Companion.COMMAND_DISC_STREAM
+import com.example.androidMic.domain.service.Command.Companion.COMMAND_GET_STATUS
+import com.example.androidMic.domain.service.Command.Companion.COMMAND_START_AUDIO
+import com.example.androidMic.domain.service.Command.Companion.COMMAND_START_STREAM
+import com.example.androidMic.domain.service.Command.Companion.COMMAND_STOP_AUDIO
+import com.example.androidMic.domain.service.Command.Companion.COMMAND_STOP_STREAM
+import com.example.androidMic.ui.Modes
+import com.example.androidMic.ui.States
 import com.example.androidMic.utils.ignore
 import kotlinx.coroutines.*
 
@@ -159,7 +159,9 @@ ForegroundService : Service() {
         }
 
         // get params before going into the scope
-        val mode: Int = msg.data.getInt("MODE")
+        val mode: Modes = msg.data.getInt("MODE").let {
+            Modes.values()[it]
+        }
         val ip: String? = msg.data.getString("IP")
         val port: Int = msg.data.getInt("PORT")
 
@@ -167,13 +169,10 @@ ForegroundService : Service() {
         // try to start streaming
         jobStreamM = scope.launch {
             managerStream?.shutdown()
-            managerStream = MicStreamManager(applicationContext)
-
             try {
-                managerStream?.initialize(mode, ip, port)
+                managerStream = MicStreamManager(applicationContext, mode, ip, port)
             } catch (e: IllegalArgumentException) {
-                val debugModes = DebugModes()
-                Log.d(TAG, "start stream with mode ${debugModes.dic[mode]} failed:\n${e.message}")
+                Log.d(TAG, "start stream with mode ${mode.name} failed:\n${e.message}")
                 replyData.putString(
                     "reply",
                     applicationContext.getString(R.string.error) + e.message

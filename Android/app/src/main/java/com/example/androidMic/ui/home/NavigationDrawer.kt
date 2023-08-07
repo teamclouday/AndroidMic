@@ -13,19 +13,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.androidMic.R
 import com.example.androidMic.ui.MainViewModel
+import com.example.androidMic.ui.Modes
 import com.example.androidMic.ui.components.ManagerSetting
 import com.example.androidMic.ui.home.dialog.DialogMode
 import com.example.androidMic.ui.home.dialog.DialogTheme
 import com.example.androidMic.ui.home.dialog.DialogUsbPort
 import com.example.androidMic.ui.home.dialog.DialogWifiIpPort
-import com.example.androidMic.utils.Modes.Companion.MODE_BLUETOOTH
-import com.example.androidMic.utils.Modes.Companion.MODE_UDP
-import com.example.androidMic.utils.Modes.Companion.MODE_USB
-import com.example.androidMic.utils.Modes.Companion.MODE_WIFI
-import com.example.androidMic.utils.States
-import com.example.androidMic.utils.Themes.Companion.DARK_THEME
-import com.example.androidMic.utils.Themes.Companion.LIGHT_THEME
-import com.example.androidMic.utils.Themes.Companion.SYSTEM_THEME
+import com.example.androidMic.ui.States
+import com.example.androidMic.ui.Themes
 
 data class MenuItem(
     val id: Int,
@@ -49,11 +44,10 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
             id = R.string.drawerMode,
             title = stringResource(id = R.string.drawerMode),
             subTitle = when (uiStates.mode) {
-                MODE_WIFI -> stringResource(id = R.string.mode_wifi)
-                MODE_BLUETOOTH -> stringResource(id = R.string.mode_bluetooth)
-                MODE_USB -> stringResource(id = R.string.mode_usb)
-                MODE_UDP -> stringResource(id = R.string.mode_udp)
-                else -> "NONE"
+                Modes.WIFI -> stringResource(id = R.string.mode_wifi)
+                Modes.BLUETOOTH -> stringResource(id = R.string.mode_bluetooth)
+                Modes.USB -> stringResource(id = R.string.mode_usb)
+                Modes.UDP -> stringResource(id = R.string.mode_udp)
             },
             contentDescription = "set mode",
             icon = R.drawable.settings_24px
@@ -81,10 +75,9 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
             id = R.string.drawerTheme,
             title = stringResource(id = R.string.drawerTheme),
             subTitle = when (uiStates.theme) {
-                SYSTEM_THEME -> stringResource(id = R.string.system_theme)
-                LIGHT_THEME -> stringResource(id = R.string.light_theme)
-                DARK_THEME -> stringResource(id = R.string.dark_theme)
-                else -> "NONE"
+                Themes.SYSTEM -> stringResource(id = R.string.system_theme)
+                Themes.LIGHT -> stringResource(id = R.string.light_theme)
+                Themes.DARK -> stringResource(id = R.string.dark_theme)
             },
             contentDescription = "set theme",
             icon = R.drawable.dark_mode_24px
@@ -131,13 +124,13 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
         items(connectionItems) { item ->
             var shouldShowItem = true
             when (uiStates.mode) {
-                MODE_WIFI -> if (item.id == R.string.drawerUsbPort) shouldShowItem = false
-                MODE_USB -> if (item.id == R.string.drawerWifiIpPort) shouldShowItem = false
-                MODE_BLUETOOTH -> {
+                Modes.WIFI -> if (item.id == R.string.drawerUsbPort) shouldShowItem = false
+                Modes.BLUETOOTH -> if (item.id == R.string.drawerWifiIpPort) shouldShowItem = false
+                Modes.USB -> {
                     if (item.id == R.string.drawerUsbPort) shouldShowItem = false
                     if (item.id == R.string.drawerWifiIpPort) shouldShowItem = false
                 }
-                MODE_UDP -> if (item.id == R.string.drawerUsbPort) shouldShowItem = false
+                Modes.UDP -> if (item.id == R.string.drawerUsbPort) shouldShowItem = false
             }
             if (shouldShowItem) {
                 ManagerSetting(mainViewModel, item)

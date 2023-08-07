@@ -1,18 +1,7 @@
 use anyhow::{self};
-use std::{net::UdpSocket, sync::{Mutex, Arc}, io::Cursor};
-use cpal::{
-    traits::{DeviceTrait, HostTrait, StreamTrait},
-    FromSample, Sample, StreamConfig, SampleRate, BufferSize,
-};
-use ringbuf::StaticRb;
-
-use crate::circular_buffer::CircularBuffer;
-
-mod circular_buffer;
-
-
-use byteorder::{LittleEndian, ReadBytesExt, BigEndian};
-
+use cpal::traits::{DeviceTrait, HostTrait, StreamTrait};
+use rtrb::RingBuffer;
+use std::net::UdpSocket;
 
 fn main() -> anyhow::Result<()> {
     // Replace this with the port you want to bind to.
@@ -20,7 +9,6 @@ fn main() -> anyhow::Result<()> {
 
     // Create a UDP socket and bind it to the specified port
     let socket = UdpSocket::bind(("0.0.0.0", bind_port)).expect("Failed to bind to socket");
-
 
     println!("Waiting for data...");
     let host = cpal::default_host();
@@ -35,38 +23,46 @@ fn main() -> anyhow::Result<()> {
 
     println!("Default output config: {:?}", config);
 
-    let sample_rate = config.sample_rate.0 as f32;
     let channels = config.channels as usize;
 
     // Buffer to store received data
     let capacity = 5 * 1024;
-    let shared_buf = Arc::new(CircularBuffer::<u8>::new(capacity));
+    let (mut producer, mut consumer) = RingBuffer::<u8>::new(capacity);
 
     let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
 
-    let audio_buf = shared_buf.clone();
     let stream = device.build_output_stream(
         &config,
         move |data: &mut [i16], _: &cpal::OutputCallbackInfo| {
-            // a frame has 480 samples
-            for frame in data.chunks_mut(channels) {
-                if let Some(byte1) = audio_buf.pop() {
-                    if let Some(byte2) = audio_buf.pop() {
-                        let mut cursor = Cursor::new(vec![byte1, byte2]);
-                        // Combine the two u8 values into a single u16
-                        
-                        let result_i16 = cursor.read_i16::<LittleEndian>().unwrap();
-                        // Convert the u16 to i16
+            match consumer.read_chunk(data.len()) {
+                Ok(chunk) => {
+                    println!("read_chunk {}", chunk.len());
+                    let mut iter = chunk.into_iter();
+                    // a frame has 480 samples
+                    for frame in data.chunks_mut(channels) {
+                        let Some(byte1) = iter.next()  else {
+                            return;
+                        };
+                        let Some(byte2) = iter.next()  else {
+                            return;
+                        };
+
+                        // Combine the two u8 values into a single i16
+                        // don't ask me why we inverse bytes here (probably because of Endian stuff)
+                        let result_i16: i16 = (byte2 as i16) << 8 | byte1 as i16;
+
+                        // cursor method (should work on more PC but less optimize i think)
+                        // let mut cursor: Cursor<Vec<u8>> = Cursor::new(vec![byte1, byte2]);
+                        // let result_i16 = cursor.read_i16::<LittleEndian>().unwrap();
+
                         // a sample has two cases (probably left/right)
                         for sample in frame.iter_mut() {
                             *sample = result_i16;
                         }
-                        println!("write byte {}", result_i16);
-                    } else {
-                        return;
                     }
-                } else {
-                    return;
+                }
+                Err(e) => {
+                    eprintln!("Error read_chunk {:?}", e);
                 }
             }
         },
@@ -80,10 +76,16 @@ fn main() -> anyhow::Result<()> {
         // Receive data into the buffer
         match socket.recv_from(&mut tmp_buf) {
             Ok((size, src_addr)) => {
-
-                for val in &tmp_buf[..size] {
-                    shared_buf.push(*val)
+                match producer.write_chunk_uninit(size) {
+                    Ok(chunk) => {
+                        chunk.fill_from_iter(tmp_buf);
+                    }
+                    Err(e) => {
+                        eprintln!("Error write_chunk_uninit {:?}", e);
+                        continue;
+                    }
                 }
+
                 let src_addr = src_addr.to_string();
                 println!("Received {} bytes from {}", size, src_addr);
             }
@@ -94,21 +96,4 @@ fn main() -> anyhow::Result<()> {
         }
     }
     Ok(())
-}
-
-
-
-
-
-
-fn write_data<T>(output: &mut [T], channels: usize, next_sample: &mut dyn FnMut() -> f32)
-where
-    T: Sample + FromSample<f32>,
-{
-    for frame in output.chunks_mut(channels) {
-        let value: T = T::from_sample(next_sample());
-        for sample in frame.iter_mut() {
-            *sample = value;
-        }
-    }
 }

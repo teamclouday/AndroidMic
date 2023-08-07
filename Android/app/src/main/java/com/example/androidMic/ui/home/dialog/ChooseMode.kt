@@ -16,8 +16,8 @@ import com.example.androidMic.R
 import com.example.androidMic.ui.Event
 import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.components.ManagerButton
-import com.example.androidMic.utils.Modes
-import com.example.androidMic.utils.States
+import com.example.androidMic.ui.Modes
+import com.example.androidMic.ui.States
 
 @Composable
 fun DialogMode(mainViewModel: MainViewModel, uiStates: States.UiStates) {
@@ -40,7 +40,7 @@ fun DialogMode(mainViewModel: MainViewModel, uiStates: States.UiStates) {
 
                     // wifi
                     ManagerButton(
-                        onClick = { mainViewModel.onEvent(Event.SetMode(Modes.MODE_WIFI)) },
+                        onClick = { mainViewModel.onEvent(Event.SetMode(Modes.WIFI)) },
                         text = stringResource(id = R.string.mode_wifi),
                         modifier = Modifier.fillMaxWidth(0.8f)
                     )
@@ -49,7 +49,7 @@ fun DialogMode(mainViewModel: MainViewModel, uiStates: States.UiStates) {
 
                     // bluetooth
                     ManagerButton(
-                        onClick = { mainViewModel.onEvent(Event.SetMode(Modes.MODE_BLUETOOTH)) },
+                        onClick = { mainViewModel.onEvent(Event.SetMode(Modes.BLUETOOTH)) },
                         text = stringResource(id = R.string.mode_bluetooth),
                         modifier = Modifier.fillMaxWidth(0.8f)
                     )
@@ -58,7 +58,7 @@ fun DialogMode(mainViewModel: MainViewModel, uiStates: States.UiStates) {
 
                     // usb
                     ManagerButton(
-                        onClick = { mainViewModel.onEvent(Event.SetMode(Modes.MODE_USB)) },
+                        onClick = { mainViewModel.onEvent(Event.SetMode(Modes.USB)) },
                         text = stringResource(id = R.string.mode_usb),
                         modifier = Modifier.fillMaxWidth(0.8f)
                     )
@@ -67,7 +67,7 @@ fun DialogMode(mainViewModel: MainViewModel, uiStates: States.UiStates) {
 
                     // udp
                     ManagerButton(
-                        onClick = { mainViewModel.onEvent(Event.SetMode(Modes.MODE_UDP)) },
+                        onClick = { mainViewModel.onEvent(Event.SetMode(Modes.UDP)) },
                         text = stringResource(id = R.string.mode_udp),
                         modifier = Modifier.fillMaxWidth(0.8f)
                     )

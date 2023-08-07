@@ -20,13 +20,10 @@ import androidx.constraintlayout.compose.Dimension
 import com.example.androidMic.R
 import com.example.androidMic.ui.Event
 import com.example.androidMic.ui.MainViewModel
+import com.example.androidMic.ui.Modes
 import com.example.androidMic.ui.components.ManagerButton
 import com.example.androidMic.ui.utils.*
-import com.example.androidMic.utils.Modes.Companion.MODE_BLUETOOTH
-import com.example.androidMic.utils.Modes.Companion.MODE_UDP
-import com.example.androidMic.utils.Modes.Companion.MODE_USB
-import com.example.androidMic.utils.Modes.Companion.MODE_WIFI
-import com.example.androidMic.utils.States
+import com.example.androidMic.ui.States
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.launch
@@ -212,25 +209,25 @@ private fun ButtonConnect(
     ManagerButton(
         onClick = {
             when (uiStates.mode) {
-                MODE_WIFI -> {
+                Modes.WIFI -> {
                     if (!wifiPermissionsState.allPermissionsGranted)
                         wifiPermissionsState.launchMultiplePermissionRequest()
                     else
                         mainViewModel.onEvent(Event.ConnectButton)
                 }
-                MODE_BLUETOOTH -> {
+                Modes.BLUETOOTH -> {
                     if (!bluetoothPermissionsState.allPermissionsGranted)
                         bluetoothPermissionsState.launchMultiplePermissionRequest()
                     else
                         mainViewModel.onEvent(Event.ConnectButton)
                 }
-                MODE_USB -> {
+                Modes.USB -> {
                     if (!usbPermissionsState.allPermissionsGranted)
                         usbPermissionsState.launchMultiplePermissionRequest()
                     else
                         mainViewModel.onEvent(Event.ConnectButton)
                 }
-                MODE_UDP -> {
+                Modes.UDP -> {
                     mainViewModel.onEvent(Event.ConnectButton)
                 }
             }

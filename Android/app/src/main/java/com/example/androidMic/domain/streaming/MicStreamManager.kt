@@ -2,72 +2,58 @@ package com.example.androidMic.domain.streaming
 
 import android.content.Context
 import com.example.androidMic.domain.audio.AudioBuffer
-import com.example.androidMic.utils.DebugModes
-import com.example.androidMic.utils.Modes.Companion.MODE_BLUETOOTH
-import com.example.androidMic.utils.Modes.Companion.MODE_UDP
-import com.example.androidMic.utils.Modes.Companion.MODE_USB
-import com.example.androidMic.utils.Modes.Companion.MODE_WIFI
+import com.example.androidMic.ui.Modes
 
 // StreamManager acts as a minimal RTSP server for audio data
 // reference: https://www.medialan.de/usecase0001.html
 
 // manage streaming data
-class MicStreamManager(private val ctx: Context) {
-    private val TAG: String = "MicStream"
+class MicStreamManager(ctx: Context, val mode: Modes, ip: String?, port: Int?) {
 
-    private var streamer: Streamer? = null
+    private var streamer: Streamer
+    init {
+        streamer = when (mode) {
+            Modes.WIFI -> {
+                WifiStreamer(ctx, ip!!, port!!)
+            }
+            Modes.BLUETOOTH -> {
+                BluetoothStreamer(ctx)
+            }
+            Modes.USB -> {
+                AdbStreamer(port!!)
+            }
+            Modes.UDP -> {
+                UdpStreamer(ip!!, port!!)
+            }
+        }
+    }
 
-    private var mode: Int = -1
 
     companion object {
         const val STREAM_DELAY = 1L
     }
 
-    fun initialize(mode: Int, ip: String?, port: Int?) {
-        if (isConnected())
-            throw IllegalArgumentException("Streaming already running")
-
-        streamer = when (mode) {
-            MODE_WIFI -> {
-                WifiStreamer(ctx, ip!!, port!!)
-            }
-            MODE_BLUETOOTH -> {
-                BluetoothStreamer(ctx)
-            }
-            MODE_USB -> {
-                AdbStreamer(port!!)
-            }
-            MODE_UDP -> {
-                UdpStreamer(ip!!, port!!)
-            }
-            else -> throw IllegalArgumentException("Unknown mode")
-        }
-        this.mode = mode
-    }
-
     fun start(): Boolean {
-        return streamer?.connect() ?: false
+        return streamer.connect()
     }
 
     fun stop() {
-        streamer?.disconnect()
+        streamer.disconnect()
     }
 
     suspend fun stream(audioBuffer: AudioBuffer) {
-        streamer?.stream(audioBuffer)
+        streamer.stream(audioBuffer)
     }
 
     fun shutdown() {
-        streamer?.shutdown()
-        streamer = null
+        streamer.shutdown()
     }
 
     fun getInfo(): String {
-        val debugModes = DebugModes()
-        return "[Streaming Mode] ${debugModes.dic[mode]}\n${streamer?.getInfo()}"
+        return "[Streaming Mode] ${mode.name}\n${streamer.getInfo()}"
     }
 
     fun isConnected(): Boolean {
-        return streamer?.isAlive() == true
+        return streamer.isAlive()
     }
 }

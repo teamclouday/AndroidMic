@@ -1,4 +1,4 @@
-package com.example.androidMic.utils
+package com.example.androidMic.domain.service
 
 class Command {
     companion object {

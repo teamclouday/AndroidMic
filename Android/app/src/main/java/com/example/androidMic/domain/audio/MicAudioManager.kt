@@ -17,7 +17,7 @@ class MicAudioManager(ctx: Context) {
 
     companion object {
         const val RECORD_DELAY = 1L
-        const val SAMPLE_RATE: Int = 48000
+        const val SAMPLE_RATE: Int = 16000
         const val BUFFER_SIZE = 1024
         const val BUFFER_COUNT = 2
     }

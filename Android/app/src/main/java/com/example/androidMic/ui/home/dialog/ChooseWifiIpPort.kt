@@ -18,7 +18,7 @@ import com.example.androidMic.ui.components.ManagerButton
 import com.example.androidMic.ui.components.ManagerOutlinedTextField
 import com.example.androidMic.ui.utils.Preferences.Companion.DEFAULT_IP
 import com.example.androidMic.ui.utils.Preferences.Companion.DEFAULT_PORT
-import com.example.androidMic.utils.States
+import com.example.androidMic.ui.States
 
 @Composable
 fun DialogWifiIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
