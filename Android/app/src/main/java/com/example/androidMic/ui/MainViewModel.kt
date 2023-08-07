@@ -17,7 +17,7 @@ import com.example.androidMic.R
 import com.example.androidMic.domain.service.Command
 import com.example.androidMic.domain.service.Command.Companion.COMMAND_DISC_STREAM
 import com.example.androidMic.domain.service.Command.Companion.COMMAND_GET_STATUS
-import com.example.androidMic.ui.utils.Preferences
+import com.example.androidMic.ui.utils.PrefManager
 import com.example.androidMic.utils.checkIp
 import com.example.androidMic.utils.checkPort
 
@@ -31,7 +31,7 @@ class MainViewModel(
 
     val uiStates = savedStateHandle.getStateFlow("uiStates", States.UiStates())
 
-    private val preferences = Preferences(application as AndroidMicApp)
+    private val prefManager = PrefManager(application as AndroidMicApp)
 
     private var mService: Messenger? = null
     private var mBound = false
@@ -62,19 +62,14 @@ class MainViewModel(
 
     init {
         Log.d(TAG, "init")
-        val ipPort = preferences.getIpPort()
-        val mode = preferences.getMode()
-        val theme = preferences.getTheme()
-        val dynamicColor = preferences.getDynamicColor()
-        val sampleRate = preferences.getSampleRate()
 
         savedStateHandle["uiStates"] = uiStates.value.copy(
-            ip = ipPort.first,
-            port = ipPort.second,
-            mode = mode,
-            theme = theme,
-            dynamicColor = dynamicColor,
-            sampleRate = sampleRate
+            ip = prefManager["IP", uiStates.value.ip],
+            port = prefManager["PORT", uiStates.value.port],
+            mode = Modes.valueOf(prefManager["MODE", uiStates.value.mode.toString()]),
+            theme = Themes.valueOf(prefManager["THEME", uiStates.value.theme.toString()]),
+            dynamicColor = prefManager["DYNAMIC_COLOR", uiStates.value.dynamicColor],
+            sampleRate = SampleRates.valueOf(prefManager["SAMPLE_RATE", uiStates.value.sampleRate.toString()]),
         )
     }
 
@@ -171,7 +166,8 @@ class MainViewModel(
     }
 
     fun setIpPort(ip: String, port: String) {
-        preferences.setIpPort(ip, port)
+        prefManager["IP"] = ip
+        prefManager["PORT"] = port
         savedStateHandle["uiStates"] = uiStates.value.copy(
             ip = ip,
             port = port,
@@ -180,7 +176,7 @@ class MainViewModel(
     }
 
     fun setMode(mode: Modes) {
-        preferences.setMode(mode)
+        prefManager["MODE"] = mode.toString()
         savedStateHandle["uiStates"] = uiStates.value.copy(
             mode = mode,
             dialogVisible = Dialogs.None
@@ -188,7 +184,7 @@ class MainViewModel(
     }
 
     fun setSampleRate(sampleRate: SampleRates) {
-        preferences.setSampleRate(sampleRate)
+        prefManager["SAMPLE_RATE"] = sampleRate.toString()
         savedStateHandle["uiStates"] = uiStates.value.copy(
             sampleRate = sampleRate,
             dialogVisible = Dialogs.None
@@ -200,7 +196,7 @@ class MainViewModel(
     }
 
     fun setTheme(theme: Themes) {
-        preferences.setTheme(theme)
+        prefManager["THEME"] = theme.toString()
         savedStateHandle["uiStates"] =
             uiStates.value.copy(
                 theme = theme
@@ -208,7 +204,7 @@ class MainViewModel(
     }
 
     fun setDynamicColor(dynamicColor: Boolean) {
-        preferences.setDynamicColor(dynamicColor)
+        prefManager["DYNAMIC_COLOR"] = dynamicColor.toString()
         savedStateHandle["uiStates"] =
             uiStates.value.copy(
                 dynamicColor = dynamicColor

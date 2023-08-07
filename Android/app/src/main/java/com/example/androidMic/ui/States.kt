@@ -4,6 +4,12 @@ package com.example.androidMic.ui
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 
+
+object DefaultStates {
+    const val IP = "192.168."
+    const val PORT = "55555"
+}
+
 sealed interface States : java.io.Serializable {
     data class UiStates(
         val isStreamStarted: Boolean = false,
@@ -13,8 +19,8 @@ sealed interface States : java.io.Serializable {
         val switchAudioIsClickable: Boolean = true,
         val buttonConnectIsClickable: Boolean = true,
 
-        val ip: String = "",
-        val port: String = "",
+        val ip: String = DefaultStates.IP,
+        val port: String = DefaultStates.PORT,
 
         val textLog: String = "",
 

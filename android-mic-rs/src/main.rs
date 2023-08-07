@@ -5,7 +5,7 @@ use cpal::{
 use rtrb::{chunks::ChunkError, Consumer, Producer, RingBuffer};
 use std::{
     io::{self},
-    net::UdpSocket,
+    net::UdpSocket, time::Duration,
 };
 use user_action::UserAction;
 
@@ -46,7 +46,7 @@ fn main() {
 
     let bind_port = 55555;
     let socket = UdpSocket::bind(("0.0.0.0", bind_port)).expect("Failed to bind to socket");
-
+    socket.set_read_timeout(Some(Duration::from_millis(200))).unwrap();
     let udp_buf = [0u8; 1024];
 
     let (tx, rx) = mpsc::channel::<UserAction>();
@@ -211,6 +211,12 @@ fn write_to_buff(
                 Err(WriteError::BufferOverfilled(moved_item, size - moved_item))
             }
         },
-        Err(e) => Err(WriteError::Udp(e)),
+        Err(e) => {
+            if e.kind() == io::ErrorKind::TimedOut {
+                Ok(0)
+            } else {
+                Err(WriteError::Udp(e))
+            }
+        }
     }
 }

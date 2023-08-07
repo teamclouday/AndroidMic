@@ -13,13 +13,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.androidMic.R
+import com.example.androidMic.ui.DefaultStates
 import com.example.androidMic.ui.Dialogs
 import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.States
 import com.example.androidMic.ui.components.ManagerButton
 import com.example.androidMic.ui.components.ManagerOutlinedTextField
-import com.example.androidMic.ui.utils.Preferences.Companion.DEFAULT_IP
-import com.example.androidMic.ui.utils.Preferences.Companion.DEFAULT_PORT
 
 @Composable
 fun DialogWifiIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
@@ -45,7 +44,7 @@ fun DialogWifiIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
             // reset button
             ManagerButton(
                 onClick = {
-                    tempIp.value = DEFAULT_IP; tempPort.value = DEFAULT_PORT
+                    tempIp.value = DefaultStates.IP; tempPort.value = DefaultStates.PORT
                 },
                 text = stringResource(id = R.string.reset),
                 modifier = Modifier.padding(end = 10.dp),
