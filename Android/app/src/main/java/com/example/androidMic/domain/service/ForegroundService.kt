@@ -5,22 +5,37 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.os.*
+import android.os.Build
+import android.os.Bundle
+import android.os.Handler
+import android.os.HandlerThread
+import android.os.IBinder
+import android.os.Looper
+import android.os.Message
+import android.os.Messenger
+import android.os.Process
 import android.util.Log
 import com.example.androidMic.R
 import com.example.androidMic.domain.audio.AudioBuffer
 import com.example.androidMic.domain.audio.MicAudioManager
-import com.example.androidMic.domain.streaming.MicStreamManager
 import com.example.androidMic.domain.service.Command.Companion.COMMAND_DISC_STREAM
 import com.example.androidMic.domain.service.Command.Companion.COMMAND_GET_STATUS
 import com.example.androidMic.domain.service.Command.Companion.COMMAND_START_AUDIO
 import com.example.androidMic.domain.service.Command.Companion.COMMAND_START_STREAM
 import com.example.androidMic.domain.service.Command.Companion.COMMAND_STOP_AUDIO
 import com.example.androidMic.domain.service.Command.Companion.COMMAND_STOP_STREAM
+import com.example.androidMic.domain.streaming.MicStreamManager
 import com.example.androidMic.ui.Modes
 import com.example.androidMic.ui.States
 import com.example.androidMic.utils.ignore
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class ForegroundService : Service() {
     private val TAG = "MicService"

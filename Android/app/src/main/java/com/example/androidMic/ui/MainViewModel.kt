@@ -1,17 +1,23 @@
 package com.example.androidMic.ui
 
 import android.app.Application
-import android.os.*
+import android.os.Bundle
+import android.os.Handler
+import android.os.HandlerThread
+import android.os.Looper
+import android.os.Message
+import android.os.Messenger
+import android.os.Process
 import android.util.Log
 import android.widget.Toast
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import com.example.androidMic.AndroidMicApp
 import com.example.androidMic.R
-import com.example.androidMic.ui.utils.Preferences
 import com.example.androidMic.domain.service.Command
 import com.example.androidMic.domain.service.Command.Companion.COMMAND_DISC_STREAM
 import com.example.androidMic.domain.service.Command.Companion.COMMAND_GET_STATUS
+import com.example.androidMic.ui.utils.Preferences
 import com.example.androidMic.utils.checkIp
 import com.example.androidMic.utils.checkPort
 
@@ -108,6 +114,7 @@ class MainViewModel(
                     data.putString("IP", uiStates.value.ip)
                     data.putInt("PORT", uiStates.value.port.toInt())
                 }
+
                 Modes.USB -> {
                     if (!checkPort(uiStates.value.port)) {
                         Toast.makeText(
@@ -122,7 +129,8 @@ class MainViewModel(
                     }
                     data.putInt("PORT", uiStates.value.port.toInt())
                 }
-                else -> { }
+
+                else -> {}
             }
 
             data.putInt("MODE", uiStates.value.mode.ordinal)
@@ -245,6 +253,7 @@ class MainViewModel(
                 isStreamStarted = result,
                 buttonConnectIsClickable = true
             )
+
             Command.COMMAND_STOP_STREAM -> savedStateHandle["uiStates"] = uiStates.value.copy(
                 isStreamStarted = !result,
                 buttonConnectIsClickable = true
@@ -254,6 +263,7 @@ class MainViewModel(
                 isAudioStarted = result,
                 switchAudioIsClickable = true
             )
+
             Command.COMMAND_STOP_AUDIO -> savedStateHandle["uiStates"] = uiStates.value.copy(
                 isAudioStarted = !result,
                 switchAudioIsClickable = true

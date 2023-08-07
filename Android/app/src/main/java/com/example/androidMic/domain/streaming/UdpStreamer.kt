@@ -9,6 +9,7 @@ import java.net.DatagramSocket
 import java.net.InetAddress
 
 private const val TAG: String = "UDP streamer"
+
 class UdpStreamer(val ip: String, val port: Int) : Streamer {
 
     private val socket: DatagramSocket = DatagramSocket()
@@ -40,8 +41,7 @@ class UdpStreamer(val ip: String, val port: Int) : Streamer {
         } catch (e: Exception) {
             Log.d(TAG, "${e.message}")
             readSize = 0
-        }
-        finally {
+        } finally {
             audioBuffer.closeReadRegion(readSize)
         }
     }

@@ -1,6 +1,5 @@
 package com.example.androidMic.utils
 
-import java.lang.NumberFormatException
 import java.net.InetSocketAddress
 
 // helper function to ignore some exceptions

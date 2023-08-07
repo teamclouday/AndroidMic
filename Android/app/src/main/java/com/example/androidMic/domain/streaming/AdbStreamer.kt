@@ -3,7 +3,11 @@ package com.example.androidMic.domain.streaming
 import android.util.Log
 import com.example.androidMic.domain.audio.AudioBuffer
 import com.example.androidMic.utils.ignore
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
@@ -32,8 +36,7 @@ class AdbStreamer(val port: Int) : Streamer {
         } catch (e: SocketTimeoutException) {
             Log.d(TAG, "connect [Socket]: ${e.message}")
             null
-        }
-        catch (e: Exception) {
+        } catch (e: Exception) {
             Log.d(TAG, "connect [Socket]: ${e.message}")
             null
         } ?: return false

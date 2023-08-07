@@ -11,17 +11,21 @@ import com.example.androidMic.ui.Modes
 class MicStreamManager(ctx: Context, val mode: Modes, ip: String?, port: Int?) {
 
     private var streamer: Streamer
+
     init {
         streamer = when (mode) {
             Modes.WIFI -> {
                 WifiStreamer(ctx, ip!!, port!!)
             }
+
             Modes.BLUETOOTH -> {
                 BluetoothStreamer(ctx)
             }
+
             Modes.USB -> {
                 AdbStreamer(port!!)
             }
+
             Modes.UDP -> {
                 UdpStreamer(ip!!, port!!)
             }

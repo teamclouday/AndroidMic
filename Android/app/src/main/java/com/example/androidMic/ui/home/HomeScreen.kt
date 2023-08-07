@@ -20,9 +20,9 @@ import androidx.constraintlayout.compose.Dimension
 import com.example.androidMic.R
 import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.Modes
+import com.example.androidMic.ui.States
 import com.example.androidMic.ui.components.ManagerButton
 import com.example.androidMic.ui.utils.*
-import com.example.androidMic.ui.States
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.launch
@@ -214,18 +214,21 @@ private fun ButtonConnect(
                     else
                         mainViewModel.onConnectButton()
                 }
+
                 Modes.BLUETOOTH -> {
                     if (!bluetoothPermissionsState.allPermissionsGranted)
                         bluetoothPermissionsState.launchMultiplePermissionRequest()
                     else
                         mainViewModel.onConnectButton()
                 }
+
                 Modes.USB -> {
                     if (!usbPermissionsState.allPermissionsGranted)
                         usbPermissionsState.launchMultiplePermissionRequest()
                     else
                         mainViewModel.onConnectButton()
                 }
+
                 Modes.UDP -> {
                     mainViewModel.onConnectButton()
                 }

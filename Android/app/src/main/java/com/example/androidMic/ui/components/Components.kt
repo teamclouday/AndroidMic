@@ -77,7 +77,6 @@ fun ManagerCheckBox(
 }
 
 
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ManagerOutlinedTextField(temp: MutableState<String>, id: Int) {
