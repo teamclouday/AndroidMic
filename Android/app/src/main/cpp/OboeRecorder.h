@@ -1,5 +1,5 @@
-#ifndef MICROPHONE_OBOERECORDER_H
-#define MICROPHONE_OBOERECORDER_H
+#ifndef MICROPHONE_OBOE_RECORDER_H
+#define MICROPHONE_OBOE_RECORDER_H
 
 #include <oboe/Oboe.h>
 #include <memory>
@@ -62,4 +62,4 @@ private:
     bool _isLittleEndian;
 };
 
-#endif //MICROPHONE_OBOERECORDER_H
+#endif //MICROPHONE_OBOE_RECORDER_H
