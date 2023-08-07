@@ -12,18 +12,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.androidMic.R
+import com.example.androidMic.ui.Dialogs
 import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.Modes
 import com.example.androidMic.ui.components.ManagerSetting
 import com.example.androidMic.ui.home.dialog.DialogMode
 import com.example.androidMic.ui.home.dialog.DialogTheme
-import com.example.androidMic.ui.home.dialog.DialogUsbPort
 import com.example.androidMic.ui.home.dialog.DialogWifiIpPort
 import com.example.androidMic.ui.States
 import com.example.androidMic.ui.Themes
 
 data class MenuItem(
-    val id: Int,
+    val id: Dialogs,
     val title: String,
     val subTitle: String,
     val contentDescription: String,
@@ -34,14 +34,13 @@ data class MenuItem(
 fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
 
     DialogWifiIpPort(mainViewModel = mainViewModel, uiStates = uiStates)
-    DialogUsbPort(mainViewModel = mainViewModel, uiStates = uiStates)
     DialogMode(mainViewModel = mainViewModel, uiStates = uiStates)
     DialogTheme(mainViewModel = mainViewModel, uiStates = uiStates)
 
 
     val connectionItems = listOf(
         MenuItem(
-            id = R.string.drawerMode,
+            id = Dialogs.Modes,
             title = stringResource(id = R.string.drawerMode),
             subTitle = when (uiStates.mode) {
                 Modes.WIFI -> stringResource(id = R.string.mode_wifi)
@@ -53,26 +52,18 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
             icon = R.drawable.settings_24px
         ),
         MenuItem(
-            id = R.string.drawerWifiIpPort,
+            id = Dialogs.IpPort,
             title = stringResource(id = R.string.drawerWifiIpPort),
-            subTitle = uiStates.IP + ":" + uiStates.PORT,
+            subTitle = uiStates.ip + ":" + uiStates.port,
             contentDescription = "set ip and port",
             icon = R.drawable.wifi_24px
 
         ),
-        MenuItem(
-            id = R.string.drawerUsbPort,
-            title = stringResource(id = R.string.drawerUsbPort),
-            subTitle = uiStates.usbPort,
-            contentDescription = "set usb port",
-            icon = R.drawable.usb_24px
-
-        )
     )
 
     val otherItems = listOf(
         MenuItem(
-            id = R.string.drawerTheme,
+            id = Dialogs.Themes,
             title = stringResource(id = R.string.drawerTheme),
             subTitle = when (uiStates.theme) {
                 Themes.SYSTEM -> stringResource(id = R.string.system_theme)
@@ -122,20 +113,8 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
         }
 
         items(connectionItems) { item ->
-            var shouldShowItem = true
-            when (uiStates.mode) {
-                Modes.WIFI -> if (item.id == R.string.drawerUsbPort) shouldShowItem = false
-                Modes.BLUETOOTH -> if (item.id == R.string.drawerWifiIpPort) shouldShowItem = false
-                Modes.USB -> {
-                    if (item.id == R.string.drawerUsbPort) shouldShowItem = false
-                    if (item.id == R.string.drawerWifiIpPort) shouldShowItem = false
-                }
-                Modes.UDP -> if (item.id == R.string.drawerUsbPort) shouldShowItem = false
-            }
-            if (shouldShowItem) {
-                ManagerSetting(mainViewModel, item)
-                Divider(color = MaterialTheme.colorScheme.onBackground)
-            }
+            ManagerSetting(mainViewModel, item)
+            Divider(color = MaterialTheme.colorScheme.onBackground)
         }
 
         item {

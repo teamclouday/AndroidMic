@@ -13,17 +13,12 @@ sealed interface States : java.io.Serializable {
         val switchAudioIsClickable: Boolean = true,
         val buttonConnectIsClickable: Boolean = true,
 
-        val IP: String = "",
-        val PORT: String = "",
-
-        val usbPort: String = "",
+        val ip: String = "",
+        val port: String = "",
 
         val textLog: String = "",
 
-        val dialogModesIsVisible: Boolean = false,
-        val dialogIpPortIsVisible: Boolean = false,
-        val dialogUsbPortIsVisible: Boolean = false,
-        val dialogThemeIsVisible: Boolean = false,
+        val dialogVisible: Dialogs = Dialogs.None,
 
         val theme: Themes = Themes.SYSTEM,
         val dynamicColor: Boolean = true
@@ -44,4 +39,11 @@ enum class Modes {
 
 enum class Themes {
     SYSTEM, DARK, LIGHT
+}
+
+enum class Dialogs {
+    Modes,
+    IpPort,
+    Themes,
+    None
 }

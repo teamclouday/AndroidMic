@@ -12,6 +12,8 @@ import com.example.androidMic.ui.utils.Preferences
 import com.example.androidMic.domain.service.Command
 import com.example.androidMic.domain.service.Command.Companion.COMMAND_DISC_STREAM
 import com.example.androidMic.domain.service.Command.Companion.COMMAND_GET_STATUS
+import com.example.androidMic.utils.checkIp
+import com.example.androidMic.utils.checkPort
 
 
 class MainViewModel(
@@ -26,7 +28,7 @@ class MainViewModel(
     private val preferences = Preferences(application as AndroidMicApp)
 
     private var mService: Messenger? = null
-    var mBound = false
+    private var mBound = false
 
     lateinit var handlerThread: HandlerThread
     private lateinit var mMessenger: Messenger
@@ -54,16 +56,14 @@ class MainViewModel(
 
     init {
         Log.d(TAG, "init")
-        val ipPort = preferences.getWifiIpPort(true)
-        val usbPort = preferences.getUsbPort()
+        val ipPort = preferences.getIpPort()
         val mode = preferences.getMode()
         val theme = preferences.getTheme()
         val dynamicColor = preferences.getDynamicColor()
 
         savedStateHandle["uiStates"] = uiStates.value.copy(
-            IP = ipPort.first,
-            PORT = ipPort.second.toString(),
-            usbPort = usbPort.toString(),
+            ip = ipPort.first,
+            port = ipPort.second,
             mode = mode,
             theme = theme,
             dynamicColor = dynamicColor
@@ -82,160 +82,124 @@ class MainViewModel(
         )
     }
 
-    fun onEvent(event: Event) {
-        var reply: Message? = null
-        when (event) {
-            is Event.ConnectButton -> {
-                if (!mBound) return
-                if (uiStates.value.isStreamStarted) {
-                    Log.d(TAG, "onConnectButton: stop stream")
-                    reply = Message.obtain(null, Command.COMMAND_STOP_STREAM)
-                } else {
-                    val data = Bundle()
-                    if (uiStates.value.mode == Modes.WIFI || uiStates.value.mode == Modes.UDP) {
-                        try {
-                            val (ip, port) = preferences.getWifiIpPort(false)
-                            data.putString("IP", ip)
-                            data.putInt("PORT", port)
-                        } catch (e: Exception) {
-                            Toast.makeText(
-                                getApplication(),
-                                getApplication<AndroidMicApp>().getString(R.string.invalid_ip_port),
-                                Toast.LENGTH_SHORT
-                            ).show()
-                            savedStateHandle["uiStates"] = uiStates.value.copy(
-                                dialogIpPortIsVisible = true
-                            )
-                            return
-                        }
+    fun onConnectButton() {
+        if (!mBound) return
+        val reply = if (uiStates.value.isStreamStarted) {
+            Log.d(TAG, "onConnectButton: stop stream")
+            Message.obtain(null, Command.COMMAND_STOP_STREAM)
+        } else {
+            val data = Bundle()
+
+            when (uiStates.value.mode) {
+                Modes.WIFI, Modes.UDP -> {
+                    if (!checkIp(uiStates.value.ip) || !checkPort(uiStates.value.port)) {
+                        Toast.makeText(
+                            getApplication(),
+                            getApplication<AndroidMicApp>().getString(R.string.invalid_ip_port),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        savedStateHandle["uiStates"] = uiStates.value.copy(
+                            dialogVisible = Dialogs.IpPort
+                        )
+                        return
                     }
-                    if (uiStates.value.mode == Modes.USB) {
-                        val port = preferences.getUsbPort()
-                        data.putInt("PORT", port)
+                    data.putString("IP", uiStates.value.ip)
+                    data.putInt("PORT", uiStates.value.port.toInt())
+                }
+                Modes.USB -> {
+                    if (!checkPort(uiStates.value.port)) {
+                        Toast.makeText(
+                            getApplication(),
+                            getApplication<AndroidMicApp>().getString(R.string.invalid_port),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        savedStateHandle["uiStates"] = uiStates.value.copy(
+                            dialogVisible = Dialogs.IpPort
+                        )
+                        return
                     }
-                    data.putInt("MODE", uiStates.value.mode.ordinal)
-                    reply = Message.obtain(null, Command.COMMAND_START_STREAM)
-                    reply.data = data
-                    Log.d(TAG, "onConnectButton: start stream")
-                    // lock button to avoid duplicate events
-                    savedStateHandle["uiStates"] = uiStates.value.copy(
-                        buttonConnectIsClickable = false
-                    )
+                    data.putInt("PORT", uiStates.value.port.toInt())
                 }
+                else -> { }
             }
 
-            is Event.AudioSwitch -> {
-                if (!mBound) return
-                reply = if (uiStates.value.isAudioStarted) {
-                    Log.d(TAG, "onAudioSwitch: stop audio")
-                    Message.obtain(null, Command.COMMAND_STOP_AUDIO)
-                } else {
-                    Log.d(TAG, "onAudioSwitch: start audio")
-                    Message.obtain(null, Command.COMMAND_START_AUDIO)
-                }
-                // lock switch to avoid duplicate events
-                savedStateHandle["uiStates"] = uiStates.value.copy(
-                    switchAudioIsClickable = false
-                )
-            }
+            data.putInt("MODE", uiStates.value.mode.ordinal)
 
-            is Event.SetWifiIpPort -> {
-                try {
-                    preferences.setWifiIpPort(Pair(event.ip, event.port))
-                } catch (e: Exception) {
-                    Toast.makeText(
-                        getApplication(),
-                        getApplication<AndroidMicApp>().getString(R.string.invalid_ip_port),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    return
-                }
-                savedStateHandle["uiStates"] = uiStates.value.copy(
-                    IP = event.ip,
-                    PORT = event.port,
-                    dialogIpPortIsVisible = false
-                )
-            }
-
-            is Event.SetUsbPort -> {
-                try {
-                    preferences.setUsbPort(event.port)
-                } catch (e: Exception) {
-                    Toast.makeText(
-                        getApplication(),
-                        getApplication<AndroidMicApp>().getString(R.string.invalid_port),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    return
-                }
-
-
-                savedStateHandle["uiStates"] = uiStates.value.copy(
-                    usbPort = event.port,
-                    dialogUsbPortIsVisible = false
-                )
-            }
-            is Event.SetMode -> {
-                preferences.setMode(event.mode)
-                savedStateHandle["uiStates"] = uiStates.value.copy(
-                    mode = event.mode,
-                    dialogModesIsVisible = false
-                )
-            }
-
-            is Event.ShowDialog -> {
-                when (event.id) {
-                    R.string.drawerWifiIpPort -> savedStateHandle["uiStates"] =
-                        uiStates.value.copy(dialogIpPortIsVisible = true)
-                    R.string.drawerUsbPort -> savedStateHandle["uiStates"] =
-                        uiStates.value.copy(dialogUsbPortIsVisible = true)
-                    R.string.drawerMode -> savedStateHandle["uiStates"] =
-                        uiStates.value.copy(dialogModesIsVisible = true)
-                    R.string.drawerTheme -> savedStateHandle["uiStates"] =
-                        uiStates.value.copy(dialogThemeIsVisible = true)
-                }
-            }
-            is Event.DismissDialog -> {
-                when (event.id) {
-                    R.string.drawerWifiIpPort -> savedStateHandle["uiStates"] =
-                        uiStates.value.copy(dialogIpPortIsVisible = false)
-                    R.string.drawerUsbPort -> savedStateHandle["uiStates"] =
-                        uiStates.value.copy(dialogUsbPortIsVisible = false)
-                    R.string.drawerMode -> savedStateHandle["uiStates"] =
-                        uiStates.value.copy(dialogModesIsVisible = false)
-                    R.string.drawerTheme -> savedStateHandle["uiStates"] =
-                        uiStates.value.copy(dialogThemeIsVisible = false)
-                }
-            }
-
-            is Event.SetTheme -> {
-                preferences.setTheme(event.theme)
-                savedStateHandle["uiStates"] =
-                    uiStates.value.copy(
-                        theme = event.theme
-                    )
-            }
-
-            is Event.SetDynamicColor -> {
-                preferences.setDynamicColor(event.dynamicColor)
-                savedStateHandle["uiStates"] =
-                    uiStates.value.copy(
-                        dynamicColor = event.dynamicColor
-                    )
-            }
-
-            is Event.CleanLog -> {
-                savedStateHandle["uiStates"] =
-                    uiStates.value.copy(
-                        textLog = ""
-                    )
+            Log.d(TAG, "onConnectButton: start stream")
+            // lock button to avoid duplicate events
+            savedStateHandle["uiStates"] = uiStates.value.copy(
+                buttonConnectIsClickable = false
+            )
+            Message.obtain(null, Command.COMMAND_START_STREAM).apply {
+                this.data = data
             }
         }
-        if (reply != null) {
-            reply.replyTo = mMessenger
-            mService?.send(reply)
-        }
+
+        reply.replyTo = mMessenger
+        mService?.send(reply)
     }
+
+    fun onAudioSwitch() {
+        if (!mBound) return
+        val reply = if (uiStates.value.isAudioStarted) {
+            Log.d(TAG, "onAudioSwitch: stop audio")
+            Message.obtain(null, Command.COMMAND_STOP_AUDIO)
+        } else {
+            Log.d(TAG, "onAudioSwitch: start audio")
+            Message.obtain(null, Command.COMMAND_START_AUDIO)
+        }
+        // lock switch to avoid duplicate events
+        savedStateHandle["uiStates"] = uiStates.value.copy(
+            switchAudioIsClickable = false
+        )
+        reply.replyTo = mMessenger
+        mService?.send(reply)
+    }
+
+    fun setIpPort(ip: String, port: String) {
+        preferences.setIpPort(ip, port)
+        savedStateHandle["uiStates"] = uiStates.value.copy(
+            ip = ip,
+            port = port,
+            dialogVisible = Dialogs.None
+        )
+    }
+
+    fun setMode(mode: Modes) {
+        preferences.setMode(mode)
+        savedStateHandle["uiStates"] = uiStates.value.copy(
+            mode = mode,
+            dialogVisible = Dialogs.None
+        )
+    }
+
+    fun showDialog(dialog: Dialogs) {
+        savedStateHandle["uiStates"] = uiStates.value.copy(dialogVisible = dialog)
+    }
+
+    fun setTheme(theme: Themes) {
+        preferences.setTheme(theme)
+        savedStateHandle["uiStates"] =
+            uiStates.value.copy(
+                theme = theme
+            )
+    }
+
+    fun setDynamicColor(dynamicColor: Boolean) {
+        preferences.setDynamicColor(dynamicColor)
+        savedStateHandle["uiStates"] =
+            uiStates.value.copy(
+                dynamicColor = dynamicColor
+            )
+    }
+
+    fun cleanLog() {
+        savedStateHandle["uiStates"] =
+            uiStates.value.copy(
+                textLog = ""
+            )
+    }
+
 
     // ask foreground service for current status
     fun askForStatus() {

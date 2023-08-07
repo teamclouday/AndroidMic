@@ -16,7 +16,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.example.androidMic.R
-import com.example.androidMic.ui.Event
+import com.example.androidMic.ui.Dialogs
 import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.components.ManagerCheckBox
 import com.example.androidMic.ui.States
@@ -39,14 +39,14 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
         mutableStateOf(uiStates.dynamicColor)
     }
 
-    if (uiStates.dialogThemeIsVisible) {
+    if (uiStates.dialogVisible == Dialogs.Themes) {
         Dialog(
             onDismissRequest = {
                 tempSystemTheme.value = uiStates.theme == Themes.SYSTEM
                 tempLightTheme.value = uiStates.theme == Themes.LIGHT
                 tempDarkTheme.value = uiStates.theme == Themes.DARK
                 tempDynamicColor.value = uiStates.dynamicColor
-                mainViewModel.onEvent(Event.DismissDialog(R.string.drawerTheme))
+                mainViewModel.showDialog(Dialogs.Themes)
             }
         ) {
             Surface(
@@ -66,10 +66,7 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                             tempSystemTheme.value = true
                             tempLightTheme.value = false
                             tempDarkTheme.value = false
-                            mainViewModel.onEvent(
-                                Event.SetTheme(Themes.SYSTEM)
-                            )
-
+                            mainViewModel.setTheme(Themes.SYSTEM)
                         },
                         text = stringResource(id = R.string.system_theme)
                     )
@@ -83,9 +80,7 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                             tempSystemTheme.value = false
                             tempLightTheme.value = true
                             tempDarkTheme.value = false
-                            mainViewModel.onEvent(
-                                Event.SetTheme(Themes.LIGHT)
-                            )
+                            mainViewModel.setTheme(Themes.LIGHT)
                         },
                         text = stringResource(id = R.string.light_theme)
                     )
@@ -99,9 +94,7 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                             tempSystemTheme.value = false
                             tempLightTheme.value = false
                             tempDarkTheme.value = true
-                            mainViewModel.onEvent(
-                                Event.SetTheme(Themes.DARK)
-                            )
+                            mainViewModel.setTheme(Themes.DARK)
                         },
                         text = stringResource(id = R.string.dark_theme)
                     )
@@ -116,9 +109,7 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                         checked = tempDynamicColor.value,
                         onClick = {
                             tempDynamicColor.value = it
-                            mainViewModel.onEvent(
-                                Event.SetDynamicColor(it)
-                            )
+                            mainViewModel.setDynamicColor(it)
                         },
                         text = stringResource(id = R.string.dynamic_color)
                     )

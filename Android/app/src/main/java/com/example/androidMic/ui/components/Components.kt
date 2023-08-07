@@ -13,7 +13,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.androidMic.ui.Event
 import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.home.MenuItem
 
@@ -86,7 +85,7 @@ fun ManagerSetting(mainViewModel: MainViewModel, item: MenuItem) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                mainViewModel.onEvent(Event.ShowDialog(item.id))
+                mainViewModel.showDialog(item.id)
             }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically

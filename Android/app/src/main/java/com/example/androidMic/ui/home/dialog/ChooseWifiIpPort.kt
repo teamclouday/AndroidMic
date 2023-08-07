@@ -12,7 +12,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import com.example.androidMic.R
-import com.example.androidMic.ui.Event
+import com.example.androidMic.ui.Dialogs
 import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.components.ManagerButton
 import com.example.androidMic.ui.components.ManagerOutlinedTextField
@@ -23,18 +23,18 @@ import com.example.androidMic.ui.States
 @Composable
 fun DialogWifiIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
 
-    val tempIP = remember {
-        mutableStateOf(uiStates.IP)
+    val tempIp = remember {
+        mutableStateOf(uiStates.ip)
     }
     val tempPort = remember {
-        mutableStateOf(uiStates.PORT)
+        mutableStateOf(uiStates.port)
     }
 
-    if (uiStates.dialogIpPortIsVisible) {
+    if (uiStates.dialogVisible == Dialogs.IpPort) {
         Dialog(
             onDismissRequest = {
-                tempIP.value = uiStates.IP; tempPort.value = uiStates.PORT
-                mainViewModel.onEvent(Event.DismissDialog(R.string.drawerWifiIpPort))
+                tempIp.value = uiStates.ip; tempPort.value = uiStates.port
+                mainViewModel.showDialog(Dialogs.None)
             }
         ) {
             Surface(
@@ -49,7 +49,7 @@ fun DialogWifiIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                     // reset button
                     ManagerButton(
                         onClick = {
-                            tempIP.value = DEFAULT_IP; tempPort.value = DEFAULT_PORT.toString()
+                            tempIp.value = DEFAULT_IP; tempPort.value = DEFAULT_PORT
                         },
                         text = stringResource(id = R.string.reset),
                         modifier = Modifier.padding(end = 10.dp),
@@ -59,7 +59,7 @@ fun DialogWifiIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         // ip field
-                        ManagerOutlinedTextField(tempIP, R.string.dialog_ip)
+                        ManagerOutlinedTextField(tempIp, R.string.dialog_ip)
 
                         Spacer(modifier = Modifier.height(10.dp))
 
@@ -71,12 +71,7 @@ fun DialogWifiIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                         // save Button
                         ManagerButton(
                             onClick = {
-                                mainViewModel.onEvent(
-                                    Event.SetWifiIpPort(
-                                        tempIP.value,
-                                        tempPort.value
-                                    )
-                                )
+                                mainViewModel.setIpPort(tempIp.value, tempPort.value)
                             },
                             text = stringResource(id = R.string.save),
                             modifier = Modifier.fillMaxWidth(0.6f)
@@ -87,8 +82,8 @@ fun DialogWifiIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                         // cancel Button
                         ManagerButton(
                             onClick = {
-                                tempIP.value = uiStates.IP; tempPort.value = uiStates.PORT
-                                mainViewModel.onEvent(Event.DismissDialog(R.string.drawerWifiIpPort))
+                                tempIp.value = uiStates.ip; tempPort.value = uiStates.port
+                                mainViewModel.showDialog(Dialogs.None)
                             },
                             text = stringResource(id = R.string.cancel),
                             modifier = Modifier.fillMaxWidth(0.6f)

@@ -18,7 +18,6 @@ import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import com.example.androidMic.R
-import com.example.androidMic.ui.Event
 import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.Modes
 import com.example.androidMic.ui.components.ManagerButton
@@ -152,7 +151,7 @@ private fun Log(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onDoubleTap = {
-                        mainViewModel.onEvent(Event.CleanLog)
+                        mainViewModel.cleanLog()
                     }
                 )
             }
@@ -213,22 +212,22 @@ private fun ButtonConnect(
                     if (!wifiPermissionsState.allPermissionsGranted)
                         wifiPermissionsState.launchMultiplePermissionRequest()
                     else
-                        mainViewModel.onEvent(Event.ConnectButton)
+                        mainViewModel.onConnectButton()
                 }
                 Modes.BLUETOOTH -> {
                     if (!bluetoothPermissionsState.allPermissionsGranted)
                         bluetoothPermissionsState.launchMultiplePermissionRequest()
                     else
-                        mainViewModel.onEvent(Event.ConnectButton)
+                        mainViewModel.onConnectButton()
                 }
                 Modes.USB -> {
                     if (!usbPermissionsState.allPermissionsGranted)
                         usbPermissionsState.launchMultiplePermissionRequest()
                     else
-                        mainViewModel.onEvent(Event.ConnectButton)
+                        mainViewModel.onConnectButton()
                 }
                 Modes.UDP -> {
-                    mainViewModel.onEvent(Event.ConnectButton)
+                    mainViewModel.onConnectButton()
                 }
             }
         },
@@ -268,7 +267,7 @@ private fun SwitchAudio(mainViewModel: MainViewModel, uiStates: States.UiStates)
                 if (!permissionsState.allPermissionsGranted)
                     permissionsState.launchMultiplePermissionRequest()
                 else
-                    mainViewModel.onEvent(Event.AudioSwitch)
+                    mainViewModel.onAudioSwitch()
 
             },
             enabled = uiStates.switchAudioIsClickable
