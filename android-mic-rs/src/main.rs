@@ -41,7 +41,7 @@ fn main() {
                 eprintln!("{:?}", e);
                 return;
             }
-        }
+        },
     }
 
     let bind_port = 55555;
@@ -53,9 +53,9 @@ fn main() {
     user_action::start_listening(tx);
     user_action::print_avaible_action();
 
-    let mut iteration: u64 = 0;
-    let mut item_lossed: u64 = 0;
-    let mut item_moved: u64 = 0;
+    let mut iteration: f64 = 0.0;
+    let mut item_lossed: f64 = 0.0;
+    let mut item_moved: f64 = 0.0;
 
     use std::time::Instant;
     let now = Instant::now();
@@ -70,29 +70,34 @@ fn main() {
         }
 
         match write_to_buff(&socket, &mut producer, udp_buf) {
-            Ok(_) => {}
+            Ok(moved) => item_moved += moved as f64,
             Err(e) => match e {
                 WriteError::Udp(e) => {
                     eprintln!("{:?}", e);
                     break;
                 }
                 WriteError::BufferOverfilled(moved, lossed) => {
-                    item_lossed += lossed as u64;
-                    item_moved += moved as u64;
+                    item_lossed += lossed as f64;
+                    item_moved += moved as f64;
                 }
             },
         }
-        iteration += 1;
+        iteration += 1.0;
     }
 
-    println!("Elapsed: {:.2?}", now.elapsed());
+    println!();
+    println!("Stats:");
+    println!("elapsed: {:.2?}", now.elapsed());
     println!(
-        "iteration: {}, item lossed: {}, item moved: {}",
-        iteration, item_lossed, item_moved
+        "iteration: {}, item moved: {}, item lossed: {}",
+        iteration, item_moved, item_lossed
     );
-    println!("ratio moved/lossed: {}", item_moved / item_lossed);
     println!("moved by iteration: {}", item_moved / iteration);
     println!("lossed by iteration: {}", item_lossed / iteration);
+    println!(
+        "success: {}%",
+        (item_moved / (item_lossed + item_moved)) * 100.0
+    )
 }
 
 fn setup_audio(mut consumer: Consumer<u8>) -> Result<cpal::Stream, BuildStreamError> {
@@ -105,13 +110,13 @@ fn setup_audio(mut consumer: Consumer<u8>) -> Result<cpal::Stream, BuildStreamEr
     //     buffer_size: BufferSize::Default(1024),
     // };
     let config: cpal::StreamConfig = device.default_output_config().unwrap().into();
-    
-    println!("");
+
+    println!();
     println!("Audio config:");
     println!("- number of channel: {}", config.channels);
     println!("- sample rate: {}", config.sample_rate.0);
     println!("- buffer size: {:?}", config.buffer_size);
-    println!("");
+    println!();
 
     let channels = config.channels as usize;
 
@@ -127,11 +132,13 @@ fn setup_audio(mut consumer: Consumer<u8>) -> Result<cpal::Stream, BuildStreamEr
                     // a frame has 480 samples
                     for frame in data.chunks_mut(channels) {
                         let Some(byte1) = iter.next()  else {
-                            eprintln!("None next byte1");
+                            // should not happend, because we read data.len()
+                            // chunk, but happend sometime
+                            //eprintln!("None next byte1");
                             return;
                         };
                         let Some(byte2) = iter.next()  else {
-                            eprintln!("None next byte2, loose byte1");
+                            //eprintln!("None next byte2, loose byte1");
                             return;
                         };
 
@@ -149,8 +156,22 @@ fn setup_audio(mut consumer: Consumer<u8>) -> Result<cpal::Stream, BuildStreamEr
                         }
                     }
                 }
-                Err(e) => {
-                    eprintln!("Error read_chunk {:?}", e);
+                Err(ChunkError::TooFewSlots(available_slots)) => {
+                    let mut iter = consumer.read_chunk(available_slots).unwrap().into_iter();
+                    for frame in data.chunks_mut(channels) {
+                        let Some(byte1) = iter.next()  else {
+                            //eprintln!("None next byte1");
+                            return;
+                        };
+                        let Some(byte2) = iter.next()  else {
+                            //eprintln!("None next byte2, loose byte1");
+                            return;
+                        };
+                        let result_i16: i16 = (byte2 as i16) << 8 | byte1 as i16;
+                        for sample in frame.iter_mut() {
+                            *sample = result_i16;
+                        }
+                    }
                 }
             }
         },
