@@ -22,8 +22,7 @@ import com.example.androidMic.ui.States
 import com.example.androidMic.utils.ignore
 import kotlinx.coroutines.*
 
-class
-ForegroundService : Service() {
+class ForegroundService : Service() {
     private val TAG = "MicService"
     private val scope = CoroutineScope(Dispatchers.Default)
     private val WAIT_PERIOD = 500L
@@ -122,7 +121,9 @@ ForegroundService : Service() {
     private fun stopService() {
         Log.d(TAG, "stopService")
         managerAudio?.shutdown()
+        managerAudio = null
         managerStream?.shutdown()
+        managerStream = null
         states.streamShouldStop.set(true)
         states.audioShouldStop.set(true)
         runBlocking {
@@ -169,6 +170,7 @@ ForegroundService : Service() {
         // try to start streaming
         jobStreamM = scope.launch {
             managerStream?.shutdown()
+            managerStream = null
             try {
                 managerStream = MicStreamManager(applicationContext, mode, ip, port)
             } catch (e: IllegalArgumentException) {
@@ -199,6 +201,7 @@ ForegroundService : Service() {
                 )
                 reply(sender, replyData, COMMAND_START_STREAM, false)
                 managerStream?.shutdown()
+                managerStream = null
                 cancel()
                 awaitCancellation()
             }
@@ -256,12 +259,17 @@ ForegroundService : Service() {
             reply(sender, replyData, COMMAND_START_AUDIO, false)
             return
         }
+
+        // get params before going into the scope
+        val sampleRate: Int = msg.data.getInt("SAMPLE_RATE")
+
         Log.d(TAG, "startAudio [start]")
         // start audio recording
         jobAudioM = scope.launch {
             managerAudio?.shutdown()
+            managerAudio = null
             managerAudio = try {
-                MicAudioManager(applicationContext)
+                MicAudioManager(applicationContext, sampleRate)
             } catch (e: IllegalArgumentException) {
                 replyData.putString("reply", application.getString(R.string.error) + e.message)
                 reply(sender, replyData, COMMAND_START_AUDIO, false)

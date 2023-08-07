@@ -1,5 +1,6 @@
 package com.example.androidMic.ui.home.dialog
 
+import android.os.Build
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
@@ -99,20 +100,22 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                         text = stringResource(id = R.string.dark_theme)
                     )
 
-                    Divider(
-                        modifier = Modifier.padding(20.dp),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
+                    if (Build.VERSION.SDK_INT > Build.VERSION_CODES.S) {
+                        Divider(
+                            modifier = Modifier.padding(20.dp),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
 
-                    // dynamic color
-                    ManagerCheckBox(
-                        checked = tempDynamicColor.value,
-                        onClick = {
-                            tempDynamicColor.value = it
-                            mainViewModel.setDynamicColor(it)
-                        },
-                        text = stringResource(id = R.string.dynamic_color)
-                    )
+                        // dynamic color
+                        ManagerCheckBox(
+                            checked = tempDynamicColor.value,
+                            onClick = {
+                                tempDynamicColor.value = it
+                                mainViewModel.setDynamicColor(it)
+                            },
+                            text = stringResource(id = R.string.dynamic_color)
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(25.dp))
                 }

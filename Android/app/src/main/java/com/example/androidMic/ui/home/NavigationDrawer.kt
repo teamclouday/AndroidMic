@@ -15,19 +15,21 @@ import com.example.androidMic.R
 import com.example.androidMic.ui.Dialogs
 import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.Modes
+import com.example.androidMic.ui.SampleRates
 import com.example.androidMic.ui.components.ManagerSetting
 import com.example.androidMic.ui.home.dialog.DialogMode
 import com.example.androidMic.ui.home.dialog.DialogTheme
 import com.example.androidMic.ui.home.dialog.DialogWifiIpPort
 import com.example.androidMic.ui.States
 import com.example.androidMic.ui.Themes
+import com.example.androidMic.ui.home.dialog.DialogSampleRate
 
 data class MenuItem(
     val id: Dialogs,
     val title: String,
     val subTitle: String,
     val contentDescription: String,
-    val icon: Int
+    val icon: Int?
 )
 
 @Composable
@@ -36,7 +38,20 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
     DialogWifiIpPort(mainViewModel = mainViewModel, uiStates = uiStates)
     DialogMode(mainViewModel = mainViewModel, uiStates = uiStates)
     DialogTheme(mainViewModel = mainViewModel, uiStates = uiStates)
+    DialogSampleRate(mainViewModel = mainViewModel, uiStates = uiStates)
 
+    val recordItems = listOf(
+        MenuItem(
+            id = Dialogs.SampleRates,
+            title = stringResource(id = R.string.sample_rate),
+            subTitle = when (uiStates.sampleRate) {
+                SampleRates.S16000 -> "16000"
+                SampleRates.S48000 -> "48000"
+            },
+            contentDescription = "set mode",
+            icon = null
+        ),
+    )
 
     val connectionItems = listOf(
         MenuItem(
@@ -53,7 +68,7 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
         ),
         MenuItem(
             id = Dialogs.IpPort,
-            title = stringResource(id = R.string.drawerWifiIpPort),
+            title = stringResource(id = R.string.drawerIpPort),
             subTitle = uiStates.ip + ":" + uiStates.port,
             contentDescription = "set ip and port",
             icon = R.drawable.wifi_24px
@@ -117,6 +132,28 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
             Divider(color = MaterialTheme.colorScheme.onBackground)
         }
 
+        // record subtitle
+        item {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = 10.dp, top = 25.dp, bottom = 10.dp)
+            ) {
+                Text(
+                    text = stringResource(id = R.string.drawer_subtitle_record),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground
+                )
+            }
+            Divider(color = MaterialTheme.colorScheme.onBackground)
+        }
+
+        items(recordItems) { item ->
+            ManagerSetting(mainViewModel, item)
+            Divider(color = MaterialTheme.colorScheme.onBackground)
+        }
+
+        // other subtitle
         item {
             Box(
                 modifier = Modifier

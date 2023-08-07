@@ -146,7 +146,11 @@ class MainViewModel(
             Message.obtain(null, Command.COMMAND_STOP_AUDIO)
         } else {
             Log.d(TAG, "onAudioSwitch: start audio")
-            Message.obtain(null, Command.COMMAND_START_AUDIO)
+            Message.obtain(null, Command.COMMAND_START_AUDIO).apply {
+                val data = Bundle()
+                data.putInt("SAMPLE_RATE", uiStates.value.sampleRate.value)
+                this.data = data
+            }
         }
         // lock switch to avoid duplicate events
         savedStateHandle["uiStates"] = uiStates.value.copy(
@@ -169,6 +173,14 @@ class MainViewModel(
         preferences.setMode(mode)
         savedStateHandle["uiStates"] = uiStates.value.copy(
             mode = mode,
+            dialogVisible = Dialogs.None
+        )
+    }
+
+    fun setSampleRate(sampleRate: SampleRates) {
+        preferences.setSampleRate(sampleRate)
+        savedStateHandle["uiStates"] = uiStates.value.copy(
+            sampleRate = sampleRate,
             dialogVisible = Dialogs.None
         )
     }

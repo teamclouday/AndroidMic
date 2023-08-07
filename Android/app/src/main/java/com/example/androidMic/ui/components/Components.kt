@@ -90,11 +90,13 @@ fun ManagerSetting(mainViewModel: MainViewModel, item: MenuItem) {
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            painter = painterResource(id = item.icon),
-            contentDescription = item.contentDescription,
-            tint = MaterialTheme.colorScheme.onBackground
-        )
+        if (item.icon != null) {
+            Icon(
+                painter = painterResource(id = item.icon),
+                contentDescription = item.contentDescription,
+                tint = MaterialTheme.colorScheme.onBackground
+            )
+        }
         Spacer(modifier = Modifier.width(16.dp))
         Column {
             Text(

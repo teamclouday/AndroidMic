@@ -3,6 +3,7 @@ package com.example.androidMic.ui.utils
 import androidx.appcompat.app.AppCompatActivity
 import com.example.androidMic.AndroidMicApp
 import com.example.androidMic.ui.Modes
+import com.example.androidMic.ui.SampleRates
 import com.example.androidMic.ui.Themes
 
 
@@ -24,6 +25,9 @@ class Preferences(private val androidMicApp: AndroidMicApp) {
 
         private const val DYNAMIC_COLOR_KEY = "DEFAULT_DYNAMIC_COLOR"
         private const val DEFAULT_DYNAMIC_COLOR = true
+
+        private const val SAMPLE_RATE_KEY = "DEFAULT_SAMPLE_RATE"
+        private val DEFAULT_SAMPLE_RATE = SampleRates.S16000.ordinal
     }
 
     fun setIpPort(ip: String, port: String) {
@@ -116,5 +120,26 @@ class Preferences(private val androidMicApp: AndroidMicApp) {
             AppCompatActivity.MODE_PRIVATE
         )
         return userSettings.getBoolean(DYNAMIC_COLOR_KEY, DEFAULT_DYNAMIC_COLOR)
+    }
+
+    fun setSampleRate(sampleRate: SampleRates) {
+        val userSettings = androidMicApp.getSharedPreferences(
+            PREFERENCES_NAME,
+            AppCompatActivity.MODE_PRIVATE
+        )
+
+        val editor = userSettings.edit()
+        editor.putInt(SAMPLE_RATE_KEY, sampleRate.ordinal)
+        editor.apply()
+    }
+
+    fun getSampleRate(): SampleRates {
+        val userSettings = androidMicApp.getSharedPreferences(
+            PREFERENCES_NAME,
+            AppCompatActivity.MODE_PRIVATE
+        )
+        return userSettings.getInt(SAMPLE_RATE_KEY, DEFAULT_SAMPLE_RATE).let {
+            SampleRates.values()[it]
+        }
     }
 }

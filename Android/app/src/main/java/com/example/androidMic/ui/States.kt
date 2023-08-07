@@ -21,7 +21,8 @@ sealed interface States : java.io.Serializable {
         val dialogVisible: Dialogs = Dialogs.None,
 
         val theme: Themes = Themes.SYSTEM,
-        val dynamicColor: Boolean = true
+        val dynamicColor: Boolean = true,
+        val sampleRate: SampleRates = SampleRates.S16000,
     ) : States
 
     data class ServiceStates(
@@ -45,5 +46,11 @@ enum class Dialogs {
     Modes,
     IpPort,
     Themes,
+    SampleRates,
     None
+}
+
+enum class SampleRates(val value: Int) {
+    S16000(16000),
+    S48000(48000)
 }

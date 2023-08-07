@@ -45,6 +45,8 @@ class MicStreamManager(ctx: Context, val mode: Modes, ip: String?, port: Int?) {
         streamer.stream(audioBuffer)
     }
 
+
+    // should not call any methods after calling
     fun shutdown() {
         streamer.shutdown()
     }
