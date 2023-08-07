@@ -60,13 +60,15 @@ class MainViewModel(
         val mode = preferences.getMode()
         val theme = preferences.getTheme()
         val dynamicColor = preferences.getDynamicColor()
+        val sampleRate = preferences.getSampleRate()
 
         savedStateHandle["uiStates"] = uiStates.value.copy(
             ip = ipPort.first,
             port = ipPort.second,
             mode = mode,
             theme = theme,
-            dynamicColor = dynamicColor
+            dynamicColor = dynamicColor,
+            sampleRate = sampleRate
         )
     }
 

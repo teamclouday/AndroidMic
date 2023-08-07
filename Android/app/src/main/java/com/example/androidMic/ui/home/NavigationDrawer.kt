@@ -1,14 +1,18 @@
 package com.example.androidMic.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Divider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.example.androidMic.R
@@ -16,7 +20,6 @@ import com.example.androidMic.ui.Dialogs
 import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.Modes
 import com.example.androidMic.ui.SampleRates
-import com.example.androidMic.ui.components.ManagerSetting
 import com.example.androidMic.ui.home.dialog.DialogMode
 import com.example.androidMic.ui.home.dialog.DialogTheme
 import com.example.androidMic.ui.home.dialog.DialogWifiIpPort
@@ -45,10 +48,10 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
             id = Dialogs.SampleRates,
             title = stringResource(id = R.string.sample_rate),
             subTitle = when (uiStates.sampleRate) {
-                SampleRates.S16000 -> "16000"
-                SampleRates.S48000 -> "48000"
+                SampleRates.S16000 -> SampleRates.S16000.value.toString()
+                SampleRates.S48000 -> SampleRates.S48000.value.toString()
             },
-            contentDescription = "set mode",
+            contentDescription = "set sample rate",
             icon = null
         ),
     )
@@ -111,66 +114,83 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
             }
         }
 
-        // connection subtitle
         item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(10.dp)
-            ) {
-                Text(
-                    text = stringResource(id = R.string.drawer_subtitle_connection),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
-            Divider(color = MaterialTheme.colorScheme.onBackground)
+            SettingsItemsSubtitle(R.string.drawer_subtitle_connection)
         }
 
         items(connectionItems) { item ->
-            ManagerSetting(mainViewModel, item)
-            Divider(color = MaterialTheme.colorScheme.onBackground)
+            SettingsItem(mainViewModel, item)
         }
 
-        // record subtitle
         item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 10.dp, top = 25.dp, bottom = 10.dp)
-            ) {
-                Text(
-                    text = stringResource(id = R.string.drawer_subtitle_record),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
-            Divider(color = MaterialTheme.colorScheme.onBackground)
+            SettingsItemsSubtitle(R.string.drawer_subtitle_record)
         }
 
         items(recordItems) { item ->
-            ManagerSetting(mainViewModel, item)
-            Divider(color = MaterialTheme.colorScheme.onBackground)
+            SettingsItem(mainViewModel, item)
         }
 
-        // other subtitle
         item {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 10.dp, top = 25.dp, bottom = 10.dp)
-            ) {
-                Text(
-                    text = stringResource(id = R.string.drawer_subtitle_other),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-            }
-            Divider(color = MaterialTheme.colorScheme.onBackground)
+            SettingsItemsSubtitle(R.string.drawer_subtitle_other)
         }
+
         items(otherItems) { item ->
-            ManagerSetting(mainViewModel, item)
-            Divider(color = MaterialTheme.colorScheme.onBackground)
+            SettingsItem(mainViewModel, item)
         }
     }
+}
+
+
+@Composable
+private fun SettingsItemsSubtitle(
+    subtitle: Int
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 10.dp, top = 25.dp, bottom = 10.dp)
+    ) {
+        Text(
+            text = stringResource(id = subtitle),
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onBackground
+        )
+    }
+    Divider(color = MaterialTheme.colorScheme.onBackground)
+}
+
+@Composable
+private fun SettingsItem(mainViewModel: MainViewModel, item: MenuItem) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable {
+                mainViewModel.showDialog(item.id)
+            }
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (item.icon != null) {
+            Icon(
+                painter = painterResource(id = item.icon),
+                contentDescription = item.contentDescription,
+                tint = MaterialTheme.colorScheme.onBackground
+            )
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(
+                text = item.title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Text(
+                text = item.subTitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+    }
+    Divider(color = MaterialTheme.colorScheme.onBackground)
 }
