@@ -1,12 +1,15 @@
 use std::{
     io::{self, Read, Write},
     net::{TcpListener, TcpStream},
-    time::Duration, str::from_utf8,
+    str::from_utf8,
+    time::Duration,
 };
 
 use rtrb::{chunks::ChunkError, Producer};
 
-use crate::streamer::{Streamer, WriteError, DEVICE_CHECK, DEVICE_CHECK_EXPECTED, IO_BUF_SIZE, DEFAULT_PORT};
+use crate::streamer::{
+    Streamer, WriteError, DEFAULT_PORT, DEVICE_CHECK, DEVICE_CHECK_EXPECTED, IO_BUF_SIZE,
+};
 
 // process pour la version C#
 
@@ -28,27 +31,23 @@ pub struct TcpStreamer {
 
 impl Streamer for TcpStreamer {
     fn new(shared_buf: Producer<u8>, ip: String) -> Option<Self> {
-
         let listener = if let Ok(listener) = TcpListener::bind((ip.clone(), DEFAULT_PORT)) {
             listener
         } else {
-            TcpListener::bind((ip.clone(), 0))
-                .expect("can't bind listener")
+            TcpListener::bind((ip.clone(), 0)).expect("can't bind listener")
         };
-        
+
         let addr = match TcpListener::local_addr(&listener) {
             Ok(addr) => addr,
             Err(e) => {
                 dbg!(e);
                 return None;
-            },
+            }
         };
         println!("TCP server listening on {}", addr);
-     
 
         match listener.accept() {
             Ok((mut stream, addr)) => {
-
                 if let Err(e) = stream.set_read_timeout(Some(MAX_WAIT_TIME)) {
                     eprintln!("can't set read time out: {}", e);
                 }

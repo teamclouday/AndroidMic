@@ -30,3 +30,14 @@ Debian
 ```
 sudo apt install libasound2-dev
 ```
+
+``` shell
+Options:
+      --ip <IP>
+  -m, --mode <CONNECTION MODE (UPD/TCP)>
+  -h, --help                              Print help
+  -V, --version                           Print version
+```
+
+example:
+cargo run --release -- --ip 192.168.1.79 -m UDP

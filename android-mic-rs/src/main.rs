@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use clap::Parser;
 use cpal::traits::StreamTrait;
 use rtrb::RingBuffer;
 use streamer::Streamer;
@@ -7,7 +8,13 @@ use user_action::UserAction;
 
 use std::sync::mpsc;
 
-use crate::{audio::setup_audio, streamer::WriteError, tcp_streamer::TcpStreamer};
+use crate::{
+    audio::setup_audio,
+    streamer::WriteError,
+    tcp_streamer::TcpStreamer,
+    udp_streamer::UdpStreamer,
+    user_action::{ask_connection_mode, str_to_connection_mode, SettingsArg},
+};
 
 mod audio;
 mod streamer;
@@ -32,6 +39,8 @@ impl App {
 const SHARED_BUF_SIZE: usize = 5 * 1024;
 
 fn main() {
+    let settings_arg = SettingsArg::parse();
+
     let mut app = App::new();
 
     // Buffer to store received data
@@ -51,11 +60,30 @@ fn main() {
         },
     }
 
-    let ip = "192.168.1.79".to_string();
-    match TcpStreamer::new(producer, ip) {
-        Some(streamer) => app.streamer = Some(Box::new(streamer)),
-        None => {
-            return;
+    let connection_mode = if let Some(mode) = settings_arg.mode {
+        if let Some(connection_mode) = str_to_connection_mode(mode.as_str()) {
+            connection_mode
+        } else {
+            ask_connection_mode()
+        }
+    } else {
+        ask_connection_mode()
+    };
+
+    let ip = if let Some(ip) = settings_arg.ip {
+        ip
+    } else {
+        user_action::ask_ip()
+    };
+
+    match connection_mode {
+        user_action::ConnectionMode::Udp => {
+            let streamer = UdpStreamer::new(producer, ip).unwrap();
+            app.streamer = Some(Box::new(streamer))
+        }
+        user_action::ConnectionMode::Tcp => {
+            let streamer = TcpStreamer::new(producer, ip).unwrap();
+            app.streamer = Some(Box::new(streamer))
         }
     }
 
