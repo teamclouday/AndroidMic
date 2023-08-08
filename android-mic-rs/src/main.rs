@@ -73,7 +73,7 @@ fn main() {
             Ok(moved) => item_moved += moved as f64,
             Err(e) => match e {
                 WriteError::Udp(e) => {
-                    eprintln!("{:?}", e);
+                    eprintln!("UDP Error: {:?}", e);
                     break;
                 }
                 WriteError::BufferOverfilled(moved, lossed) => {
@@ -212,10 +212,10 @@ fn write_to_buff(
             }
         },
         Err(e) => {
-            if e.kind() == io::ErrorKind::TimedOut {
-                Ok(0)
-            } else {
-                Err(WriteError::Udp(e))
+            match e.kind() {
+                io::ErrorKind::TimedOut => Ok(0), // timeout use to check for input on stdin
+                io::ErrorKind::WouldBlock => Ok(0), // trigger on Linux when there is no stream input
+                _ => Err(WriteError::Udp(e))
             }
         }
     }
