@@ -1,0 +1,75 @@
+use std::{
+    io::{self},
+    net::UdpSocket,
+    time::Duration,
+};
+
+use rtrb::{chunks::ChunkError, Producer};
+
+use crate::streamer::{Streamer, WriteError, IO_BUF_SIZE};
+
+pub struct UdpStreamer {
+    ip: String,
+    port: u16,
+    socket: UdpSocket,
+    producer: Producer<u8>,
+    io_buf: [u8; 1024],
+}
+
+impl Streamer for UdpStreamer {
+    fn new(shared_buf: Producer<u8>, ip: String) -> Option<UdpStreamer> {
+        let port = 0;
+        let socket = UdpSocket::bind((ip.clone(), port)).expect("Failed to bind to socket");
+        socket
+            .set_read_timeout(Some(Duration::from_millis(200)))
+            .unwrap();
+
+        match socket.local_addr() {
+            Ok(addr) => {
+                println!("UDP server listening on {}", addr);
+            }
+            Err(e) => {
+                dbg!(e);
+                return None;
+            }
+        };
+
+        Some(Self {
+            ip,
+            port,
+            socket,
+            producer: shared_buf,
+            io_buf: [0u8; IO_BUF_SIZE],
+        })
+    }
+
+    fn process(&mut self) -> Result<usize, WriteError> {
+        // Receive data into the buffer
+        match self.socket.recv_from(&mut self.io_buf) {
+            Ok((size, _)) => match self.producer.write_chunk_uninit(size) {
+                Ok(chunk) => {
+                    let moved_item = chunk.fill_from_iter(self.io_buf);
+                    if moved_item == size {
+                        Ok(size)
+                    } else {
+                        Err(WriteError::BufferOverfilled(moved_item, size - moved_item))
+                    }
+                }
+                Err(ChunkError::TooFewSlots(remaining_slots)) => {
+                    let chunk = self.producer.write_chunk_uninit(remaining_slots).unwrap();
+
+                    let moved_item = chunk.fill_from_iter(self.io_buf);
+
+                    Err(WriteError::BufferOverfilled(moved_item, size - moved_item))
+                }
+            },
+            Err(e) => {
+                match e.kind() {
+                    io::ErrorKind::TimedOut => Ok(0), // timeout use to check for input on stdin
+                    io::ErrorKind::WouldBlock => Ok(0), // trigger on Linux when there is no stream input
+                    _ => Err(WriteError::Io(e)),
+                }
+            }
+        }
+    }
+}

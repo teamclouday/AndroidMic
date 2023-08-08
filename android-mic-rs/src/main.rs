@@ -1,34 +1,41 @@
-use cpal::{
-    traits::{DeviceTrait, HostTrait, StreamTrait},
-    BuildStreamError,
-};
-use rtrb::{chunks::ChunkError, Consumer, Producer, RingBuffer};
-use std::{
-    io::{self},
-    net::UdpSocket, time::Duration,
-};
+#![allow(dead_code)]
+use cpal::traits::StreamTrait;
+use rtrb::RingBuffer;
+use streamer::Streamer;
+
 use user_action::UserAction;
 
 use std::sync::mpsc;
 
+use crate::{audio::setup_audio, streamer::WriteError, tcp_streamer::TcpStreamer};
+
+mod audio;
+mod streamer;
+mod tcp_streamer;
+mod udp_streamer;
 mod user_action;
 
 struct App {
     audio_player: Option<cpal::Stream>,
+    streamer: Option<Box<dyn Streamer>>,
 }
 
 impl App {
     fn new() -> Self {
-        App { audio_player: None }
+        App {
+            audio_player: None,
+            streamer: None,
+        }
     }
 }
+
+const SHARED_BUF_SIZE: usize = 5 * 1024;
 
 fn main() {
     let mut app = App::new();
 
-    let capacity = 5 * 1024;
     // Buffer to store received data
-    let (mut producer, consumer) = RingBuffer::<u8>::new(capacity);
+    let (producer, consumer) = RingBuffer::<u8>::new(SHARED_BUF_SIZE);
 
     match setup_audio(consumer) {
         Err(e) => {
@@ -44,10 +51,13 @@ fn main() {
         },
     }
 
-    let bind_port = 55555;
-    let socket = UdpSocket::bind(("0.0.0.0", bind_port)).expect("Failed to bind to socket");
-    socket.set_read_timeout(Some(Duration::from_millis(200))).unwrap();
-    let udp_buf = [0u8; 1024];
+    let ip = "192.168.1.79".to_string();
+    match TcpStreamer::new(producer, ip) {
+        Some(streamer) => app.streamer = Some(Box::new(streamer)),
+        None => {
+            return;
+        }
+    }
 
     let (tx, rx) = mpsc::channel::<UserAction>();
     user_action::start_listening(tx);
@@ -69,11 +79,15 @@ fn main() {
             }
         }
 
-        match write_to_buff(&socket, &mut producer, udp_buf) {
+        let Some(streamer) = &mut app.streamer else {
+            return;
+        };
+
+        match streamer.process() {
             Ok(moved) => item_moved += moved as f64,
             Err(e) => match e {
-                WriteError::Udp(e) => {
-                    eprintln!("UDP Error: {:?}", e);
+                WriteError::Io(e) => {
+                    eprintln!("Io Error: {:?}", e);
                     break;
                 }
                 WriteError::BufferOverfilled(moved, lossed) => {
@@ -98,125 +112,4 @@ fn main() {
         "success: {}%",
         (item_moved / (item_lossed + item_moved)) * 100.0
     )
-}
-
-fn setup_audio(mut consumer: Consumer<u8>) -> Result<cpal::Stream, BuildStreamError> {
-    let host = cpal::default_host();
-    let device = host.default_output_device().unwrap();
-
-    // let config = StreamConfig{
-    //     channels: 1,
-    //     sample_rate: SampleRate(16000),
-    //     buffer_size: BufferSize::Default(1024),
-    // };
-    let config: cpal::StreamConfig = device.default_output_config().unwrap().into();
-
-    println!();
-    println!("Audio config:");
-    println!("- number of channel: {}", config.channels);
-    println!("- sample rate: {}", config.sample_rate.0);
-    println!("- buffer size: {:?}", config.buffer_size);
-    println!();
-
-    let channels = config.channels as usize;
-
-    let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
-
-    device.build_output_stream(
-        &config,
-        move |data: &mut [i16], _: &cpal::OutputCallbackInfo| {
-            match consumer.read_chunk(data.len()) {
-                Ok(chunk) => {
-                    //println!("read_chunk {}", chunk.len());
-                    let mut iter = chunk.into_iter();
-                    // a frame has 480 samples
-                    for frame in data.chunks_mut(channels) {
-                        let Some(byte1) = iter.next()  else {
-                            // should not happend, because we read data.len()
-                            // chunk, but happend sometime
-                            //eprintln!("None next byte1");
-                            return;
-                        };
-                        let Some(byte2) = iter.next()  else {
-                            //eprintln!("None next byte2, loose byte1");
-                            return;
-                        };
-
-                        // Combine the two u8 values into a single i16
-                        // don't ask me why we inverse bytes here (probably because of Endian stuff)
-                        let result_i16: i16 = (byte2 as i16) << 8 | byte1 as i16;
-
-                        // cursor method (should work on more PC but less optimize i think)
-                        // let mut cursor: Cursor<Vec<u8>> = Cursor::new(vec![byte1, byte2]);
-                        // let result_i16 = cursor.read_i16::<LittleEndian>().unwrap();
-
-                        // a sample has two cases (probably left/right)
-                        for sample in frame.iter_mut() {
-                            *sample = result_i16;
-                        }
-                    }
-                }
-                Err(ChunkError::TooFewSlots(available_slots)) => {
-                    let mut iter = consumer.read_chunk(available_slots).unwrap().into_iter();
-                    for frame in data.chunks_mut(channels) {
-                        let Some(byte1) = iter.next()  else {
-                            //eprintln!("None next byte1");
-                            return;
-                        };
-                        let Some(byte2) = iter.next()  else {
-                            //eprintln!("None next byte2, loose byte1");
-                            return;
-                        };
-                        let result_i16: i16 = (byte2 as i16) << 8 | byte1 as i16;
-                        for sample in frame.iter_mut() {
-                            *sample = result_i16;
-                        }
-                    }
-                }
-            }
-        },
-        err_fn,
-        None, // todo: try timeout
-    )
-}
-
-enum WriteError {
-    Udp(io::Error),
-    BufferOverfilled(usize, usize), // moved, lossed
-}
-
-/// return the number of item moved
-/// or an error
-fn write_to_buff(
-    socket: &UdpSocket,
-    producer: &mut Producer<u8>,
-    mut tmp_buf: [u8; 1024],
-) -> Result<usize, WriteError> {
-    // Receive data into the buffer
-    match socket.recv_from(&mut tmp_buf) {
-        Ok((size, _)) => match producer.write_chunk_uninit(size) {
-            Ok(chunk) => {
-                let moved_item = chunk.fill_from_iter(tmp_buf);
-                if moved_item == size {
-                    Ok(size)
-                } else {
-                    Err(WriteError::BufferOverfilled(moved_item, size - moved_item))
-                }
-            }
-            Err(ChunkError::TooFewSlots(remaining_slots)) => {
-                let chunk = producer.write_chunk_uninit(remaining_slots).unwrap();
-
-                let moved_item = chunk.fill_from_iter(tmp_buf);
-
-                Err(WriteError::BufferOverfilled(moved_item, size - moved_item))
-            }
-        },
-        Err(e) => {
-            match e.kind() {
-                io::ErrorKind::TimedOut => Ok(0), // timeout use to check for input on stdin
-                io::ErrorKind::WouldBlock => Ok(0), // trigger on Linux when there is no stream input
-                _ => Err(WriteError::Udp(e))
-            }
-        }
-    }
 }
