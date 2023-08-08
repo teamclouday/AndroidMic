@@ -6,7 +6,7 @@ use std::{
 
 use rtrb::{chunks::ChunkError, Producer};
 
-use crate::streamer::{Streamer, WriteError, IO_BUF_SIZE};
+use crate::streamer::{Streamer, WriteError, IO_BUF_SIZE, DEFAULT_PORT};
 
 pub struct UdpStreamer {
     ip: String,
@@ -18,25 +18,30 @@ pub struct UdpStreamer {
 
 impl Streamer for UdpStreamer {
     fn new(shared_buf: Producer<u8>, ip: String) -> Option<UdpStreamer> {
-        let port = 0;
-        let socket = UdpSocket::bind((ip.clone(), port)).expect("Failed to bind to socket");
+        
+        let socket = if let Ok(socket) = UdpSocket::bind((ip.clone(), DEFAULT_PORT)) {
+            socket
+        } else {
+            UdpSocket::bind((ip.clone(), 0))
+                .expect("Failed to bind to socket")
+        };
+
         socket
             .set_read_timeout(Some(Duration::from_millis(200)))
             .unwrap();
 
-        match socket.local_addr() {
-            Ok(addr) => {
-                println!("UDP server listening on {}", addr);
-            }
+        let addr = match socket.local_addr() {
+            Ok(addr) => addr,
             Err(e) => {
                 dbg!(e);
                 return None;
-            }
+            },
         };
+        println!("UDP server listening on {}", addr);
 
         Some(Self {
             ip,
-            port,
+            port: addr.port(),
             socket,
             producer: shared_buf,
             io_buf: [0u8; IO_BUF_SIZE],

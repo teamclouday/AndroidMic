@@ -1,13 +1,12 @@
 use std::{
     io::{self, Read, Write},
     net::{TcpListener, TcpStream},
-    str::from_utf8,
-    time::Duration,
+    time::Duration, str::from_utf8,
 };
 
 use rtrb::{chunks::ChunkError, Producer};
 
-use crate::streamer::{Streamer, WriteError, DEVICE_CHECK, DEVICE_CHECK_EXPECTED, IO_BUF_SIZE};
+use crate::streamer::{Streamer, WriteError, DEVICE_CHECK, DEVICE_CHECK_EXPECTED, IO_BUF_SIZE, DEFAULT_PORT};
 
 // process pour la version C#
 
@@ -29,23 +28,27 @@ pub struct TcpStreamer {
 
 impl Streamer for TcpStreamer {
     fn new(shared_buf: Producer<u8>, ip: String) -> Option<Self> {
-        let port = 0;
 
-        // todo: test one port, if error, test with port = 0
-        let listener = TcpListener::bind((ip.clone(), port)).expect("can't bind listener");
-
-        match TcpListener::local_addr(&listener) {
-            Ok(addr) => {
-                println!("TCP server listening on {}", addr);
-            }
+        let listener = if let Ok(listener) = TcpListener::bind((ip.clone(), DEFAULT_PORT)) {
+            listener
+        } else {
+            TcpListener::bind((ip.clone(), 0))
+                .expect("can't bind listener")
+        };
+        
+        let addr = match TcpListener::local_addr(&listener) {
+            Ok(addr) => addr,
             Err(e) => {
                 dbg!(e);
                 return None;
-            }
+            },
         };
+        println!("TCP server listening on {}", addr);
+     
 
         match listener.accept() {
             Ok((mut stream, addr)) => {
+
                 if let Err(e) = stream.set_read_timeout(Some(MAX_WAIT_TIME)) {
                     eprintln!("can't set read time out: {}", e);
                 }
@@ -83,7 +86,7 @@ impl Streamer for TcpStreamer {
 
                 Some(Self {
                     ip,
-                    port,
+                    port: addr.port(),
                     stream,
                     producer: shared_buf,
                     io_buf: [0u8; IO_BUF_SIZE],
