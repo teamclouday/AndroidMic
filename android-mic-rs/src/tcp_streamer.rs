@@ -1,7 +1,8 @@
 use std::{
     io::{self, Read, Write},
     net::{TcpListener, TcpStream},
-    time::Duration, thread,
+    str::from_utf8,
+    time::Duration,
 };
 
 use rtrb::{chunks::ChunkError, Producer};
@@ -45,27 +46,25 @@ impl Streamer for TcpStreamer {
 
         match listener.accept() {
             Ok((mut stream, addr)) => {
-
-                // cause error with read_to_string
-                // if let Err(e) = stream.set_read_timeout(Some(MAX_WAIT_TIME)) {
-                //     eprintln!("can't set read time out: {}", e);
-                // }
+                if let Err(e) = stream.set_read_timeout(Some(MAX_WAIT_TIME)) {
+                    eprintln!("can't set read time out: {}", e);
+                }
                 if let Err(e) = stream.set_write_timeout(Some(MAX_WAIT_TIME)) {
                     eprintln!("can't set write time out: {}", e);
                 }
 
                 // read check
-                let mut check_buf = String::new();
-                match stream.read_to_string(&mut check_buf) {
+                let mut check_buf = [0u8; DEVICE_CHECK_EXPECTED.len()];
+                // read_to_string doesn't works somehow, we need fix buffer
+                match stream.read(&mut check_buf) {
                     Ok(_) => {
-                        if DEVICE_CHECK_EXPECTED != check_buf {
+                        let message = from_utf8(&check_buf).unwrap();
+                        if DEVICE_CHECK_EXPECTED != message {
                             println!(
-                                "read check fail: expected = {}, received = {}",
-                                DEVICE_CHECK_EXPECTED, check_buf
+                                "read check fail: expected = {:x?}, received = {:x?}",
+                                DEVICE_CHECK_EXPECTED, message
                             );
                             return None;
-                        } else {
-                            println!("read check passed!");
                         }
                     }
                     Err(e) => {
@@ -75,12 +74,10 @@ impl Streamer for TcpStreamer {
                 }
 
                 // write check
-                if let Err(e) = stream.write_all(DEVICE_CHECK.as_bytes()) {
+                if let Err(e) = stream.write(DEVICE_CHECK.as_bytes()) {
                     println!("write check fail: {:?}", e);
                     return None;
                 }
-
-                thread::sleep(MAX_WAIT_TIME);
 
                 println!("connection accepted, address: {}", addr);
 

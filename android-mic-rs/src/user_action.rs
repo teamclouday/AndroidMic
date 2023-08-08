@@ -25,6 +25,7 @@ pub fn start_listening(tx: Sender<UserAction>) {
 }
 
 pub fn print_avaible_action() {
+    println!();
     println!("Available options:");
     println!("quit: q");
     println!();
