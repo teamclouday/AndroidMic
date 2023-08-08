@@ -1,17 +1,16 @@
 plugins {
     id 'com.android.application'
-    id 'kotlin-android'
+    id 'org.jetbrains.kotlin.android'
 }
 
 android {
     namespace 'com.example.androidMic'
-    compileSdk 33
-    buildToolsVersion "30.0.3"
+    compileSdk 34
 
     defaultConfig {
         applicationId "com.example.androidMic"
         minSdk 23
-        targetSdk 33
+        targetSdk 34
         versionCode 9
         versionName "2.0"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -23,7 +22,7 @@ android {
         vectorDrawables {
             useSupportLibrary true
         }
-        resConfigs 'en', 'fr'
+        resourceConfigurations += ['en', 'fr']
     }
 
     externalNativeBuild {
@@ -41,25 +40,26 @@ android {
         // for experimental api
         kotlin {
             kotlinOptions {
-                freeCompilerArgs += "-Xopt-in=kotlin.RequiresOptIn"
+                freeCompilerArgs += "-opt-in=kotlin.RequiresOptIn"
             }
         }
     }
 
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
     kotlinOptions {
-        jvmTarget = '1.8'
+        jvmTarget = '17'
     }
     buildFeatures {
         prefab true
         compose true
     }
     composeOptions {
-        kotlinCompilerExtensionVersion '1.1.1'
+        // https://developer.android.com/jetpack/androidx/releases/compose-kotlin?hl=fr#pre-release_kotlin_compatibility
+        kotlinCompilerExtensionVersion '1.4.3'
     }
 
 
@@ -74,41 +74,47 @@ android {
 }
 
 dependencies {
-    // lib audio
-    implementation 'com.google.oboe:oboe:1.6.1'
-
-    //kotlin
-    implementation 'androidx.core:core-ktx:1.9.0'
-    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.5.1'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.4'
-    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.6.4'
+    def coroutine_version = "1.7.3"
+    def lifecycle_version = "2.6.1"
+    def compose_version = "1.4.3"
+    def material3_version = "1.1.1"
 
 
-    implementation 'androidx.appcompat:appcompat:1.7.0-alpha01'
-    
+    // audio lib
+    implementation "com.google.oboe:oboe:1.7.0"
+
+    // kotlin
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutine_version"
+    implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutine_version"
+
+    implementation "androidx.core:core-ktx:1.10.1"
+    implementation "androidx.appcompat:appcompat:1.7.0-alpha03"
+    implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_version"
+
     // compose
-    implementation 'androidx.activity:activity-compose:1.6.1'
-    implementation "androidx.compose.ui:ui:1.4.0-alpha01"
-    implementation "androidx.compose.ui:ui-tooling-preview:1.3.0"
-    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:2.6.0-alpha03"
+    implementation "androidx.activity:activity-compose:1.7.2"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version"
+    implementation "androidx.compose.ui:ui:$compose_version"
     implementation "androidx.constraintlayout:constraintlayout-compose:1.0.1"
 
-    //material3
-    implementation("androidx.compose.material3:material3:1.1.0-alpha01")
-    implementation("androidx.compose.material3:material3-window-size-class:1.1.0-alpha01")
+    // material3
+    implementation "androidx.compose.material3:material3:$material3_version"
+    implementation "androidx.compose.material3:material3-window-size-class:$material3_version"
 
 
-    //compose permission
-    implementation "com.google.accompanist:accompanist-permissions:0.24.13-rc"
+    // compose permission
+    implementation 'com.google.accompanist:accompanist-permissions:0.30.1'
 
+    // tool
+    implementation "androidx.compose.ui:ui-tooling-preview:$compose_version"
 
     // test
     testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 
     //test compose
-    androidTestImplementation "androidx.compose.ui:ui-test-junit4:1.3.0"
-    debugImplementation "androidx.compose.ui:ui-tooling:1.3.0"
-    debugImplementation "androidx.compose.ui:ui-test-manifest:1.3.0"
+    androidTestImplementation "androidx.compose.ui:ui-test-junit4:$compose_version"
+    debugImplementation "androidx.compose.ui:ui-tooling:$compose_version"
+    debugImplementation "androidx.compose.ui:ui-test-manifest:$compose_version"
 }

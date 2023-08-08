@@ -1,9 +1,9 @@
 package com.example.androidMic.domain.audio
 
 class OboeRecorder(
-    val deviceId: Int,
+    deviceId: Int,
     val sampleRate: Int,
-    val bufferSize: Int
+    bufferSize: Int
 ) {
     companion object {
         init {

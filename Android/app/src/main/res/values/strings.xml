@@ -13,24 +13,28 @@
     -->
     <string name="drawerHeader">Setting</string>
     <string name="drawer_subtitle_connection">Connection</string>
+    <string name="drawer_subtitle_record" translatable="false">Record</string>
     <string name="drawer_subtitle_other">Other</string>
 
-    <string name="drawerWifiIpPort" translatable="false">IP:PORT</string>
-    <string name="dialog_ip" translatable="false">IP</string>
-    <string name="dialog_port" translatable="false">PORT</string>
-
-    <string name="drawerUsbPort" translatable="false">PORT</string>
 
     <string name="drawerMode">Connection mode</string>
     <string name="mode_wifi" translatable="false">WIFI</string>
     <string name="mode_bluetooth" translatable="false">BLUETOOTH</string>
     <string name="mode_usb" translatable="false">USB (ADB)</string>
+    <string name="mode_udp" translatable="false">UDP</string>
+
+    <string name="drawerIpPort" translatable="false">IP:PORT</string>
+    <string name="dialog_ip" translatable="false">IP</string>
+    <string name="dialog_port" translatable="false">PORT</string>
+
+
+    <string name="sample_rate" translatable="false">Sample Rate</string>
 
     <string name="drawerTheme">Themes</string>
     <string name="system_theme">System theme</string>
     <string name="light_theme">Light theme</string>
     <string name="dark_theme">Dark theme</string>
-    <string name="dynamic_color">Dynamic color\n(Android 12 and +)</string>
+    <string name="dynamic_color">Dynamic color</string>
 
     <string name="reset">Reset</string>
     <string name="save">Save</string>

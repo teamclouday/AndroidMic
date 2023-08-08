@@ -1,7 +1,11 @@
 package com.example.androidMic.domain.streaming
 
 import android.Manifest
-import android.bluetooth.*
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothClass
+import android.bluetooth.BluetoothDevice
+import android.bluetooth.BluetoothManager
+import android.bluetooth.BluetoothSocket
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -12,11 +16,16 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import com.example.androidMic.domain.audio.AudioBuffer
 import com.example.androidMic.utils.ignore
-import kotlinx.coroutines.*
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
-import java.util.*
+import java.util.UUID
 
 class BluetoothStreamer(private val ctx: Context) : Streamer {
     private val TAG: String = "MicStreamBTH"

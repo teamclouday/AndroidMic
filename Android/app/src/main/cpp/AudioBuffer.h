@@ -1,5 +1,5 @@
-#ifndef MICROPHONE_AUDIOBUFFER_H
-#define MICROPHONE_AUDIOBUFFER_H
+#ifndef MICROPHONE_AUDIO_BUFFER_H
+#define MICROPHONE_AUDIO_BUFFER_H
 
 #include "Logging.h"
 #include <cstdint>
@@ -87,4 +87,4 @@ private:
     std::mutex _mutex;
 };
 
-#endif //MICROPHONE_AUDIOBUFFER_H
+#endif //MICROPHONE_AUDIO_BUFFER_H

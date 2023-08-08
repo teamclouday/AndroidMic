@@ -1,133 +1,66 @@
 package com.example.androidMic.ui.home.dialog
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Divider
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import android.os.Build
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import com.example.androidMic.R
-import com.example.androidMic.ui.Event
+import com.example.androidMic.ui.Dialogs
 import com.example.androidMic.ui.MainViewModel
+import com.example.androidMic.ui.States
+import com.example.androidMic.ui.Themes
 import com.example.androidMic.ui.components.ManagerCheckBox
-import com.example.androidMic.utils.States
-import com.example.androidMic.utils.Themes.Companion.DARK_THEME
-import com.example.androidMic.utils.Themes.Companion.LIGHT_THEME
-import com.example.androidMic.utils.Themes.Companion.SYSTEM_THEME
 
 @Composable
 fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
 
-    val tempSystemTheme = remember {
-        mutableStateOf(uiStates.theme == SYSTEM_THEME)
-    }
-    val tempLightTheme = remember {
-        mutableStateOf(uiStates.theme == LIGHT_THEME)
-    }
-    val tempDarkTheme = remember {
-        mutableStateOf(uiStates.theme == DARK_THEME)
-    }
+    ManagerDialog(
+        mainViewModel,
+        uiStates,
+        Dialogs.Themes
+    ) {
+        // system
+        ManagerCheckBox(
+            checked = uiStates.theme == Themes.SYSTEM,
+            onClick = {
+                mainViewModel.setTheme(Themes.SYSTEM)
+            },
+            text = stringResource(id = R.string.system_theme)
+        )
 
-    val tempDynamicColor = remember {
-        mutableStateOf(uiStates.dynamicColor)
-    }
+        DialogSpacer()
 
-    if (uiStates.dialogThemeIsVisible) {
-        Dialog(
-            onDismissRequest = {
-                tempSystemTheme.value = uiStates.theme == SYSTEM_THEME
-                tempLightTheme.value = uiStates.theme == LIGHT_THEME
-                tempDarkTheme.value = uiStates.theme == DARK_THEME
-                tempDynamicColor.value = uiStates.dynamicColor
-                mainViewModel.onEvent(Event.DismissDialog(R.string.drawerTheme))
-            }
-        ) {
-            Surface(
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurface
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally
-                ) {
-                    Spacer(modifier = Modifier.height(25.dp))
+        // light
+        ManagerCheckBox(
+            checked = uiStates.theme == Themes.LIGHT,
+            onClick = {
+                mainViewModel.setTheme(Themes.LIGHT)
+            },
+            text = stringResource(id = R.string.light_theme)
+        )
 
-                    // system
-                    ManagerCheckBox(
-                        checked = tempSystemTheme.value,
-                        onClick = {
-                            tempSystemTheme.value = true
-                            tempLightTheme.value = false
-                            tempDarkTheme.value = false
-                            mainViewModel.onEvent(
-                                Event.SetTheme(SYSTEM_THEME)
-                            )
+        DialogSpacer()
 
-                        },
-                        text = stringResource(id = R.string.system_theme)
-                    )
+        // dark
+        ManagerCheckBox(
+            checked = uiStates.theme == Themes.DARK,
+            onClick = {
+                mainViewModel.setTheme(Themes.DARK)
+            },
+            text = stringResource(id = R.string.dark_theme)
+        )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+        if (Build.VERSION.SDK_INT > Build.VERSION_CODES.S) {
+            DialogDivider()
 
-                    // light
-                    ManagerCheckBox(
-                        checked = tempLightTheme.value,
-                        onClick = {
-                            tempSystemTheme.value = false
-                            tempLightTheme.value = true
-                            tempDarkTheme.value = false
-                            mainViewModel.onEvent(
-                                Event.SetTheme(LIGHT_THEME)
-                            )
-                        },
-                        text = stringResource(id = R.string.light_theme)
-                    )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    // dark
-                    ManagerCheckBox(
-                        checked = tempDarkTheme.value,
-                        onClick = {
-                            tempSystemTheme.value = false
-                            tempLightTheme.value = false
-                            tempDarkTheme.value = true
-                            mainViewModel.onEvent(
-                                Event.SetTheme(DARK_THEME)
-                            )
-                        },
-                        text = stringResource(id = R.string.dark_theme)
-                    )
-
-                    Divider(
-                        modifier = Modifier.padding(20.dp),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    // dynamic color
-                    ManagerCheckBox(
-                        checked = tempDynamicColor.value,
-                        onClick = {
-                            tempDynamicColor.value = it
-                            mainViewModel.onEvent(
-                                Event.SetDynamicColor(it)
-                            )
-                        },
-                        text = stringResource(id = R.string.dynamic_color)
-                    )
-
-                    Spacer(modifier = Modifier.height(25.dp))
-                }
-            }
+            // dynamic color
+            ManagerCheckBox(
+                checked = uiStates.dynamicColor,
+                onClick = {
+                    mainViewModel.setDynamicColor(it)
+                },
+                text = stringResource(id = R.string.dynamic_color)
+            )
         }
     }
+
 }

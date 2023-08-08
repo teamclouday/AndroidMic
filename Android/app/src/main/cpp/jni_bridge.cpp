@@ -8,7 +8,7 @@
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_example_androidMic_domain_audio_OboeRecorder_setDeviceId(JNIEnv *, jobject,
-                                                           jint device_id) {
+                                                                  jint device_id) {
     auto recorder = OboeRecorder::Instance();
     recorder->SetDeviceId(device_id);
 }
@@ -16,7 +16,7 @@ Java_com_example_androidMic_domain_audio_OboeRecorder_setDeviceId(JNIEnv *, jobj
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_example_androidMic_domain_audio_OboeRecorder_setSampleRate(JNIEnv *, jobject,
-                                                             jint sample_rate) {
+                                                                    jint sample_rate) {
     auto recorder = OboeRecorder::Instance();
     recorder->SetSampleRate(sample_rate);
 }
@@ -24,7 +24,7 @@ Java_com_example_androidMic_domain_audio_OboeRecorder_setSampleRate(JNIEnv *, jo
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_example_androidMic_domain_audio_OboeRecorder_setBufferSizeInFrames(JNIEnv *, jobject,
-                                                                     jint frames) {
+                                                                            jint frames) {
     auto recorder = OboeRecorder::Instance();
     recorder->SetBufferSizeInFrames(frames);
 }
@@ -46,8 +46,8 @@ Java_com_example_androidMic_domain_audio_OboeRecorder_stopRecordingInternal(JNIE
 extern "C"
 JNIEXPORT jint JNICALL
 Java_com_example_androidMic_domain_audio_OboeRecorder_readInternalBytes(JNIEnv *env, jobject,
-                                                                 jbyteArray buffer,
-                                                                 jint offset, jint len) {
+                                                                        jbyteArray buffer,
+                                                                        jint offset, jint len) {
     auto recorder = OboeRecorder::Instance();
     auto readBuffer = recorder->GetAudioBuffer();
     if (!readBuffer || readBuffer->IsEmpty() || len <= 0) return 0;
@@ -75,8 +75,8 @@ Java_com_example_androidMic_domain_audio_OboeRecorder_readInternalBytes(JNIEnv *
 extern "C"
 JNIEXPORT jint JNICALL
 Java_com_example_androidMic_domain_audio_OboeRecorder_readInternalShorts(JNIEnv *env, jobject,
-                                                                  jshortArray buffer,
-                                                                  jint offset, jint len) {
+                                                                         jshortArray buffer,
+                                                                         jint offset, jint len) {
     auto recorder = OboeRecorder::Instance();
     auto readBuffer = recorder->GetAudioBuffer();
     if (!readBuffer || readBuffer->IsEmpty() || len <= 0) return 0;
@@ -89,9 +89,11 @@ Java_com_example_androidMic_domain_audio_OboeRecorder_readInternalShorts(JNIEnv 
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_example_androidMic_domain_audio_OboeRecorder_readInternalBytesBlocking(JNIEnv *env, jobject,
-                                                                         jbyteArray buffer,
-                                                                         jint offset, jint len) {
+Java_com_example_androidMic_domain_audio_OboeRecorder_readInternalBytesBlocking(JNIEnv *env,
+                                                                                jobject,
+                                                                                jbyteArray buffer,
+                                                                                jint offset,
+                                                                                jint len) {
     auto recorder = OboeRecorder::Instance();
     auto readBuffer = recorder->GetAudioBuffer();
     if (!readBuffer || readBuffer->IsEmpty() || len <= 0) return 0;
@@ -123,9 +125,11 @@ Java_com_example_androidMic_domain_audio_OboeRecorder_readInternalBytesBlocking(
 
 extern "C"
 JNIEXPORT jint JNICALL
-Java_com_example_androidMic_domain_audio_OboeRecorder_readInternalShortsBlocking(JNIEnv *env, jobject,
-                                                                          jshortArray buffer,
-                                                                          jint offset, jint len) {
+Java_com_example_androidMic_domain_audio_OboeRecorder_readInternalShortsBlocking(JNIEnv *env,
+                                                                                 jobject,
+                                                                                 jshortArray buffer,
+                                                                                 jint offset,
+                                                                                 jint len) {
     auto recorder = OboeRecorder::Instance();
     auto readBuffer = recorder->GetAudioBuffer();
     if (!readBuffer || readBuffer->IsEmpty() || len <= 0) return 0;

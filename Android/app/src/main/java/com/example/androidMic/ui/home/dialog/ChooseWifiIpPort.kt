@@ -1,8 +1,10 @@
 package com.example.androidMic.ui.home.dialog
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -10,92 +12,78 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import com.example.androidMic.R
-import com.example.androidMic.ui.Event
+import com.example.androidMic.ui.DefaultStates
+import com.example.androidMic.ui.Dialogs
 import com.example.androidMic.ui.MainViewModel
+import com.example.androidMic.ui.States
 import com.example.androidMic.ui.components.ManagerButton
 import com.example.androidMic.ui.components.ManagerOutlinedTextField
-import com.example.androidMic.ui.utils.Preferences.Companion.DEFAULT_IP
-import com.example.androidMic.ui.utils.Preferences.Companion.DEFAULT_PORT
-import com.example.androidMic.utils.States
 
 @Composable
 fun DialogWifiIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
 
-    val tempIP = remember {
-        mutableStateOf(uiStates.IP)
+    val tempIp = remember {
+        mutableStateOf(uiStates.ip)
     }
     val tempPort = remember {
-        mutableStateOf(uiStates.PORT)
+        mutableStateOf(uiStates.port)
     }
 
-    if (uiStates.dialogIpPortIsVisible) {
-        Dialog(
-            onDismissRequest = {
-                tempIP.value = uiStates.IP; tempPort.value = uiStates.PORT
-                mainViewModel.onEvent(Event.DismissDialog(R.string.drawerWifiIpPort))
-            }
+    ManagerDialog(
+        mainViewModel,
+        uiStates,
+        Dialogs.IpPort,
+        onDismissRequest = {
+            tempIp.value = uiStates.ip; tempPort.value = uiStates.port
+        }
+    ) {
+        Column(
+            horizontalAlignment = Alignment.End
         ) {
-            Surface(
-                shape = MaterialTheme.shapes.medium,
-                color = MaterialTheme.colorScheme.surface,
-                contentColor = MaterialTheme.colorScheme.onSurface
+            // reset button
+            ManagerButton(
+                onClick = {
+                    tempIp.value = DefaultStates.IP; tempPort.value = DefaultStates.PORT
+                },
+                text = stringResource(id = R.string.reset),
+                modifier = Modifier.padding(end = 10.dp),
+            )
+
+            DialogSpacer()
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Column(
-                    horizontalAlignment = Alignment.End
-                ) {
-                    Spacer(modifier = Modifier.height(25.dp))
-                    // reset button
-                    ManagerButton(
-                        onClick = {
-                            tempIP.value = DEFAULT_IP; tempPort.value = DEFAULT_PORT.toString()
-                        },
-                        text = stringResource(id = R.string.reset),
-                        modifier = Modifier.padding(end = 10.dp),
-                    )
-                    Spacer(modifier = Modifier.height(20.dp))
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // ip field
-                        ManagerOutlinedTextField(tempIP, R.string.dialog_ip)
+                // ip field
+                ManagerOutlinedTextField(tempIp, R.string.dialog_ip)
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                        // port field
-                        ManagerOutlinedTextField(tempPort, R.string.dialog_port)
+                // port field
+                ManagerOutlinedTextField(tempPort, R.string.dialog_port)
 
-                        Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(20.dp))
 
-                        // save Button
-                        ManagerButton(
-                            onClick = {
-                                mainViewModel.onEvent(
-                                    Event.SetWifiIpPort(
-                                        tempIP.value,
-                                        tempPort.value
-                                    )
-                                )
-                            },
-                            text = stringResource(id = R.string.save),
-                            modifier = Modifier.fillMaxWidth(0.6f)
-                        )
+                // save Button
+                ManagerButton(
+                    onClick = {
+                        mainViewModel.setIpPort(tempIp.value, tempPort.value)
+                    },
+                    text = stringResource(id = R.string.save),
+                    modifier = Modifier.fillMaxWidth(0.6f)
+                )
 
-                        Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
-                        // cancel Button
-                        ManagerButton(
-                            onClick = {
-                                tempIP.value = uiStates.IP; tempPort.value = uiStates.PORT
-                                mainViewModel.onEvent(Event.DismissDialog(R.string.drawerWifiIpPort))
-                            },
-                            text = stringResource(id = R.string.cancel),
-                            modifier = Modifier.fillMaxWidth(0.6f)
-                        )
-                        Spacer(modifier = Modifier.height(25.dp))
-                    }
-                }
+                // cancel Button
+                ManagerButton(
+                    onClick = {
+                        tempIp.value = uiStates.ip; tempPort.value = uiStates.port
+                        mainViewModel.showDialog(Dialogs.None)
+                    },
+                    text = stringResource(id = R.string.cancel),
+                    modifier = Modifier.fillMaxWidth(0.6f)
+                )
             }
         }
     }

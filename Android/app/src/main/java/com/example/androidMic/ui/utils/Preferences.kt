@@ -2,157 +2,84 @@ package com.example.androidMic.ui.utils
 
 import androidx.appcompat.app.AppCompatActivity
 import com.example.androidMic.AndroidMicApp
-import com.example.androidMic.utils.Modes.Companion.MODE_WIFI
-import com.example.androidMic.utils.Themes.Companion.SYSTEM_THEME
-import java.net.InetSocketAddress
 
 
-class Preferences(private val androidMicApp: AndroidMicApp) {
+/**
+ * Rules: key should be upper case snake case
+ * Ex: SAMPLE_RATE
+ * The key should match the name in the app state
+ */
+class PrefManager(private val androidMicApp: AndroidMicApp) {
 
     companion object {
-        private const val PREFERENCES_NAME = "AndroidMicUserSettings"
-
-        private const val IP_KEY = "DEFAULT_IP"
-        private const val PORT_KEY = "DEFAULT_PORT"
-        const val DEFAULT_IP = "192.168."
-        const val DEFAULT_PORT = 55555
-
-        private const val USB_PORT_KEY = "DEFAULT_USB_PORT"
-        const val DEFAULT_USB_PORT = 6000
-
-        private const val MODE_KEY = "DEFAULT_MODE"
-        private const val DEFAULT_MODE = MODE_WIFI
-
-        private const val THEME_KEY = "DEFAULT_THEME"
-        private const val DEFAULT_THEME = SYSTEM_THEME
-
-        private const val DYNAMIC_COLOR_KEY = "DEFAULT_DYNAMIC_COLOR"
-        private const val DEFAULT_DYNAMIC_COLOR = true
+        private const val PREFERENCES_NAME = "AndroidMicUserSettingsV2"
     }
 
-    fun setWifiIpPort(pair: Pair<String, String>) {
-        val ip = pair.first
-        val port = pair.second.toInt()
-        InetSocketAddress(ip, port)
-
+    operator fun <T> set(key: String, value: T) {
         val userSettings = androidMicApp.getSharedPreferences(
             PREFERENCES_NAME,
             AppCompatActivity.MODE_PRIVATE
         )
-
         val editor = userSettings.edit()
-        editor.putString(IP_KEY, ip)
-        editor.putInt(PORT_KEY, port)
-        editor.apply()
-    }
 
-    fun getWifiIpPort(withDefaultValue: Boolean): Pair<String, Int> {
-        val userSettings = androidMicApp.getSharedPreferences(
-            PREFERENCES_NAME,
-            AppCompatActivity.MODE_PRIVATE
-        )
+        when (value) {
+            is Boolean -> {
+                editor.putBoolean(key, (value as Boolean))
+            }
 
-        var ip: String?
-        val port: Int
+            is String -> {
+                editor.putString(key, value as String)
+            }
 
-        if (withDefaultValue) {
-            ip = userSettings.getString(IP_KEY, DEFAULT_IP)
-            port = userSettings.getInt(PORT_KEY, DEFAULT_PORT)
-        } else {
-            ip = userSettings.getString(IP_KEY, "")
-            port = userSettings.getInt(PORT_KEY, 0)
+            is Float -> {
+                editor.putFloat(key, (value as Float))
+            }
+
+            is Long -> {
+                editor.putLong(key, (value as Long))
+            }
+
+            is Int -> {
+                editor.putInt(key, (value as Int))
+            }
         }
+        editor.apply()
+    }
 
-        // case if we want to send ip/port to service
-        if (!withDefaultValue && (ip.isNullOrEmpty() || port == 0)) {
-            throw IllegalArgumentException()
+
+    /**
+     * Warning: Unchecked cast, this could lead to runtime exceptions
+     */
+    @Suppress("UNCHECKED_CAST")
+    operator fun <T> get(key: String, defaultValue: T): T {
+        val userSettings = androidMicApp.getSharedPreferences(
+            PREFERENCES_NAME,
+            AppCompatActivity.MODE_PRIVATE
+        )
+
+        when (defaultValue) {
+            is Boolean -> {
+                return userSettings.getBoolean(key, (defaultValue as Boolean)) as T
+            }
+
+
+            is String -> {
+                return userSettings.getString(key, defaultValue as String) as T
+            }
+
+            is Float -> {
+                return userSettings.getFloat(key, (defaultValue as Float)) as T
+            }
+
+            is Long -> {
+                return userSettings.getLong(key, (defaultValue as Long)) as T
+            }
+
+            is Int -> {
+                return userSettings.getInt(key, (defaultValue as Int)) as T
+            }
+
+            else -> return defaultValue
         }
-
-        if (ip == null)
-            ip = ""
-        return ip to port
-    }
-
-
-    fun setUsbPort(_port: String) {
-        val port = _port.toInt()
-        InetSocketAddress("127.0.0.1", port)
-        val userSettings = androidMicApp.getSharedPreferences(
-            PREFERENCES_NAME,
-            AppCompatActivity.MODE_PRIVATE
-        )
-
-        val editor = userSettings.edit()
-        editor.putInt(USB_PORT_KEY, port)
-        editor.apply()
-    }
-
-    fun getUsbPort(): Int {
-        val userSettings = androidMicApp.getSharedPreferences(
-            PREFERENCES_NAME,
-            AppCompatActivity.MODE_PRIVATE
-        )
-        return userSettings.getInt(USB_PORT_KEY, DEFAULT_USB_PORT)
-    }
-
-
-    fun setMode(mode: Int) {
-        val userSettings = androidMicApp.getSharedPreferences(
-            PREFERENCES_NAME,
-            AppCompatActivity.MODE_PRIVATE
-        )
-
-        val editor = userSettings.edit()
-        editor.putInt(MODE_KEY, mode)
-        editor.apply()
-    }
-
-    fun getMode(): Int {
-        val userSettings = androidMicApp.getSharedPreferences(
-            PREFERENCES_NAME,
-            AppCompatActivity.MODE_PRIVATE
-        )
-
-        return userSettings.getInt(MODE_KEY, DEFAULT_MODE)
-    }
-
-
-    fun setTheme(theme: Int) {
-        val userSettings = androidMicApp.getSharedPreferences(
-            PREFERENCES_NAME,
-            AppCompatActivity.MODE_PRIVATE
-        )
-
-        val editor = userSettings.edit()
-        editor.putInt(THEME_KEY, theme)
-        editor.apply()
-    }
-
-    fun getTheme(): Int {
-        val userSettings = androidMicApp.getSharedPreferences(
-            PREFERENCES_NAME,
-            AppCompatActivity.MODE_PRIVATE
-        )
-        return userSettings.getInt(THEME_KEY, DEFAULT_THEME)
-    }
-
-
-    fun setDynamicColor(dynamicColor: Boolean) {
-        val userSettings = androidMicApp.getSharedPreferences(
-            PREFERENCES_NAME,
-            AppCompatActivity.MODE_PRIVATE
-        )
-
-        val editor = userSettings.edit()
-        editor.putBoolean(DYNAMIC_COLOR_KEY, dynamicColor)
-        editor.apply()
-    }
-
-    fun getDynamicColor(): Boolean {
-        val userSettings = androidMicApp.getSharedPreferences(
-            PREFERENCES_NAME,
-            AppCompatActivity.MODE_PRIVATE
-        )
-        return userSettings.getBoolean(DYNAMIC_COLOR_KEY, DEFAULT_DYNAMIC_COLOR)
     }
 }

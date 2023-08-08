@@ -3,8 +3,8 @@
 
 #include <android/log.h>
 
-#define LOGTAG "AndroidMicCPP"
+#define LOG_TAG "AndroidMicCPP"
 
-#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOGTAG, __VA_ARGS__)
+#define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, LOG_TAG, __VA_ARGS__)
 
 #endif //MICROPHONE_LOGGING_H
