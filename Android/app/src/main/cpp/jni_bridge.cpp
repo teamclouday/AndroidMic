@@ -23,6 +23,22 @@ Java_com_example_androidMic_domain_audio_OboeRecorder_setSampleRate(JNIEnv *, jo
 
 extern "C"
 JNIEXPORT void JNICALL
+Java_com_example_androidMic_domain_audio_OboeRecorder_setChannelCount(JNIEnv *, jobject,
+                                                                      jint channel_count) {
+    auto recorder = OboeRecorder::Instance();
+    recorder->SetChannelCount(channel_count);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_example_androidMic_domain_audio_OboeRecorder_setAudioFormat(JNIEnv *, jobject,
+                                                                     jint audio_format) {
+    auto recorder = OboeRecorder::Instance();
+    recorder->SetAudioFormat(audio_format);
+}
+
+extern "C"
+JNIEXPORT void JNICALL
 Java_com_example_androidMic_domain_audio_OboeRecorder_setBufferSizeInFrames(JNIEnv *, jobject,
                                                                             jint frames) {
     auto recorder = OboeRecorder::Instance();

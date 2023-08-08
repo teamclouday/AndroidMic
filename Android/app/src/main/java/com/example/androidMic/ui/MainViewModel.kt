@@ -70,6 +70,8 @@ class MainViewModel(
             theme = Themes.valueOf(prefManager["THEME", uiStates.value.theme.toString()]),
             dynamicColor = prefManager["DYNAMIC_COLOR", uiStates.value.dynamicColor],
             sampleRate = SampleRates.valueOf(prefManager["SAMPLE_RATE", uiStates.value.sampleRate.toString()]),
+            channelCount = ChannelCount.valueOf(prefManager["CHANNEL_COUNT", uiStates.value.channelCount.toString()]),
+            audioFormat = AudioFormat.valueOf(prefManager["AUDIO_FORMAT", uiStates.value.audioFormat.toString()]),
         )
     }
 
@@ -154,6 +156,8 @@ class MainViewModel(
             Message.obtain(null, Command.COMMAND_START_AUDIO).apply {
                 val data = Bundle()
                 data.putInt("SAMPLE_RATE", uiStates.value.sampleRate.value)
+                data.putInt("CHANNEL_COUNT", uiStates.value.channelCount.value)
+                data.putInt("AUDIO_FORMAT", uiStates.value.audioFormat.value)
                 this.data = data
             }
         }
@@ -191,6 +195,22 @@ class MainViewModel(
         )
     }
 
+    fun setChannelCount(channelCount: ChannelCount) {
+        prefManager["CHANNEL_COUNT"] = channelCount.toString()
+        savedStateHandle["uiStates"] = uiStates.value.copy(
+            channelCount = channelCount,
+            dialogVisible = Dialogs.None
+        )
+    }
+
+    fun setAudioFormat(audioFormat: AudioFormat) {
+        prefManager["AUDIO_FORMAT"] = audioFormat.toString()
+        savedStateHandle["uiStates"] = uiStates.value.copy(
+            audioFormat = audioFormat,
+            dialogVisible = Dialogs.None
+        )
+    }
+
     fun showDialog(dialog: Dialogs) {
         savedStateHandle["uiStates"] = uiStates.value.copy(dialogVisible = dialog)
     }
@@ -204,7 +224,7 @@ class MainViewModel(
     }
 
     fun setDynamicColor(dynamicColor: Boolean) {
-        prefManager["DYNAMIC_COLOR"] = dynamicColor.toString()
+        prefManager["DYNAMIC_COLOR"] = dynamicColor
         savedStateHandle["uiStates"] =
             uiStates.value.copy(
                 dynamicColor = dynamicColor

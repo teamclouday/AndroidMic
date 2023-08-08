@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -16,6 +18,7 @@ import androidx.compose.ui.window.Dialog
 import com.example.androidMic.ui.Dialogs
 import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.States
+import com.example.androidMic.ui.components.ManagerButton
 
 @Composable
 fun ManagerDialog(
@@ -33,7 +36,9 @@ fun ManagerDialog(
             }
         ) {
             Surface(
-                modifier = Modifier.fillMaxWidth(0.9f),
+                modifier = Modifier
+                    .fillMaxWidth(0.9f)
+                    .verticalScroll(rememberScrollState()),
                 shape = MaterialTheme.shapes.medium,
                 color = MaterialTheme.colorScheme.surface,
                 contentColor = MaterialTheme.colorScheme.onSurface
@@ -62,4 +67,24 @@ fun DialogDivider() {
         modifier = Modifier.padding(20.dp),
         color = MaterialTheme.colorScheme.onSurface
     )
+}
+
+
+@Composable
+fun <E> DialogList(
+    enum: List<E>,
+    onClick: (E) -> Unit,
+    text: (E) -> String
+) {
+    enum.forEachIndexed { index, item ->
+        ManagerButton(
+            onClick = { onClick(item) },
+            text = text(item),
+            modifier = Modifier.fillMaxWidth(0.8f)
+        )
+
+        if (index != enum.indices.last) {
+            DialogSpacer()
+        }
+    }
 }

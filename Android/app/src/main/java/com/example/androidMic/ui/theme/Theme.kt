@@ -61,9 +61,9 @@ fun AndroidMicTheme(
     content: @Composable () -> Unit
 ) {
     val darkTheme = when (theme) {
-        Themes.SYSTEM -> isSystemInDarkTheme()
-        Themes.LIGHT -> false
-        Themes.DARK -> true
+        Themes.System -> isSystemInDarkTheme()
+        Themes.Light -> false
+        Themes.Dark -> true
     }
     val colorScheme = when {
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {

@@ -32,6 +32,12 @@ public:
     /// Set sample rate
     void SetSampleRate(int32_t sampleRate);
 
+    /// Set channel count
+    void SetChannelCount(int32_t channelCount);
+
+    /// Set audio format
+    void SetAudioFormat(int32_t audioFormat);
+
     /// Set number of shorts (frames) in each buffer
     void SetBufferSizeInFrames(int32_t frames);
 
@@ -51,6 +57,8 @@ private:
 private:
     int32_t _deviceId;
     int32_t _sampleRate;
+    int32_t _channelCount;
+    int32_t _audioFormat;
     int32_t _bufferSizeInFrames;
 
     std::shared_ptr<oboe::AudioStream> _stream;

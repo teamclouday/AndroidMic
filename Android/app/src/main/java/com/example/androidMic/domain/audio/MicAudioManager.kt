@@ -12,7 +12,13 @@ import androidx.core.content.ContextCompat
 // reference: https://twigstechtips.blogspot.com/2013/07/android-enable-noise-cancellation-in.html
 
 // manage microphone recording
-class MicAudioManager(ctx: Context, val sampleRate: Int) {
+class MicAudioManager(
+    ctx: Context,
+    val sampleRate: Int,
+    audioFormat: Int,
+    channelCount: Int
+
+) {
     private val TAG: String = "MicAM"
 
     companion object {
@@ -51,7 +57,13 @@ class MicAudioManager(ctx: Context, val sampleRate: Int) {
         }
         Log.d(TAG, "[init] selected input device ${selectedDevice.productName}")
         // init recorder
-        recorder = OboeRecorder(selectedDevice.id, sampleRate, BUFFER_SIZE * BUFFER_COUNT)
+        recorder = OboeRecorder(
+            deviceId = selectedDevice.id,
+            sampleRate = sampleRate,
+            audioFormat = audioFormat,
+            channelCount = channelCount,
+            bufferSize = BUFFER_SIZE * BUFFER_COUNT
+        )
     }
 
     // store data in shared audio buffer
