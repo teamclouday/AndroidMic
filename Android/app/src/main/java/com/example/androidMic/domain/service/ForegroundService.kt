@@ -277,6 +277,8 @@ class ForegroundService : Service() {
 
         // get params before going into the scope
         val sampleRate: Int = msg.data.getInt("SAMPLE_RATE")
+        val channelCount: Int = msg.data.getInt("CHANNEL_COUNT")
+        val audioFormat: Int = msg.data.getInt("AUDIO_FORMAT")
 
         Log.d(TAG, "startAudio [start]")
         // start audio recording
@@ -284,7 +286,12 @@ class ForegroundService : Service() {
             managerAudio?.shutdown()
             managerAudio = null
             managerAudio = try {
-                MicAudioManager(applicationContext, sampleRate)
+                MicAudioManager(
+                    ctx = applicationContext,
+                    sampleRate = sampleRate,
+                    audioFormat = audioFormat,
+                    channelCount = channelCount,
+                )
             } catch (e: IllegalArgumentException) {
                 replyData.putString("reply", application.getString(R.string.error) + e.message)
                 reply(sender, replyData, COMMAND_START_AUDIO, false)

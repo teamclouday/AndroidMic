@@ -18,41 +18,15 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
         uiStates,
         Dialogs.Themes
     ) {
-        // system
-        ManagerCheckBox(
-            checked = uiStates.theme == Themes.SYSTEM,
-            onClick = {
-                mainViewModel.setTheme(Themes.SYSTEM)
-            },
-            text = stringResource(id = R.string.system_theme)
-        )
-
-        DialogSpacer()
-
-        // light
-        ManagerCheckBox(
-            checked = uiStates.theme == Themes.LIGHT,
-            onClick = {
-                mainViewModel.setTheme(Themes.LIGHT)
-            },
-            text = stringResource(id = R.string.light_theme)
-        )
-
-        DialogSpacer()
-
-        // dark
-        ManagerCheckBox(
-            checked = uiStates.theme == Themes.DARK,
-            onClick = {
-                mainViewModel.setTheme(Themes.DARK)
-            },
-            text = stringResource(id = R.string.dark_theme)
+        DialogList(
+            enum = Themes.values().toList(),
+            onClick = { mainViewModel.setTheme(it) },
+            text = { it.toString() }
         )
 
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.S) {
             DialogDivider()
 
-            // dynamic color
             ManagerCheckBox(
                 checked = uiStates.dynamicColor,
                 onClick = {

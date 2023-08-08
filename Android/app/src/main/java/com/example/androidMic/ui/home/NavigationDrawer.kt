@@ -25,10 +25,9 @@ import androidx.compose.ui.unit.dp
 import com.example.androidMic.R
 import com.example.androidMic.ui.Dialogs
 import com.example.androidMic.ui.MainViewModel
-import com.example.androidMic.ui.Modes
-import com.example.androidMic.ui.SampleRates
 import com.example.androidMic.ui.States
-import com.example.androidMic.ui.Themes
+import com.example.androidMic.ui.home.dialog.DialogAudioFormat
+import com.example.androidMic.ui.home.dialog.DialogChannelCount
 import com.example.androidMic.ui.home.dialog.DialogMode
 import com.example.androidMic.ui.home.dialog.DialogSampleRate
 import com.example.androidMic.ui.home.dialog.DialogTheme
@@ -45,20 +44,34 @@ data class MenuItem(
 @Composable
 fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
 
+    // maybe this could be optimize, idk
     DialogWifiIpPort(mainViewModel = mainViewModel, uiStates = uiStates)
     DialogMode(mainViewModel = mainViewModel, uiStates = uiStates)
     DialogTheme(mainViewModel = mainViewModel, uiStates = uiStates)
     DialogSampleRate(mainViewModel = mainViewModel, uiStates = uiStates)
+    DialogChannelCount(mainViewModel = mainViewModel, uiStates = uiStates)
+    DialogAudioFormat(mainViewModel = mainViewModel, uiStates = uiStates)
 
     val recordItems = listOf(
         MenuItem(
             id = Dialogs.SampleRates,
             title = stringResource(id = R.string.sample_rate),
-            subTitle = when (uiStates.sampleRate) {
-                SampleRates.S16000 -> SampleRates.S16000.value.toString()
-                SampleRates.S48000 -> SampleRates.S48000.value.toString()
-            },
+            subTitle = uiStates.sampleRate.value.toString(),
             contentDescription = "set sample rate",
+            icon = null
+        ),
+        MenuItem(
+            id = Dialogs.ChannelCount,
+            title = stringResource(id = R.string.channel_count),
+            subTitle = uiStates.channelCount.toString(),
+            contentDescription = "set channel count",
+            icon = null
+        ),
+        MenuItem(
+            id = Dialogs.AudioFormat,
+            title = stringResource(id = R.string.audio_format),
+            subTitle = uiStates.audioFormat.toString(),
+            contentDescription = "set audio format",
             icon = null
         ),
     )
@@ -67,12 +80,7 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
         MenuItem(
             id = Dialogs.Modes,
             title = stringResource(id = R.string.drawerMode),
-            subTitle = when (uiStates.mode) {
-                Modes.WIFI -> stringResource(id = R.string.mode_wifi)
-                Modes.BLUETOOTH -> stringResource(id = R.string.mode_bluetooth)
-                Modes.USB -> stringResource(id = R.string.mode_usb)
-                Modes.UDP -> stringResource(id = R.string.mode_udp)
-            },
+            subTitle = uiStates.mode.toString(),
             contentDescription = "set mode",
             icon = R.drawable.settings_24px
         ),
@@ -90,11 +98,7 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
         MenuItem(
             id = Dialogs.Themes,
             title = stringResource(id = R.string.drawerTheme),
-            subTitle = when (uiStates.theme) {
-                Themes.SYSTEM -> stringResource(id = R.string.system_theme)
-                Themes.LIGHT -> stringResource(id = R.string.light_theme)
-                Themes.DARK -> stringResource(id = R.string.dark_theme)
-            },
+            subTitle = uiStates.theme.toString(),
             contentDescription = "set theme",
             icon = R.drawable.dark_mode_24px
         )

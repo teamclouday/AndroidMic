@@ -6,7 +6,10 @@
 #include <cmath>
 
 OboeRecorder::OboeRecorder() : _deviceId(oboe::kUnspecified),
-                               _sampleRate(16000), _bufferSizeInFrames(0),
+                               _sampleRate(16000), _channelCount(oboe::Mono),
+        // not sure if we can get rid of this cast
+                               _audioFormat(static_cast<int32_t>(oboe::AudioFormat::I16)),
+                               _bufferSizeInFrames(0),
                                _stream(nullptr), _buffer(nullptr), _recording(false) {
     // check system endian
     // reference: https://stackoverflow.com/questions/35683931/how-to-convert-byte-array-to-integral-types-int-long-short-etc-endian-saf
@@ -24,8 +27,8 @@ void OboeRecorder::StartRecord() {
     oboe::AudioStreamBuilder builder;
     auto result = builder.setSharingMode(oboe::SharingMode::Exclusive)
             ->setPerformanceMode(oboe::PerformanceMode::LowLatency)
-            ->setFormat(oboe::AudioFormat::I16)
-            ->setChannelCount(oboe::Mono)
+            ->setFormat(static_cast<oboe::AudioFormat>(_audioFormat))
+            ->setChannelCount(_channelCount)
             ->setSampleRate(_sampleRate)
             ->setDeviceId(_deviceId)
             ->setDirection(oboe::Direction::Input)
@@ -96,6 +99,22 @@ void OboeRecorder::SetSampleRate(int32_t sampleRate) {
         _sampleRate = sampleRate;
         restartStream();
         LOGD("[SetDeviceId] set sample rate %d", _sampleRate);
+    }
+}
+
+void OboeRecorder::SetChannelCount(int32_t channelCount) {
+    if (channelCount != _channelCount) {
+        _channelCount = channelCount;
+        restartStream();
+        LOGD("[SetDeviceId] set channel count %d", _channelCount);
+    }
+}
+
+void OboeRecorder::SetAudioFormat(int32_t audioFormat) {
+    if (audioFormat != _audioFormat) {
+        _audioFormat = audioFormat;
+        restartStream();
+        LOGD("[SetDeviceId] set audio format %d", _audioFormat);
     }
 }
 
