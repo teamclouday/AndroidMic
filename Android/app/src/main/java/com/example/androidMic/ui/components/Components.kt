@@ -1,21 +1,30 @@
 package com.example.androidMic.ui.components
 
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.example.androidMic.ui.Event
-import com.example.androidMic.ui.MainViewModel
-import com.example.androidMic.ui.home.MenuItem
 
 @Composable
 fun ManagerButton(
@@ -80,38 +89,6 @@ fun ManagerCheckBox(
     }
 }
 
-@Composable
-fun ManagerSetting(mainViewModel: MainViewModel, item: MenuItem) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable {
-                mainViewModel.onEvent(Event.ShowDialog(item.id))
-            }
-            .padding(16.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            painter = painterResource(id = item.icon),
-            contentDescription = item.contentDescription,
-            tint = MaterialTheme.colorScheme.onBackground
-        )
-        Spacer(modifier = Modifier.width(16.dp))
-        Column {
-            Text(
-                text = item.title,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-
-            Text(
-                text = item.subTitle,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onBackground
-            )
-        }
-    }
-}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -124,10 +101,12 @@ fun ManagerOutlinedTextField(temp: MutableState<String>, id: Int) {
         singleLine = true,
         label = { Text(stringResource(id = id)) },
         textStyle = MaterialTheme.typography.bodyMedium,
-        colors = TextFieldDefaults.textFieldColors(
-            textColor = MaterialTheme.colorScheme.onSurface,
-            containerColor = MaterialTheme.colorScheme.surface
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedTextColor = MaterialTheme.colorScheme.onSurface,
+            focusedContainerColor = MaterialTheme.colorScheme.surface
         ),
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
     )
 }
+
+

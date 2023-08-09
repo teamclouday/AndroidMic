@@ -1,9 +1,11 @@
 package com.example.androidMic.domain.audio
 
 class OboeRecorder(
-    val deviceId: Int,
+    deviceId: Int,
     val sampleRate: Int,
-    val bufferSize: Int
+    audioFormat: Int,
+    channelCount: Int,
+    bufferSize: Int
 ) {
     companion object {
         init {
@@ -14,6 +16,8 @@ class OboeRecorder(
     init {
         setDeviceId(deviceId)
         setSampleRate(sampleRate)
+        setChannelCount(channelCount)
+        setAudioFormat(audioFormat)
         setBufferSizeInFrames(bufferSize)
     }
 
@@ -42,6 +46,8 @@ class OboeRecorder(
     private external fun setDeviceId(deviceId: Int)
 
     private external fun setSampleRate(sampleRate: Int)
+    private external fun setChannelCount(channelCount: Int)
+    private external fun setAudioFormat(audioFormat: Int)
 
     private external fun setBufferSizeInFrames(frames: Int)
 

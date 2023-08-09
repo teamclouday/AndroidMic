@@ -12,17 +12,22 @@ import androidx.core.content.ContextCompat
 // reference: https://twigstechtips.blogspot.com/2013/07/android-enable-noise-cancellation-in.html
 
 // manage microphone recording
-class MicAudioManager(ctx: Context) {
+class MicAudioManager(
+    ctx: Context,
+    val sampleRate: Int,
+    audioFormat: Int,
+    channelCount: Int
+
+) {
     private val TAG: String = "MicAM"
 
     companion object {
         const val RECORD_DELAY = 1L
-        const val SAMPLE_RATE: Int = 16000
         const val BUFFER_SIZE = 1024
         const val BUFFER_COUNT = 2
     }
 
-    private var recorder: OboeRecorder? = null
+    private val recorder: OboeRecorder
 
     init {
         // check microphone
@@ -52,16 +57,21 @@ class MicAudioManager(ctx: Context) {
         }
         Log.d(TAG, "[init] selected input device ${selectedDevice.productName}")
         // init recorder
-        recorder = OboeRecorder(selectedDevice.id, SAMPLE_RATE, BUFFER_SIZE * BUFFER_COUNT)
+        recorder = OboeRecorder(
+            deviceId = selectedDevice.id,
+            sampleRate = sampleRate,
+            audioFormat = audioFormat,
+            channelCount = channelCount,
+            bufferSize = BUFFER_SIZE * BUFFER_COUNT
+        )
     }
 
     // store data in shared audio buffer
     suspend fun record(audioBuffer: AudioBuffer) {
-        if (recorder == null) return
         val region = audioBuffer.openWriteRegion(BUFFER_SIZE)
         val regionLen = region.first
         val regionOffset = region.second
-        val bytesWritten = recorder!!.readToBytes(audioBuffer.buffer, regionOffset, regionLen)
+        val bytesWritten = recorder.readToBytes(audioBuffer.buffer, regionOffset, regionLen)
         audioBuffer.closeWriteRegion(bytesWritten)
         if (bytesWritten > 0)
             Log.d(TAG, "[record] audio data recorded (${bytesWritten} bytes)")
@@ -69,20 +79,20 @@ class MicAudioManager(ctx: Context) {
 
     // start recording
     fun start() {
-        recorder?.startRecord()
+        recorder.startRecord()
         Log.d(TAG, "start")
     }
 
     // stop recording
     fun stop() {
-        recorder?.stopRecord()
+        recorder.stopRecord()
         Log.d(TAG, "stop")
     }
 
     // shutdown manager
+    // should not call any methods after calling
     fun shutdown() {
-        recorder?.stopRecord()
-        recorder = null
+        recorder.stopRecord()
         Log.d(TAG, "shutdown")
     }
 }

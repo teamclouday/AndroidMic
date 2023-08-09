@@ -5,22 +5,37 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.os.*
+import android.os.Build
+import android.os.Bundle
+import android.os.Handler
+import android.os.HandlerThread
+import android.os.IBinder
+import android.os.Looper
+import android.os.Message
+import android.os.Messenger
+import android.os.Process
 import android.util.Log
 import com.example.androidMic.R
 import com.example.androidMic.domain.audio.AudioBuffer
 import com.example.androidMic.domain.audio.MicAudioManager
+import com.example.androidMic.domain.service.Command.Companion.COMMAND_DISC_STREAM
+import com.example.androidMic.domain.service.Command.Companion.COMMAND_GET_STATUS
+import com.example.androidMic.domain.service.Command.Companion.COMMAND_START_AUDIO
+import com.example.androidMic.domain.service.Command.Companion.COMMAND_START_STREAM
+import com.example.androidMic.domain.service.Command.Companion.COMMAND_STOP_AUDIO
+import com.example.androidMic.domain.service.Command.Companion.COMMAND_STOP_STREAM
 import com.example.androidMic.domain.streaming.MicStreamManager
-import com.example.androidMic.utils.Command.Companion.COMMAND_DISC_STREAM
-import com.example.androidMic.utils.Command.Companion.COMMAND_GET_STATUS
-import com.example.androidMic.utils.Command.Companion.COMMAND_START_AUDIO
-import com.example.androidMic.utils.Command.Companion.COMMAND_START_STREAM
-import com.example.androidMic.utils.Command.Companion.COMMAND_STOP_AUDIO
-import com.example.androidMic.utils.Command.Companion.COMMAND_STOP_STREAM
-import com.example.androidMic.utils.DebugModes
-import com.example.androidMic.utils.States
+import com.example.androidMic.ui.Modes
+import com.example.androidMic.ui.States
 import com.example.androidMic.utils.ignore
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 class ForegroundService : Service() {
     private val TAG = "MicService"
@@ -121,7 +136,9 @@ class ForegroundService : Service() {
     private fun stopService() {
         Log.d(TAG, "stopService")
         managerAudio?.shutdown()
+        managerAudio = null
         managerStream?.shutdown()
+        managerStream = null
         states.streamShouldStop.set(true)
         states.audioShouldStop.set(true)
         runBlocking {
@@ -158,7 +175,9 @@ class ForegroundService : Service() {
         }
 
         // get params before going into the scope
-        val mode: Int = msg.data.getInt("MODE")
+        val mode: Modes = msg.data.getInt("MODE").let {
+            Modes.values()[it]
+        }
         val ip: String? = msg.data.getString("IP")
         val port: Int = msg.data.getInt("PORT")
 
@@ -166,13 +185,11 @@ class ForegroundService : Service() {
         // try to start streaming
         jobStreamM = scope.launch {
             managerStream?.shutdown()
-            managerStream = MicStreamManager(applicationContext)
-
+            managerStream = null
             try {
-                managerStream?.initialize(mode, ip, port)
+                managerStream = MicStreamManager(applicationContext, mode, ip, port)
             } catch (e: IllegalArgumentException) {
-                val debugModes = DebugModes()
-                Log.d(TAG, "start stream with mode ${debugModes.dic[mode]} failed:\n${e.message}")
+                Log.d(TAG, "start stream with mode ${mode.name} failed:\n${e.message}")
                 replyData.putString(
                     "reply",
                     applicationContext.getString(R.string.error) + e.message
@@ -199,6 +216,7 @@ class ForegroundService : Service() {
                 )
                 reply(sender, replyData, COMMAND_START_STREAM, false)
                 managerStream?.shutdown()
+                managerStream = null
                 cancel()
                 awaitCancellation()
             }
@@ -256,12 +274,24 @@ class ForegroundService : Service() {
             reply(sender, replyData, COMMAND_START_AUDIO, false)
             return
         }
+
+        // get params before going into the scope
+        val sampleRate: Int = msg.data.getInt("SAMPLE_RATE")
+        val channelCount: Int = msg.data.getInt("CHANNEL_COUNT")
+        val audioFormat: Int = msg.data.getInt("AUDIO_FORMAT")
+
         Log.d(TAG, "startAudio [start]")
         // start audio recording
         jobAudioM = scope.launch {
             managerAudio?.shutdown()
+            managerAudio = null
             managerAudio = try {
-                MicAudioManager(applicationContext)
+                MicAudioManager(
+                    ctx = applicationContext,
+                    sampleRate = sampleRate,
+                    audioFormat = audioFormat,
+                    channelCount = channelCount,
+                )
             } catch (e: IllegalArgumentException) {
                 replyData.putString("reply", application.getString(R.string.error) + e.message)
                 reply(sender, replyData, COMMAND_START_AUDIO, false)

@@ -4,9 +4,22 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.rememberCoroutineScope
@@ -18,19 +31,19 @@ import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import com.example.androidMic.R
-import com.example.androidMic.ui.Event
 import com.example.androidMic.ui.MainViewModel
+import com.example.androidMic.ui.Modes
+import com.example.androidMic.ui.States
 import com.example.androidMic.ui.components.ManagerButton
-import com.example.androidMic.ui.utils.*
-import com.example.androidMic.utils.Modes.Companion.MODE_BLUETOOTH
-import com.example.androidMic.utils.Modes.Companion.MODE_USB
-import com.example.androidMic.utils.Modes.Companion.MODE_WIFI
-import com.example.androidMic.utils.States
+import com.example.androidMic.ui.utils.WindowInfo
+import com.example.androidMic.ui.utils.getBluetoothPermission
+import com.example.androidMic.ui.utils.getRecordAudioPermission
+import com.example.androidMic.ui.utils.getUsbPermission
+import com.example.androidMic.ui.utils.getWifiPermission
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
     val uiStates = mainViewModel.uiStates.collectAsState()
@@ -154,7 +167,7 @@ private fun Log(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onDoubleTap = {
-                        mainViewModel.onEvent(Event.CleanLog)
+                        mainViewModel.cleanLog()
                     }
                 )
             }
@@ -211,23 +224,29 @@ private fun ButtonConnect(
     ManagerButton(
         onClick = {
             when (uiStates.mode) {
-                MODE_WIFI -> {
+                Modes.WIFI -> {
                     if (!wifiPermissionsState.allPermissionsGranted)
                         wifiPermissionsState.launchMultiplePermissionRequest()
                     else
-                        mainViewModel.onEvent(Event.ConnectButton)
+                        mainViewModel.onConnectButton()
                 }
-                MODE_BLUETOOTH -> {
+
+                Modes.BLUETOOTH -> {
                     if (!bluetoothPermissionsState.allPermissionsGranted)
                         bluetoothPermissionsState.launchMultiplePermissionRequest()
                     else
-                        mainViewModel.onEvent(Event.ConnectButton)
+                        mainViewModel.onConnectButton()
                 }
-                MODE_USB -> {
+
+                Modes.USB -> {
                     if (!usbPermissionsState.allPermissionsGranted)
                         usbPermissionsState.launchMultiplePermissionRequest()
                     else
-                        mainViewModel.onEvent(Event.ConnectButton)
+                        mainViewModel.onConnectButton()
+                }
+
+                Modes.UDP -> {
+                    mainViewModel.onConnectButton()
                 }
             }
         },
@@ -267,7 +286,7 @@ private fun SwitchAudio(mainViewModel: MainViewModel, uiStates: States.UiStates)
                 if (!permissionsState.allPermissionsGranted)
                     permissionsState.launchMultiplePermissionRequest()
                 else
-                    mainViewModel.onEvent(Event.AudioSwitch)
+                    mainViewModel.onAudioSwitch()
 
             },
             enabled = uiStates.switchAudioIsClickable
