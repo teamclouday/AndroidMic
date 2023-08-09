@@ -36,13 +36,28 @@ pub fn setup_audio(consumer: Consumer<u8>, args: &Args) -> Result<cpal::Stream, 
 
     let default_config: cpal::StreamConfig = device.default_output_config().unwrap().into();
 
-    let channel_count = if let Some(channel_count) = &args.channel_count {
+    let mut channel_count = if let Some(channel_count) = &args.channel_count {
         match channel_count {
             ChannelCount::Mono => 1,
             ChannelCount::Stereo => 2,
         }
     } else {
         default_config.channels
+    };
+
+    let channel_strategy = match determine_channel_strategy(&device, channel_count) {
+        Some(strategy) => {
+            if strategy == ChannelStrategy::MonoCloned {
+                // notify the user because it will change the printed config
+                println!("Only stereo is supported, fall back to mono cloned strategy.");
+                channel_count = 2;
+            }
+            strategy
+        }
+        None => {
+            eprintln!("unsupported channels configuration.");
+            return Err(BuildStreamError::StreamConfigNotSupported);
+        }
     };
 
     let sample_rate = if let Some(sample_rate) = args.sample_rate {
@@ -65,8 +80,8 @@ pub fn setup_audio(consumer: Consumer<u8>, args: &Args) -> Result<cpal::Stream, 
     println!();
 
     match args.audio_format {
-        AudioFormat::I16 => build::<i16>(&device, &config, consumer),
-        AudioFormat::I32 => build::<i32>(&device, &config, consumer),
+        AudioFormat::I16 => build::<i16>(&device, &config, consumer, channel_strategy),
+        AudioFormat::I32 => build::<i32>(&device, &config, consumer, channel_strategy),
     }
 }
 
@@ -74,6 +89,7 @@ fn build<T>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
     mut consumer: Consumer<u8>,
+    channel_strategy: ChannelStrategy,
 ) -> Result<cpal::Stream, BuildStreamError>
 where
     T: Format + SizedSample,
@@ -97,12 +113,26 @@ where
                     // the format, so we pass an iter to produce the value
                     // - i16: 2 bytes
                     // - i32: 4 bytes
-                    if let Some(value) = T::from_chunk(&mut iter) {
-                        // sometime, a device will only support stereo
-                        // but Android will record in mono
-                        // so we have to clone the value in each channel in this case
-                        for sample in frame.iter_mut() {
-                            *sample = value;
+
+                    match channel_strategy {
+                        ChannelStrategy::Mono => {
+                            if let Some(value) = T::from_chunk(&mut iter) {
+                                frame[0] = value;
+                            }
+                        }
+                        ChannelStrategy::Stereo => {
+                            if let Some(value) = T::from_chunk(&mut iter) {
+                                frame[0] = value;
+                            }
+                            if let Some(value) = T::from_chunk(&mut iter) {
+                                frame[1] = value;
+                            }
+                        }
+                        ChannelStrategy::MonoCloned => {
+                            if let Some(value) = T::from_chunk(&mut iter) {
+                                frame[0] = value;
+                                frame[1] = value;
+                            }
                         }
                     }
                 }
@@ -133,6 +163,7 @@ impl Format for i16 {
     }
 }
 
+// not tested
 impl Format for i32 {
     fn from_chunk(chunk: &mut ReadChunkIntoIter<'_, u8>) -> Option<Self> {
         let Some(byte1) = chunk.next()  else {
@@ -199,4 +230,39 @@ fn print_output_devices(host: &Host) {
             }
         }
     }
+}
+
+#[derive(PartialEq)]
+enum ChannelStrategy {
+    Mono,
+    Stereo,
+    MonoCloned,
+}
+
+/// in: Stereo / out: Mono -> None
+/// in: Mono / out: Stero -> MonoCloned
+/// in: Mono / out: Mono -> Mono
+/// in: Stereo / out: Stero -> Stereo
+fn determine_channel_strategy(device: &Device, channel_count: u16) -> Option<ChannelStrategy> {
+    let supported_channels = device
+        .supported_output_configs()
+        .unwrap()
+        .map(|config| config.channels());
+
+    let mut fall_back = None;
+
+    for supported_channel in supported_channels {
+        if supported_channel == channel_count {
+            match channel_count {
+                1 => return Some(ChannelStrategy::Mono),
+                2 => return Some(ChannelStrategy::Stereo),
+                _ => {}
+            }
+        }
+        if supported_channel == 2 && channel_count == 1 {
+            fall_back = Some(ChannelStrategy::MonoCloned);
+        }
+    }
+
+    fall_back
 }

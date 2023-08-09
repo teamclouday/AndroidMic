@@ -1,6 +1,6 @@
 use std::{
     io::{self, Read, Write},
-    net::{TcpListener, TcpStream},
+    net::{Ipv4Addr, TcpListener, TcpStream},
     str::from_utf8,
     time::Duration,
 };
@@ -11,18 +11,9 @@ use crate::streamer::{
     Streamer, WriteError, DEFAULT_PORT, DEVICE_CHECK, DEVICE_CHECK_EXPECTED, IO_BUF_SIZE,
 };
 
-// process pour la version C#
-
-// choisir un adress ip parmis les interfaces reseau de l'ordinateur
-// creer un listener
-// essaye de bind un port dessus
-// call BeginAccept (asynchrome with call back)
-// in the call back: fait un check de transmition de data
-// stream manipulation
-
 const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
 pub struct TcpStreamer {
-    ip: String,
+    ip: Ipv4Addr,
     port: u16,
     stream: TcpStream,
     producer: Producer<u8>,
@@ -30,11 +21,11 @@ pub struct TcpStreamer {
 }
 
 impl Streamer for TcpStreamer {
-    fn new(shared_buf: Producer<u8>, ip: String) -> Option<Self> {
-        let listener = if let Ok(listener) = TcpListener::bind((ip.clone(), DEFAULT_PORT)) {
+    fn new(shared_buf: Producer<u8>, ip: Ipv4Addr) -> Option<Self> {
+        let listener = if let Ok(listener) = TcpListener::bind((ip, DEFAULT_PORT)) {
             listener
         } else {
-            TcpListener::bind((ip.clone(), 0)).expect("can't bind listener")
+            TcpListener::bind((ip, 0)).expect("can't bind listener")
         };
 
         let addr = match TcpListener::local_addr(&listener) {
@@ -57,7 +48,7 @@ impl Streamer for TcpStreamer {
 
                 // read check
                 let mut check_buf = [0u8; DEVICE_CHECK_EXPECTED.len()];
-                // read_to_string doesn't works somehow, we need fix buffer
+                // read_to_string doesn't works somehow, we need a fixed buffer
                 match stream.read(&mut check_buf) {
                     Ok(_) => {
                         let message = from_utf8(&check_buf).unwrap();

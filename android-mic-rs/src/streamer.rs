@@ -1,4 +1,4 @@
-use std::io;
+use std::{io, net::Ipv4Addr};
 
 use rtrb::Producer;
 
@@ -22,7 +22,7 @@ pub enum Status {
 }
 
 pub trait Streamer {
-    fn new(shared_buf: Producer<u8>, ip: String) -> Option<Self>
+    fn new(shared_buf: Producer<u8>, ip: Ipv4Addr) -> Option<Self>
     where
         Self: Sized;
 
