@@ -53,11 +53,11 @@ pub struct Args {
     )]
     pub output_device: usize,
 
-    /// should not have default config because it depend on the divice
+    // should not have default config because it depend on the divice
     #[arg(short = 'c', long = "channel", id = "channel count", help = "1 or 2")]
     pub channel_count: Option<ChannelCount>,
 
-    /// should not have default config because it depend on the divice
+    // should not have default config because it depend on the divice
     #[arg(short = 'r', long = "sample", id = "sample rate")]
     pub sample_rate: Option<u32>,
 }

@@ -43,7 +43,7 @@ Options:
   -f, --format <audio format>    i16 or i32 [default: i16]
   -o, --output <output device>   [default: 0]
   -c, --channel <channel count>  1 or 2
-  -r, --sample <sample rate>     should not have default config because it depend on the divice
+  -r, --sample <sample rate>
   -h, --help                     Print help
   -V, --version                  Print version
 ```
@@ -54,14 +54,15 @@ cargo run --release -- --ip 192.168.1.79 -m UDP
 ```
 
 
-
-clear && cargo r -- -i 192.168.1.79
-
+advanced:
+```
+clear && cargo run --release -- --ip 192.168.1.79 -m UDP -c 1 -f i16
+```
 
 todo: 
-- support multiple audio format: done
+- support multiple audio format: done but not tested
 - choose output device: done
-- stereo: done
+- stereo: implemented but have bugs
 - parse ipv4/v6: done, no support for v6 tho
 - release socket if necesseray: not needed i think
 - stop audio when disconnect 

@@ -191,18 +191,18 @@ fn print_output_devices(host: &Host) {
     let default_output: Option<Device> = host.default_output_device();
 
     if let Some(ref device) = default_output {
-        println!("0. Default output device: {:?}\n", device.name().unwrap());
+        println!("Default output device:\n    0. {:?}\n", device.name().unwrap());
     };
 
     let ouput_devices = host.output_devices().unwrap();
 
     println!("All output devices:");
     for (device_index, device) in ouput_devices.enumerate() {
-        println!("{}. \"{}\"", device_index + 1, device.name().unwrap());
+        println!("    {}. \"{}\"", device_index + 1, device.name().unwrap());
 
         if let Ok(conf) = device.default_output_config() {
             println!(
-                "    Default config: channel:{}, sample rate:{}, audio format:{}",
+                "        Default config: channel:{}, sample rate:{}, audio format:{}",
                 conf.channels(),
                 conf.sample_rate().0,
                 conf.sample_format()
@@ -211,15 +211,15 @@ fn print_output_devices(host: &Host) {
         let output_configs = match device.supported_output_configs() {
             Ok(f) => f.collect(),
             Err(e) => {
-                println!("    Error getting supported output configs: {:?}", e);
+                println!("        Error getting supported output configs: {:?}", e);
                 Vec::new()
             }
         };
         if !output_configs.is_empty() {
-            println!("    Supported configs:");
+            println!("        Supported configs:");
             for (config_index, conf) in output_configs.into_iter().enumerate() {
                 println!(
-                    "      {}.{} channel:{}, min sample rate:{}, max sample rate:{}, audio format:{}",
+                    "            {}.{} channel:{}, min sample rate:{}, max sample rate:{}, audio format:{}",
                     device_index + 1,
                     config_index + 1,
                     conf.channels(),
@@ -229,6 +229,7 @@ fn print_output_devices(host: &Host) {
                 );
             }
         }
+        println!();
     }
 }
 
