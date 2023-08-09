@@ -57,19 +57,13 @@ fn main() {
         },
     }
 
-    let ip = if let Some(ip) = args.ip {
-        ip
-    } else {
-        user_action::ask_ip()
-    };
-
     match args.connection_mode {
         user_action::ConnectionMode::Udp => {
-            let streamer = UdpStreamer::new(producer, ip).unwrap();
+            let streamer = UdpStreamer::new(producer, args.ip).unwrap();
             app.streamer = Some(Box::new(streamer))
         }
         user_action::ConnectionMode::Tcp => {
-            let streamer = TcpStreamer::new(producer, ip).unwrap();
+            let streamer = TcpStreamer::new(producer, args.ip).unwrap();
             app.streamer = Some(Box::new(streamer))
         }
     }
