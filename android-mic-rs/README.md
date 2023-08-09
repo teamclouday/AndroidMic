@@ -53,7 +53,9 @@ clear && cargo r -- -i 192.168.1.79
 
 
 todo: 
-- support f32 format
+- support multiple audio format: done
 - stereo
 - parse ipv4/v6
 - choose output device
+- release socket if necesseray
+- stop audio when disconnect
