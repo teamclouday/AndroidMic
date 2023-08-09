@@ -42,8 +42,24 @@ pub struct Args {
     #[arg(short = 'm', long = "mode", id = "connection mode", help = "UDP or TCP", default_value_t = ConnectionMode::Udp)]
     pub connection_mode: ConnectionMode,
 
-    #[arg(short = 'c', long = "channel", id = "channel count",  help = "1 or 2", default_value_t = ChannelCount::Mono)]
-    pub channel_count: ChannelCount,
+    #[arg(short = 'f', long = "format", id = "audio format",  help = "i16 or i32", default_value_t = AudioFormat::I16)]
+    pub audio_format: AudioFormat,
+
+    #[arg(
+        short = 'o',
+        long = "output",
+        id = "output device",
+        default_value_t = 0
+    )]
+    pub output_device: usize,
+
+    /// should not have default config because it depend on the divice
+    #[arg(short = 'c', long = "channel", id = "channel count", help = "1 or 2")]
+    pub channel_count: Option<ChannelCount>,
+
+    /// should not have default config because it depend on the divice
+    #[arg(short = 'r', long = "sample", id = "sample rate")]
+    pub sample_rate: Option<u32>,
 }
 
 // todo: parse it
@@ -73,4 +89,12 @@ pub enum ChannelCount {
     Mono,
     #[strum(serialize = "stereo", serialize = "STEREO", serialize = "2")]
     Stereo,
+}
+
+#[derive(Debug, Clone, EnumString, PartialEq, Display)]
+pub enum AudioFormat {
+    #[strum(serialize = "i16")]
+    I16,
+    #[strum(serialize = "i32")]
+    I32,
 }
