@@ -46,8 +46,8 @@ pub struct Args {
     pub audio_format: AudioFormat,
 
     #[arg(
-        short = 'o',
-        long = "output",
+        short = 'd',
+        long = "device",
         id = "output device",
         default_value_t = 0
     )]
