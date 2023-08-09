@@ -42,7 +42,7 @@ pub struct Args {
     #[arg(short = 'm', long = "mode", id = "connection mode", help = "UDP or TCP", default_value_t = ConnectionMode::Udp)]
     pub connection_mode: ConnectionMode,
 
-    #[arg(short = 'f', long = "format", id = "audio format",  help = "i16 or i32", default_value_t = AudioFormat::I16)]
+    #[arg(short = 'f', long = "format", id = "audio format",  help = "i16, f32, ...", default_value_t = AudioFormat::I16)]
     pub audio_format: AudioFormat,
 
     #[arg(
@@ -94,8 +94,35 @@ pub enum ChannelCount {
 
 #[derive(Debug, Clone, EnumString, PartialEq, Display)]
 pub enum AudioFormat {
+    #[strum(serialize = "i8")]
+    I8,
     #[strum(serialize = "i16")]
     I16,
+    #[strum(serialize = "i24")]
+    I24,
     #[strum(serialize = "i32")]
     I32,
+    #[strum(serialize = "i48")]
+    I48,
+    #[strum(serialize = "i64")]
+    I64,
+
+    
+    #[strum(serialize = "u8")]
+    U8,
+    #[strum(serialize = "u16")]
+    U16,
+    #[strum(serialize = "u24")]
+    U24,
+    #[strum(serialize = "u32")]
+    U32,
+    #[strum(serialize = "u48")]
+    U48,
+    #[strum(serialize = "u64")]
+    U64,
+
+    #[strum(serialize = "f32")]
+    F32,
+    #[strum(serialize = "f64")]
+    F64,
 }

@@ -74,14 +74,28 @@ pub fn setup_audio(consumer: Consumer<u8>, args: &Args) -> Result<cpal::Stream, 
 
     println!();
     println!("Audio config:");
+    println!("- selected device: {}", args.output_device);
     println!("- number of channel: {}", config.channels);
     println!("- sample rate: {}", config.sample_rate.0);
     println!("- buffer size: {:?}", config.buffer_size);
+    println!("- audio format: {}", args.audio_format);
     println!();
 
     match args.audio_format {
         AudioFormat::I16 => build::<i16>(&device, &config, consumer, channel_strategy),
         AudioFormat::I32 => build::<i32>(&device, &config, consumer, channel_strategy),
+        AudioFormat::I8 => todo!(),
+        AudioFormat::I24 => todo!(),
+        AudioFormat::I48 => todo!(),
+        AudioFormat::I64 => todo!(),
+        AudioFormat::U8 => todo!(),
+        AudioFormat::U16 => todo!(),
+        AudioFormat::U24 => todo!(),
+        AudioFormat::U32 => todo!(),
+        AudioFormat::U48 => todo!(),
+        AudioFormat::U64 => todo!(),
+        AudioFormat::F32 => build::<f32>(&device, &config, consumer, channel_strategy),
+        AudioFormat::F64 => todo!(),
     }
 }
 
@@ -182,6 +196,28 @@ impl Format for i32 {
 
         let mut cursor: Cursor<Vec<u8>> = Cursor::new(vec![byte1, byte2, byte3, byte4]);
         Some(cursor.read_i32::<LittleEndian>().unwrap())
+    }
+}
+
+// not tested
+impl Format for f32 {
+    fn from_chunk(chunk: &mut ReadChunkIntoIter<'_, u8>) -> Option<Self> {
+        let Some(byte1) = chunk.next()  else {
+            return None;
+        };
+        let Some(byte2) = chunk.next()  else {
+            return None;
+        };
+
+        let Some(byte3) = chunk.next()  else {
+            return None;
+        };
+        let Some(byte4) = chunk.next()  else {
+            return None;
+        };
+
+        let mut cursor: Cursor<Vec<u8>> = Cursor::new(vec![byte1, byte2, byte3, byte4]);
+        Some(cursor.read_f32::<LittleEndian>().unwrap())
     }
 }
 

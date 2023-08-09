@@ -81,7 +81,8 @@ enum class SampleRates(val value: Int) {
 enum class AudioFormat(val value: Int) {
     I16(1),
     I24(3),
-    I32(4)
+    I32(4),
+    F32(2)
 }
 
 enum class ChannelCount(val value: Int) {

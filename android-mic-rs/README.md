@@ -12,7 +12,7 @@ how to build
 - install rust: https://www.rust-lang.org/tools/install
 
 ```shell
-cargo run --release
+cargo build --release
 ```
 
 
@@ -49,13 +49,13 @@ Options:
 ```
 
 example:
-```
-cargo run --release -- --ip 192.168.1.79 -m UDP
+```shell
+./target/release/android-mic-rs.exe --ip 192.168.1.79 -m UDP
 ```
 
 
 advanced:
-```
+```shell
 clear && cargo run --release -- --ip 192.168.1.79 --mode UDP --channel 2 -f i16 --device 4
 ```
 
