@@ -60,11 +60,11 @@ clear && cargo run --release -- --ip 192.168.1.79 --mode UDP --channel 2 -f i16 
 ```
 
 todo: 
-- support multiple audio format: done but not tested
+- support multiple audio format: done but have bugs
 - support multiple sample: done but not tested
 - choose output device: done
 - stereo: implemented but have bugs
 - parse ipv4/v6: done, no support for v6 tho
 - release socket if necesseray: not needed i think
-- detect TCP disconnect 
+- detect TCP disconnect: Done
 - try ASIO backend

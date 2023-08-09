@@ -12,12 +12,16 @@ use crate::streamer::{
 };
 
 const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
+
+const DISCONNECT_LOOP_DETECTER_MAX: u32 = 1000;
+
 pub struct TcpStreamer {
     ip: Ipv4Addr,
     port: u16,
     stream: TcpStream,
     producer: Producer<u8>,
     io_buf: [u8; 1024],
+    disconnect_loop_detecter: u32,
 }
 
 impl Streamer for TcpStreamer {
@@ -80,6 +84,7 @@ impl Streamer for TcpStreamer {
                     stream,
                     producer: shared_buf,
                     io_buf: [0u8; IO_BUF_SIZE],
+                    disconnect_loop_detecter: 0,
                 })
             }
             Err(e) => {
@@ -91,23 +96,37 @@ impl Streamer for TcpStreamer {
 
     fn process(&mut self) -> Result<usize, WriteError> {
         match self.stream.read(&mut self.io_buf) {
-            Ok(size) => match self.producer.write_chunk_uninit(size) {
-                Ok(chunk) => {
-                    let moved_item = chunk.fill_from_iter(self.io_buf);
-                    if moved_item == size {
-                        Ok(size)
+            Ok(size) => {
+                if size == 0 {
+                    if self.disconnect_loop_detecter >= DISCONNECT_LOOP_DETECTER_MAX {
+                        return Err(WriteError::Io(io::Error::new(
+                            io::ErrorKind::NotConnected,
+                            "disconnect loop detected",
+                        )));
                     } else {
+                        self.disconnect_loop_detecter += 1
+                    }
+                } else {
+                    self.disconnect_loop_detecter = 0;
+                };
+                match self.producer.write_chunk_uninit(size) {
+                    Ok(chunk) => {
+                        let moved_item = chunk.fill_from_iter(self.io_buf);
+                        if moved_item == size {
+                            Ok(size)
+                        } else {
+                            Err(WriteError::BufferOverfilled(moved_item, size - moved_item))
+                        }
+                    }
+                    Err(ChunkError::TooFewSlots(remaining_slots)) => {
+                        let chunk = self.producer.write_chunk_uninit(remaining_slots).unwrap();
+
+                        let moved_item = chunk.fill_from_iter(self.io_buf);
+
                         Err(WriteError::BufferOverfilled(moved_item, size - moved_item))
                     }
                 }
-                Err(ChunkError::TooFewSlots(remaining_slots)) => {
-                    let chunk = self.producer.write_chunk_uninit(remaining_slots).unwrap();
-
-                    let moved_item = chunk.fill_from_iter(self.io_buf);
-
-                    Err(WriteError::BufferOverfilled(moved_item, size - moved_item))
-                }
-            },
+            }
             Err(e) => {
                 match e.kind() {
                     io::ErrorKind::TimedOut => Ok(0), // timeout use to check for input on stdin
