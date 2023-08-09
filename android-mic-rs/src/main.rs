@@ -9,11 +9,8 @@ use user_action::UserAction;
 use std::sync::mpsc;
 
 use crate::{
-    audio::setup_audio,
-    streamer::WriteError,
-    tcp_streamer::TcpStreamer,
-    udp_streamer::UdpStreamer,
-    user_action::{ask_connection_mode, str_to_connection_mode, SettingsArg},
+    audio::setup_audio, streamer::WriteError, tcp_streamer::TcpStreamer, udp_streamer::UdpStreamer,
+    user_action::Args,
 };
 
 mod audio;
@@ -39,14 +36,14 @@ impl App {
 const SHARED_BUF_SIZE: usize = 5 * 1024;
 
 fn main() {
-    let settings_arg = SettingsArg::parse();
+    let args = Args::parse();
 
     let mut app = App::new();
 
     // Buffer to store received data
     let (producer, consumer) = RingBuffer::<u8>::new(SHARED_BUF_SIZE);
 
-    match setup_audio(consumer) {
+    match setup_audio(consumer, &args) {
         Err(e) => {
             eprintln!("{:?}", e);
             return;
@@ -60,23 +57,13 @@ fn main() {
         },
     }
 
-    let connection_mode = if let Some(mode) = settings_arg.mode {
-        if let Some(connection_mode) = str_to_connection_mode(mode.as_str()) {
-            connection_mode
-        } else {
-            ask_connection_mode()
-        }
-    } else {
-        ask_connection_mode()
-    };
-
-    let ip = if let Some(ip) = settings_arg.ip {
+    let ip = if let Some(ip) = args.ip {
         ip
     } else {
         user_action::ask_ip()
     };
 
-    match connection_mode {
+    match args.connection_mode {
         user_action::ConnectionMode::Udp => {
             let streamer = UdpStreamer::new(producer, ip).unwrap();
             app.streamer = Some(Box::new(streamer))

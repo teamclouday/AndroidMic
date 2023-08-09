@@ -1,8 +1,11 @@
 experimental project written in Rust
 
-backend for Widows and Linux
-support only UDP
+backend for Widows and Linux.
+Technically, the code could run on Android
 
+supported
+- UDP
+- TCP
 
 how to build
 
@@ -40,4 +43,17 @@ Options:
 ```
 
 example:
+```
 cargo run --release -- --ip 192.168.1.79 -m UDP
+```
+
+
+
+clear && cargo r -- -i 192.168.1.79
+
+
+todo: 
+- support f32 format
+- stereo
+- parse ipv4/v6
+- choose output device

@@ -5,9 +5,24 @@ use cpal::{
 
 use rtrb::{chunks::ChunkError, Consumer};
 
-pub fn setup_audio(mut consumer: Consumer<u8>) -> Result<cpal::Stream, BuildStreamError> {
+use crate::user_action::Args;
+
+pub fn setup_audio(
+    mut consumer: Consumer<u8>,
+    _args: &Args,
+) -> Result<cpal::Stream, BuildStreamError> {
     let host = cpal::default_host();
     let device = host.default_output_device().unwrap();
+
+    let support = device.supported_output_configs().unwrap();
+
+    for conf in support {
+
+        dbg!(conf);
+
+    }
+
+    
 
     // let config = StreamConfig{
     //     channels: 1,
