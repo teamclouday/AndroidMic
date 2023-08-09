@@ -1,6 +1,4 @@
-use std::io::Cursor;
-
-use byteorder::{LittleEndian, ReadBytesExt};
+use byteordered::byteorder::{self, ByteOrder};
 use cpal::{
     traits::{DeviceTrait, HostTrait},
     BuildStreamError, Device, Host, SizedSample, StreamConfig,
@@ -10,7 +8,10 @@ use rtrb::{chunks::ReadChunkIntoIter, Consumer};
 
 use crate::user_action::{Args, AudioFormat, ChannelCount};
 
-pub fn setup_audio(consumer: Consumer<u8>, args: &Args) -> Result<cpal::Stream, BuildStreamError> {
+pub fn setup_audio<E: ByteOrder>(
+    consumer: Consumer<u8>,
+    args: &Args,
+) -> Result<cpal::Stream, BuildStreamError> {
     let host = cpal::default_host();
 
     print_output_devices(&host);
@@ -82,10 +83,10 @@ pub fn setup_audio(consumer: Consumer<u8>, args: &Args) -> Result<cpal::Stream, 
     println!();
 
     match args.audio_format {
-        AudioFormat::I16 => build::<i16>(&device, &config, consumer, channel_strategy),
-        AudioFormat::I32 => build::<i32>(&device, &config, consumer, channel_strategy),
         AudioFormat::I8 => todo!(),
+        AudioFormat::I16 => build::<i16, E>(&device, &config, consumer, channel_strategy),
         AudioFormat::I24 => todo!(),
+        AudioFormat::I32 => build::<i32, E>(&device, &config, consumer, channel_strategy),
         AudioFormat::I48 => todo!(),
         AudioFormat::I64 => todo!(),
         AudioFormat::U8 => todo!(),
@@ -94,25 +95,26 @@ pub fn setup_audio(consumer: Consumer<u8>, args: &Args) -> Result<cpal::Stream, 
         AudioFormat::U32 => todo!(),
         AudioFormat::U48 => todo!(),
         AudioFormat::U64 => todo!(),
-        AudioFormat::F32 => build::<f32>(&device, &config, consumer, channel_strategy),
+        AudioFormat::F32 => build::<f32, E>(&device, &config, consumer, channel_strategy),
         AudioFormat::F64 => todo!(),
     }
 }
 
-fn build<T>(
+fn build<F, E>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
     mut consumer: Consumer<u8>,
     channel_strategy: ChannelStrategy,
 ) -> Result<cpal::Stream, BuildStreamError>
 where
-    T: Format + SizedSample,
+    F: Format + SizedSample,
+    E: ByteOrder,
 {
     let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
     let channel_count = config.channels as usize;
     device.build_output_stream(
         config,
-        move |data: &mut [T], _: &cpal::OutputCallbackInfo| {
+        move |data: &mut [F], _: &cpal::OutputCallbackInfo| {
             // data is the internal buf of cpal
             // we try to read the exact lenght of data from the shared buf here
             if let Ok(chunk) = consumer.read_chunk(data.len()) {
@@ -123,27 +125,22 @@ where
                 // a frame contain sample * channel_count
                 // a sample contain a value of type Format
                 for frame in data.chunks_mut(channel_count) {
-                    // the number of byte read to make a value depend on
-                    // the format, so we pass an iter to produce the value
-                    // - i16: 2 bytes
-                    // - i32: 4 bytes
-
                     match channel_strategy {
                         ChannelStrategy::Mono => {
-                            if let Some(value) = T::from_chunk(&mut iter) {
+                            if let Some(value) = F::from_chunk::<E>(&mut iter) {
                                 frame[0] = value;
                             }
                         }
                         ChannelStrategy::Stereo => {
-                            if let Some(value) = T::from_chunk(&mut iter) {
+                            if let Some(value) = F::from_chunk::<E>(&mut iter) {
                                 frame[0] = value;
                             }
-                            if let Some(value) = T::from_chunk(&mut iter) {
+                            if let Some(value) = F::from_chunk::<E>(&mut iter) {
                                 frame[1] = value;
                             }
                         }
                         ChannelStrategy::MonoCloned => {
-                            if let Some(value) = T::from_chunk(&mut iter) {
+                            if let Some(value) = F::from_chunk::<E>(&mut iter) {
                                 frame[0] = value;
                                 frame[1] = value;
                             }
@@ -158,28 +155,31 @@ where
 }
 
 trait Format {
-    fn from_chunk(chunk: &mut ReadChunkIntoIter<'_, u8>) -> Option<Self>
+    // the number of byte read to make a value depend on
+    // the format, so we pass an iter to produce the value
+    // - i16: 2 bytes
+    // - i32: 4 bytes
+    fn from_chunk<E>(chunk: &mut ReadChunkIntoIter<'_, u8>) -> Option<Self>
     where
-        Self: Sized;
+        Self: Sized,
+        E: ByteOrder;
 }
 
 impl Format for i16 {
-    fn from_chunk(chunk: &mut ReadChunkIntoIter<'_, u8>) -> Option<Self> {
+    fn from_chunk<T: ByteOrder>(chunk: &mut ReadChunkIntoIter<'_, u8>) -> Option<Self> {
         let Some(byte1) = chunk.next()  else {
             return None;
         };
         let Some(byte2) = chunk.next()  else {
             return None;
         };
-
-        let mut cursor: Cursor<Vec<u8>> = Cursor::new(vec![byte1, byte2]);
-        Some(cursor.read_i16::<LittleEndian>().unwrap())
+        Some(T::read_i16(&[byte1, byte2]))
     }
 }
 
 // not tested
 impl Format for i32 {
-    fn from_chunk(chunk: &mut ReadChunkIntoIter<'_, u8>) -> Option<Self> {
+    fn from_chunk<T: byteorder::ByteOrder>(chunk: &mut ReadChunkIntoIter<'_, u8>) -> Option<Self> {
         let Some(byte1) = chunk.next()  else {
             return None;
         };
@@ -194,14 +194,13 @@ impl Format for i32 {
             return None;
         };
 
-        let mut cursor: Cursor<Vec<u8>> = Cursor::new(vec![byte1, byte2, byte3, byte4]);
-        Some(cursor.read_i32::<LittleEndian>().unwrap())
+        Some(T::read_i32(&[byte1, byte2, byte3, byte4]))
     }
 }
 
 // not tested
 impl Format for f32 {
-    fn from_chunk(chunk: &mut ReadChunkIntoIter<'_, u8>) -> Option<Self> {
+    fn from_chunk<T: byteorder::ByteOrder>(chunk: &mut ReadChunkIntoIter<'_, u8>) -> Option<Self> {
         let Some(byte1) = chunk.next()  else {
             return None;
         };
@@ -216,8 +215,7 @@ impl Format for f32 {
             return None;
         };
 
-        let mut cursor: Cursor<Vec<u8>> = Cursor::new(vec![byte1, byte2, byte3, byte4]);
-        Some(cursor.read_f32::<LittleEndian>().unwrap())
+        Some(T::read_f32(&[byte1, byte2, byte3, byte4]))
     }
 }
 
@@ -227,7 +225,10 @@ fn print_output_devices(host: &Host) {
     let default_output: Option<Device> = host.default_output_device();
 
     if let Some(ref device) = default_output {
-        println!("Default output device:\n    0. {:?}\n", device.name().unwrap());
+        println!(
+            "Default output device:\n    0. {:?}\n",
+            device.name().unwrap()
+        );
     };
 
     let ouput_devices = host.output_devices().unwrap();

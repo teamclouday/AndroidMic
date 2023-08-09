@@ -66,5 +66,5 @@ todo:
 - stereo: implemented but have bugs
 - parse ipv4/v6: done, no support for v6 tho
 - release socket if necesseray: not needed i think
-- stop audio when disconnect 
+- detect TCP disconnect 
 - try ASIO backend

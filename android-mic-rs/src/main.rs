@@ -1,4 +1,8 @@
 #![allow(dead_code)]
+use byteordered::{
+    byteorder::{BigEndian, LittleEndian},
+    Endianness,
+};
 use clap::Parser;
 use cpal::traits::StreamTrait;
 use rtrb::RingBuffer;
@@ -40,10 +44,13 @@ fn main() {
 
     let mut app = App::new();
 
-    // Buffer to store received data
     let (producer, consumer) = RingBuffer::<u8>::new(SHARED_BUF_SIZE);
 
-    match setup_audio(consumer, &args) {
+    let audio_stream_builder = match Endianness::native() {
+        Endianness::Little => setup_audio::<LittleEndian>(consumer, &args),
+        Endianness::Big => setup_audio::<BigEndian>(consumer, &args),
+    };
+    match audio_stream_builder {
         Err(e) => {
             eprintln!("{:?}", e);
             return;

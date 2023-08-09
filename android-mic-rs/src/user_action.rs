@@ -107,7 +107,6 @@ pub enum AudioFormat {
     #[strum(serialize = "i64")]
     I64,
 
-    
     #[strum(serialize = "u8")]
     U8,
     #[strum(serialize = "u16")]
