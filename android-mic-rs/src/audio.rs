@@ -34,7 +34,7 @@ pub fn setup_audio<E: ByteOrder>(
     };
 
     let Some(device) = device_opt else {
-        eprintln!("Selected utput device not found.");
+        eprintln!("Selected output device not found.");
         return Err(BuildStreamError::DeviceNotAvailable);
     };
 
@@ -73,7 +73,7 @@ pub fn setup_audio<E: ByteOrder>(
     let config = StreamConfig {
         channels: channel_count,
         sample_rate,
-        buffer_size: cpal::BufferSize::Default,
+        buffer_size: default_config.buffer_size,
     };
 
     println!();
