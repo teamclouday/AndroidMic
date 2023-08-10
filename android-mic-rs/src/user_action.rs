@@ -58,12 +58,12 @@ pub struct Args {
     pub channel_count: Option<ChannelCount>,
 
     // should not have default config because it depend on the divice
-    #[arg(short = 'r', long = "sample", id = "sample rate")]
+    #[arg(short = 's', long = "sample", id = "sample rate")]
     pub sample_rate: Option<u32>,
 
     #[arg(
         short = 'i',
-        long = "show-audio-config",
+        long = "info-audio",
         id = "show supported audio config",
         default_value_t = false
     )]
