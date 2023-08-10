@@ -43,8 +43,8 @@ Options:
   -f, --format <audio format>    i16, f32, ... [default: i16]
   -d, --device <output device>   [default: 0]
   -c, --channel <channel count>  1 or 2
-  -r, --sample <sample rate>     
-  -i, --show-audio-config        
+  -s, --sample <sample rate>     
+  -i, --info-audio        
   -h, --help                     Print help
   -V, --version                  Print version
 ```
