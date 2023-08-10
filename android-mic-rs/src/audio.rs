@@ -14,7 +14,7 @@ pub fn setup_audio<E: ByteOrder>(
 ) -> Result<cpal::Stream, BuildStreamError> {
     let host = cpal::default_host();
 
-    print_output_devices(&host);
+    print_output_devices(&host, &args);
 
     let device_opt = match args.output_device {
         0 => host.default_output_device(),
@@ -219,7 +219,7 @@ impl Format for f32 {
     }
 }
 
-fn print_output_devices(host: &Host) {
+fn print_output_devices(host: &Host, args: &Args) {
     println!("Default host: {}\n", host.id().name());
 
     let default_output: Option<Device> = host.default_output_device();
@@ -252,7 +252,7 @@ fn print_output_devices(host: &Host) {
                 Vec::new()
             }
         };
-        if !output_configs.is_empty() {
+        if args.show_supported_audio_config && !output_configs.is_empty(){
             println!("        Supported configs:");
             for (config_index, conf) in output_configs.into_iter().enumerate() {
                 println!(

@@ -40,10 +40,11 @@ Usage: android-mic-rs.exe [OPTIONS] --ip <IP>
 Options:
   -i, --ip <IP>                  example: -i 192.168.1.79
   -m, --mode <connection mode>   UDP or TCP [default: UDP]
-  -f, --format <audio format>    i16 or i32 [default: i16]
+  -f, --format <audio format>    i16, f32, ... [default: i16]
   -d, --device <output device>   [default: 0]
   -c, --channel <channel count>  1 or 2
-  -r, --sample <sample rate>
+  -r, --sample <sample rate>     
+  -i, --show-audio-config        
   -h, --help                     Print help
   -V, --version                  Print version
 ```
