@@ -61,7 +61,12 @@ pub struct Args {
     #[arg(short = 'r', long = "sample", id = "sample rate")]
     pub sample_rate: Option<u32>,
 
-    #[arg(short = 'i', long = "show-audio-config", id = "show supported audio config", default_value_t = false)]
+    #[arg(
+        short = 'i',
+        long = "show-audio-config",
+        id = "show supported audio config",
+        default_value_t = false
+    )]
     pub show_supported_audio_config: bool,
 }
 
