@@ -68,7 +68,7 @@ pub fn setup_audio<E: ByteOrder>(
     };
 
     let config = StreamConfig {
-        channels: channel_count,
+        channels: 2,
         sample_rate,
         buffer_size: cpal::BufferSize::Default,
     };
@@ -84,7 +84,7 @@ pub fn setup_audio<E: ByteOrder>(
 
     match args.audio_format {
         AudioFormat::I8 => todo!(),
-        AudioFormat::I16 => build::<i16, E>(&device, &config, consumer, channel_strategy),
+        AudioFormat::I16 => build::<i16, E>(&device, &config, consumer, ChannelStrategy::MonoCloned),
         AudioFormat::I24 => todo!(),
         AudioFormat::I32 => build::<i32, E>(&device, &config, consumer, channel_strategy),
         AudioFormat::I48 => todo!(),
