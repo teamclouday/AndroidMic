@@ -69,24 +69,24 @@ android {
 
 dependencies {
     def coroutine_version = "1.7.3"
-    def lifecycle_version = "2.6.1"
-    def compose_version = "1.4.3"
-    def material3_version = "1.1.1"
+    def lifecycle_version = "2.6.2"
+    def compose_version = "1.5.4"
+    def material3_version = "1.1.2"
 
 
     // audio lib
-    implementation "com.google.oboe:oboe:1.7.0"
+    implementation "com.google.oboe:oboe:1.8.0"
 
     // kotlin
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutine_version"
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutine_version"
 
-    implementation "androidx.core:core-ktx:1.10.1"
+    implementation "androidx.core:core-ktx:1.12.0"
     implementation "androidx.appcompat:appcompat:1.7.0-alpha03"
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:$lifecycle_version"
 
     // compose
-    implementation "androidx.activity:activity-compose:1.7.2"
+    implementation "androidx.activity:activity-compose:1.8.0"
     implementation "androidx.lifecycle:lifecycle-viewmodel-compose:$lifecycle_version"
     implementation "androidx.compose.ui:ui:$compose_version"
     implementation "androidx.constraintlayout:constraintlayout-compose:1.0.1"
@@ -97,7 +97,7 @@ dependencies {
 
 
     // compose permission
-    implementation 'com.google.accompanist:accompanist-permissions:0.30.1'
+    implementation 'com.google.accompanist:accompanist-permissions:0.32.0'
 
     // tool
     implementation "androidx.compose.ui:ui-tooling-preview:$compose_version"
