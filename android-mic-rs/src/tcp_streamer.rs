@@ -8,7 +8,7 @@ use std::{
 use rtrb::{chunks::ChunkError, Producer};
 
 use crate::streamer::{
-    Streamer, WriteError, DEFAULT_PORT, DEVICE_CHECK, DEVICE_CHECK_EXPECTED, IO_BUF_SIZE,
+    Streamer, WriteError, DEFAULT_PORT, DEVICE_CHECK, DEVICE_CHECK_EXPECTED, IO_BUF_SIZE, MAX_PORT,
 };
 
 const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
@@ -26,10 +26,19 @@ pub struct TcpStreamer {
 
 impl Streamer for TcpStreamer {
     fn new(shared_buf: Producer<u8>, ip: IpAddr) -> Option<Self> {
-        let listener = if let Ok(listener) = TcpListener::bind((ip, DEFAULT_PORT)) {
+        let mut listener = None;
+
+        for p in DEFAULT_PORT..=MAX_PORT {
+            if let Ok(l) = TcpListener::bind((ip, p)) {
+                listener = Some(l);
+                break;
+            }
+        }
+
+        let listener = if let Some(listener) = listener {
             listener
         } else {
-            TcpListener::bind((ip, 0)).expect("can't bind listener")
+            TcpListener::bind((ip, 0)).expect("Failed to bind listener")
         };
 
         let addr = match TcpListener::local_addr(&listener) {
@@ -44,10 +53,10 @@ impl Streamer for TcpStreamer {
         match listener.accept() {
             Ok((mut stream, addr)) => {
                 if let Err(e) = stream.set_read_timeout(Some(MAX_WAIT_TIME)) {
-                    eprintln!("can't set read time out: {}", e);
+                    error!("can't set read time out: {}", e);
                 }
                 if let Err(e) = stream.set_write_timeout(Some(MAX_WAIT_TIME)) {
-                    eprintln!("can't set write time out: {}", e);
+                    error!("can't set write time out: {}", e);
                 }
 
                 // read check

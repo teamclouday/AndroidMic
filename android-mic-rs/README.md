@@ -5,7 +5,7 @@ Technically, the code could run on Android
 
 ## Usage
 ```shell
-Usage: android-mic-rs.exe [OPTIONS] --ip <IP>
+Usage: android-mic [OPTIONS]
 
 Options:
   -i, --ip <IP>                  example: -i 192.168.1.79
@@ -13,20 +13,10 @@ Options:
   -f, --format <audio format>    i16, f32, ... [default: i16]
   -d, --device <output device>   [default: 0]
   -c, --channel <channel count>  1 or 2
-  -s, --sample <sample rate>     
-  -i, --info-audio        
+  -s, --sample <sample rate>     16000, 44100, ...
+      --info                     show supported audio config
   -h, --help                     Print help
   -V, --version                  Print version
-```
-
-example:
-```shell
-./target/release/android-mic-rs.exe --ip 192.168.1.79 -m UDP
-```
-
-advanced:
-```shell
-clear && cargo run --release -- --ip 192.168.1.79 --mode UDP --channel 2 -f i16 --device 4
 ```
 
 ## Build
@@ -53,9 +43,9 @@ sudo apt install libasound2-dev
 ## Todo 
 - support multiple audio format: done but have bugs
 - support multiple sample: done but not tested
+- stereo support: done but laggy with my hardware. Need test
 - choose output device: done
-- stereo: implemented but have bugs
-- parse ipv4/v6: done, no support for v6 tho
-- release socket if necesseray: not needed i think
-- detect TCP disconnect: Done
+- choose input device
+- args to specify endianess of the phone, and apply conversion if necessery
+- add check to not create offset when using UDP, long format, multiple channels, ect...
 - try ASIO backend

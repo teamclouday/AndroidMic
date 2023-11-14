@@ -18,6 +18,9 @@ use crate::{
     user_action::Args,
 };
 
+#[macro_use]
+extern crate log;
+
 mod audio;
 mod streamer;
 mod tcp_streamer;
@@ -41,25 +44,32 @@ impl App {
 const SHARED_BUF_SIZE: usize = 5 * 1024;
 
 fn main() {
+    env_logger::init();
+
     let args = Args::parse();
 
     let mut app = App::new();
 
     let (producer, consumer) = RingBuffer::<u8>::new(SHARED_BUF_SIZE);
 
+    info!("{:?}", Endianness::native());
+
     let audio_stream_builder = match Endianness::native() {
         Endianness::Little => setup_audio::<LittleEndian>(consumer, &args),
-        Endianness::Big => setup_audio::<BigEndian>(consumer, &args),
+        Endianness::Big => {
+            warn!("warning! most phone use little endian nowdays. we might need to convert little -> big");
+            setup_audio::<BigEndian>(consumer, &args)
+        }
     };
     match audio_stream_builder {
         Err(e) => {
-            eprintln!("{:?}", e);
+            error!("{:?}", e);
             return;
         }
         Ok(steam) => match steam.play() {
             Ok(_) => app.audio_player = Some(steam),
             Err(e) => {
-                eprintln!("{:?}", e);
+                error!("{:?}", e);
                 return;
             }
         },
@@ -110,7 +120,7 @@ fn main() {
             Ok(moved) => item_moved += moved as f64,
             Err(e) => match e {
                 WriteError::Io(e) => {
-                    eprintln!("Io Error: {:?}", e);
+                    error!("Io Error: {:?}", e);
                     break;
                 }
                 WriteError::BufferOverfilled(moved, lossed) => {
