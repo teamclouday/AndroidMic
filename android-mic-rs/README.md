@@ -50,13 +50,6 @@ Debian
 sudo apt install libasound2-dev
 ```
 
-## Notes
-To get your local ip on Linux, you can use this command:
-```
-ifconfig -a
-```
-You should the use the ip which begin with `192.168.`.
-
 ## Todo 
 - support multiple audio format: done but have bugs
 - support multiple sample: done but not tested

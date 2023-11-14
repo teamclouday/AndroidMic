@@ -1,6 +1,6 @@
 use std::{
     io::{self, Read, Write},
-    net::{Ipv4Addr, TcpListener, TcpStream},
+    net::{IpAddr, TcpListener, TcpStream},
     str::from_utf8,
     time::Duration,
 };
@@ -16,7 +16,7 @@ const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
 const DISCONNECT_LOOP_DETECTER_MAX: u32 = 1000;
 
 pub struct TcpStreamer {
-    ip: Ipv4Addr,
+    ip: IpAddr,
     port: u16,
     stream: TcpStream,
     producer: Producer<u8>,
@@ -25,7 +25,7 @@ pub struct TcpStreamer {
 }
 
 impl Streamer for TcpStreamer {
-    fn new(shared_buf: Producer<u8>, ip: Ipv4Addr) -> Option<Self> {
+    fn new(shared_buf: Producer<u8>, ip: IpAddr) -> Option<Self> {
         let listener = if let Ok(listener) = TcpListener::bind((ip, DEFAULT_PORT)) {
             listener
         } else {

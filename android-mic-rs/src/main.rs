@@ -5,6 +5,7 @@ use byteordered::{
 };
 use clap::Parser;
 use cpal::traits::StreamTrait;
+use local_ip_address::local_ip;
 use rtrb::RingBuffer;
 use streamer::Streamer;
 
@@ -64,13 +65,19 @@ fn main() {
         },
     }
 
+    let ip = if let Some(ip) = args.ip {
+        ip
+    } else {
+        local_ip().unwrap()
+    };
+
     match args.connection_mode {
         user_action::ConnectionMode::Udp => {
-            let streamer = UdpStreamer::new(producer, args.ip).unwrap();
+            let streamer = UdpStreamer::new(producer, ip).unwrap();
             app.streamer = Some(Box::new(streamer))
         }
         user_action::ConnectionMode::Tcp => {
-            let streamer = TcpStreamer::new(producer, args.ip).unwrap();
+            let streamer = TcpStreamer::new(producer, ip).unwrap();
             app.streamer = Some(Box::new(streamer))
         }
     }

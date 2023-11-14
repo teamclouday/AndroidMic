@@ -1,4 +1,4 @@
-use std::{net::Ipv4Addr, sync::mpsc::Sender, thread};
+use std::{net::IpAddr, sync::mpsc::Sender, thread};
 
 use clap::Parser;
 use crossterm::event::{self, Event, KeyCode, KeyEvent};
@@ -37,7 +37,7 @@ pub fn print_avaible_action() {
 #[clap(author = "wiiznokes", version, about = "AndroidMic", long_about = None)]
 pub struct Args {
     #[arg(short, long, help = "example: -i 192.168.1.79")]
-    pub ip: Ipv4Addr,
+    pub ip: Option<IpAddr>,
 
     #[arg(short = 'm', long = "mode", id = "connection mode", help = "UDP or TCP", default_value_t = ConnectionMode::Udp)]
     pub connection_mode: ConnectionMode,
@@ -62,27 +62,12 @@ pub struct Args {
     pub sample_rate: Option<u32>,
 
     #[arg(
-        short = 'i',
         long = "info-audio",
         id = "show supported audio config",
         default_value_t = false
     )]
     pub show_supported_audio_config: bool,
 }
-
-/*
-pub fn ask_ip() -> String {
-    println!("Please enter the ip of the host (The IP of your PC)");
-    println!("Help: something like: 192.168.1.79");
-
-    let mut input = String::new();
-    io::stdin()
-        .read_line(&mut input)
-        .expect("Failed to read line");
-
-    input.trim().into()
-}
- */
 
 #[derive(Debug, Clone, EnumString, PartialEq, Display)]
 pub enum ConnectionMode {
