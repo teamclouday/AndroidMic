@@ -1,39 +1,9 @@
-experimental project written in Rust
+# experimental project written in Rust
 
-backend for Widows and Linux.
+Cli for Widows and Linux.
 Technically, the code could run on Android
 
-supported
-- UDP
-- TCP
-
-how to build
-
-- install rust: https://www.rust-lang.org/tools/install
-
-```shell
-cargo build --release
-```
-
-
-format code
-```shell
-cargo clippy --all --fix --allow-dirty --allow-staged
-cargo fmt --all
-```
-
-on Linux, you need alsa dev dep
-
-Fedora
-```shell
-sudo dnf install alsa-lib-devel
-```
-
-Debian
-```shell
-sudo apt install libasound2-dev
-```
-
+## Usage
 ```shell
 Usage: android-mic-rs.exe [OPTIONS] --ip <IP>
 
@@ -54,13 +24,40 @@ example:
 ./target/release/android-mic-rs.exe --ip 192.168.1.79 -m UDP
 ```
 
-
 advanced:
 ```shell
 clear && cargo run --release -- --ip 192.168.1.79 --mode UDP --channel 2 -f i16 --device 4
 ```
 
-todo: 
+## Build
+1. install rust: https://www.rust-lang.org/tools/install
+
+2. Build this thing:
+  ```shell
+  cargo build --release
+  ```
+
+## Deps
+on Linux, you need alsa dev dep
+
+Fedora
+```shell
+sudo dnf install alsa-lib-devel
+```
+
+Debian
+```shell
+sudo apt install libasound2-dev
+```
+
+## Notes
+To get your local ip on Linux, you can use this command:
+```
+ifconfig -a
+```
+You should the use the ip which begin with `192.168.`.
+
+## Todo 
 - support multiple audio format: done but have bugs
 - support multiple sample: done but not tested
 - choose output device: done
