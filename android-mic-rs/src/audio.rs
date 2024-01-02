@@ -318,10 +318,11 @@ impl ChannelStrategy {
             ChannelStrategy::Stereo => {
                 if let Some(value) = F::produce_value_from_chunk::<E>(chunk) {
                     frame[0] = value;
-                }
-                if let Some(value) = F::produce_value_from_chunk::<E>(chunk) {
                     frame[1] = value;
                 }
+                // if let Some(value) = F::produce_value_from_chunk::<E>(chunk) {
+                //     frame[1] = value;
+                // }
             }
             ChannelStrategy::MonoCloned => {
                 if let Some(value) = F::produce_value_from_chunk::<E>(chunk) {
