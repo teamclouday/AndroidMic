@@ -34,47 +34,23 @@ import com.example.androidMic.ui.home.dialog.DialogTheme
 import com.example.androidMic.ui.home.dialog.DialogWifiIpPort
 
 data class MenuItem(
-    val id: Dialogs,
+    val id: Dialogs? = null,
     val title: String,
     val subTitle: String,
     val contentDescription: String,
-    val icon: Int?
+    val icon: Int? = null
 )
 
 @Composable
 fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
 
     // maybe this could be optimize, idk
-    DialogWifiIpPort(mainViewModel = mainViewModel, uiStates = uiStates)
     DialogMode(mainViewModel = mainViewModel, uiStates = uiStates)
-    DialogTheme(mainViewModel = mainViewModel, uiStates = uiStates)
+    DialogWifiIpPort(mainViewModel = mainViewModel, uiStates = uiStates)
     DialogSampleRate(mainViewModel = mainViewModel, uiStates = uiStates)
     DialogChannelCount(mainViewModel = mainViewModel, uiStates = uiStates)
     DialogAudioFormat(mainViewModel = mainViewModel, uiStates = uiStates)
-
-    val recordItems = listOf(
-        MenuItem(
-            id = Dialogs.SampleRates,
-            title = stringResource(id = R.string.sample_rate),
-            subTitle = uiStates.sampleRate.value.toString(),
-            contentDescription = "set sample rate",
-            icon = null
-        ),
-        MenuItem(
-            id = Dialogs.ChannelCount,
-            title = stringResource(id = R.string.channel_count),
-            subTitle = uiStates.channelCount.toString(),
-            contentDescription = "set channel count",
-            icon = null
-        ),
-        MenuItem(
-            id = Dialogs.AudioFormat,
-            title = stringResource(id = R.string.audio_format),
-            subTitle = uiStates.audioFormat.toString(),
-            contentDescription = "set audio format",
-            icon = null
-        ),
-    )
+    DialogTheme(mainViewModel = mainViewModel, uiStates = uiStates)
 
     val connectionItems = listOf(
         MenuItem(
@@ -91,6 +67,27 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
             contentDescription = "set ip and port",
             icon = R.drawable.wifi_24px
 
+        ),
+    )
+
+    val recordItems = listOf(
+        MenuItem(
+            id = Dialogs.SampleRates,
+            title = stringResource(id = R.string.sample_rate),
+            subTitle = uiStates.sampleRate.value.toString(),
+            contentDescription = "set sample rate",
+        ),
+        MenuItem(
+            id = Dialogs.ChannelCount,
+            title = stringResource(id = R.string.channel_count),
+            subTitle = uiStates.channelCount.toString(),
+            contentDescription = "set channel count",
+        ),
+        MenuItem(
+            id = Dialogs.AudioFormat,
+            title = stringResource(id = R.string.audio_format),
+            subTitle = uiStates.audioFormat.toString(),
+            contentDescription = "set audio format",
         ),
     )
 
@@ -176,7 +173,9 @@ private fun SettingsItem(mainViewModel: MainViewModel, item: MenuItem) {
         modifier = Modifier
             .fillMaxWidth()
             .clickable {
-                mainViewModel.showDialog(item.id)
+                if (item.id != null) {
+                    mainViewModel.showDialog(item.id)
+                }
             }
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically

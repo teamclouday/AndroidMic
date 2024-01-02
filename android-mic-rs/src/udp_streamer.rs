@@ -1,15 +1,15 @@
 use std::{
     io::{self},
-    net::{Ipv4Addr, UdpSocket},
+    net::{IpAddr, UdpSocket},
     time::Duration,
 };
 
 use rtrb::{chunks::ChunkError, Producer};
 
-use crate::streamer::{Streamer, WriteError, DEFAULT_PORT, IO_BUF_SIZE};
+use crate::streamer::{Streamer, WriteError, DEFAULT_PORT, IO_BUF_SIZE, MAX_PORT};
 
 pub struct UdpStreamer {
-    ip: Ipv4Addr,
+    ip: IpAddr,
     port: u16,
     socket: UdpSocket,
     producer: Producer<u8>,
@@ -17,8 +17,17 @@ pub struct UdpStreamer {
 }
 
 impl Streamer for UdpStreamer {
-    fn new(shared_buf: Producer<u8>, ip: Ipv4Addr) -> Option<UdpStreamer> {
-        let socket = if let Ok(socket) = UdpSocket::bind((ip, DEFAULT_PORT)) {
+    fn new(shared_buf: Producer<u8>, ip: IpAddr) -> Option<UdpStreamer> {
+        let mut socket = None;
+
+        for p in DEFAULT_PORT..=MAX_PORT {
+            if let Ok(s) = UdpSocket::bind((ip, p)) {
+                socket = Some(s);
+                break;
+            }
+        }
+
+        let socket = if let Some(socket) = socket {
             socket
         } else {
             UdpSocket::bind((ip, 0)).expect("Failed to bind to socket")

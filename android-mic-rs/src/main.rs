@@ -1,6 +1,11 @@
 #![allow(dead_code)]
+use byteordered::{
+    byteorder::{BigEndian, LittleEndian},
+    Endianness,
+};
 use clap::Parser;
 use cpal::traits::StreamTrait;
+use local_ip_address::local_ip;
 use rtrb::RingBuffer;
 use streamer::Streamer;
 
@@ -12,6 +17,9 @@ use crate::{
     audio::setup_audio, streamer::WriteError, tcp_streamer::TcpStreamer, udp_streamer::UdpStreamer,
     user_action::Args,
 };
+
+#[macro_use]
+extern crate log;
 
 mod audio;
 mod streamer;
@@ -36,34 +44,50 @@ impl App {
 const SHARED_BUF_SIZE: usize = 5 * 1024;
 
 fn main() {
+    env_logger::init();
+
     let args = Args::parse();
 
     let mut app = App::new();
 
-    // Buffer to store received data
     let (producer, consumer) = RingBuffer::<u8>::new(SHARED_BUF_SIZE);
 
-    match setup_audio(consumer, &args) {
+    info!("{:?}", Endianness::native());
+
+    let audio_stream_builder = match Endianness::native() {
+        Endianness::Little => setup_audio::<LittleEndian>(consumer, &args),
+        Endianness::Big => {
+            warn!("warning! most phone use little endian nowdays. we might need to convert little -> big");
+            setup_audio::<BigEndian>(consumer, &args)
+        }
+    };
+    match audio_stream_builder {
         Err(e) => {
-            eprintln!("{:?}", e);
+            error!("{:?}", e);
             return;
         }
         Ok(steam) => match steam.play() {
             Ok(_) => app.audio_player = Some(steam),
             Err(e) => {
-                eprintln!("{:?}", e);
+                error!("{:?}", e);
                 return;
             }
         },
     }
 
+    let ip = if let Some(ip) = args.ip {
+        ip
+    } else {
+        local_ip().unwrap()
+    };
+
     match args.connection_mode {
         user_action::ConnectionMode::Udp => {
-            let streamer = UdpStreamer::new(producer, args.ip).unwrap();
+            let streamer = UdpStreamer::new(producer, ip).unwrap();
             app.streamer = Some(Box::new(streamer))
         }
         user_action::ConnectionMode::Tcp => {
-            let streamer = TcpStreamer::new(producer, args.ip).unwrap();
+            let streamer = TcpStreamer::new(producer, ip).unwrap();
             app.streamer = Some(Box::new(streamer))
         }
     }
@@ -96,7 +120,7 @@ fn main() {
             Ok(moved) => item_moved += moved as f64,
             Err(e) => match e {
                 WriteError::Io(e) => {
-                    eprintln!("Io Error: {:?}", e);
+                    error!("Io Error: {:?}", e);
                     break;
                 }
                 WriteError::BufferOverfilled(moved, lossed) => {
