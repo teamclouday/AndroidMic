@@ -30,4 +30,8 @@ pub trait Streamer {
     /// return the number of item moved
     /// or an error
     fn process(&mut self) -> Result<usize, WriteError>;
+
+    // fn shutdown(&mut self);
+
+    // fn status(&self) -> Status;
 }

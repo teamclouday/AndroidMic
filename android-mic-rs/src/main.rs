@@ -28,6 +28,9 @@ mod tcp_streamer;
 mod udp_streamer;
 mod user_action;
 mod app;
+mod config;
+mod message;
+mod view;
 
 struct App {
     audio_player: Option<cpal::Stream>,
