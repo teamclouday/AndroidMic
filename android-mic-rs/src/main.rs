@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+use app::run_ui;
 use byteordered::{
     byteorder::{BigEndian, LittleEndian},
     Endianness,
@@ -26,6 +27,7 @@ mod streamer;
 mod tcp_streamer;
 mod udp_streamer;
 mod user_action;
+mod app;
 
 struct App {
     audio_player: Option<cpal::Stream>,
@@ -43,7 +45,14 @@ impl App {
 
 const SHARED_BUF_SIZE: usize = 5 * 1024;
 
+
 fn main() {
+
+    env_logger::init();
+
+    run_ui()
+}
+fn main2() {
     env_logger::init();
 
     let args = Args::parse();
