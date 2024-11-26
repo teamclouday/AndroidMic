@@ -6,7 +6,7 @@ use crate::streamer::{self, StreamerTrait, WriteError};
 
 pub struct AdbStreamer {}
 
-pub fn new(ip: IpAddr) -> Result<AdbStreamer, streamer::Error> {
+pub fn new(ip: IpAddr) -> Result<AdbStreamer, streamer::ConnectError> {
     Ok(AdbStreamer {})
 }
 

@@ -6,10 +6,6 @@ use thiserror::Error;
 
 use crate::{adb_streamer::AdbStreamer, tcp_streamer_async::TcpStreamer};
 
-pub enum WriteError {
-    Io(io::Error),
-    BufferOverfilled(usize, usize), // moved, lossed
-}
 
 // first we read, next we send
 pub const DEVICE_CHECK_EXPECTED: &str = "AndroidMicCheck";
@@ -39,7 +35,7 @@ pub enum Streamer {
 }
 
 #[derive(Debug, Error)]
-pub enum Error {
+pub enum ConnectError {
     #[error("can't bind a port on the pc: {0}")]
     CantBindPort(io::Error),
     #[error("can't find a local address: {0}")]
@@ -53,4 +49,9 @@ pub enum Error {
     CheckFailedIo(io::Error),
     #[error("accept failed: {0}")]
     CantAccept(io::Error),
+}
+
+pub enum WriteError {
+    Io(io::Error),
+    BufferOverfilled(usize, usize), // moved, lossed
 }
