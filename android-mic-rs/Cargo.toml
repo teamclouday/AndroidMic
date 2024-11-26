@@ -1,3 +1,5 @@
+# cargo-features = ["edition2024"]
+
 [package]
 name = "android-mic"
 version = "0.1.0"
@@ -18,6 +20,11 @@ log = "0.4"
 zconf2 = { git = "https://github.com/cosmic-utils/configurator" }
 serde = "1"
 light_enum = "0.2"
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+thiserror = "2"
+enum_dispatch = "0.3"
+futures = "0.3.31"
 
 [dependencies.libcosmic]
 git = "https://github.com/pop-os/libcosmic"

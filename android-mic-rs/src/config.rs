@@ -1,11 +1,9 @@
-use serde::{Deserialize, Serialize};
 use light_enum::Values;
+use serde::{Deserialize, Serialize};
 use strum::Display;
-
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Config {
-
     pub connection_mode: ConnectionMode,
 }
 
@@ -16,4 +14,3 @@ pub enum ConnectionMode {
     Udp,
     Adb,
 }
-
