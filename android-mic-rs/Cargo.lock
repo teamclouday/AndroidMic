@@ -292,7 +292,7 @@ version = "0.38.0+1.3.281"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0bb44936d800fea8f016d7f2311c6a4f97aebd5dc86f09906139ec848cf3a46f"
 dependencies = [
- "libloading",
+ "libloading 0.8.5",
 ]
 
 [[package]]
@@ -543,7 +543,7 @@ checksum = "0b023947811758c97c59bf9d1c188fd619ad4718dcaa767947df1cadb14f39f4"
 dependencies = [
  "glob",
  "libc",
- "libloading",
+ "libloading 0.8.5",
 ]
 
 [[package]]
@@ -809,6 +809,7 @@ dependencies = [
 [[package]]
 name = "cosmic-config"
 version = "0.1.0"
+source = "git+https://github.com/pop-os/libcosmic#a9c7c3cdbfd586b090437647e3d380977780d520"
 dependencies = [
  "atomicwrites",
  "cosmic-config-derive",
@@ -826,6 +827,7 @@ dependencies = [
 [[package]]
 name = "cosmic-config-derive"
 version = "0.1.0"
+source = "git+https://github.com/pop-os/libcosmic#a9c7c3cdbfd586b090437647e3d380977780d520"
 dependencies = [
  "quote",
  "syn 1.0.109",
@@ -857,6 +859,7 @@ dependencies = [
 [[package]]
 name = "cosmic-theme"
 version = "0.1.0"
+source = "git+https://github.com/pop-os/libcosmic#a9c7c3cdbfd586b090437647e3d380977780d520"
 dependencies = [
  "almost",
  "cosmic-config",
@@ -880,6 +883,7 @@ dependencies = [
  "core-foundation-sys",
  "coreaudio-rs",
  "dasp_sample",
+ "jack",
  "jni",
  "js-sys",
  "libc",
@@ -1002,7 +1006,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bdbd1f579714e3c809ebd822c81ef148b1ceaeb3d535352afc73fd0c4c6a0017"
 dependencies = [
  "bitflags 2.6.0",
- "libloading",
+ "libloading 0.8.5",
  "winapi",
 ]
 
@@ -1118,7 +1122,7 @@ version = "0.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "330c60081dcc4c72131f8eb70510f1ac07223e5d4163db481a04a0befcffa412"
 dependencies = [
- "libloading",
+ "libloading 0.8.5",
 ]
 
 [[package]]
@@ -1719,7 +1723,7 @@ dependencies = [
  "bitflags 2.6.0",
  "com",
  "libc",
- "libloading",
+ "libloading 0.8.5",
  "thiserror",
  "widestring",
  "winapi",
@@ -1787,6 +1791,7 @@ dependencies = [
 [[package]]
 name = "iced"
 version = "0.14.0-dev"
+source = "git+https://github.com/pop-os/libcosmic#a9c7c3cdbfd586b090437647e3d380977780d520"
 dependencies = [
  "dnd",
  "iced_accessibility",
@@ -1804,6 +1809,7 @@ dependencies = [
 [[package]]
 name = "iced_accessibility"
 version = "0.1.0"
+source = "git+https://github.com/pop-os/libcosmic#a9c7c3cdbfd586b090437647e3d380977780d520"
 dependencies = [
  "accesskit",
  "accesskit_winit",
@@ -1812,6 +1818,7 @@ dependencies = [
 [[package]]
 name = "iced_core"
 version = "0.14.0-dev"
+source = "git+https://github.com/pop-os/libcosmic#a9c7c3cdbfd586b090437647e3d380977780d520"
 dependencies = [
  "bitflags 2.6.0",
  "bytes",
@@ -1834,6 +1841,7 @@ dependencies = [
 [[package]]
 name = "iced_futures"
 version = "0.14.0-dev"
+source = "git+https://github.com/pop-os/libcosmic#a9c7c3cdbfd586b090437647e3d380977780d520"
 dependencies = [
  "futures",
  "iced_core",
@@ -1858,6 +1866,7 @@ dependencies = [
 [[package]]
 name = "iced_graphics"
 version = "0.14.0-dev"
+source = "git+https://github.com/pop-os/libcosmic#a9c7c3cdbfd586b090437647e3d380977780d520"
 dependencies = [
  "bitflags 2.6.0",
  "bytemuck",
@@ -1879,6 +1888,7 @@ dependencies = [
 [[package]]
 name = "iced_renderer"
 version = "0.14.0-dev"
+source = "git+https://github.com/pop-os/libcosmic#a9c7c3cdbfd586b090437647e3d380977780d520"
 dependencies = [
  "iced_graphics",
  "iced_tiny_skia",
@@ -1890,6 +1900,7 @@ dependencies = [
 [[package]]
 name = "iced_runtime"
 version = "0.14.0-dev"
+source = "git+https://github.com/pop-os/libcosmic#a9c7c3cdbfd586b090437647e3d380977780d520"
 dependencies = [
  "bytes",
  "dnd",
@@ -1903,6 +1914,7 @@ dependencies = [
 [[package]]
 name = "iced_tiny_skia"
 version = "0.14.0-dev"
+source = "git+https://github.com/pop-os/libcosmic#a9c7c3cdbfd586b090437647e3d380977780d520"
 dependencies = [
  "bytemuck",
  "cosmic-text",
@@ -1918,6 +1930,7 @@ dependencies = [
 [[package]]
 name = "iced_wgpu"
 version = "0.14.0-dev"
+source = "git+https://github.com/pop-os/libcosmic#a9c7c3cdbfd586b090437647e3d380977780d520"
 dependencies = [
  "as-raw-xcb-connection",
  "bitflags 2.6.0",
@@ -1948,6 +1961,7 @@ dependencies = [
 [[package]]
 name = "iced_widget"
 version = "0.14.0-dev"
+source = "git+https://github.com/pop-os/libcosmic#a9c7c3cdbfd586b090437647e3d380977780d520"
 dependencies = [
  "dnd",
  "iced_renderer",
@@ -1964,6 +1978,7 @@ dependencies = [
 [[package]]
 name = "iced_winit"
 version = "0.14.0-dev"
+source = "git+https://github.com/pop-os/libcosmic#a9c7c3cdbfd586b090437647e3d380977780d520"
 dependencies = [
  "dnd",
  "iced_futures",
@@ -2228,6 +2243,33 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "540654e97a3f4470a492cd30ff187bc95d89557a903a2bbf112e2fae98104ef2"
 
 [[package]]
+name = "jack"
+version = "0.11.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0e5a18a3c2aefb354fb77111ade228b20267bdc779de84e7a4ccf7ea96b9a6cd"
+dependencies = [
+ "bitflags 1.3.2",
+ "jack-sys",
+ "lazy_static",
+ "libc",
+ "log",
+]
+
+[[package]]
+name = "jack-sys"
+version = "0.5.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "6013b7619b95a22b576dfb43296faa4ecbe40abbdb97dfd22ead520775fc86ab"
+dependencies = [
+ "bitflags 1.3.2",
+ "lazy_static",
+ "libc",
+ "libloading 0.7.4",
+ "log",
+ "pkg-config",
+]
+
+[[package]]
 name = "jni"
 version = "0.21.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2292,7 +2334,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6aae1df220ece3c0ada96b8153459b67eebe9ae9212258bb0134ae60416fdf76"
 dependencies = [
  "libc",
- "libloading",
+ "libloading 0.8.5",
  "pkg-config",
 ]
 
@@ -2372,6 +2414,7 @@ checksum = "433bfe06b8c75da9b2e3fbea6e5329ff87748f0b144ef75306e674c3f6f7c13f"
 [[package]]
 name = "libcosmic"
 version = "0.1.0"
+source = "git+https://github.com/pop-os/libcosmic#a9c7c3cdbfd586b090437647e3d380977780d520"
 dependencies = [
  "apply",
  "chrono",
@@ -2399,6 +2442,16 @@ dependencies = [
  "unicode-segmentation",
  "url",
  "ustr",
+]
+
+[[package]]
+name = "libloading"
+version = "0.7.4"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b67380fd3b2fbe7527a606e18729d21c6f3951633d0500574c4dc22d2d638b9f"
+dependencies = [
+ "cfg-if",
+ "winapi",
 ]
 
 [[package]]
@@ -4160,7 +4213,7 @@ checksum = "1d52f22673960ad13af14ff4025997312def1223bfa7c8e4949d099e6b3d5d1c"
 dependencies = [
  "as-raw-xcb-connection",
  "ctor-lite",
- "libloading",
+ "libloading 0.8.5",
  "pkg-config",
  "tracing",
 ]
@@ -4704,7 +4757,7 @@ dependencies = [
  "js-sys",
  "khronos-egl",
  "libc",
- "libloading",
+ "libloading 0.8.5",
  "log",
  "metal",
  "naga",
@@ -5166,7 +5219,7 @@ dependencies = [
  "as-raw-xcb-connection",
  "gethostname",
  "libc",
- "libloading",
+ "libloading 0.8.5",
  "once_cell",
  "rustix",
  "x11rb-protocol",

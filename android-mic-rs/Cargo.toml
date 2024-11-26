@@ -5,10 +5,11 @@ edition = "2021"
 
 
 [dependencies]
-cpal = "0.15"
+# linux: alsa will probably be included as a fallback ?
+cpal = { version = "0.15", features = ["jack"] }
 byteordered = "0.6"
 rtrb = "0.3"
-crossterm = {version = "0.28"}
+crossterm = { version = "0.28" }
 clap = { version = "4.3", features = ["derive"] }
 strum = { version = "0.26", features = ["derive"] }
 local-ip-address = "0.6"
@@ -23,5 +24,5 @@ git = "https://github.com/pop-os/libcosmic"
 default-features = false
 features = ["winit", "wgpu"]
 
-[patch."https://github.com/pop-os/libcosmic"]
-libcosmic = { path = "../../libcosmic" }
+# [patch."https://github.com/pop-os/libcosmic"]
+# libcosmic = { path = "../../libcosmic" }
