@@ -15,6 +15,7 @@ pub fn setup_audio<E: ByteOrder>(
     consumer: Consumer<u8>,
     args: &Args,
 ) -> Result<cpal::Stream, BuildStreamError> {
+
     let host = cpal::default_host();
 
     print_output_devices(&host, args);

@@ -1,17 +1,38 @@
 use cosmic::{
-    widget::{button, column, radio, text},
+    iced_widget::pick_list,
+    widget::{button, column, dropdown, radio, settings, text},
     Element,
 };
 
 use crate::{
-    app::{AppMsg, AppState},
+    app::{AppMsg, AppState, AudioHost},
     config::ConnectionMode,
 };
 
 pub fn view_app<'a>(app: &'a AppState) -> Element<'a, AppMsg> {
     column()
+        .push(audio(&app))
         .push(connection_type(&app.config.settings().connection_mode))
         .push(button::text("Connect"))
+        .into()
+}
+
+fn audio<'a>(app: &'a AppState) -> Element<'a, AppMsg> {
+    column()
+        .push(text::title2("Audio"))
+        .push(settings::section().title("Host").add(pick_list(
+            app.audio_hosts.clone(),
+            Some(AudioHost {
+                id: app.audio_host.id(),
+                name: "",
+            }),
+            |a| AppMsg::Host(a.id),
+        )))
+        .push(settings::section().title("Device").add(dropdown(
+            &app.audio_devices,
+            None, // no way to compare device ?
+            |index| AppMsg::Device(index),
+        )))
         .into()
 }
 
