@@ -10,19 +10,18 @@ use tokio::sync::mpsc::{self, Sender};
 
 use cosmic::iced::stream;
 
-use crate::streamer::streamer_trait::StreamerTrait;
+use crate::streamer::StreamerTrait;
 
 use super::{
-    adb_streamer,
-    streamer_trait::{self, Streamer},
-    tcp_streamer_async,
+    adb_streamer, tcp_streamer_async, ConnectError, Dummy, Status, Streamer, StreamerContainer,
 };
 
-#[derive(Clone, Debug)]
-pub enum Status {
-    Error(String),
-    Listening { port: Option<u16> },
-    Connected,
+pub struct StatusSender(futures::channel::mpsc::Sender<StreamerMsg>);
+
+impl StatusSender {
+    async fn send(&mut self, status: Status) {
+        self.0.send(StreamerMsg::Status(status)).await.unwrap();
+    }
 }
 
 /// Streamer -> App
@@ -55,78 +54,40 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
     stream::channel(5, |mut sender| async move {
         let (tx, mut rx) = mpsc::channel(100);
 
-        let mut shared_buf: Option<Producer<u8>> = None;
-        let mut streamer: Option<Streamer> = None;
+        let mut streamer: StreamerContainer = StreamerContainer::default();
 
         send(&mut sender, StreamerMsg::Ready(tx)).await;
 
-        let mut command: Option<Option<StreamerCommand>> = None;
-
         loop {
-            if let (Some(streamer2), Some(shared_buf2)) = (&mut streamer, &mut shared_buf) {
-                let recv_future = rx.recv();
-                let process_future = streamer2.process(shared_buf2);
+            let recv_future = rx.recv();
+            let process_future = streamer.next();
 
-                pin_mut!(recv_future);
-                pin_mut!(process_future);
+            pin_mut!(recv_future);
+            pin_mut!(process_future);
 
-                match future::select(recv_future, process_future).await {
-                    Either::Left((res, _)) => {
-                        command = Some(res);
-                    }
-                    Either::Right((_process_result, _)) => {
-                        // todo: stats ?
-                    }
-                }
-            } else {
-                command = Some(rx.recv().await);
-            }
-
-            if let Some(command) = command.take() {
-                match command {
+            match future::select(recv_future, process_future).await {
+                Either::Left((command, _)) => match command {
                     Some(command) => match command {
                         StreamerCommand::Connect(connect_option, producer) => {
-                            let new_streamer: Result<Streamer, streamer_trait::ConnectError> =
-                                match connect_option {
-                                    ConnectOption::Tcp { ip } => {
-                                        tcp_streamer_async::new(ip).await.map(Streamer::from)
-                                    }
-                                    ConnectOption::Udp { ip: _ip } => todo!(),
-                                    ConnectOption::Adb => {
-                                        adb_streamer::new().await.map(Streamer::from)
-                                    }
-                                };
+                            let new_streamer: Result<Streamer, ConnectError> = match connect_option
+                            {
+                                ConnectOption::Tcp { ip } => tcp_streamer_async::new(ip, producer)
+                                    .await
+                                    .map(Streamer::from),
+                                ConnectOption::Udp { ip: _ip } => todo!(),
+                                ConnectOption::Adb => {
+                                    adb_streamer::new(producer).await.map(Streamer::from)
+                                }
+                            };
 
                             match new_streamer {
-                                Ok(mut new_streamer) => {
+                                Ok(new_streamer) => {
                                     send(
                                         &mut sender,
-                                        StreamerMsg::Status(Status::Listening {
-                                            port: new_streamer.port(),
-                                        }),
+                                        StreamerMsg::Status(new_streamer.status().unwrap()),
                                     )
                                     .await;
-
-                                    match new_streamer.listen().await {
-                                        Ok(()) => {
-                                            send(
-                                                &mut sender,
-                                                StreamerMsg::Status(Status::Connected),
-                                            )
-                                            .await;
-
-                                            streamer.replace(new_streamer);
-                                            shared_buf.replace(producer);
-                                        }
-                                        Err(e) => {
-                                            error!("{e}");
-                                            send(
-                                                &mut sender,
-                                                StreamerMsg::Status(Status::Error(e.to_string())),
-                                            )
-                                            .await;
-                                        }
-                                    }
+                                    streamer.replace(new_streamer);
                                 }
                                 Err(e) => {
                                     error!("{e}");
@@ -139,15 +100,29 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                             }
                         }
                         StreamerCommand::ChangeBuff(producer) => {
-                            shared_buf.replace(producer);
+                            streamer.set_buff(producer);
                         }
                         StreamerCommand::Stop => {
                             streamer.take();
-                            shared_buf.take();
                         }
                     },
                     None => todo!(),
-                }
+                },
+                Either::Right((res, _)) => match res {
+                    Ok(status) => {
+                        if let Some(status) = status {
+                            send(&mut sender, StreamerMsg::Status(status)).await;
+                        }
+                    }
+                    Err(e) => {
+                        send(
+                            &mut sender,
+                            StreamerMsg::Status(Status::Error(e.to_string())),
+                        )
+                        .await;
+                        streamer.take();
+                    }
+                },
             }
         }
     })

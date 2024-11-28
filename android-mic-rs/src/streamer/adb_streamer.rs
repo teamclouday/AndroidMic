@@ -1,29 +1,22 @@
-use std::{
-    process::{Child, Command},
-};
+use std::process::{Child, Command};
 
 use rtrb::Producer;
 
-use crate::utils;
+use crate::{streamer::tcp_streamer_async, utils};
 
-use super::{
-    streamer_trait::{ConnectError, StreamerTrait, WriteError},
-    tcp_streamer_async::{self, TcpStreamer},
-};
+use super::{tcp_streamer_async::TcpStreamer, ConnectError, Status, StreamerTrait, WriteError};
 
 pub struct AdbStreamer {
     tcp_streamer: TcpStreamer,
     adb_process: Child,
 }
 
-pub async fn new() -> Result<AdbStreamer, ConnectError> {
- 
-    let tcp_streamer = tcp_streamer_async::new(str::parse("127.0.0.1").unwrap()).await?;
+pub async fn new(producer: Producer<u8>) -> Result<AdbStreamer, ConnectError> {
+    let tcp_streamer = tcp_streamer_async::new(str::parse("127.0.0.1").unwrap(), producer).await?;
 
     let adb_exe_path = utils::resource_dir(true).join("adb/adb");
     dbg!(&utils::resource_dir(true).display());
     dbg!(adb_exe_path.display());
-
 
     let status = Command::new(&adb_exe_path)
         .arg("reverse")
@@ -40,7 +33,7 @@ pub async fn new() -> Result<AdbStreamer, ConnectError> {
         });
     }
 
-    let android_port= 6000;
+    let android_port = 6000;
 
     let child = Command::new(&adb_exe_path)
         .arg("reverse")
@@ -57,20 +50,17 @@ pub async fn new() -> Result<AdbStreamer, ConnectError> {
 }
 
 impl StreamerTrait for AdbStreamer {
-
-    async fn listen(&mut self) -> Result<() ,ConnectError> {
-        self.tcp_streamer.listen().await
+    async fn next(&mut self) -> Result<Option<Status>, ConnectError> {
+        self.tcp_streamer.next().await
     }
 
-    fn port(&self) -> Option<u16> {
-        self.tcp_streamer.port()
+    fn set_buff(&mut self, buff: Producer<u8>) {
+        self.tcp_streamer.set_buff(buff)
     }
-
-    async fn process(&mut self, shared_buf: &mut Producer<u8>) -> Result<usize, WriteError> {
-        self.tcp_streamer.process(shared_buf).await
-    }
-
     
+    fn status(&self) -> Option<Status> {
+        self.tcp_streamer.status()
+    }
 }
 
 impl Drop for AdbStreamer {
