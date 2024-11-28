@@ -45,6 +45,13 @@ pub enum ConnectError {
     CheckFailedIo(io::Error),
     #[error("accept failed: {0}")]
     CantAccept(io::Error),
+    #[error("command failed: {0}")]
+    CommandFailed(io::Error),
+    #[error("command failed: {code:?}:{stderr}")]
+    StatusCommand {
+        code: Option<i32>,
+        stderr: String,
+    },
 }
 
 pub enum WriteError {

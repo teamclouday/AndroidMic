@@ -13,7 +13,7 @@ pub const ORG: &str = "teamclouday";
 pub const APP: &str = "android-mic";
 
 #[cached]
-pub fn resource_dir() -> PathBuf {
+pub fn resource_dir(os_dependent: bool) -> PathBuf {
     if cfg!(ANDROID_MIC_FORMAT = "flatpak") {
         PathBuf::from(format!("/app/share/{APP_ID}/res"))
     } else {
@@ -21,8 +21,18 @@ pub fn resource_dir() -> PathBuf {
             Ok(format) => resource_resolver::resources_dir(format).unwrap(),
             Err(e) => {
                 if matches!(e, resource_resolver::Error::UnkownPackageFormat) {
-                    std::fs::canonicalize("res").unwrap()
-                    
+                    let path = std::fs::canonicalize("res").unwrap();
+                    if os_dependent {
+                        if cfg!(target_family = "unix") {
+                            path.join("linux")
+                        } else if cfg!(target_family = "windows") {
+                            path.join("windows")
+                        } else {
+                            panic!("unsupported os")
+                        }
+                    } else {
+                        path
+                    }
                 } else {
                     error!("{e}");
                     panic!()
