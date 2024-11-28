@@ -9,8 +9,8 @@ pub struct Config {
     pub connection_mode: ConnectionMode,
     pub ip: Option<IpAddr>,
     pub audio_format: AudioFormat,
-    pub channel_count: Option<ChannelCount>,
-    pub sample_rate: Option<u32>,
+    pub channel_count: ChannelCount,
+    pub sample_rate: SampleRate,
 }
 
 #[derive(
@@ -18,52 +18,81 @@ pub struct Config {
 )]
 pub enum ConnectionMode {
     #[default]
-    #[strum(serialize = "tcp", serialize = "TCP")]
     Tcp,
-    #[strum(serialize = "udp", serialize = "UDP")]
     Udp,
     Adb,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, EnumString, PartialEq, Display)]
+#[derive(Debug, Clone, Serialize, Deserialize, EnumString, PartialEq, Display, Default)]
 pub enum ChannelCount {
-    #[strum(serialize = "mono", serialize = "MONO", serialize = "1")]
+    #[default]
     Mono,
-    #[strum(serialize = "stereo", serialize = "STEREO", serialize = "2")]
     Stereo,
+}
+
+impl ChannelCount {
+    
+    pub fn number(&self) -> u16 {
+        match self {
+            ChannelCount::Mono => 1,
+            ChannelCount::Stereo => 2,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, EnumString, PartialEq, Display, Default)]
 pub enum AudioFormat {
-    #[strum(serialize = "i8")]
     I8,
     #[default]
-    #[strum(serialize = "i16")]
     I16,
-    #[strum(serialize = "i24")]
     I24,
-    #[strum(serialize = "i32")]
     I32,
-    #[strum(serialize = "i48")]
     I48,
-    #[strum(serialize = "i64")]
     I64,
 
-    #[strum(serialize = "u8")]
     U8,
-    #[strum(serialize = "u16")]
     U16,
-    #[strum(serialize = "u24")]
     U24,
-    #[strum(serialize = "u32")]
     U32,
-    #[strum(serialize = "u48")]
     U48,
-    #[strum(serialize = "u64")]
     U64,
 
-    #[strum(serialize = "f32")]
     F32,
-    #[strum(serialize = "f64")]
     F64,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, EnumString, PartialEq, Display, Default)]
+pub enum SampleRate {
+    S8000,
+    S11025,
+    #[default]
+    S16000,
+    S22050,
+    S44100,
+    S48000,
+    S88200,
+    S96600,
+    S176400,
+    S192000,
+    S352800,
+    S384000,
+}
+
+impl SampleRate {
+    pub fn number(&self) -> u32 {
+        match self {
+            SampleRate::S8000 => 8000,
+            SampleRate::S11025 => 11025,
+            SampleRate::S16000 => 16000,
+            SampleRate::S22050 => 88200,
+            SampleRate::S44100 => 88200,
+            SampleRate::S48000 => 88200,
+            SampleRate::S88200 => 88200,
+            SampleRate::S96600 => 96600,
+            SampleRate::S176400 => 176400,
+            SampleRate::S192000 => 192000,
+            SampleRate::S352800 => 352800,
+            SampleRate::S384000 => 384000,
+        }
+    }
 }

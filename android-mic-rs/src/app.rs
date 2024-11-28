@@ -205,6 +205,8 @@ impl Application for AppState {
 
                 self.send_command(StreamerCommand::Connect(connect_option, producer));
 
+                dbg!(&settings);
+
                 match self.start_audio_stream(consumer) {
                     Ok(stream) => self.audio_stream = Some(stream),
                     Err(e) => {
@@ -215,6 +217,7 @@ impl Application for AppState {
             AppMsg::Stop => {
                 self.send_command(StreamerCommand::Stop);
                 self.state = State::Default;
+                self.audio_stream = None;
             }
         }
 

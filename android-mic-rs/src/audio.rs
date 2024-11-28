@@ -13,10 +13,7 @@ use rtrb::{
     Consumer,
 };
 
-use crate::{
-    app::AppState,
-    config::{AudioFormat, ChannelCount},
-};
+use crate::{app::AppState, config::AudioFormat};
 
 impl AppState {
     pub fn start_audio_stream(&self, consumer: Consumer<u8>) -> anyhow::Result<cpal::Stream> {
@@ -43,18 +40,13 @@ impl AppState {
             bail!("no device");
         };
 
+        print_supported_config(device);
+
         let default_config: cpal::StreamConfig = device.default_output_config().unwrap().into();
 
         let config = self.config.settings();
 
-        let mut channel_count = if let Some(channel_count) = &config.channel_count {
-            match channel_count {
-                ChannelCount::Mono => 1,
-                ChannelCount::Stereo => 2,
-            }
-        } else {
-            default_config.channels
-        };
+        let mut channel_count = config.channel_count.number();
 
         let channel_strategy = match ChannelStrategy::new(device, channel_count) {
             Some(strategy) => {
@@ -70,11 +62,9 @@ impl AppState {
             }
         };
 
-        let sample_rate = if let Some(sample_rate) = config.sample_rate {
-            cpal::SampleRate(sample_rate)
-        } else {
-            default_config.sample_rate
-        };
+        // let sample_rate = cpal::SampleRate(config.sample_rate.number());
+        
+        let sample_rate = cpal::SampleRate(48000);
 
         let stream_config = StreamConfig {
             channels: channel_count,
@@ -262,4 +252,27 @@ impl ChannelStrategy {
             }
         }
     }
+}
+
+fn print_supported_config(device: &Device) {
+    let output_configs = match device.supported_output_configs() {
+        Ok(f) => f.collect(),
+        Err(e) => {
+            println!("Error getting supported output configs: {:?}", e);
+            Vec::new()
+        }
+    };
+    if !output_configs.is_empty() {
+        println!("Supported configs:");
+        for (config_index, conf) in output_configs.into_iter().enumerate() {
+            println!(
+                "channel:{}, min sample rate:{}, max sample rate:{}, audio format:{}",
+                conf.channels(),
+                conf.min_sample_rate().0,
+                conf.max_sample_rate().0,
+                conf.sample_format()
+            );
+        }
+    }
+    println!();
 }

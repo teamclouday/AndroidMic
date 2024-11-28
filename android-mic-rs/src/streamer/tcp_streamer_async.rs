@@ -72,7 +72,7 @@ pub async fn new(ip: IpAddr) -> Result<TcpStreamer, ConnectError> {
         return Err(ConnectError::CheckFailedIo(e));
     }
 
-    println!("connection accepted, address: {}", addr);
+    info!("connection accepted, remote address: {}", addr);
 
     Ok(TcpStreamer {
         ip,
