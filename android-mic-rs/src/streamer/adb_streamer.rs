@@ -1,4 +1,3 @@
-use local_ip_address::local_ip;
 use rtrb::Producer;
 
 use super::{
@@ -11,9 +10,7 @@ pub struct AdbStreamer {
 }
 
 pub async fn new() -> Result<AdbStreamer, ConnectError> {
-    let ip = local_ip().unwrap();
-
-    let tcp_streamer = tcp_streamer_async::new(ip).await?;
+    let tcp_streamer = tcp_streamer_async::new(str::parse("127.0.0.1").unwrap()).await?;
 
     let streamer = AdbStreamer { tcp_streamer };
     Ok(streamer)
