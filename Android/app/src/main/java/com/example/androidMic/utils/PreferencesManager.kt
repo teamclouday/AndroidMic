@@ -1,4 +1,4 @@
-package com.example.androidMic.ui.utils
+package com.example.androidMic.utils
 
 import android.content.Context
 import androidx.compose.runtime.Composable
@@ -14,7 +14,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.androidMic.ui.utils.PreferencesManager.Companion.editor
+import com.example.androidMic.utils.PreferencesManager.Companion.editor
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map

@@ -1,53 +1,55 @@
 package com.example.androidMic.ui.home.dialog
 
 import androidx.compose.runtime.Composable
-import com.example.androidMic.ui.AudioFormat
-import com.example.androidMic.ui.ChannelCount
-import com.example.androidMic.ui.Dialogs
+import androidx.compose.runtime.MutableState
+import com.example.androidMic.AudioFormat
+import com.example.androidMic.ChannelCount
+import com.example.androidMic.SampleRates
 import com.example.androidMic.ui.MainViewModel
-import com.example.androidMic.ui.SampleRates
-import com.example.androidMic.ui.States
 
 @Composable
-fun DialogSampleRate(mainViewModel: MainViewModel, uiStates: States.UiStates) {
+fun DialogSampleRate(
+    vm: MainViewModel,
+    expanded: MutableState<Boolean>,
+) {
     ManagerDialog(
-        mainViewModel,
-        uiStates,
-        Dialogs.SampleRates
+        expanded
     ) {
         DialogList(
-            enum = SampleRates.values().toList(),
-            onClick = { mainViewModel.setSampleRate(it) },
+            enum = SampleRates.entries,
+            onClick = { vm.setSampleRate(it) },
             text = { it.value.toString() }
         )
     }
 }
 
 @Composable
-fun DialogChannelCount(mainViewModel: MainViewModel, uiStates: States.UiStates) {
+fun DialogChannelCount(
+    vm: MainViewModel,
+    expanded: MutableState<Boolean>,
+) {
     ManagerDialog(
-        mainViewModel,
-        uiStates,
-        Dialogs.ChannelCount
+        expanded
     ) {
         DialogList(
-            enum = ChannelCount.values().toList(),
-            onClick = { mainViewModel.setChannelCount(it) },
+            enum = ChannelCount.entries,
+            onClick = { vm.setChannelCount(it) },
             text = { it.toString() }
         )
     }
 }
 
 @Composable
-fun DialogAudioFormat(mainViewModel: MainViewModel, uiStates: States.UiStates) {
+fun DialogAudioFormat(
+    vm: MainViewModel,
+    expanded: MutableState<Boolean>,
+) {
     ManagerDialog(
-        mainViewModel,
-        uiStates,
-        Dialogs.AudioFormat
+        expanded
     ) {
         DialogList(
-            enum = AudioFormat.values().toList(),
-            onClick = { mainViewModel.setAudioFormat(it) },
+            enum = AudioFormat.entries,
+            onClick = { vm.setAudioFormat(it) },
             text = { it.toString() }
         )
     }

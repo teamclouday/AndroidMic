@@ -2,25 +2,25 @@ package com.example.androidMic.ui.home.dialog
 
 import android.os.Build
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.ui.res.stringResource
 import com.example.androidMic.R
-import com.example.androidMic.ui.Dialogs
+import com.example.androidMic.Themes
 import com.example.androidMic.ui.MainViewModel
-import com.example.androidMic.ui.States
-import com.example.androidMic.ui.Themes
 import com.example.androidMic.ui.components.ManagerCheckBox
 
 @Composable
-fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
+fun DialogTheme(
+    vm: MainViewModel,
+    expanded: MutableState<Boolean>,
+) {
 
     ManagerDialog(
-        mainViewModel,
-        uiStates,
-        Dialogs.Themes
+        expanded
     ) {
         DialogList(
-            enum = Themes.values().toList(),
-            onClick = { mainViewModel.setTheme(it) },
+            enum = Themes.entries,
+            onClick = { vm.setTheme(it) },
             text = { it.toString() }
         )
 
@@ -28,9 +28,9 @@ fun DialogTheme(mainViewModel: MainViewModel, uiStates: States.UiStates) {
             DialogDivider()
 
             ManagerCheckBox(
-                checked = uiStates.dynamicColor,
+                checked = vm.prefs.dynamicColor.getAsState().value,
                 onClick = {
-                    mainViewModel.setDynamicColor(it)
+                    vm.setDynamicColor(it)
                 },
                 text = stringResource(id = R.string.dynamic_color)
             )

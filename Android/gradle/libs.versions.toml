@@ -9,6 +9,7 @@ ktx-lifecycle = "2.8.7"
 androidx-ktx = { group = "androidx.core", name = "core-ktx", version = "1.15.0" }
 runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "ktx-lifecycle" }
 runtime-compose = { group = "androidx.lifecycle", name = "lifecycle-runtime-compose", version.ref = "ktx-lifecycle" }
+androidx-viewmodel-compose = { group = "androidx.lifecycle", name = "lifecycle-viewmodel-compose", version.ref = "ktx-lifecycle" }
 compose-activity = { group = "androidx.activity", name = "activity-compose", version = "1.9.3" }
 datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version = "1.1.1" }
 

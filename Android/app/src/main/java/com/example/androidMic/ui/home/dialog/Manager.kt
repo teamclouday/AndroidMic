@@ -11,28 +11,24 @@ import androidx.compose.material3.Divider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
-import com.example.androidMic.ui.Dialogs
-import com.example.androidMic.ui.MainViewModel
-import com.example.androidMic.ui.States
 import com.example.androidMic.ui.components.ManagerButton
 
 @Composable
 fun ManagerDialog(
-    mainViewModel: MainViewModel,
-    uiStates: States.UiStates,
-    dialog: Dialogs,
+    expanded: MutableState<Boolean>,
     onDismissRequest: (() -> Unit)? = null,
     content: @Composable () -> Unit
 ) {
-    if (uiStates.dialogVisible == dialog) {
+    if (expanded.value) {
         Dialog(
             onDismissRequest = {
                 onDismissRequest?.invoke()
-                mainViewModel.showDialog(Dialogs.None)
+                expanded.value = false
             }
         ) {
             Surface(

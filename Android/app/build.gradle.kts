@@ -78,6 +78,7 @@ dependencies {
 
     // AndroidX Core
     implementation(libs.androidx.ktx)
+    implementation(libs.androidx.viewmodel.compose)
     implementation(libs.runtime.ktx)
     implementation(libs.runtime.compose)
     implementation(libs.compose.activity)
