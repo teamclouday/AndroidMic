@@ -12,6 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.Divider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -19,6 +23,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -38,7 +43,7 @@ data class MenuItem(
     val title: String,
     val subTitle: String,
     val contentDescription: String,
-    val icon: Int? = null
+    val icon: ImageVector? = null
 )
 
 @Composable
@@ -58,14 +63,14 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
             title = stringResource(id = R.string.drawerMode),
             subTitle = uiStates.mode.toString(),
             contentDescription = "set mode",
-            icon = R.drawable.settings_24px
+            icon = Icons.Rounded.Settings
         ),
         MenuItem(
             id = Dialogs.IpPort,
             title = stringResource(id = R.string.drawerIpPort),
             subTitle = uiStates.ip + ":" + uiStates.port,
             contentDescription = "set ip and port",
-            icon = R.drawable.wifi_24px
+            icon = Icons.Rounded.Wifi
 
         ),
     )
@@ -97,7 +102,7 @@ fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
             title = stringResource(id = R.string.drawerTheme),
             subTitle = uiStates.theme.toString(),
             contentDescription = "set theme",
-            icon = R.drawable.dark_mode_24px
+            icon = Icons.Rounded.DarkMode
         )
     )
 
@@ -182,7 +187,7 @@ private fun SettingsItem(mainViewModel: MainViewModel, item: MenuItem) {
     ) {
         if (item.icon != null) {
             Icon(
-                painter = painterResource(id = item.icon),
+                imageVector = item.icon,
                 contentDescription = item.contentDescription,
                 tint = MaterialTheme.colorScheme.onBackground
             )

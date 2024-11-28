@@ -17,7 +17,6 @@ import com.example.androidMic.R
 import com.example.androidMic.domain.service.Command
 import com.example.androidMic.domain.service.Command.Companion.COMMAND_DISC_STREAM
 import com.example.androidMic.domain.service.Command.Companion.COMMAND_GET_STATUS
-import com.example.androidMic.ui.utils.PrefManager
 import com.example.androidMic.utils.checkIp
 import com.example.androidMic.utils.checkPort
 
@@ -31,7 +30,7 @@ class MainViewModel(
 
     val uiStates = savedStateHandle.getStateFlow("uiStates", States.UiStates())
 
-    private val prefManager = PrefManager(application as AndroidMicApp)
+    private val prefManager = PrefManager(application)
 
     private var mService: Messenger? = null
     private var mBound = false

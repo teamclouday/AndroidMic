@@ -46,9 +46,9 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (intent?.extras?.getBoolean("ForegroundServiceBound") == true) {
+        if (intent.extras?.getBoolean("ForegroundServiceBound") == true) {
             Log.d(TAG, "onNewIntent -> ForegroundServiceBound")
             // get variable from application
             mainViewModel.refreshAppVariables()

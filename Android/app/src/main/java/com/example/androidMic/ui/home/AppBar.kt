@@ -2,6 +2,8 @@ package com.example.androidMic.ui.home
 
 
 import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Menu
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -34,7 +36,7 @@ fun AppBar(
         navigationIcon = {
             IconButton(onClick = onNavigationIconClick) {
                 Icon(
-                    painter = painterResource(id = R.drawable.menu_48px),
+                    imageVector = Icons.Rounded.Menu,
                     contentDescription = "Toggle drawer",
                     modifier = Modifier.size(25.dp)
                 )
