@@ -6,10 +6,11 @@ use tokio::{
     net::{TcpListener, TcpStream},
 };
 
-use crate::streamer::{
-    self, ConnectError, StreamerTrait, WriteError, DEFAULT_PORT, DEVICE_CHECK, DEVICE_CHECK_EXPECTED,
-    IO_BUF_SIZE, MAX_PORT,
+use crate::streamer::streamer_trait::{
+    DEFAULT_PORT, DEVICE_CHECK, DEVICE_CHECK_EXPECTED, IO_BUF_SIZE, MAX_PORT,
 };
+
+use super::streamer_trait::{ConnectError, StreamerTrait, WriteError};
 
 const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
 
@@ -17,13 +18,13 @@ const DISCONNECT_LOOP_DETECTER_MAX: u32 = 1000;
 
 pub struct TcpStreamer {
     ip: IpAddr,
-    port: u16,
+    pub port: u16,
     stream: TcpStream,
     io_buf: [u8; 1024],
     disconnect_loop_detecter: u32,
 }
 
-pub async fn new(ip: IpAddr) -> Result<TcpStreamer, streamer::ConnectError> {
+pub async fn new(ip: IpAddr) -> Result<TcpStreamer, ConnectError> {
     let mut listener = None;
 
     // try to always bind the same port, to not change it everytime Android side

@@ -1,7 +1,11 @@
-use byteordered::byteorder::{self, ByteOrder};
+use anyhow::bail;
+use byteordered::{
+    byteorder::{self, BigEndian, ByteOrder, LittleEndian},
+    Endianness,
+};
 use cpal::{
-    traits::{DeviceTrait, HostTrait},
-    BuildStreamError, Device, Host, SizedSample, StreamConfig,
+    traits::{DeviceTrait, StreamTrait},
+    BuildStreamError, Device, SizedSample, StreamConfig,
 };
 
 use rtrb::{
@@ -9,102 +13,103 @@ use rtrb::{
     Consumer,
 };
 
-use crate::user_action::{Args, AudioFormat, ChannelCount};
+use crate::{
+    app::AppState,
+    config::{AudioFormat, ChannelCount},
+};
 
-pub fn setup_audio<E: ByteOrder>(
-    consumer: Consumer<u8>,
-    args: &Args,
-) -> Result<cpal::Stream, BuildStreamError> {
+impl AppState {
+    pub fn start_audio_stream(&self, consumer: Consumer<u8>) -> anyhow::Result<cpal::Stream> {
+        info!("{:?}", Endianness::native());
 
-    let host = cpal::default_host();
+        let stream = match Endianness::native() {
+            Endianness::Little => self.build_audio_stream_inner::<LittleEndian>(consumer),
+            Endianness::Big => {
+                warn!("warning! most phone use little endian nowdays. we might need to convert little -> big");
+                self.build_audio_stream_inner::<BigEndian>(consumer)
+            }
+        }?;
 
-    print_output_devices(&host, args);
+        stream.play()?;
 
-    let device_opt = match args.output_device {
-        0 => host.default_output_device(),
-        _ => {
-            let ouput_devices = host.output_devices().unwrap();
-            let mut device_opt = None;
-            for (device_index, device) in ouput_devices.enumerate() {
-                if args.output_device == device_index + 1 {
-                    device_opt = Some(device)
+        Ok(stream)
+    }
+
+    fn build_audio_stream_inner<E: ByteOrder>(
+        &self,
+        consumer: Consumer<u8>,
+    ) -> anyhow::Result<cpal::Stream> {
+        let Some(device) = &self.audio_device else {
+            bail!("no device");
+        };
+
+        let default_config: cpal::StreamConfig = device.default_output_config().unwrap().into();
+
+        let config = self.config.settings();
+
+        let mut channel_count = if let Some(channel_count) = &config.channel_count {
+            match channel_count {
+                ChannelCount::Mono => 1,
+                ChannelCount::Stereo => 2,
+            }
+        } else {
+            default_config.channels
+        };
+
+        let channel_strategy = match ChannelStrategy::new(device, channel_count) {
+            Some(strategy) => {
+                if strategy == ChannelStrategy::MonoCloned {
+                    // notify the user because it will change the printed config
+                    println!("Only stereo is supported, fall back to mono cloned strategy.");
+                    channel_count = 2;
                 }
+                strategy
             }
-            device_opt
-        }
-    };
-
-    let Some(device) = device_opt else {
-        eprintln!("Selected output device not found.");
-        return Err(BuildStreamError::DeviceNotAvailable);
-    };
-
-    let default_config: cpal::StreamConfig = device.default_output_config().unwrap().into();
-
-    let mut channel_count = if let Some(channel_count) = &args.channel_count {
-        match channel_count {
-            ChannelCount::Mono => 1,
-            ChannelCount::Stereo => 2,
-        }
-    } else {
-        default_config.channels
-    };
-
-    let channel_strategy = match ChannelStrategy::new(&device, channel_count) {
-        Some(strategy) => {
-            if strategy == ChannelStrategy::MonoCloned {
-                // notify the user because it will change the printed config
-                println!("Only stereo is supported, fall back to mono cloned strategy.");
-                channel_count = 2;
+            None => {
+                bail!("unsupported channels configuration.");
             }
-            strategy
-        }
-        None => {
-            eprintln!("unsupported channels configuration.");
-            return Err(BuildStreamError::StreamConfigNotSupported);
-        }
-    };
+        };
 
-    let sample_rate = if let Some(sample_rate) = args.sample_rate {
-        cpal::SampleRate(sample_rate)
-    } else {
-        default_config.sample_rate
-    };
+        let sample_rate = if let Some(sample_rate) = config.sample_rate {
+            cpal::SampleRate(sample_rate)
+        } else {
+            default_config.sample_rate
+        };
 
-    let config = StreamConfig {
-        channels: channel_count,
-        sample_rate,
-        buffer_size: default_config.buffer_size,
-    };
+        let stream_config = StreamConfig {
+            channels: channel_count,
+            sample_rate,
+            buffer_size: default_config.buffer_size,
+        };
 
-    println!();
-    println!("Audio config:");
-    println!("- selected device: {}", args.output_device);
-    println!("- number of channel: {}", config.channels);
-    println!("- sample rate: {}", config.sample_rate.0);
-    println!("- buffer size: {:?}", config.buffer_size);
-    println!("- audio format: {}", args.audio_format);
-    println!();
+        let stream = match config.audio_format {
+            AudioFormat::I8 => todo!(),
+            AudioFormat::I16 => {
+                build_stream::<i16, E>(device, &stream_config, consumer, channel_strategy)
+            }
+            AudioFormat::I24 => todo!(),
+            AudioFormat::I32 => {
+                build_stream::<i32, E>(device, &stream_config, consumer, channel_strategy)
+            }
+            AudioFormat::I48 => todo!(),
+            AudioFormat::I64 => todo!(),
+            AudioFormat::U8 => todo!(),
+            AudioFormat::U16 => todo!(),
+            AudioFormat::U24 => todo!(),
+            AudioFormat::U32 => todo!(),
+            AudioFormat::U48 => todo!(),
+            AudioFormat::U64 => todo!(),
+            AudioFormat::F32 => {
+                build_stream::<f32, E>(device, &stream_config, consumer, channel_strategy)
+            }
+            AudioFormat::F64 => todo!(),
+        }?;
 
-    match args.audio_format {
-        AudioFormat::I8 => todo!(),
-        AudioFormat::I16 => build::<i16, E>(&device, &config, consumer, channel_strategy),
-        AudioFormat::I24 => todo!(),
-        AudioFormat::I32 => build::<i32, E>(&device, &config, consumer, channel_strategy),
-        AudioFormat::I48 => todo!(),
-        AudioFormat::I64 => todo!(),
-        AudioFormat::U8 => todo!(),
-        AudioFormat::U16 => todo!(),
-        AudioFormat::U24 => todo!(),
-        AudioFormat::U32 => todo!(),
-        AudioFormat::U48 => todo!(),
-        AudioFormat::U64 => todo!(),
-        AudioFormat::F32 => build::<f32, E>(&device, &config, consumer, channel_strategy),
-        AudioFormat::F64 => todo!(),
+        Ok(stream)
     }
 }
 
-fn build<F, E>(
+fn build_stream<F, E>(
     device: &cpal::Device,
     config: &cpal::StreamConfig,
     mut consumer: Consumer<u8>,
@@ -162,13 +167,7 @@ impl Format for i16 {
     fn produce_value_from_chunk<T: ByteOrder>(
         chunk: &mut ReadChunkIntoIter<'_, u8>,
     ) -> Option<Self> {
-        let Some(byte1) = chunk.next() else {
-            return None;
-        };
-        let Some(byte2) = chunk.next() else {
-            return None;
-        };
-        Some(T::read_i16(&[byte1, byte2]))
+        Some(T::read_i16(&[chunk.next()?, chunk.next()?]))
     }
 }
 
@@ -177,21 +176,12 @@ impl Format for i32 {
     fn produce_value_from_chunk<T: byteorder::ByteOrder>(
         chunk: &mut ReadChunkIntoIter<'_, u8>,
     ) -> Option<Self> {
-        let Some(byte1) = chunk.next() else {
-            return None;
-        };
-        let Some(byte2) = chunk.next() else {
-            return None;
-        };
-
-        let Some(byte3) = chunk.next() else {
-            return None;
-        };
-        let Some(byte4) = chunk.next() else {
-            return None;
-        };
-
-        Some(T::read_i32(&[byte1, byte2, byte3, byte4]))
+        Some(T::read_i32(&[
+            chunk.next()?,
+            chunk.next()?,
+            chunk.next()?,
+            chunk.next()?,
+        ]))
     }
 }
 
@@ -200,72 +190,12 @@ impl Format for f32 {
     fn produce_value_from_chunk<T: byteorder::ByteOrder>(
         chunk: &mut ReadChunkIntoIter<'_, u8>,
     ) -> Option<Self> {
-        let Some(byte1) = chunk.next() else {
-            return None;
-        };
-        let Some(byte2) = chunk.next() else {
-            return None;
-        };
-
-        let Some(byte3) = chunk.next() else {
-            return None;
-        };
-        let Some(byte4) = chunk.next() else {
-            return None;
-        };
-
-        Some(T::read_f32(&[byte1, byte2, byte3, byte4]))
-    }
-}
-
-fn print_output_devices(host: &Host, args: &Args) {
-    println!("Default host: {}\n", host.id().name());
-
-    let default_output: Option<Device> = host.default_output_device();
-
-    if let Some(ref device) = default_output {
-        println!(
-            "Default output device:\n    0. {:?}\n",
-            device.name().unwrap()
-        );
-    };
-
-    let ouput_devices = host.output_devices().unwrap();
-
-    println!("All output devices:");
-    for (device_index, device) in ouput_devices.enumerate() {
-        println!("    {}. \"{}\"", device_index + 1, device.name().unwrap());
-
-        if let Ok(conf) = device.default_output_config() {
-            println!(
-                "        Default config: channel:{}, sample rate:{}, audio format:{}",
-                conf.channels(),
-                conf.sample_rate().0,
-                conf.sample_format()
-            );
-        }
-        let output_configs = match device.supported_output_configs() {
-            Ok(f) => f.collect(),
-            Err(e) => {
-                println!("        Error getting supported output configs: {:?}", e);
-                Vec::new()
-            }
-        };
-        if args.show_supported_audio_config && !output_configs.is_empty() {
-            println!("        Supported configs:");
-            for (config_index, conf) in output_configs.into_iter().enumerate() {
-                println!(
-                    "            {}.{} channel:{}, min sample rate:{}, max sample rate:{}, audio format:{}",
-                    device_index + 1,
-                    config_index + 1,
-                    conf.channels(),
-                    conf.min_sample_rate().0,
-                    conf.max_sample_rate().0,
-                    conf.sample_format()
-                );
-            }
-        }
-        println!();
+        Some(T::read_f32(&[
+            chunk.next()?,
+            chunk.next()?,
+            chunk.next()?,
+            chunk.next()?,
+        ]))
     }
 }
 

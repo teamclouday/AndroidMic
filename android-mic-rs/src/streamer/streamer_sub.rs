@@ -1,7 +1,4 @@
-use std::{
-    net::IpAddr,
-    pin::{pin, Pin},
-};
+use std::net::IpAddr;
 
 use cosmic::iced::futures::{SinkExt, Stream};
 use futures::{
@@ -9,20 +6,24 @@ use futures::{
     pin_mut,
 };
 use rtrb::Producer;
-use tokio::{
-    select,
-    sync::mpsc::{self, Sender},
-};
-
-use crate::{
-    adb_streamer,
-    app::AppMsg,
-    config::ConnectionMode,
-    streamer::{self, Status, Streamer, StreamerTrait},
-    tcp_streamer_async::{self, TcpStreamer},
-};
+use tokio::sync::mpsc::{self, Sender};
 
 use cosmic::iced::stream;
+
+use crate::streamer::streamer_trait::StreamerTrait;
+
+use super::{
+    adb_streamer,
+    streamer_trait::{self, Streamer},
+    tcp_streamer_async,
+};
+
+#[derive(Clone, Debug)]
+pub enum Status {
+    Error(String),
+    Listening,
+    Connected { port: Option<u16> },
+}
 
 /// Streamer -> App
 #[derive(Debug, Clone)]
@@ -31,15 +32,20 @@ pub enum StreamerMsg {
     Ready(Sender<StreamerCommand>),
 }
 
+#[derive(Debug)]
+pub enum ConnectOption {
+    Tcp { ip: IpAddr },
+    Udp { ip: IpAddr },
+    Adb,
+}
+
 /// App -> Streamer
 #[derive(Debug)]
 pub enum StreamerCommand {
-    Connect(ConnectionMode, Producer<u8>),
+    Connect(ConnectOption, Producer<u8>),
     ChangeBuff(Producer<u8>),
     Stop,
 }
-
-
 
 async fn send(sender: &mut futures::channel::mpsc::Sender<StreamerMsg>, msg: StreamerMsg) {
     sender.send(msg).await.unwrap();
@@ -68,7 +74,7 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                     Either::Left((res, _)) => {
                         command = Some(res);
                     }
-                    Either::Right((process_result, _)) => {
+                    Either::Right((_process_result, _)) => {
                         // todo: stats ?
                     }
                 }
@@ -79,17 +85,17 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
             if let Some(command) = command.take() {
                 match command {
                     Some(command) => match command {
-                        StreamerCommand::Connect(connection_mode, producer) => {
-                            let ip: IpAddr = str::parse("ip").unwrap();
-
-                            let streamer2: Result<Streamer, streamer::ConnectError> = match connection_mode
-                            {
-                                ConnectionMode::Tcp => {
-                                    tcp_streamer_async::new(ip).await.map(Streamer::from)
-                                }
-                                ConnectionMode::Udp => todo!(),
-                                ConnectionMode::Adb => adb_streamer::new(ip).map(Streamer::from),
-                            };
+                        StreamerCommand::Connect(connect_option, producer) => {
+                            let streamer2: Result<Streamer, streamer_trait::ConnectError> =
+                                match connect_option {
+                                    ConnectOption::Tcp { ip } => {
+                                        tcp_streamer_async::new(ip).await.map(Streamer::from)
+                                    }
+                                    ConnectOption::Udp { ip: _ip } => todo!(),
+                                    ConnectOption::Adb => {
+                                        adb_streamer::new().await.map(Streamer::from)
+                                    }
+                                };
 
                             match streamer2 {
                                 Ok(streamer2) => {

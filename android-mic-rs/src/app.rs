@@ -2,20 +2,20 @@ use cpal::{
     traits::{DeviceTrait, HostTrait},
     Device, Host, HostId,
 };
+use local_ip_address::local_ip;
+use rtrb::RingBuffer;
 use tokio::sync::mpsc::Sender;
 
 use cosmic::{
     app::{Core, Settings, Task},
     executor,
     iced::{futures::StreamExt, Subscription},
-    widget::{column, dropdown, radio, text},
     Application,
 };
 
 use crate::{
     config::{Config, ConnectionMode},
-    streamer::{self, Status, Streamer},
-    streamer_sub::{self, StreamerCommand, StreamerMsg},
+    streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg},
     view::view_app,
 };
 use zconf2::ConfigManager;
@@ -63,6 +63,15 @@ impl AudioDevice {
     }
 }
 
+const SHARED_BUF_SIZE: usize = 5 * 1024;
+
+pub enum State {
+    Default,
+    WaitingOnStatus,
+    Connected,
+    Listening,
+}
+
 pub struct AppState {
     core: Core,
     pub audio_host: Host,
@@ -70,9 +79,9 @@ pub struct AppState {
     pub audio_stream: Option<cpal::Stream>,
     pub streamer: Option<Sender<StreamerCommand>>,
     pub config: ConfigManager<Config>,
-    pub status: Status,
     pub audio_hosts: Vec<AudioHost>,
     pub audio_devices: Vec<AudioDevice>,
+    pub state: State,
 }
 
 #[derive(Debug, Clone)]
@@ -81,6 +90,14 @@ pub enum AppMsg {
     Streamer(StreamerMsg),
     Host(HostId),
     Device(usize),
+    Connect,
+    Stop,
+}
+
+impl AppState {
+    fn send_command(&self, cmd: StreamerCommand) {
+        self.streamer.as_ref().unwrap().blocking_send(cmd).unwrap();
+    }
 }
 
 impl Application for AppState {
@@ -102,7 +119,7 @@ impl Application for AppState {
 
     fn init(
         core: cosmic::app::Core,
-        flags: Self::Flags,
+        _flags: Self::Flags,
     ) -> (Self, cosmic::app::Task<Self::Message>) {
         let config = ConfigManager::new("io.github", "wiiznokes", "android-mic").unwrap();
 
@@ -120,7 +137,7 @@ impl Application for AppState {
         let audio_devices = audio_host
             .output_devices()
             .unwrap()
-            .map(|d| AudioDevice::new(d))
+            .map(AudioDevice::new)
             .collect();
 
         let app = Self {
@@ -129,24 +146,40 @@ impl Application for AppState {
             streamer: None,
             config,
             audio_device,
-            status: Status::Default,
             audio_host,
             audio_hosts,
             audio_devices,
+            state: State::Default,
         };
 
         (app, Task::none())
     }
 
     fn update(&mut self, message: Self::Message) -> Task<Self::Message> {
+        let settings = self.config.settings();
+
         match message {
             AppMsg::ConnectionMode(connection_mode) => {
                 self.config.update(|config| {
-                    config.connection_mode = connection_mode.clone();
+                    config.connection_mode = connection_mode;
                 });
             }
             AppMsg::Streamer(streamer_msg) => match streamer_msg {
-                StreamerMsg::Status(status) => self.status = status,
+                StreamerMsg::Status(status) => match status {
+                    Status::Error(e) => {
+                        error!("{e}");
+                        self.state = State::Default;
+                    }
+                    Status::Listening => {
+                        self.state = State::Listening;
+                    }
+                    Status::Connected { port } => {
+                        if let Some(port) = port {
+                            println!("port: {}", port);
+                        }
+                        self.state = State::Connected;
+                    }
+                },
                 StreamerMsg::Ready(sender) => self.streamer = Some(sender),
             },
             AppMsg::Host(host_id) => match cpal::host_from_id(host_id) {
@@ -155,6 +188,33 @@ impl Application for AppState {
             },
             AppMsg::Device(pos) => {
                 self.audio_device = Some(self.audio_devices[pos].device.clone());
+            }
+            AppMsg::Connect => {
+                self.state = State::WaitingOnStatus;
+                let (producer, consumer) = RingBuffer::<u8>::new(SHARED_BUF_SIZE);
+
+                let connect_option = match settings.connection_mode {
+                    ConnectionMode::Tcp => ConnectOption::Tcp {
+                        ip: settings.ip.unwrap_or(local_ip().unwrap()),
+                    },
+                    ConnectionMode::Udp => ConnectOption::Udp {
+                        ip: settings.ip.unwrap_or(local_ip().unwrap()),
+                    },
+                    ConnectionMode::Adb => ConnectOption::Adb,
+                };
+
+                self.send_command(StreamerCommand::Connect(connect_option, producer));
+
+                match self.start_audio_stream(consumer) {
+                    Ok(stream) => self.audio_stream = Some(stream),
+                    Err(e) => {
+                        error!("{e}")
+                    }
+                }
+            }
+            AppMsg::Stop => {
+                self.send_command(StreamerCommand::Stop);
+                self.state = State::Default;
             }
         }
 
@@ -165,6 +225,6 @@ impl Application for AppState {
     }
 
     fn subscription(&self) -> cosmic::iced::Subscription<Self::Message> {
-        Subscription::run(|| streamer_sub::sub().map(AppMsg::Streamer))
+        Subscription::run(|| streamer::sub().map(AppMsg::Streamer))
     }
 }

@@ -3,6 +3,11 @@ name = "android-mic"
 version = "0.1.0"
 edition = "2021"
 
+[lints.rust]
+dead_code = "allow"
+
+[lints.clippy]
+to_string_trait_impl = "allow"
 
 [dependencies]
 # linux: alsa will probably be included as a fallback ?
@@ -31,3 +36,4 @@ features = ["winit", "wgpu"]
 
 # [patch."https://github.com/pop-os/libcosmic"]
 # libcosmic = { path = "../../libcosmic" }
+

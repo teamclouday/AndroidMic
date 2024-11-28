@@ -4,8 +4,7 @@ use enum_dispatch::enum_dispatch;
 use rtrb::Producer;
 use thiserror::Error;
 
-use crate::{adb_streamer::AdbStreamer, tcp_streamer_async::TcpStreamer};
-
+use super::{adb_streamer::AdbStreamer, tcp_streamer_async::TcpStreamer};
 
 // first we read, next we send
 pub const DEVICE_CHECK_EXPECTED: &str = "AndroidMicCheck";
@@ -14,13 +13,6 @@ pub const DEVICE_CHECK: &str = "AndroidMicCheckAck";
 pub const DEFAULT_PORT: u16 = 55555;
 pub const MAX_PORT: u16 = 60000;
 pub const IO_BUF_SIZE: usize = 1024;
-
-#[derive(Clone, Debug)]
-pub enum Status {
-    Default,
-    Listening,
-    Connected,
-}
 
 #[enum_dispatch]
 pub trait StreamerTrait {
