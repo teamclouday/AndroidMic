@@ -32,6 +32,7 @@ android {
     }
 
     buildTypes {
+
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -39,6 +40,11 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("debug")
+        }
+
+        create("releaseTesting") {
+            initWith(buildTypes["release"])
+            applicationIdSuffix = ".testing"
         }
 
         debug {
