@@ -14,7 +14,10 @@ use cosmic::{
 };
 
 use crate::{
-    config::{Config, ConnectionMode}, streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg}, utils::APP_ID, view::view_app
+    config::{Config, ConnectionMode},
+    streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg},
+    utils::APP_ID,
+    view::view_app,
 };
 use zconf2::ConfigManager;
 
@@ -168,13 +171,14 @@ impl Application for AppState {
                         // error!("{e}");
                         self.state = State::Default;
                     }
-                    Status::Listening => {
-                        self.state = State::Listening;
-                    }
-                    Status::Connected { port } => {
+                    Status::Listening { port } => {
                         if let Some(port) = port {
                             println!("port: {}", port);
                         }
+
+                        self.state = State::Listening;
+                    }
+                    Status::Connected => {
                         self.state = State::Connected;
                     }
                 },

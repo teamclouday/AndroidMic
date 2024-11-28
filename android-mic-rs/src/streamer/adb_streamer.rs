@@ -1,9 +1,7 @@
 use std::{
-    fs,
     process::{Child, Command},
 };
 
-use crate::streamer::streamer_trait::DEFAULT_PORT;
 use rtrb::Producer;
 
 use crate::utils;
@@ -42,9 +40,12 @@ pub async fn new() -> Result<AdbStreamer, ConnectError> {
         });
     }
 
+    let android_port= 6000;
+
     let child = Command::new(&adb_exe_path)
         .arg("reverse")
-        .arg(format!("tcp:{DEFAULT_PORT} tcp:{}", tcp_streamer.port))
+        .arg(format!("tcp:{android_port}"))
+        .arg(format!("tcp:{}", tcp_streamer.port))
         .spawn()
         .map_err(ConnectError::CommandFailed)?;
 
@@ -56,13 +57,20 @@ pub async fn new() -> Result<AdbStreamer, ConnectError> {
 }
 
 impl StreamerTrait for AdbStreamer {
-    async fn process(&mut self, shared_buf: &mut Producer<u8>) -> Result<usize, WriteError> {
-        self.tcp_streamer.process(shared_buf).await
+
+    async fn listen(&mut self) -> Result<() ,ConnectError> {
+        self.tcp_streamer.listen().await
     }
 
     fn port(&self) -> Option<u16> {
         self.tcp_streamer.port()
     }
+
+    async fn process(&mut self, shared_buf: &mut Producer<u8>) -> Result<usize, WriteError> {
+        self.tcp_streamer.process(shared_buf).await
+    }
+
+    
 }
 
 impl Drop for AdbStreamer {

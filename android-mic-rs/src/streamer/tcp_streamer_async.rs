@@ -19,9 +19,10 @@ const DISCONNECT_LOOP_DETECTER_MAX: u32 = 1000;
 pub struct TcpStreamer {
     ip: IpAddr,
     pub port: u16,
-    stream: TcpStream,
+    stream: Option<TcpStream>,
     io_buf: [u8; 1024],
     disconnect_loop_detecter: u32,
+    listener: Option<TcpListener>,
 }
 
 pub async fn new(ip: IpAddr) -> Result<TcpStreamer, ConnectError> {
@@ -45,47 +46,65 @@ pub async fn new(ip: IpAddr) -> Result<TcpStreamer, ConnectError> {
 
     let addr = TcpListener::local_addr(&listener).map_err(ConnectError::NoLocalAddress)?;
 
-    info!("TCP server listening on {}", addr);
-
-    let (mut stream, addr) = listener.accept().await.map_err(ConnectError::CantAccept)?;
-
-    // read check
-    let mut check_buf = [0u8; DEVICE_CHECK_EXPECTED.len()];
-    // read_to_string doesn't works somehow, we need a fixed buffer
-    match stream.read(&mut check_buf).await {
-        Ok(_) => {
-            let message = from_utf8(&check_buf).unwrap();
-            if DEVICE_CHECK_EXPECTED != message {
-                return Err(ConnectError::CheckFailed {
-                    expected: DEVICE_CHECK_EXPECTED,
-                    received: message.into(),
-                });
-            }
-        }
-        Err(e) => {
-            return Err(ConnectError::CheckFailedIo(e));
-        }
-    }
-
-    // write check
-    if let Err(e) = stream.write(DEVICE_CHECK.as_bytes()).await {
-        return Err(ConnectError::CheckFailedIo(e));
-    }
-
-    info!("connection accepted, remote address: {}", addr);
-
     Ok(TcpStreamer {
         ip,
         port: addr.port(),
-        stream,
+        stream: None,
         io_buf: [0u8; IO_BUF_SIZE],
         disconnect_loop_detecter: 0,
+        listener: Some(listener),
     })
 }
 
 impl StreamerTrait for TcpStreamer {
+    async fn listen(&mut self) -> Result<(), ConnectError> {
+        let addr = TcpListener::local_addr(&self.listener.as_ref().unwrap())
+            .map_err(ConnectError::NoLocalAddress)?;
+
+        info!("TCP server listening on {}", addr);
+
+        let (mut stream, addr) = self
+            .listener
+            .as_ref()
+            .unwrap()
+            .accept()
+            .await
+            .map_err(ConnectError::CantAccept)?;
+
+        // read check
+        let mut check_buf = [0u8; DEVICE_CHECK_EXPECTED.len()];
+        // read_to_string doesn't works somehow, we need a fixed buffer
+        match stream.read(&mut check_buf).await {
+            Ok(_) => {
+                let message = from_utf8(&check_buf).unwrap();
+                if DEVICE_CHECK_EXPECTED != message {
+                    return Err(ConnectError::CheckFailed {
+                        expected: DEVICE_CHECK_EXPECTED,
+                        received: message.into(),
+                    });
+                }
+            }
+            Err(e) => {
+                return Err(ConnectError::CheckFailedIo(e));
+            }
+        }
+
+        // write check
+        if let Err(e) = stream.write(DEVICE_CHECK.as_bytes()).await {
+            return Err(ConnectError::CheckFailedIo(e));
+        }
+
+        info!("connection accepted, remote address: {}", addr);
+
+        Ok(())
+    }
+
+    fn port(&self) -> Option<u16> {
+        Some(self.port)
+    }
+
     async fn process(&mut self, producer: &mut Producer<u8>) -> Result<usize, WriteError> {
-        match self.stream.read(&mut self.io_buf).await {
+        match self.stream.as_mut().unwrap().read(&mut self.io_buf).await {
             Ok(size) => {
                 if size == 0 {
                     if self.disconnect_loop_detecter >= DISCONNECT_LOOP_DETECTER_MAX {
@@ -125,9 +144,5 @@ impl StreamerTrait for TcpStreamer {
                 }
             }
         }
-    }
-
-    fn port(&self) -> Option<u16> {
-        Some(self.port)
     }
 }

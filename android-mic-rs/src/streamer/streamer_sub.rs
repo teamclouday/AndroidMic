@@ -21,8 +21,8 @@ use super::{
 #[derive(Clone, Debug)]
 pub enum Status {
     Error(String),
-    Listening,
-    Connected { port: Option<u16> },
+    Listening { port: Option<u16> },
+    Connected,
 }
 
 /// Streamer -> App
@@ -98,16 +98,35 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                 };
 
                             match new_streamer {
-                                Ok(new_streamer) => {
+                                Ok(mut new_streamer) => {
                                     send(
                                         &mut sender,
-                                        StreamerMsg::Status(Status::Connected {
+                                        StreamerMsg::Status(Status::Listening {
                                             port: new_streamer.port(),
                                         }),
                                     )
                                     .await;
-                                    streamer.replace(new_streamer);
-                                    shared_buf.replace(producer);
+
+                                    match new_streamer.listen().await {
+                                        Ok(()) => {
+                                            send(
+                                                &mut sender,
+                                                StreamerMsg::Status(Status::Connected),
+                                            )
+                                            .await;
+
+                                            streamer.replace(new_streamer);
+                                            shared_buf.replace(producer);
+                                        }
+                                        Err(e) => {
+                                            error!("{e}");
+                                            send(
+                                                &mut sender,
+                                                StreamerMsg::Status(Status::Error(e.to_string())),
+                                            )
+                                            .await;
+                                        }
+                                    }
                                 }
                                 Err(e) => {
                                     error!("{e}");
