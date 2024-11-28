@@ -1,4 +1,9 @@
+use std::fs;
+
 use rtrb::Producer;
+use tokio::fs::read_dir;
+
+use crate::utils;
 
 use super::{
     streamer_trait::{ConnectError, StreamerTrait, WriteError},
@@ -10,7 +15,13 @@ pub struct AdbStreamer {
 }
 
 pub async fn new() -> Result<AdbStreamer, ConnectError> {
+
+    
+    dbg!(&utils::resource_dir().display());
+    
     let tcp_streamer = tcp_streamer_async::new(str::parse("127.0.0.1").unwrap()).await?;
+    
+    
 
     let streamer = AdbStreamer { tcp_streamer };
     Ok(streamer)

@@ -10,6 +10,7 @@ mod message;
 mod streamer;
 // mod user_action;
 mod view;
+mod utils;
 
 fn main() {
     env_logger::init();

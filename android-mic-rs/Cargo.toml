@@ -3,8 +3,22 @@ name = "android-mic"
 version = "0.1.0"
 edition = "2021"
 
+
+[package.metadata.packager]
+before-each-package-command = "cargo build --release"
+identifier = "io.github.teamclouday.android-mic"
+icons = ["res/windows/app_icon.ico"]
+resources = ["res/windows/adb"]
+category = "Utility"
+
+[package.metadata.packager.windows]
+allow_downgrades = true
+
 [lints.rust]
 dead_code = "allow"
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(ANDROID_MIC_FORMAT, values("flatpak"))',
+] }
 
 [lints.clippy]
 to_string_trait_impl = "allow"
@@ -28,6 +42,12 @@ anyhow = "1"
 thiserror = "2"
 enum_dispatch = "0.3"
 futures = "0.3.31"
+# include_dir = "0.7.4"
+cached = "0.54"
+constcat = "0.5"
+cargo-packager-resource-resolver = { version = "0.1", features = [
+    "auto-detect-format",
+] }
 
 [dependencies.libcosmic]
 git = "https://github.com/pop-os/libcosmic"

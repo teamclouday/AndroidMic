@@ -14,9 +14,7 @@ use cosmic::{
 };
 
 use crate::{
-    config::{Config, ConnectionMode},
-    streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg},
-    view::view_app,
+    config::{Config, ConnectionMode}, streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg}, utils::APP_ID, view::view_app
 };
 use zconf2::ConfigManager;
 
@@ -107,7 +105,7 @@ impl Application for AppState {
 
     type Message = AppMsg;
 
-    const APP_ID: &'static str = "io.github.wiiznokes.android-mic";
+    const APP_ID: &'static str = APP_ID;
 
     fn core(&self) -> &cosmic::app::Core {
         &self.core

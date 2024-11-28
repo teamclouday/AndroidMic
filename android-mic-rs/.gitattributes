@@ -1,0 +1,2 @@
+res/windows/adb/** filter=lfs diff=lfs merge=lfs -text
+res/linux/adb/** filter=lfs diff=lfs merge=lfs -text

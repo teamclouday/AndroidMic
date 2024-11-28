@@ -1,1 +1,3 @@
 target/
+res/linux/adb
+res/windows/adb
