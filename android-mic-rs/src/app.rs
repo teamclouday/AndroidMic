@@ -166,8 +166,8 @@ impl Application for AppState {
             }
             AppMsg::Streamer(streamer_msg) => match streamer_msg {
                 StreamerMsg::Status(status) => match status {
-                    Status::Error(e) => {
-                        error!("{e}");
+                    Status::Error(_e) => {
+                        // error!("{e}");
                         self.state = State::Default;
                     }
                     Status::Listening => {

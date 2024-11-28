@@ -18,6 +18,10 @@ pub const IO_BUF_SIZE: usize = 1024;
 pub trait StreamerTrait {
     /// return the number of item moved or an error
     async fn process(&mut self, shared_buf: &mut Producer<u8>) -> Result<usize, WriteError>;
+
+    fn port(&self) -> Option<u16> {
+        None
+    }
 }
 
 #[enum_dispatch(StreamerTrait)]

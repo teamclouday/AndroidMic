@@ -126,4 +126,8 @@ impl StreamerTrait for TcpStreamer {
             }
         }
     }
+
+    fn port(&self) -> Option<u16> {
+        Some(self.port)
+    }
 }

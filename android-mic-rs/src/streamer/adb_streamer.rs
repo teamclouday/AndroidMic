@@ -23,4 +23,8 @@ impl StreamerTrait for AdbStreamer {
     async fn process(&mut self, shared_buf: &mut Producer<u8>) -> Result<usize, WriteError> {
         self.tcp_streamer.process(shared_buf).await
     }
+
+    fn port(&self) -> Option<u16> {
+        self.tcp_streamer.port()
+    }
 }

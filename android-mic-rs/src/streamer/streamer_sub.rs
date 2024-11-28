@@ -86,7 +86,7 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                 match command {
                     Some(command) => match command {
                         StreamerCommand::Connect(connect_option, producer) => {
-                            let streamer2: Result<Streamer, streamer_trait::ConnectError> =
+                            let new_streamer: Result<Streamer, streamer_trait::ConnectError> =
                                 match connect_option {
                                     ConnectOption::Tcp { ip } => {
                                         tcp_streamer_async::new(ip).await.map(Streamer::from)
@@ -97,13 +97,25 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                     }
                                 };
 
-                            match streamer2 {
-                                Ok(streamer2) => {
-                                    streamer.replace(streamer2);
+                            match new_streamer {
+                                Ok(new_streamer) => {
+                                    send(
+                                        &mut sender,
+                                        StreamerMsg::Status(Status::Connected {
+                                            port: new_streamer.port(),
+                                        }),
+                                    )
+                                    .await;
+                                    streamer.replace(new_streamer);
                                     shared_buf.replace(producer);
                                 }
                                 Err(e) => {
                                     error!("{e}");
+                                    send(
+                                        &mut sender,
+                                        StreamerMsg::Status(Status::Error(e.to_string())),
+                                    )
+                                    .await;
                                 }
                             }
                         }
