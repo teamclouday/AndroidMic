@@ -11,24 +11,9 @@ use tokio::sync::mpsc::{self, Sender};
 
 use cosmic::iced::stream;
 
-use crate::streamer::StreamerTrait;
+use crate::streamer::{StreamerTrait, WriteError};
 
 use super::{adb_streamer, tcp_streamer_async, ConnectError, DummyStreamer, Status, Streamer};
-
-pub struct StatusSender(futures::channel::mpsc::Sender<StreamerMsg>);
-
-impl StatusSender {
-    async fn send(&mut self, status: Status) {
-        self.0.send(StreamerMsg::Status(status)).await.unwrap();
-    }
-}
-
-/// Streamer -> App
-#[derive(Debug, Clone)]
-pub enum StreamerMsg {
-    Status(Status),
-    Ready(Sender<StreamerCommand>),
-}
 
 #[derive(Debug)]
 pub enum ConnectOption {
@@ -45,21 +30,28 @@ pub enum StreamerCommand {
     Stop,
 }
 
+/// Streamer -> App
+#[derive(Debug, Clone)]
+pub enum StreamerMsg {
+    Status(Status),
+    Ready(Sender<StreamerCommand>),
+}
+
 async fn send(sender: &mut futures::channel::mpsc::Sender<StreamerMsg>, msg: StreamerMsg) {
     sender.send(msg).await.unwrap();
 }
 
 pub fn sub() -> impl Stream<Item = StreamerMsg> {
     stream::channel(5, |mut sender| async move {
-        let (tx, mut rx) = mpsc::channel(100);
+        let (command_sender, mut command_receiver) = mpsc::channel(100);
 
         let mut streamer: Streamer = DummyStreamer::new();
 
-        send(&mut sender, StreamerMsg::Ready(tx)).await;
+        send(&mut sender, StreamerMsg::Ready(command_sender)).await;
 
         loop {
             let either = {
-                let recv_future = rx.recv();
+                let recv_future = command_receiver.recv();
                 let process_future = streamer.next();
 
                 pin_mut!(recv_future);
@@ -121,13 +113,20 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                             send(&mut sender, StreamerMsg::Status(status)).await;
                         }
                     }
-                    Err(e) => {
-                        send(
-                            &mut sender,
-                            StreamerMsg::Status(Status::Error(e.to_string())),
-                        )
-                        .await;
-                        streamer = DummyStreamer::new();
+                    Err(connect_error) => {
+                        error!("{connect_error}");
+
+                        if !matches!(
+                            connect_error,
+                            ConnectError::WriteError(WriteError::BufferOverfilled(..))
+                        ) {
+                            send(
+                                &mut sender,
+                                StreamerMsg::Status(Status::Error(connect_error.to_string())),
+                            )
+                            .await;
+                            streamer = DummyStreamer::new();
+                        }
                     }
                 },
             }

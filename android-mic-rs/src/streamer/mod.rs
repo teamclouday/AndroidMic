@@ -14,6 +14,7 @@ mod tcp_streamer_async;
 
 pub use streamer_sub::{sub, ConnectOption, StreamerCommand, StreamerMsg};
 
+/// Status reported from the streamer
 #[derive(Clone, Debug)]
 pub enum Status {
     Error(String),
@@ -31,14 +32,18 @@ impl Status {
 const DEVICE_CHECK_EXPECTED: &str = "AndroidMicCheck";
 const DEVICE_CHECK: &str = "AndroidMicCheckAck";
 
-
-/// Default port the PC
+/// Default port on the PC
 const DEFAULT_PC_PORT: u16 = 55555;
 const MAX_PORT: u16 = 60000;
 const IO_BUF_SIZE: usize = 1024;
 
 #[enum_dispatch]
 trait StreamerTrait {
+    /// I know it seems weird to have a next method like that, but it is actually the easiest way i found
+    /// to handle the multiple async functions of streamers (process, accept) while still receiving command from the app.
+    /// This method make them behave like a state machine, always reaching the next state. (init -> accepted -> read data -> read data ...).
+    /// 
+    /// A nice benefit of this pattern is that there is no usage of Atomic what so ever.
     async fn next(&mut self) -> Result<Option<Status>, ConnectError>;
 
     fn set_buff(&mut self, buff: Producer<u8>);

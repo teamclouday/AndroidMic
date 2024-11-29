@@ -75,13 +75,13 @@ pub enum State {
 
 pub struct AppState {
     core: Core,
-    pub audio_host: Host,
-    pub audio_device: Option<cpal::Device>,
-    pub audio_stream: Option<cpal::Stream>,
     pub streamer: Option<Sender<StreamerCommand>>,
     pub config: ConfigManager<Config>,
+    pub audio_host: Host,
     pub audio_hosts: Vec<AudioHost>,
     pub audio_devices: Vec<AudioDevice>,
+    pub audio_device: Option<cpal::Device>,
+    pub audio_stream: Option<cpal::Stream>,
     pub state: State,
 }
 
@@ -170,6 +170,7 @@ impl Application for AppState {
                     Status::Error(_e) => {
                         // error!("{e}");
                         self.state = State::Default;
+                        self.audio_stream = None;
                     }
                     Status::Listening { port } => {
                         info!("listening: {port:?}");
