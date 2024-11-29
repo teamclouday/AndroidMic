@@ -1,4 +1,4 @@
-use std::{io, mem, net::IpAddr, str::from_utf8, time::Duration};
+use std::{io, net::IpAddr, str::from_utf8, time::Duration};
 
 use rtrb::{chunks::ChunkError, Producer};
 use tokio::{
@@ -7,12 +7,10 @@ use tokio::{
 };
 
 use crate::streamer::{
-    WriteError, DEFAULT_PORT, DEVICE_CHECK, DEVICE_CHECK_EXPECTED, IO_BUF_SIZE, MAX_PORT
+    WriteError, DEFAULT_PORT, DEVICE_CHECK, DEVICE_CHECK_EXPECTED, IO_BUF_SIZE, MAX_PORT,
 };
 
 use super::{ConnectError, Status, StreamerTrait};
-
-
 
 const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
 
@@ -25,6 +23,7 @@ pub struct TcpStreamer {
     state: TcpStreamerState,
 }
 
+#[allow(clippy::large_enum_variant)]
 pub enum TcpStreamerState {
     Listening {
         listener: TcpListener,
@@ -74,12 +73,10 @@ impl StreamerTrait for TcpStreamer {
 
     fn status(&self) -> Option<Status> {
         match &self.state {
-            TcpStreamerState::Listening { .. } => {
-                Some(Status::Listening { port: Some(self.port) })
-            },
-            TcpStreamerState::Streaming { .. } => {
-                Some(Status::Connected)
-            },
+            TcpStreamerState::Listening { .. } => Some(Status::Listening {
+                port: Some(self.port),
+            }),
+            TcpStreamerState::Streaming { .. } => Some(Status::Connected),
         }
     }
 
@@ -87,7 +84,7 @@ impl StreamerTrait for TcpStreamer {
         match &mut self.state {
             TcpStreamerState::Listening { listener } => {
                 let addr =
-                    TcpListener::local_addr(&listener).map_err(ConnectError::NoLocalAddress)?;
+                    TcpListener::local_addr(listener).map_err(ConnectError::NoLocalAddress)?;
 
                 info!("TCP server listening on {}", addr);
 
@@ -130,7 +127,7 @@ impl StreamerTrait for TcpStreamer {
             TcpStreamerState::Streaming {
                 stream,
                 io_buf,
-                 disconnect_loop_detecter,
+                disconnect_loop_detecter,
             } => {
                 async fn process(
                     stream: &mut TcpStream,
@@ -193,7 +190,7 @@ impl StreamerTrait for TcpStreamer {
                 .await
                 {
                     Ok(_moved) => Ok(None),
-                    Err(e) => return Err(ConnectError::WriteError(e)),
+                    Err(e) => Err(ConnectError::WriteError(e)),
                 }
             }
         }

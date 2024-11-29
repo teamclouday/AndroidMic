@@ -43,12 +43,12 @@ trait StreamerTrait {
 
     fn status(&self) -> Option<Status>;
 }
-
+#[allow(clippy::enum_variant_names)]
 #[enum_dispatch(StreamerTrait)]
 enum Streamer {
     TcpStreamer,
     AdbStreamer,
-    Dummy,
+    DummyStreamer,
 }
 
 #[derive(Debug, Error)]
@@ -83,42 +83,18 @@ enum WriteError {
     BufferOverfilled(usize, usize), // moved, lossed
 }
 
+/// Used to simplified futures logic
 #[derive(Default)]
-struct Dummy;
+struct DummyStreamer;
 
-impl Dummy {
-    fn new_streamer() -> Streamer {
-        Streamer::Dummy(Dummy::default())
+impl DummyStreamer {
+    #[allow(clippy::new_ret_no_self)]
+    fn new() -> Streamer {
+        Streamer::DummyStreamer(DummyStreamer)
     }
 }
 
-impl StreamerTrait for Dummy {
-    async fn next(&mut self) -> Result<Option<Status>, ConnectError> {
-        std::future::pending::<()>().await;
-        unreachable!()
-    }
-
-    fn set_buff(&mut self, buff: Producer<u8>) {}
-
-    fn status(&self) -> Option<Status> {
-        None
-    }
-}
-
-#[derive(Default)]
-struct StreamerContainer(Option<Streamer>);
-
-impl StreamerContainer {
-    fn take(&mut self) {
-        self.0.take();
-    }
-
-    fn replace(&mut self, value: Streamer) -> Option<Streamer> {
-        self.0.replace(value)
-    }
-}
-
-impl StreamerTrait for StreamerContainer {
+impl StreamerTrait for DummyStreamer {
     async fn next(&mut self) -> Result<Option<Status>, ConnectError> {
         std::future::pending::<()>().await;
         unreachable!()
@@ -128,11 +104,5 @@ impl StreamerTrait for StreamerContainer {
 
     fn status(&self) -> Option<Status> {
         None
-    }
-}
-
-impl From<Streamer> for StreamerContainer {
-    fn from(value: Streamer) -> Self {
-        Self(Some(value))
     }
 }

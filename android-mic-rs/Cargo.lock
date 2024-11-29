@@ -208,6 +208,7 @@ dependencies = [
  "constcat",
  "cpal",
  "crossterm",
+ "either",
  "enum_dispatch",
  "env_logger",
  "futures",

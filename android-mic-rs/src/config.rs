@@ -31,7 +31,6 @@ pub enum ChannelCount {
 }
 
 impl ChannelCount {
-    
     pub fn number(&self) -> u16 {
         match self {
             ChannelCount::Mono => 1,

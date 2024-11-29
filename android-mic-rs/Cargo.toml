@@ -48,6 +48,7 @@ constcat = "0.5"
 cargo-packager-resource-resolver = { version = "0.1", features = [
     "auto-detect-format",
 ] }
+either = "1.13.0"
 
 [dependencies.libcosmic]
 git = "https://github.com/pop-os/libcosmic"

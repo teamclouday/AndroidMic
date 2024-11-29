@@ -63,7 +63,7 @@ impl AppState {
         };
 
         // let sample_rate = cpal::SampleRate(config.sample_rate.number());
-        
+
         let sample_rate = cpal::SampleRate(48000);
 
         let stream_config = StreamConfig {
@@ -264,7 +264,7 @@ fn print_supported_config(device: &Device) {
     };
     if !output_configs.is_empty() {
         println!("Supported configs:");
-        for (config_index, conf) in output_configs.into_iter().enumerate() {
+        for conf in output_configs.into_iter() {
             println!(
                 "channel:{}, min sample rate:{}, max sample rate:{}, audio format:{}",
                 conf.channels(),
