@@ -50,6 +50,11 @@ async fn send(sender: &mut futures::channel::mpsc::Sender<StreamerMsg>, msg: Str
     sender.send(msg).await.unwrap();
 }
 
+enum Or<A, B> {
+    A(A),
+    B(B),
+}
+
 pub fn sub() -> impl Stream<Item = StreamerMsg> {
     stream::channel(5, |mut sender| async move {
         let (tx, mut rx) = mpsc::channel(100);
@@ -58,71 +63,88 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
 
         send(&mut sender, StreamerMsg::Ready(tx)).await;
 
+        let mut c = None;
+
         loop {
-            let recv_future = rx.recv();
-            let process_future = streamer.next();
+            {
+                let recv_future = rx.recv();
+                let process_future = streamer.next();
 
-            pin_mut!(recv_future);
-            pin_mut!(process_future);
+                pin_mut!(recv_future);
+                pin_mut!(process_future);
 
-            match future::select(recv_future, process_future).await {
-                Either::Left((command, _)) => match command {
-                    Some(command) => match command {
-                        StreamerCommand::Connect(connect_option, producer) => {
-                            let new_streamer: Result<Streamer, ConnectError> = match connect_option
-                            {
-                                ConnectOption::Tcp { ip } => tcp_streamer_async::new(ip, producer)
-                                    .await
-                                    .map(Streamer::from),
-                                ConnectOption::Udp { ip: _ip } => todo!(),
-                                ConnectOption::Adb => {
-                                    adb_streamer::new(producer).await.map(Streamer::from)
-                                }
-                            };
+                match future::select(recv_future, process_future).await {
+                    Either::Left((l, _)) => {
+                        c = Some(Or::A(l));
+                    }
+                    Either::Right((r, _)) => {
+                        c = Some(Or::B(r));
+                    }
+                }
+            }
 
-                            match new_streamer {
-                                Ok(new_streamer) => {
-                                    send(
-                                        &mut sender,
-                                        StreamerMsg::Status(new_streamer.status().unwrap()),
-                                    )
-                                    .await;
-                                    streamer.replace(new_streamer);
-                                }
-                                Err(e) => {
-                                    error!("{e}");
-                                    send(
-                                        &mut sender,
-                                        StreamerMsg::Status(Status::Error(e.to_string())),
-                                    )
-                                    .await;
+            if let Some(or) = c.take() {
+                match or {
+                    Or::A(command) => match command {
+                        Some(command) => match command {
+                            StreamerCommand::Connect(connect_option, producer) => {
+                                let new_streamer: Result<Streamer, ConnectError> =
+                                    match connect_option {
+                                        ConnectOption::Tcp { ip } => {
+                                            tcp_streamer_async::new(ip, producer)
+                                                .await
+                                                .map(Streamer::from)
+                                        }
+                                        ConnectOption::Udp { ip: _ip } => todo!(),
+                                        ConnectOption::Adb => {
+                                            adb_streamer::new(producer).await.map(Streamer::from)
+                                        }
+                                    };
+
+                                match new_streamer {
+                                    Ok(new_streamer) => {
+                                        send(
+                                            &mut sender,
+                                            StreamerMsg::Status(new_streamer.status().unwrap()),
+                                        )
+                                        .await;
+                                        streamer.replace(new_streamer);
+                                    }
+                                    Err(e) => {
+                                        error!("{e}");
+                                        send(
+                                            &mut sender,
+                                            StreamerMsg::Status(Status::Error(e.to_string())),
+                                        )
+                                        .await;
+                                    }
                                 }
                             }
+                            StreamerCommand::ChangeBuff(producer) => {
+                                streamer.set_buff(producer);
+                            }
+                            StreamerCommand::Stop => {
+                                streamer.take();
+                            }
+                        },
+                        None => todo!(),
+                    },
+                    Or::B(res) => match res {
+                        Ok(status) => {
+                            if let Some(status) = status {
+                                send(&mut sender, StreamerMsg::Status(status)).await;
+                            }
                         }
-                        StreamerCommand::ChangeBuff(producer) => {
-                            streamer.set_buff(producer);
-                        }
-                        StreamerCommand::Stop => {
+                        Err(e) => {
+                            send(
+                                &mut sender,
+                                StreamerMsg::Status(Status::Error(e.to_string())),
+                            )
+                            .await;
                             streamer.take();
                         }
                     },
-                    None => todo!(),
-                },
-                Either::Right((res, _)) => match res {
-                    Ok(status) => {
-                        if let Some(status) = status {
-                            send(&mut sender, StreamerMsg::Status(status)).await;
-                        }
-                    }
-                    Err(e) => {
-                        send(
-                            &mut sender,
-                            StreamerMsg::Status(Status::Error(e.to_string())),
-                        )
-                        .await;
-                        streamer.take();
-                    }
-                },
+                }
             }
         }
     })
