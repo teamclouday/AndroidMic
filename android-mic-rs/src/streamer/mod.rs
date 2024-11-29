@@ -31,7 +31,9 @@ impl Status {
 const DEVICE_CHECK_EXPECTED: &str = "AndroidMicCheck";
 const DEVICE_CHECK: &str = "AndroidMicCheckAck";
 
-const DEFAULT_PORT: u16 = 55555;
+
+/// Default port the PC
+const DEFAULT_PC_PORT: u16 = 55555;
 const MAX_PORT: u16 = 60000;
 const IO_BUF_SIZE: usize = 1024;
 

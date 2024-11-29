@@ -172,10 +172,7 @@ impl Application for AppState {
                         self.state = State::Default;
                     }
                     Status::Listening { port } => {
-                        if let Some(port) = port {
-                            println!("port: {}", port);
-                        }
-
+                        info!("listening: {port:?}");
                         self.state = State::Listening;
                     }
                     Status::Connected => {
@@ -206,8 +203,6 @@ impl Application for AppState {
                 };
 
                 self.send_command(StreamerCommand::Connect(connect_option, producer));
-
-                dbg!(&settings);
 
                 match self.start_audio_stream(consumer) {
                     Ok(stream) => self.audio_stream = Some(stream),

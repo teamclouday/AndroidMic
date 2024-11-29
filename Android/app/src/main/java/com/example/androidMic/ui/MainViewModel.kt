@@ -110,17 +110,6 @@ class MainViewModel : ViewModel() {
                     data.putInt("PORT", port.toInt())
                 }
 
-                Modes.USB -> {
-                    if (!checkPort(port)) {
-                        uiHelper.makeToast(
-                            uiHelper.getString(R.string.invalid_port)
-                        )
-
-                        return Dialogs.IpPort
-                    }
-                    data.putInt("PORT", port.toInt())
-                }
-
                 else -> {}
             }
 
@@ -164,12 +153,6 @@ class MainViewModel : ViewModel() {
     fun setIpPort(ip: String, port: String) {
         viewModelScope.launch {
             prefs.ip.update(ip)
-            prefs.port.update(port)
-        }
-    }
-
-    fun setPort(port: String) {
-        viewModelScope.launch {
             prefs.port.update(port)
         }
     }

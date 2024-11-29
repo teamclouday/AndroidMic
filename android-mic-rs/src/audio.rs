@@ -17,7 +17,7 @@ use crate::{app::AppState, config::AudioFormat};
 
 impl AppState {
     pub fn start_audio_stream(&self, consumer: Consumer<u8>) -> anyhow::Result<cpal::Stream> {
-        info!("{:?}", Endianness::native());
+        // info!("{:?}", Endianness::native());
 
         let stream = match Endianness::native() {
             Endianness::Little => self.build_audio_stream_inner::<LittleEndian>(consumer),
@@ -40,7 +40,7 @@ impl AppState {
             bail!("no device");
         };
 
-        print_supported_config(device);
+        // print_supported_config(device);
 
         let default_config: cpal::StreamConfig = device.default_output_config().unwrap().into();
 
@@ -63,7 +63,7 @@ impl AppState {
         };
 
         // let sample_rate = cpal::SampleRate(config.sample_rate.number());
-
+        // fixme: change this in config file
         let sample_rate = cpal::SampleRate(48000);
 
         let stream_config = StreamConfig {

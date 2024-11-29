@@ -7,7 +7,7 @@ use tokio::{
 };
 
 use crate::streamer::{
-    WriteError, DEFAULT_PORT, DEVICE_CHECK, DEVICE_CHECK_EXPECTED, IO_BUF_SIZE, MAX_PORT,
+    WriteError, DEFAULT_PC_PORT, DEVICE_CHECK, DEVICE_CHECK_EXPECTED, IO_BUF_SIZE, MAX_PORT,
 };
 
 use super::{ConnectError, Status, StreamerTrait};
@@ -39,7 +39,7 @@ pub async fn new(ip: IpAddr, producer: Producer<u8>) -> Result<TcpStreamer, Conn
     let mut listener = None;
 
     // try to always bind the same port, to not change it everytime Android side
-    for p in DEFAULT_PORT..=MAX_PORT {
+    for p in DEFAULT_PC_PORT..=MAX_PORT {
         if let Ok(l) = TcpListener::bind((ip, p)).await {
             listener = Some(l);
             break;

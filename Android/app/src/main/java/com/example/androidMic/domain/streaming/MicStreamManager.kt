@@ -20,7 +20,7 @@ class MicStreamManager(ctx: Context, val mode: Modes, ip: String?, port: Int?) {
         }
 
         Modes.USB -> {
-            AdbStreamer(port!!)
+            AdbStreamer()
         }
 
         Modes.UDP -> {

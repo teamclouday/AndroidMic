@@ -37,7 +37,6 @@ import com.example.androidMic.ui.home.dialog.DialogMode
 import com.example.androidMic.ui.home.dialog.DialogSampleRate
 import com.example.androidMic.ui.home.dialog.DialogTheme
 import com.example.androidMic.ui.home.dialog.DialogIpPort
-import com.example.androidMic.ui.home.dialog.DialogPort
 
 data class MenuItem(
     val title: String,
@@ -101,21 +100,7 @@ fun DrawerBody(vm: MainViewModel) {
                 )
             }
 
-            Modes.USB -> {
-                val dialogPortExpanded = rememberSaveable {
-                    mutableStateOf(false)
-                }
-                DialogPort(vm = vm, expanded = dialogPortExpanded)
-                SettingsItem(
-                    title = stringResource(id = R.string.dialog_port),
-                    subTitle = vm.prefs.port.getAsState().value,
-                    contentDescription = "set port",
-                    icon = Icons.Rounded.Usb,
-                    expanded = dialogPortExpanded
-                )
-            }
-
-            Modes.BLUETOOTH -> {
+            Modes.USB, Modes.BLUETOOTH -> {
 
             }
         }

@@ -15,7 +15,7 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.SocketTimeoutException
 
-class AdbStreamer(val port: Int) : Streamer {
+class AdbStreamer() : Streamer {
 
     private val TAG: String = "UsbAdbStreamer"
 
@@ -29,7 +29,7 @@ class AdbStreamer(val port: Int) : Streamer {
         // create socket
         socket = Socket()
         try {
-            socket?.connect(InetSocketAddress(address, port), MAX_WAIT_TIME)
+            socket?.connect(InetSocketAddress(address, 6000), MAX_WAIT_TIME)
         } catch (e: IOException) {
             Log.d(TAG, "connect [Socket]: ${e.message}")
             null
