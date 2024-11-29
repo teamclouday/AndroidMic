@@ -13,8 +13,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Usb
 import androidx.compose.material.icons.rounded.Wifi
-import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +28,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.androidMic.Modes
 import com.example.androidMic.R
 import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.home.dialog.DialogAudioFormat
@@ -35,7 +36,8 @@ import com.example.androidMic.ui.home.dialog.DialogChannelCount
 import com.example.androidMic.ui.home.dialog.DialogMode
 import com.example.androidMic.ui.home.dialog.DialogSampleRate
 import com.example.androidMic.ui.home.dialog.DialogTheme
-import com.example.androidMic.ui.home.dialog.DialogWifiIpPort
+import com.example.androidMic.ui.home.dialog.DialogIpPort
+import com.example.androidMic.ui.home.dialog.DialogPort
 
 data class MenuItem(
     val title: String,
@@ -72,26 +74,51 @@ fun DrawerBody(vm: MainViewModel) {
         val dialogModeExpanded = rememberSaveable {
             mutableStateOf(false)
         }
+
+        val mode = vm.prefs.mode.getAsState()
+
         DialogMode(vm = vm, expanded = dialogModeExpanded)
         SettingsItem(
             title = stringResource(id = R.string.drawerMode),
-            subTitle = vm.prefs.mode.getAsState().value.toString(),
+            subTitle = mode.value.toString(),
             contentDescription = "set mode",
             icon = Icons.Rounded.Settings,
             expanded = dialogModeExpanded
         )
 
-        val dialogIpPortExpanded = rememberSaveable {
-            mutableStateOf(false)
+        when (mode.value) {
+            Modes.WIFI, Modes.UDP -> {
+                val dialogIpPortExpanded = rememberSaveable {
+                    mutableStateOf(false)
+                }
+                DialogIpPort(vm = vm, expanded = dialogIpPortExpanded)
+                SettingsItem(
+                    title = stringResource(id = R.string.drawerIpPort),
+                    subTitle = vm.prefs.ip.getAsState().value + ":" + vm.prefs.port.getAsState().value,
+                    contentDescription = "set ip and port",
+                    icon = Icons.Rounded.Wifi,
+                    expanded = dialogIpPortExpanded
+                )
+            }
+
+            Modes.USB -> {
+                val dialogPortExpanded = rememberSaveable {
+                    mutableStateOf(false)
+                }
+                DialogPort(vm = vm, expanded = dialogPortExpanded)
+                SettingsItem(
+                    title = stringResource(id = R.string.dialog_port),
+                    subTitle = vm.prefs.port.getAsState().value,
+                    contentDescription = "set port",
+                    icon = Icons.Rounded.Usb,
+                    expanded = dialogPortExpanded
+                )
+            }
+
+            Modes.BLUETOOTH -> {
+
+            }
         }
-        DialogWifiIpPort(vm = vm, expanded = dialogIpPortExpanded)
-        SettingsItem(
-            title = stringResource(id = R.string.drawerIpPort),
-            subTitle = vm.prefs.ip.getAsState().value + ":" + vm.prefs.port.getAsState().value,
-            contentDescription = "set ip and port",
-            icon = Icons.Rounded.Wifi,
-            expanded = dialogIpPortExpanded
-        )
 
         // Audio
         SettingsItemsSubtitle(R.string.drawer_subtitle_record)
@@ -102,7 +129,7 @@ fun DrawerBody(vm: MainViewModel) {
         DialogSampleRate(vm = vm, expanded = dialogSampleRateExpanded)
         SettingsItem(
             title = stringResource(id = R.string.sample_rate),
-            subTitle = vm.prefs.sampleRate.getAsState().value.toString(),
+            subTitle = vm.prefs.sampleRate.getAsState().value.value.toString(),
             contentDescription = "set sample rate",
             expanded = dialogSampleRateExpanded
         )

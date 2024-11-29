@@ -36,7 +36,7 @@ import com.example.androidMic.Modes
 import com.example.androidMic.R
 import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.components.ManagerButton
-import com.example.androidMic.ui.home.dialog.DialogWifiIpPort
+import com.example.androidMic.ui.home.dialog.DialogIpPort
 import com.example.androidMic.ui.utils.WindowInfo
 import com.example.androidMic.ui.utils.getBluetoothPermission
 import com.example.androidMic.ui.utils.getRecordAudioPermission
@@ -218,7 +218,7 @@ private fun ButtonConnect(
     val dialogIpPortExpanded = rememberSaveable {
         mutableStateOf(false)
     }
-    DialogWifiIpPort(vm = vm, expanded = dialogIpPortExpanded)
+    DialogIpPort(vm = vm, expanded = dialogIpPortExpanded)
 
     ManagerButton(
         onClick = {

@@ -168,6 +168,12 @@ class MainViewModel : ViewModel() {
         }
     }
 
+    fun setPort(port: String) {
+        viewModelScope.launch {
+            prefs.port.update(port)
+        }
+    }
+
     fun setMode(mode: Modes) {
         viewModelScope.launch {
             prefs.mode.update(mode)

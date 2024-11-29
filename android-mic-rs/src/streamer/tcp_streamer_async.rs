@@ -14,7 +14,7 @@ use super::{ConnectError, Status, StreamerTrait};
 
 const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
 
-const DISCONNECT_LOOP_DETECTER_MAX: u32 = 1000;
+const DISCONNECT_LOOP_DETECTER_MAX: u32 = 1000;  
 
 pub struct TcpStreamer {
     ip: IpAddr,

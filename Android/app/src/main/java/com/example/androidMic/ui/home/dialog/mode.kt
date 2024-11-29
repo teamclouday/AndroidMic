@@ -10,14 +10,10 @@ fun DialogMode(
     vm: MainViewModel,
     expanded: MutableState<Boolean>,
 ) {
-
-    ManagerDialog(
-        expanded
-    ) {
-        DialogList(
-            enum = Modes.entries,
-            onClick = { vm.setMode(it) },
-            text = { it.toString() }
-        )
-    }
+    DialogList(
+        expanded,
+        enum = Modes.entries,
+        onClick = { vm.setMode(it) },
+        text = { it.toString() }
+    )
 }

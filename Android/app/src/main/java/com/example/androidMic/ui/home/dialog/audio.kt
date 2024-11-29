@@ -12,15 +12,12 @@ fun DialogSampleRate(
     vm: MainViewModel,
     expanded: MutableState<Boolean>,
 ) {
-    ManagerDialog(
-        expanded
-    ) {
-        DialogList(
-            enum = SampleRates.entries,
-            onClick = { vm.setSampleRate(it) },
-            text = { it.value.toString() }
-        )
-    }
+    DialogList(
+        expanded,
+        enum = SampleRates.entries,
+        onClick = { vm.setSampleRate(it) },
+        text = { it.value.toString() }
+    )
 }
 
 @Composable
@@ -28,15 +25,12 @@ fun DialogChannelCount(
     vm: MainViewModel,
     expanded: MutableState<Boolean>,
 ) {
-    ManagerDialog(
-        expanded
-    ) {
-        DialogList(
-            enum = ChannelCount.entries,
-            onClick = { vm.setChannelCount(it) },
-            text = { it.toString() }
-        )
-    }
+    DialogList(
+        expanded,
+        enum = ChannelCount.entries,
+        onClick = { vm.setChannelCount(it) },
+        text = { it.toString() }
+    )
 }
 
 @Composable
@@ -44,13 +38,10 @@ fun DialogAudioFormat(
     vm: MainViewModel,
     expanded: MutableState<Boolean>,
 ) {
-    ManagerDialog(
-        expanded
-    ) {
-        DialogList(
-            enum = AudioFormat.entries,
-            onClick = { vm.setAudioFormat(it) },
-            text = { it.toString() }
-        )
-    }
+    DialogList(
+        expanded,
+        enum = AudioFormat.entries,
+        onClick = { vm.setAudioFormat(it) },
+        text = { it.toString() }
+    )
 }

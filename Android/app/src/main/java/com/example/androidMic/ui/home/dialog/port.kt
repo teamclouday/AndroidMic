@@ -20,11 +20,9 @@ import com.example.androidMic.ui.components.ManagerButton
 import com.example.androidMic.ui.components.ManagerOutlinedTextField
 
 @Composable
-fun DialogIpPort(vm: MainViewModel, expanded: MutableState<Boolean>) {
+fun DialogPort(vm: MainViewModel, expanded: MutableState<Boolean>) {
 
-    val tempIp = rememberSaveable {
-        mutableStateOf(vm.prefs.ip.getBlocking())
-    }
+
     val tempPort = rememberSaveable {
         mutableStateOf(vm.prefs.port.getBlocking())
     }
@@ -38,7 +36,7 @@ fun DialogIpPort(vm: MainViewModel, expanded: MutableState<Boolean>) {
             // reset button
             ManagerButton(
                 onClick = {
-                    tempIp.value = DefaultStates.IP; tempPort.value = DefaultStates.PORT
+                    tempPort.value = DefaultStates.PORT
                 },
                 text = stringResource(id = R.string.reset),
                 modifier = Modifier.padding(end = 10.dp),
@@ -48,11 +46,6 @@ fun DialogIpPort(vm: MainViewModel, expanded: MutableState<Boolean>) {
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // ip field
-                ManagerOutlinedTextField(tempIp, R.string.dialog_ip)
-
-                Spacer(modifier = Modifier.height(10.dp))
-
                 // port field
                 ManagerOutlinedTextField(tempPort, R.string.dialog_port)
 
@@ -61,7 +54,7 @@ fun DialogIpPort(vm: MainViewModel, expanded: MutableState<Boolean>) {
                 // save Button
                 ManagerButton(
                     onClick = {
-                        vm.setIpPort(tempIp.value, tempPort.value)
+                        vm.setPort(tempPort.value)
                         expanded.value = false
                     },
                     text = stringResource(id = R.string.save),

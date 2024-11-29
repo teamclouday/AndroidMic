@@ -14,16 +14,12 @@ fun DialogTheme(
     vm: MainViewModel,
     expanded: MutableState<Boolean>,
 ) {
-
-    ManagerDialog(
-        expanded
+    DialogList(
+        expanded,
+        enum = Themes.entries,
+        onClick = { vm.setTheme(it) },
+        text = { it.toString() }
     ) {
-        DialogList(
-            enum = Themes.entries,
-            onClick = { vm.setTheme(it) },
-            text = { it.toString() }
-        )
-
         if (Build.VERSION.SDK_INT > Build.VERSION_CODES.S) {
             DialogDivider()
 
@@ -36,5 +32,4 @@ fun DialogTheme(
             )
         }
     }
-
 }

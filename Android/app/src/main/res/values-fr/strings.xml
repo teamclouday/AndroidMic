@@ -21,6 +21,9 @@
     <string name="save">Enregistrer</string>
     <string name="cancel">Annuler</string>
 
+    <string name="mono">Mono</string>
+    <string name="stereo">Stéréo</string>
+
 
     <!--
     Error messages

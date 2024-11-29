@@ -1,6 +1,12 @@
 package com.example.androidMic
 
 import android.content.Context
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.example.androidMic.AudioFormat.F32
+import com.example.androidMic.AudioFormat.I16
+import com.example.androidMic.AudioFormat.I24
+import com.example.androidMic.AudioFormat.I32
 import com.example.androidMic.utils.PreferencesManager
 
 object DefaultStates {
@@ -68,10 +74,30 @@ enum class AudioFormat(val value: Int) {
     I16(1),
     I24(3),
     I32(4),
-    F32(2)
+    F32(2);
+
+    override fun toString(): String {
+        return when (this) {
+            I16 -> "i16"
+            I24 -> "i24"
+            I32 -> "i32"
+            F32 -> "f32"
+        }
+    }
 }
+
+
 
 enum class ChannelCount(val value: Int) {
     Mono(1),
-    Stereo(2),
+    Stereo(2);
+
+    @Composable
+    fun getString(): String {
+
+        return when (this) {
+            Mono -> stringResource(R.string.mono)
+            Stereo -> stringResource(R.string.stereo)
+        }
+    }
 }

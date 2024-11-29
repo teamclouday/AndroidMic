@@ -35,6 +35,8 @@
     <string name="save">Save</string>
     <string name="cancel">Cancel</string>
 
+    <string name="mono">Mono</string>
+    <string name="stereo">Stereo</string>
 
     <!--
     Error messages

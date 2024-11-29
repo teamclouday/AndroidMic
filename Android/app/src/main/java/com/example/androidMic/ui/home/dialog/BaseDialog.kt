@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -16,10 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.example.androidMic.SampleRates
 import com.example.androidMic.ui.components.ManagerButton
 
 @Composable
-fun ManagerDialog(
+fun BaseDialog(
     expanded: MutableState<Boolean>,
     onDismissRequest: (() -> Unit)? = null,
     content: @Composable () -> Unit
@@ -59,7 +61,7 @@ fun DialogSpacer() {
 
 @Composable
 fun DialogDivider() {
-    Divider(
+    HorizontalDivider(
         modifier = Modifier.padding(20.dp),
         color = MaterialTheme.colorScheme.onSurface
     )
@@ -68,19 +70,31 @@ fun DialogDivider() {
 
 @Composable
 fun <E> DialogList(
+    expanded: MutableState<Boolean>,
     enum: List<E>,
     onClick: (E) -> Unit,
-    text: (E) -> String
+    text: (E) -> String,
+    bottomContent: (@Composable () -> Unit)? = null
 ) {
-    enum.forEachIndexed { index, item ->
-        ManagerButton(
-            onClick = { onClick(item) },
-            text = text(item),
-            modifier = Modifier.fillMaxWidth(0.8f)
-        )
 
-        if (index != enum.indices.last) {
-            DialogSpacer()
+    BaseDialog(
+        expanded
+    ) {
+        enum.forEachIndexed { index, item ->
+            ManagerButton(
+                onClick = {
+                    onClick(item)
+                    expanded.value = false
+                },
+                text = text(item),
+                modifier = Modifier.fillMaxWidth(0.8f)
+            )
+
+            if (index != enum.indices.last) {
+                DialogSpacer()
+            }
         }
+        bottomContent?.invoke()
     }
+
 }
