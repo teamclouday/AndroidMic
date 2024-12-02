@@ -1,14 +1,12 @@
 [Desktop Entry]
-Name=fan-control
-Comment=Control your fans with different behaviors
-Comment[fr]=Contrôlez vos ventilateurs avec différents comportements
-Comment[de]=Kontrolliere deine Lüfter mit verschiedenen Verhaltensweisen
-Keywords=fan;control;temp;sensor;
+Name=AndroidMic
+Comment=Use your Android phone as a mic for your PC
+Comment[fr]=Utilisez votre téléphone Android comme micro pour votre PC
 
 # translators: do not translate this part
 Type=Application
-Categories=System;Utility;
-Exec=fan-control
-Icon=io.github.wiiznokes.fan-control
-StartupWMClass=io.github.wiiznokes.fan-control
+Categories=Utility;
+Exec=android-mic
+Icon=io.github.teamclouday.android-mic
+StartupWMClass=io.github.teamclouday.android-mic
 Terminal=false

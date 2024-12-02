@@ -7,7 +7,7 @@ license = "GPL-3.0-only"
 
 
 [package.metadata.packager]
-product_name = "AndroidMicRust"
+product_name = "AndroidMic"
 before-each-package-command = "cargo build --release"
 identifier = "io.github.teamclouday.android-mic"
 icons = ["res/windows/app_icon.ico"]
