@@ -128,7 +128,7 @@ impl Application for AppState {
         _flags: Self::Flags,
     ) -> (Self, cosmic::app::Task<Self::Message>) {
         let project_dirs = ProjectDirs::from(QUALIFIER, ORG, APP).unwrap();
-        
+
         let config_path = if cfg!(debug_assertions) {
             Path::new("config")
         } else {

@@ -9,8 +9,8 @@ extern crate log;
 mod app;
 mod audio;
 mod config;
-mod streamer;
 mod my_widget;
+mod streamer;
 mod utils;
 mod view;
 
@@ -19,6 +19,6 @@ mod localize;
 
 fn main() {
     env_logger::init();
-
+    localize::localize();
     run_ui()
 }

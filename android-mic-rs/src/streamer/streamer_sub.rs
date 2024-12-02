@@ -70,9 +70,9 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                         StreamerCommand::Connect(connect_option, producer) => {
                             let new_streamer: Result<Streamer, ConnectError> = match connect_option
                             {
-                                ConnectOption::Tcp { ip } => tcp_streamer::new(ip, producer)
-                                    .await
-                                    .map(Streamer::from),
+                                ConnectOption::Tcp { ip } => {
+                                    tcp_streamer::new(ip, producer).await.map(Streamer::from)
+                                }
                                 ConnectOption::Udp { ip: _ip } => todo!(),
                                 ConnectOption::Adb => {
                                     adb_streamer::new(producer).await.map(Streamer::from)
