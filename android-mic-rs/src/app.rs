@@ -127,15 +127,13 @@ impl Application for AppState {
         core: cosmic::app::Core,
         _flags: Self::Flags,
     ) -> (Self, cosmic::app::Task<Self::Message>) {
-        
-        #[allow(unused_variables)]
         let project_dirs = ProjectDirs::from(QUALIFIER, ORG, APP).unwrap();
-
-        #[cfg(not(debug_assertions))]
-        let config_path = project_dirs.config_dir();
-
-        #[cfg(debug_assertions)]
-        let config_path = Path::new("config");
+        
+        let config_path = if cfg!(debug_assertions) {
+            Path::new("config")
+        } else {
+            project_dirs.config_dir()
+        };
 
         let config: ConfigManager<Config> =
             ConfigManager::new(config_path.join(format!("{APP}.toml")));
