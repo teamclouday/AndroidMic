@@ -44,7 +44,7 @@ impl AppState {
 
         let default_config: cpal::StreamConfig = device.default_output_config().unwrap().into();
 
-        let config = self.config.settings();
+        let config = self.config.data();
 
         let mut channel_count = config.channel_count.number();
 

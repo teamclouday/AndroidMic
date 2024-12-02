@@ -148,7 +148,7 @@ impl Application for AppState {
             .map(AudioDevice::new)
             .collect::<Vec<_>>();
 
-        let audio_device = match &config.settings().device_name {
+        let audio_device = match &config.data().device_name {
             Some(name) => {
                 match audio_devices
                     .iter()
@@ -180,7 +180,7 @@ impl Application for AppState {
     }
 
     fn update(&mut self, message: Self::Message) -> Task<Self::Message> {
-        let settings = self.config.settings();
+        let settings = self.config.data();
 
         match message {
             AppMsg::ChangeConnectionMode(connection_mode) => {

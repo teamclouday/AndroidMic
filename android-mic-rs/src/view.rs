@@ -52,7 +52,7 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
 }
 
 fn connection_type(app: &AppState) -> Element<'_, AppMsg> {
-    let connection_mode = &app.config.settings().connection_mode;
+    let connection_mode = &app.config.data().connection_mode;
 
     column()
         .push(text::title4(fl!("connection")))

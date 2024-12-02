@@ -6777,7 +6777,7 @@ dependencies = [
 [[package]]
 name = "zconf"
 version = "0.1.0"
-source = "git+https://github.com/wiiznokes/zconf#02b33e4813b711022cdf4d4efe5ab43d1be6f6c2"
+source = "git+https://github.com/wiiznokes/zconf#fbd961e5af00bd076c1ebd2de77549aa7ee84165"
 dependencies = [
  "anyhow",
  "log",
