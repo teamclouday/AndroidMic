@@ -6671,7 +6671,8 @@ dependencies = [
 [[package]]
 name = "zconf"
 version = "0.1.0"
-source = "git+https://github.com/wiiznokes/zconf#fbd961e5af00bd076c1ebd2de77549aa7ee84165"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1182d6b46b70ef15a8c00faaec354f0b3fdc34715e07b0cef0f6b4d62e34c6c"
 dependencies = [
  "anyhow",
  "log",

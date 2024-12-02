@@ -35,7 +35,7 @@ serde-textual = "0.1.1"
 local-ip-address = "0.6"
 env_logger = "0.11"
 log = "0.4"
-zconf = { git = "https://github.com/wiiznokes/zconf" }
+zconf = "0.1"
 serde = "1"
 light_enum = "0.2"
 tokio = { version = "1", features = ["full"] }
