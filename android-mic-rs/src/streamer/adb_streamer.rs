@@ -2,9 +2,9 @@ use std::process::Command;
 
 use rtrb::Producer;
 
-use crate::{streamer::tcp_streamer_async, utils};
+use crate::{streamer::tcp_streamer, utils};
 
-use super::{tcp_streamer_async::TcpStreamer, ConnectError, Status, StreamerTrait};
+use super::{tcp_streamer::TcpStreamer, ConnectError, Status, StreamerTrait};
 
 pub struct AdbStreamer {
     tcp_streamer: TcpStreamer,
@@ -36,7 +36,7 @@ fn exec_cmd(mut cmd: Command) -> Result<(), ConnectError> {
 }
 
 pub async fn new(producer: Producer<u8>) -> Result<AdbStreamer, ConnectError> {
-    let tcp_streamer = tcp_streamer_async::new(str::parse("127.0.0.1").unwrap(), producer).await?;
+    let tcp_streamer = tcp_streamer::new(str::parse("127.0.0.1").unwrap(), producer).await?;
 
     let adb_exe_path = utils::resource_dir(true).join("adb/adb");
 

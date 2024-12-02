@@ -3,14 +3,13 @@ use std::io;
 use adb_streamer::AdbStreamer;
 use enum_dispatch::enum_dispatch;
 use rtrb::Producer;
-use tcp_streamer_async::TcpStreamer;
+use tcp_streamer::TcpStreamer;
 use thiserror::Error;
 
-// mod tcp_streamer;
 // mod udp_streamer;
 mod adb_streamer;
 mod streamer_sub;
-mod tcp_streamer_async;
+mod tcp_streamer;
 
 pub use streamer_sub::{sub, ConnectOption, StreamerCommand, StreamerMsg};
 
