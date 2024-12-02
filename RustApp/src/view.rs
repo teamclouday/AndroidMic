@@ -1,4 +1,5 @@
 use cosmic::{
+    iced::alignment::Horizontal,
     iced_widget::pick_list,
     widget::{button, column, horizontal_space, radio, row, settings, text, vertical_space},
     Element,
@@ -23,6 +24,7 @@ pub fn view_app(app: &AppState) -> Element<'_, AppMsg> {
         .push(horizontal_space())
         .push(
             column()
+                .align_x(Horizontal::Center)
                 .push(audio(app))
                 .push(vertical_space())
                 .push(connection_type(app)),
@@ -46,6 +48,8 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
         .and_then(|name| app.audio_devices.iter().find(|d| d.name == name));
 
     column()
+        .spacing(20)
+        .align_x(Horizontal::Center)
         .push(text::title4(fl!("audio_device")))
         .push(pick_list(
             app.audio_devices.clone(),
@@ -60,25 +64,30 @@ fn connection_type(app: &AppState) -> Element<'_, AppMsg> {
     let connection_mode = &app.config.data().connection_mode;
 
     column()
+        .spacing(20)
+        .align_x(Horizontal::Center)
         .push(text::title4(fl!("connection")))
-        .push(radio(
-            "TCP",
-            &ConnectionMode::Tcp,
-            Some(connection_mode),
-            |mode| AppMsg::ChangeConnectionMode(*mode),
-        ))
-        // .push(radio(
-        //     "UDP",
-        //     &ConnectionMode::Udp,
-        //     Some(connection_mode),
-        //     |mode| AppMsg::ChangeConnectionMode(*mode),
-        // ))
-        .push(radio(
-            "USB (ADB)",
-            &ConnectionMode::Adb,
-            Some(connection_mode),
-            |mode| AppMsg::ChangeConnectionMode(*mode),
-        ))
+        .push(
+            column()
+                .push(radio(
+                    "WIFI / LAN (TCP)",
+                    &ConnectionMode::Tcp,
+                    Some(connection_mode),
+                    |mode| AppMsg::ChangeConnectionMode(*mode),
+                ))
+                // .push(radio(
+                //     "WIFI / LAN (UDP)",
+                //     &ConnectionMode::Udp,
+                //     Some(connection_mode),
+                //     |mode| AppMsg::ChangeConnectionMode(*mode),
+                // ))
+                .push(radio(
+                    "USB (ADB)",
+                    &ConnectionMode::Adb,
+                    Some(connection_mode),
+                    |mode| AppMsg::ChangeConnectionMode(*mode),
+                )),
+        )
         .push(connect_button(app))
         .into()
 }

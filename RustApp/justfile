@@ -1,7 +1,7 @@
 set windows-powershell := true
 
 rootdir := ''
-prefix := x"~/.local"
+prefix := ''
 debug := '0'
 
 name := 'android-mic'
