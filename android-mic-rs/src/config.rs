@@ -1,7 +1,7 @@
 use std::net::IpAddr;
 
 use serde::{Deserialize, Serialize};
-use strum::{Display, EnumString};
+use serde_textual::DisplaySerde;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -17,9 +17,7 @@ pub struct Config {
     pub device_name: Option<String>,
 }
 
-#[derive(
-    Debug, Clone, Serialize, Deserialize, Copy, Default, EnumString, PartialEq, Eq, Display,
-)]
+#[derive(Debug, Clone, Serialize, Deserialize, Copy, Default, PartialEq, Eq, DisplaySerde)]
 pub enum ConnectionMode {
     #[default]
     Tcp,
@@ -27,7 +25,7 @@ pub enum ConnectionMode {
     Adb,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, EnumString, PartialEq, Display, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, DisplaySerde)]
 pub enum ChannelCount {
     #[default]
     #[serde(alias = "1")]
@@ -45,7 +43,7 @@ impl ChannelCount {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, EnumString, PartialEq, Display, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, DisplaySerde)]
 pub enum AudioFormat {
     #[serde(rename = "i8")]
     I8,
@@ -80,7 +78,7 @@ pub enum AudioFormat {
     F64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, EnumString, PartialEq, Display, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, DisplaySerde)]
 pub enum SampleRate {
     #[serde(rename = "8000")]
     S8000,
@@ -109,6 +107,12 @@ pub enum SampleRate {
     S384000,
 }
 
+#[test]
+fn t() {
+    let a = SampleRate::S11025;
+
+    println!("{a}");
+}
 impl SampleRate {
     pub fn number(&self) -> u32 {
         match self {
