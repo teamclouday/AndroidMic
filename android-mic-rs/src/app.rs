@@ -87,7 +87,7 @@ pub struct AppState {
 
 #[derive(Debug, Clone)]
 pub enum AppMsg {
-    ConnectionMode(ConnectionMode),
+    ChangeConnectionMode(ConnectionMode),
     Streamer(StreamerMsg),
     Host(HostId),
     Device(usize),
@@ -160,7 +160,7 @@ impl Application for AppState {
         let settings = self.config.settings();
 
         match message {
-            AppMsg::ConnectionMode(connection_mode) => {
+            AppMsg::ChangeConnectionMode(connection_mode) => {
                 self.config.update(|config| {
                     config.connection_mode = connection_mode;
                 });

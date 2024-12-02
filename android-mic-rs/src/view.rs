@@ -52,19 +52,19 @@ fn connection_type(connection_mode: &ConnectionMode) -> Element<'_, AppMsg> {
             "TCP",
             &ConnectionMode::Tcp,
             Some(connection_mode),
-            |mode| AppMsg::ConnectionMode(*mode),
+            |mode| AppMsg::ChangeConnectionMode(*mode),
         ))
         .push(radio(
             "UDP",
             &ConnectionMode::Udp,
             Some(connection_mode),
-            |mode| AppMsg::ConnectionMode(*mode),
+            |mode| AppMsg::ChangeConnectionMode(*mode),
         ))
         .push(radio(
             "ADB/USB",
             &ConnectionMode::Adb,
             Some(connection_mode),
-            |mode| AppMsg::ConnectionMode(*mode),
+            |mode| AppMsg::ChangeConnectionMode(*mode),
         ))
         .into()
 }

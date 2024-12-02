@@ -11,6 +11,10 @@ pub struct Config {
     pub audio_format: AudioFormat,
     pub channel_count: ChannelCount,
     pub sample_rate: SampleRate,
+    // todo: use a device id (https://github.com/RustAudio/cpal/issues/922)
+    // i'm not using an index because i'm not sure it will works well with
+    // device that could be disconnected sometime.
+    pub device_name: Option<String>,
 }
 
 #[derive(

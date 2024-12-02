@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines -->
+
+<component type="desktop-application">
+  <id>io.github.wiiznokes.fan-control</id>
+
+  <name>fan-control</name>
+  <summary>Control your fans with different behaviors</summary>
+  <summary xml:lang="de">Kontrolliere deine Lüfter mit verschiedenen Verhaltensweisen</summary>
+
+  <metadata_license>MIT</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+
+  <developer id="tld.vendor">
+    <name>wiiznokes</name>
+  </developer>
+
+  <icon type="remote" height="256" width="256">
+    https://raw.githubusercontent.com/wiiznokes/fan-control/master/res/linux/app_icon.svg</icon>
+
+  <url type="homepage">https://github.com/wiiznokes/fan-control</url>
+  <url type="bugtracker">https://github.com/wiiznokes/fan-control/issues</url>
+  <url type="donation">https://www.paypal.com/donate/?hosted_button_id=HV84HZ4G63HQ6</url>
+  <url type="vcs-browser">https://github.com/wiiznokes/fan-control</url>
+
+  <content_rating type="oars-1.1" />
+
+  <description>
+    <p>You can add items with the buttons on the right of the app.
+      To save a configuration, write a name in the "Configuration name" field, and click on the +.
+      To modify the value of a fan, you must select it in a Control item (the left column), select a
+      Behavior, and activate the swtich.
+    </p>
+    <p xml:lang="de">Du kannst mit den Schaltflächen auf der rechten Seite der App Elemente
+      hinzufügen.
+      Um eine Konfiguration zu speichern, schreibst du einen Namen in das Feld „Konfigurationsname“
+      und klickst auf das +.
+      Um den Wert eines Lüfters zu ändern, musst du ihn in einem Steuerelement (in der linken
+      Spalte) auswählen,
+      ein Verhalten wählen und den Regler aktivieren.
+    </p>
+    <ul>
+      <li>Display sensors data on real time</li>
+      <li xml:lang="de">Anzeige von Sensordaten in Echtzeit</li>
+      <li>Control fans based on custom behaviors</li>
+      <li xml:lang="de">Steuerung von Lüftern basierend auf benutzerdefinierten Verhaltensweisen</li>
+      <li>Save configuration</li>
+      <li xml:lang="de">Konfiguration speichern</li>
+    </ul>
+    <p>Note: After installation, you will need to add the necessary udev rule to your system for
+      this to work. See the GitHub page for more details.</p>
+    <p xml:lang="de">Hinweis: Nach der Installation musst du die notwendige udev-Regel zu deinem
+      System hinzufügen, damit dies funktioniert. Auf der GitHub-Seite findest du weitere Details.</p>
+  </description>
+
+  <launchable type="desktop-id">io.github.wiiznokes.fan-control.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <caption>fan-control screenshot</caption>
+      <image>
+        https://media.githubusercontent.com/media/wiiznokes/fan-control/master/res/screenshots/app.png</image>
+    </screenshot>
+  </screenshots>
+
+  <releases>
+    <release version="2024.11" date="2024-11-10">
+      <url type="details">
+        https://github.com/wiiznokes/fan-control/blob/master/CHANGELOG.md</url>
+    </release>
+  </releases>
+
+</component>

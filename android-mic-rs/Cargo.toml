@@ -2,9 +2,12 @@
 name = "android-mic"
 version = "0.1.0"
 edition = "2021"
+authors = ["wiiznokes <wiiznokes2@gmail.com>"]
+license = "GPL-3.0-only"
 
 
 [package.metadata.packager]
+product_name = "AndroidMicRust"
 before-each-package-command = "cargo build --release"
 identifier = "io.github.teamclouday.android-mic"
 icons = ["res/windows/app_icon.ico"]
@@ -49,6 +52,12 @@ cargo-packager-resource-resolver = { version = "0.1", features = [
     "auto-detect-format",
 ] }
 either = "1.13.0"
+i18n-embed = { version = "0.15", features = [
+    "fluent-system",
+    "desktop-requester",
+] }
+rust-embed = "8"
+i18n-embed-fl = "0.9"
 
 [dependencies.libcosmic]
 git = "https://github.com/pop-os/libcosmic"
@@ -57,3 +66,6 @@ features = ["winit", "wgpu", "tokio"]
 
 # [patch."https://github.com/pop-os/libcosmic"]
 # libcosmic = { path = "../../libcosmic" }
+
+[build-dependencies]
+winres = "0.1"
