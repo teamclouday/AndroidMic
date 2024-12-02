@@ -79,14 +79,13 @@ fn connection_type(app: &AppState) -> Element<'_, AppMsg> {
 }
 
 fn connect_button(app: &AppState) -> Element<'_, AppMsg> {
-    let (name, message) = match app.state {
-        State::Default => (fl!("connect"), Some(AppMsg::Connect)),
-        State::Listening => (fl!("listening"), Some(AppMsg::Stop)),
-        State::Connected => (fl!("connected"), Some(AppMsg::Stop)),
-        State::WaitingOnStatus => (fl!("waiting"), None),
-    };
-
-    button::text(name).on_press_maybe(message).into()
+    match app.state {
+        State::Default => button::text(fl!("connect")).on_press(AppMsg::Connect),
+        State::Listening => button::text(fl!("listening")).on_press(AppMsg::Stop),
+        State::Connected => button::destructive(fl!("connected")).on_press(AppMsg::Stop),
+        State::WaitingOnStatus => button::text(fl!("waiting")),
+    }
+    .into()
 }
 
 pub fn advanced_window<'a>(

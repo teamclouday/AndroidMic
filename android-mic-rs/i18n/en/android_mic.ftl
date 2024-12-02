@@ -4,6 +4,6 @@ connection = Connection
 none = None
 
 connect = Connect
-listening = Listening
+listening = Listening...
 connected = Connected
-waiting = Waiting
+waiting = Waiting...
