@@ -65,5 +65,9 @@ features = ["winit", "wgpu", "tokio", "multi-window"]
 # [patch."https://github.com/pop-os/libcosmic"]
 # libcosmic = { path = "../../libcosmic" }
 
+# [patch.crates-io]
+# zconf = { path = "../../zconf" }
+
+
 [build-dependencies]
 winres = "0.1"

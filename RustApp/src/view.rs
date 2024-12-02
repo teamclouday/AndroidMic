@@ -1,12 +1,15 @@
 use cosmic::{
-    widget::{button, column, dropdown, horizontal_space, radio, row, text, vertical_space},
+    iced_widget::pick_list,
+    widget::{
+        button, column, dropdown, horizontal_space, radio, row, settings, text, vertical_space,
+    },
     Element,
 };
 use cpal::traits::DeviceTrait;
 
 use crate::{
     app::{AdvancedWindow, AppMsg, AppState, State},
-    config::ConnectionMode,
+    config::{AudioFormat, ChannelCount, ConnectionMode, SampleRate},
     fl,
 };
 
@@ -89,8 +92,34 @@ fn connect_button(app: &AppState) -> Element<'_, AppMsg> {
 }
 
 pub fn advanced_window<'a>(
-    _app: &'a AppState,
+    app: &'a AppState,
     _advanced_window: &'a AdvancedWindow,
 ) -> Element<'a, AppMsg> {
-    text("todo").into()
+    let config = app.config.data();
+
+    column()
+        .push(settings::section().title(fl!("sample_rate")).add(pick_list(
+            SampleRate::VALUES,
+            Some(&config.sample_rate),
+            AppMsg::ChangeSampleRate,
+        )))
+        .push(
+            settings::section()
+                .title(fl!("channel_count"))
+                .add(pick_list(
+                    ChannelCount::VALUES,
+                    Some(&config.channel_count),
+                    AppMsg::ChangeChannelCount,
+                )),
+        )
+        .push(
+            settings::section()
+                .title(fl!("audio_format"))
+                .add(pick_list(
+                    AudioFormat::VALUES,
+                    Some(&config.audio_format),
+                    AppMsg::ChangeAudioFormat,
+                )),
+        )
+        .into()
 }

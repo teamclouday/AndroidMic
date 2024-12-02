@@ -17,7 +17,7 @@ use cosmic::{
 };
 
 use crate::{
-    config::{Config, ConnectionMode},
+    config::{AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
     fl,
     streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg},
     utils::{APP, APP_ID, ORG, QUALIFIER},
@@ -85,6 +85,9 @@ pub enum AppMsg {
     Connect,
     Stop,
     AdvancedOptions,
+    ChangeSampleRate(SampleRate),
+    ChangeChannelCount(ChannelCount),
+    ChangeAudioFormat(AudioFormat),
 }
 
 impl AppState {
@@ -248,7 +251,7 @@ impl Application for AppState {
                 }
                 None => {
                     let settings = window::Settings {
-                        size: Size::new(300.0, 200.0),
+                        size: Size::new(500.0, 700.0),
                         resizable: false,
                         ..Default::default()
                     };
@@ -258,6 +261,15 @@ impl Application for AppState {
                     return command.map(|_| cosmic::app::Message::None);
                 }
             },
+            AppMsg::ChangeSampleRate(sample_rate) => {
+                self.config.update(|s| s.sample_rate = sample_rate);
+            }
+            AppMsg::ChangeChannelCount(channel_count) => {
+                self.config.update(|s| s.channel_count = channel_count);
+            }
+            AppMsg::ChangeAudioFormat(audio_format) => {
+                self.config.update(|s| s.audio_format = audio_format);
+            }
         }
 
         Task::none()

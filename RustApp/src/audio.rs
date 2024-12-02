@@ -62,9 +62,7 @@ impl AppState {
             }
         };
 
-        // let sample_rate = cpal::SampleRate(config.sample_rate.number());
-        // fixme: change this in config file
-        let sample_rate = cpal::SampleRate(48000);
+        let sample_rate = cpal::SampleRate(config.sample_rate.number());
 
         let stream_config = StreamConfig {
             channels: channel_count,

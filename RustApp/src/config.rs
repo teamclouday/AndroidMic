@@ -1,5 +1,6 @@
 use std::net::IpAddr;
 
+use light_enum::Values;
 use serde::{Deserialize, Serialize};
 use serde_textual::DisplaySerde;
 
@@ -25,7 +26,7 @@ pub enum ConnectionMode {
     Adb,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, DisplaySerde)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, DisplaySerde, Values)]
 pub enum ChannelCount {
     #[default]
     #[serde(alias = "1")]
@@ -43,7 +44,7 @@ impl ChannelCount {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, DisplaySerde)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, DisplaySerde, Values)]
 pub enum AudioFormat {
     #[serde(rename = "i8")]
     I8,
@@ -78,7 +79,7 @@ pub enum AudioFormat {
     F64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, DisplaySerde)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, DisplaySerde, Values)]
 pub enum SampleRate {
     #[serde(rename = "8000")]
     S8000,

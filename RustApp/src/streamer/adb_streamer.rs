@@ -22,9 +22,11 @@ fn remove_all_adb_reverse_proxy() -> Result<(), ConnectError> {
 }
 
 fn exec_cmd(mut cmd: Command) -> Result<(), ConnectError> {
+    #[cfg(target_os = "windows")]
     use std::os::windows::process::CommandExt;
 
     // https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
+    #[cfg(target_os = "windows")]
     cmd.creation_flags(0x08000000);
 
     let status = cmd.output().map_err(ConnectError::CommandFailed)?;
