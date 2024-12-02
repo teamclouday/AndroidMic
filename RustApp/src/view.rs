@@ -1,8 +1,6 @@
 use cosmic::{
     iced_widget::pick_list,
-    widget::{
-        button, column, dropdown, horizontal_space, radio, row, settings, text, vertical_space,
-    },
+    widget::{button, column, horizontal_space, radio, row, settings, text, vertical_space},
     Element,
 };
 use cpal::traits::DeviceTrait;
@@ -41,15 +39,19 @@ fn audio_wave(_app: &AppState) -> Element<'_, AppMsg> {
 }
 
 fn audio(app: &AppState) -> Element<'_, AppMsg> {
-    let device_pos = app
+    let selected = app
         .audio_device
         .as_ref()
         .and_then(|d| d.name().ok())
-        .and_then(|name| app.audio_devices.iter().position(|d| d.name == name));
+        .and_then(|name| app.audio_devices.iter().find(|d| d.name == name));
 
     column()
         .push(text::title4(fl!("audio_device")))
-        .push(dropdown(&app.audio_devices, device_pos, AppMsg::Device))
+        .push(pick_list(
+            app.audio_devices.clone(),
+            selected,
+            AppMsg::Device,
+        ))
         .push(button::text(fl!("advanced")).on_press(AppMsg::AdvancedOptions))
         .into()
 }

@@ -1,4 +1,7 @@
-use std::path::Path;
+use std::{
+    fmt::{Debug, Display},
+    path::Path,
+};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait},
@@ -33,21 +36,37 @@ pub fn run_ui() {
 
 #[derive(Clone)]
 pub struct AudioDevice {
+    pub index: usize,
     pub device: Device,
     pub name: String,
 }
 
-impl AsRef<str> for AudioDevice {
-    fn as_ref(&self) -> &str {
-        &self.name
+impl Debug for AudioDevice {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AudioDevice")
+            .field("name", &self.name)
+            .finish()
+    }
+}
+
+impl Display for AudioDevice {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.name)
+    }
+}
+
+impl PartialEq for AudioDevice {
+    fn eq(&self, other: &Self) -> bool {
+        self.index == other.index
     }
 }
 
 impl AudioDevice {
-    fn new(device: Device) -> Self {
+    fn new(device: Device, index: usize) -> Self {
         Self {
             name: device.name().unwrap_or(fl!("none")),
             device,
+            index,
         }
     }
 }
@@ -81,7 +100,7 @@ pub struct AdvancedWindow {
 pub enum AppMsg {
     ChangeConnectionMode(ConnectionMode),
     Streamer(StreamerMsg),
-    Device(usize),
+    Device(AudioDevice),
     Connect,
     Stop,
     AdvancedOptions,
@@ -96,6 +115,9 @@ impl AppState {
     }
 
     fn update_audio_buf(&mut self) {
+        if self.audio_stream.is_none() {
+            return;
+        }
         let (producer, consumer) = RingBuffer::<u8>::new(SHARED_BUF_SIZE);
 
         match self.start_audio_stream(consumer) {
@@ -146,7 +168,8 @@ impl Application for AppState {
         let audio_devices = audio_host
             .output_devices()
             .unwrap()
-            .map(AudioDevice::new)
+            .enumerate()
+            .map(|(pos, device)| AudioDevice::new(device, pos))
             .collect::<Vec<_>>();
 
         let audio_device = match &config.data().device_name {
@@ -205,9 +228,7 @@ impl Application for AppState {
                 },
                 StreamerMsg::Ready(sender) => self.streamer = Some(sender),
             },
-            AppMsg::Device(pos) => {
-                let audio_device = &self.audio_devices[pos];
-
+            AppMsg::Device(audio_device) => {
                 self.audio_device = Some(audio_device.device.clone());
                 self.config
                     .update(|c| c.device_name = Some(audio_device.name.clone()));
