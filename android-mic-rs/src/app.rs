@@ -1,3 +1,5 @@
+use std::path::Path;
+
 use cpal::{
     traits::{DeviceTrait, HostTrait},
     Device, Host,
@@ -18,10 +20,12 @@ use crate::{
     config::{Config, ConnectionMode},
     fl,
     streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg},
-    utils::APP_ID,
+    utils::{APP, APP_ID, ORG, QUALIFIER},
     view::{advanced_window, view_app},
 };
-use zconf2::ConfigManager;
+use zconf::ConfigManager;
+
+use directories::ProjectDirs;
 
 pub fn run_ui() {
     cosmic::app::run::<AppState>(Settings::default(), ()).unwrap();
@@ -123,8 +127,18 @@ impl Application for AppState {
         core: cosmic::app::Core,
         _flags: Self::Flags,
     ) -> (Self, cosmic::app::Task<Self::Message>) {
+        
+        #[allow(unused_variables)]
+        let project_dirs = ProjectDirs::from(QUALIFIER, ORG, APP).unwrap();
+
+        #[cfg(not(debug_assertions))]
+        let config_path = project_dirs.config_dir();
+
+        #[cfg(debug_assertions)]
+        let config_path = Path::new("config");
+
         let config: ConfigManager<Config> =
-            ConfigManager::new("io.github", "wiiznokes", "android-mic").unwrap();
+            ConfigManager::new(config_path.join(format!("{APP}.toml")));
 
         let audio_host = cpal::default_host();
 
