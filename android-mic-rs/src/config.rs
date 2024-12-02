@@ -107,12 +107,6 @@ pub enum SampleRate {
     S384000,
 }
 
-#[test]
-fn t() {
-    let a = SampleRate::S11025;
-
-    println!("{a}");
-}
 impl SampleRate {
     pub fn number(&self) -> u32 {
         match self {
