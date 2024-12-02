@@ -30,7 +30,9 @@ pub enum ConnectionMode {
 #[derive(Debug, Clone, Serialize, Deserialize, EnumString, PartialEq, Display, Default)]
 pub enum ChannelCount {
     #[default]
+    #[serde(alias = "1")]
     Mono,
+    #[serde(alias = "2")]
     Stereo,
 }
 
@@ -45,39 +47,65 @@ impl ChannelCount {
 
 #[derive(Debug, Clone, Serialize, Deserialize, EnumString, PartialEq, Display, Default)]
 pub enum AudioFormat {
+    #[serde(rename = "i8")]
     I8,
     #[default]
+    #[serde(rename = "i16")]
     I16,
+    #[serde(rename = "i24")]
     I24,
+    #[serde(rename = "i32")]
     I32,
+    #[serde(rename = "i48")]
     I48,
+    #[serde(rename = "i64")]
     I64,
 
+    #[serde(rename = "u8")]
     U8,
+    #[serde(rename = "u16")]
     U16,
+    #[serde(rename = "u24")]
     U24,
+    #[serde(rename = "u32")]
     U32,
+    #[serde(rename = "u48")]
     U48,
+    #[serde(rename = "u64")]
     U64,
 
+    #[serde(rename = "f32")]
     F32,
+    #[serde(rename = "f64")]
     F64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, EnumString, PartialEq, Display, Default)]
 pub enum SampleRate {
+    #[serde(rename = "8000")]
     S8000,
+    #[serde(rename = "11025")]
     S11025,
     #[default]
+    #[serde(rename = "16000")]
     S16000,
+    #[serde(rename = "22050")]
     S22050,
+    #[serde(rename = "44100")]
     S44100,
+    #[serde(rename = "48000")]
     S48000,
+    #[serde(rename = "88200")]
     S88200,
+    #[serde(rename = "96600")]
     S96600,
+    #[serde(rename = "176400")]
     S176400,
+    #[serde(rename = "192000")]
     S192000,
+    #[serde(rename = "352800")]
     S352800,
+    #[serde(rename = "384000")]
     S384000,
 }
 

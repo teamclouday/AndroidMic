@@ -22,7 +22,5 @@ mod localize;
 fn main() {
     env_logger::init();
 
-    fl!("connected");
-
     run_ui()
 }
