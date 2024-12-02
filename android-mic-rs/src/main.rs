@@ -6,8 +6,6 @@ use app::run_ui;
 #[macro_use]
 extern crate log;
 
-
-
 mod app;
 mod audio;
 mod config;

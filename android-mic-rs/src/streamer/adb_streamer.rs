@@ -2,10 +2,7 @@ use std::process::Command;
 
 use rtrb::Producer;
 
-use crate::{
-    streamer::tcp_streamer_async,
-    utils,
-};
+use crate::{streamer::tcp_streamer_async, utils};
 
 use super::{tcp_streamer_async::TcpStreamer, ConnectError, Status, StreamerTrait};
 

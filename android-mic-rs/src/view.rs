@@ -1,21 +1,40 @@
 use cosmic::{
-    iced_widget::pick_list,
-    widget::{button, column, dropdown, radio, row, settings, text},
+    widget::{button, column, dropdown, horizontal_space, radio, row, text, vertical_space},
     Element,
 };
 use cpal::traits::DeviceTrait;
 
 use crate::{
-    app::{AppMsg, AppState, AudioHost, State},
+    app::{AdvancedWindow, AppMsg, AppState, State},
     config::ConnectionMode,
+    fl,
 };
 
 pub fn view_app(app: &AppState) -> Element<'_, AppMsg> {
-    column()
-        .push(audio(app))
-        .push(connection_type(&app.config.settings().connection_mode))
-        .push(connect_button(app))
+    row()
+        .padding(50)
+        .push(
+            column()
+                .push(logs(app))
+                .push(vertical_space())
+                .push(audio_wave(app)),
+        )
+        .push(horizontal_space())
+        .push(
+            column()
+                .push(audio(app))
+                .push(vertical_space())
+                .push(connection_type(app)),
+        )
         .into()
+}
+
+fn logs(_app: &AppState) -> Element<'_, AppMsg> {
+    text("log").into()
+}
+
+fn audio_wave(_app: &AppState) -> Element<'_, AppMsg> {
+    text("audio wave").into()
 }
 
 fn audio(app: &AppState) -> Element<'_, AppMsg> {
@@ -26,56 +45,53 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
         .and_then(|name| app.audio_devices.iter().position(|d| d.name == name));
 
     column()
-        .push(text::title2("Audio"))
-        .push(settings::section().title("Host").add(
-            row().push(text(app.audio_host.id().name())).push(pick_list(
-                app.audio_hosts.clone(),
-                Some(AudioHost {
-                    id: app.audio_host.id(),
-                    name: "",
-                }),
-                |a| AppMsg::Host(a.id),
-            )),
-        ))
-        .push(settings::section().title("Device").add(dropdown(
-            &app.audio_devices,
-            device_pos,
-            AppMsg::Device,
-        )))
+        .push(text::title4(fl!("audio_device")))
+        .push(dropdown(&app.audio_devices, device_pos, AppMsg::Device))
+        .push(button::text(fl!("advanced")).on_press(AppMsg::AdvancedOptions))
         .into()
 }
 
-fn connection_type(connection_mode: &ConnectionMode) -> Element<'_, AppMsg> {
+fn connection_type(app: &AppState) -> Element<'_, AppMsg> {
+    let connection_mode = &app.config.settings().connection_mode;
+
     column()
-        .push(text("Connection"))
+        .push(text::title4(fl!("connection")))
         .push(radio(
             "TCP",
             &ConnectionMode::Tcp,
             Some(connection_mode),
             |mode| AppMsg::ChangeConnectionMode(*mode),
         ))
+        // .push(radio(
+        //     "UDP",
+        //     &ConnectionMode::Udp,
+        //     Some(connection_mode),
+        //     |mode| AppMsg::ChangeConnectionMode(*mode),
+        // ))
         .push(radio(
-            "UDP",
-            &ConnectionMode::Udp,
-            Some(connection_mode),
-            |mode| AppMsg::ChangeConnectionMode(*mode),
-        ))
-        .push(radio(
-            "ADB/USB",
+            "USB (ADB)",
             &ConnectionMode::Adb,
             Some(connection_mode),
             |mode| AppMsg::ChangeConnectionMode(*mode),
         ))
+        .push(connect_button(app))
         .into()
 }
 
 fn connect_button(app: &AppState) -> Element<'_, AppMsg> {
     let (name, message) = match app.state {
-        State::Default => ("Connect", Some(AppMsg::Connect)),
-        State::Listening => ("Listening", Some(AppMsg::Stop)),
-        State::Connected => ("Connected", Some(AppMsg::Stop)),
-        State::WaitingOnStatus => ("Waiting", None),
+        State::Default => (fl!("connect"), Some(AppMsg::Connect)),
+        State::Listening => (fl!("listening"), Some(AppMsg::Stop)),
+        State::Connected => (fl!("connected"), Some(AppMsg::Stop)),
+        State::WaitingOnStatus => (fl!("waiting"), None),
     };
 
     button::text(name).on_press_maybe(message).into()
+}
+
+pub fn advanced_window<'a>(
+    _app: &'a AppState,
+    _advanced_window: &'a AdvancedWindow,
+) -> Element<'a, AppMsg> {
+    text("todo").into()
 }

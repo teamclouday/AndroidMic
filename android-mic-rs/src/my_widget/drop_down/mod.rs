@@ -16,6 +16,18 @@ use iced_widget::core::{
 
 use super::{alignment::Alignment, offset::Offset};
 
+pub fn drop_down<'a, Message, Theme, Renderer>(
+    underlay: impl Into<Element<'a, Message, Theme, Renderer>>,
+    overlay: impl Into<Element<'a, Message, Theme, Renderer>>,
+    expanded: bool,
+) -> DropDown<'a, Message, Theme, Renderer>
+where
+    Message: Clone,
+    Renderer: core::Renderer,
+{
+    DropDown::new(underlay, overlay, expanded)
+}
+
 pub struct DropDown<'a, Message, Theme = iced::Theme, Renderer = iced::Renderer>
 where
     Message: Clone,
@@ -36,11 +48,11 @@ where
     Message: Clone,
     Renderer: core::Renderer,
 {
-    pub fn new<U, B>(underlay: U, overlay: B, expanded: bool) -> Self
-    where
-        U: Into<Element<'a, Message, Theme, Renderer>>,
-        B: Into<Element<'a, Message, Theme, Renderer>>,
-    {
+    pub fn new(
+        underlay: impl Into<Element<'a, Message, Theme, Renderer>>,
+        overlay: impl Into<Element<'a, Message, Theme, Renderer>>,
+        expanded: bool,
+    ) -> Self {
         DropDown {
             underlay: underlay.into(),
             overlay: overlay.into(),

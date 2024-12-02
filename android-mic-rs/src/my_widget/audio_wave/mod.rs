@@ -104,7 +104,7 @@ impl canvas::Program<AppMsg, theme::Theme> for AudioWave {
         shade_builder.move_to(Point::new(top_left.x, bottom_right.y));
         shade_builder.line_to(points[0]);
         for i in 1..points.len() {
-            let previous_point = points[i - 1].clone();
+            let previous_point = points[i - 1];
             let control_previous =
                 Point::new(previous_point.x + step_length * 0.5, previous_point.y);
             let point = points[i];
@@ -113,7 +113,7 @@ impl canvas::Program<AppMsg, theme::Theme> for AudioWave {
             builder.bezier_curve_to(control_previous, control_current, point);
             shade_builder.bezier_curve_to(control_previous, control_current, point);
         }
-        shade_builder.line_to(bottom_right.clone());
+        shade_builder.line_to(bottom_right);
 
         // Draw the curve
         frame.stroke(

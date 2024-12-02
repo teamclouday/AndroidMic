@@ -62,7 +62,7 @@ i18n-embed-fl = "0.9"
 [dependencies.libcosmic]
 git = "https://github.com/pop-os/libcosmic"
 default-features = false
-features = ["winit", "wgpu", "tokio"]
+features = ["winit", "wgpu", "tokio", "multi-window"]
 
 # [patch."https://github.com/pop-os/libcosmic"]
 # libcosmic = { path = "../../libcosmic" }

@@ -1,6 +1,6 @@
 use cpal::{
     traits::{DeviceTrait, HostTrait},
-    Device, Host, HostId,
+    Device, Host,
 };
 use local_ip_address::local_ip;
 use rtrb::RingBuffer;
@@ -9,38 +9,22 @@ use tokio::sync::mpsc::Sender;
 use cosmic::{
     app::{Core, Settings, Task},
     executor,
-    iced::{futures::StreamExt, Subscription},
-    Application,
+    iced::{futures::StreamExt, window, Size, Subscription},
+    iced_runtime::Action,
+    Application, Element,
 };
 
 use crate::{
     config::{Config, ConnectionMode},
+    fl,
     streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg},
     utils::APP_ID,
-    view::view_app,
+    view::{advanced_window, view_app},
 };
 use zconf2::ConfigManager;
 
 pub fn run_ui() {
     cosmic::app::run::<AppState>(Settings::default(), ()).unwrap();
-}
-
-#[derive(Debug, Clone)]
-pub struct AudioHost {
-    pub id: HostId,
-    pub name: &'static str,
-}
-
-impl ToString for AudioHost {
-    fn to_string(&self) -> String {
-        self.name.to_string()
-    }
-}
-
-impl PartialEq for AudioHost {
-    fn eq(&self, other: &Self) -> bool {
-        self.id == other.id
-    }
 }
 
 #[derive(Clone)]
@@ -58,7 +42,7 @@ impl AsRef<str> for AudioDevice {
 impl AudioDevice {
     fn new(device: Device) -> Self {
         Self {
-            name: device.name().unwrap_or("None".into()),
+            name: device.name().unwrap_or(fl!("none")),
             device,
         }
     }
@@ -78,26 +62,43 @@ pub struct AppState {
     pub streamer: Option<Sender<StreamerCommand>>,
     pub config: ConfigManager<Config>,
     pub audio_host: Host,
-    pub audio_hosts: Vec<AudioHost>,
     pub audio_devices: Vec<AudioDevice>,
     pub audio_device: Option<cpal::Device>,
     pub audio_stream: Option<cpal::Stream>,
     pub state: State,
+    pub advanced_window: Option<AdvancedWindow>,
+}
+
+pub struct AdvancedWindow {
+    pub window_id: window::Id,
 }
 
 #[derive(Debug, Clone)]
 pub enum AppMsg {
     ChangeConnectionMode(ConnectionMode),
     Streamer(StreamerMsg),
-    Host(HostId),
     Device(usize),
     Connect,
     Stop,
+    AdvancedOptions,
 }
 
 impl AppState {
     fn send_command(&self, cmd: StreamerCommand) {
         self.streamer.as_ref().unwrap().blocking_send(cmd).unwrap();
+    }
+
+    fn update_audio_buf(&mut self) {
+        let (producer, consumer) = RingBuffer::<u8>::new(SHARED_BUF_SIZE);
+
+        match self.start_audio_stream(consumer) {
+            Ok(stream) => self.audio_stream = Some(stream),
+            Err(e) => {
+                error!("{e}")
+            }
+        }
+
+        self.send_command(StreamerCommand::ChangeBuff(producer));
     }
 }
 
@@ -122,24 +123,32 @@ impl Application for AppState {
         core: cosmic::app::Core,
         _flags: Self::Flags,
     ) -> (Self, cosmic::app::Task<Self::Message>) {
-        let config = ConfigManager::new("io.github", "wiiznokes", "android-mic").unwrap();
+        let config: ConfigManager<Config> =
+            ConfigManager::new("io.github", "wiiznokes", "android-mic").unwrap();
 
         let audio_host = cpal::default_host();
-        let audio_hosts = cpal::available_hosts()
-            .into_iter()
-            .map(|id| AudioHost {
-                id,
-                name: id.name(),
-            })
-            .collect();
-
-        let audio_device = audio_host.default_output_device();
 
         let audio_devices = audio_host
             .output_devices()
             .unwrap()
             .map(AudioDevice::new)
-            .collect();
+            .collect::<Vec<_>>();
+
+        let audio_device = match &config.settings().device_name {
+            Some(name) => {
+                match audio_devices
+                    .iter()
+                    .find(|audio_device| &audio_device.name == name)
+                {
+                    Some(audio_device) => Some(audio_device.device.clone()),
+                    None => {
+                        error!("can't find audio device name {}", name);
+                        audio_host.default_output_device()
+                    }
+                }
+            }
+            None => audio_host.default_output_device(),
+        };
 
         let app = Self {
             core,
@@ -148,9 +157,9 @@ impl Application for AppState {
             config,
             audio_device,
             audio_host,
-            audio_hosts,
             audio_devices,
             state: State::Default,
+            advanced_window: None,
         };
 
         (app, Task::none())
@@ -168,7 +177,6 @@ impl Application for AppState {
             AppMsg::Streamer(streamer_msg) => match streamer_msg {
                 StreamerMsg::Status(status) => match status {
                     Status::Error(_e) => {
-                        // error!("{e}");
                         self.state = State::Default;
                         self.audio_stream = None;
                     }
@@ -182,12 +190,13 @@ impl Application for AppState {
                 },
                 StreamerMsg::Ready(sender) => self.streamer = Some(sender),
             },
-            AppMsg::Host(host_id) => match cpal::host_from_id(host_id) {
-                Ok(host) => self.audio_host = host,
-                Err(e) => error!("{e}"),
-            },
             AppMsg::Device(pos) => {
-                self.audio_device = Some(self.audio_devices[pos].device.clone());
+                let audio_device = &self.audio_devices[pos];
+
+                self.audio_device = Some(audio_device.device.clone());
+                self.config
+                    .update(|c| c.device_name = Some(audio_device.name.clone()));
+                self.update_audio_buf();
             }
             AppMsg::Connect => {
                 self.state = State::WaitingOnStatus;
@@ -217,12 +226,42 @@ impl Application for AppState {
                 self.state = State::Default;
                 self.audio_stream = None;
             }
+            AppMsg::AdvancedOptions => match &self.advanced_window {
+                Some(advanced_window) => {
+                    let id = advanced_window.window_id;
+                    self.advanced_window = None;
+                    return cosmic::iced::runtime::task::effect(Action::Window(
+                        window::Action::Close(id),
+                    ));
+                }
+                None => {
+                    let settings = window::Settings {
+                        size: Size::new(300.0, 200.0),
+                        resizable: false,
+                        ..Default::default()
+                    };
+
+                    let (new_id, command) = cosmic::iced::runtime::window::open(settings);
+                    self.advanced_window = Some(AdvancedWindow { window_id: new_id });
+                    return command.map(|_| cosmic::app::Message::None);
+                }
+            },
         }
 
         Task::none()
     }
-    fn view(&self) -> cosmic::Element<Self::Message> {
+    fn view(&self) -> Element<Self::Message> {
         view_app(self)
+    }
+
+    fn view_window(&self, id: window::Id) -> Element<Self::Message> {
+        if let Some(window) = &self.advanced_window {
+            if window.window_id == id {
+                return advanced_window(self, window);
+            }
+        }
+
+        cosmic::widget::text("no view for window {id:?}").into()
     }
 
     fn subscription(&self) -> cosmic::iced::Subscription<Self::Message> {
