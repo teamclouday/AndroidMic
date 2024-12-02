@@ -5,5 +5,5 @@ none = Aucun
 
 connect = Connecter
 listening = Écoute...
-connected = Connecté
+disconnect = Déconnecter
 waiting = Attente...

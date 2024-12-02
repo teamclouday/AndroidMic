@@ -82,7 +82,7 @@ fn connect_button(app: &AppState) -> Element<'_, AppMsg> {
     match app.state {
         State::Default => button::text(fl!("connect")).on_press(AppMsg::Connect),
         State::Listening => button::text(fl!("listening")).on_press(AppMsg::Stop),
-        State::Connected => button::destructive(fl!("connected")).on_press(AppMsg::Stop),
+        State::Connected => button::destructive(fl!("disconnect")).on_press(AppMsg::Stop),
         State::WaitingOnStatus => button::text(fl!("waiting")),
     }
     .into()
