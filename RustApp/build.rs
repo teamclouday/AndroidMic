@@ -14,7 +14,6 @@ fn main() -> io::Result<()> {
         // https://github.com/mxre/winres/
         winres::WindowsResource::new()
             .set_icon("res/windows/app_icon.ico")
-            .set_manifest_file("res/windows/manifest.xml")
             .compile()?;
     }
 
