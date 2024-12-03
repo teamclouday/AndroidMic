@@ -90,6 +90,7 @@ pub struct AppState {
     pub audio_stream: Option<cpal::Stream>,
     pub state: State,
     pub advanced_window: Option<AdvancedWindow>,
+    pub logs: String,
 }
 
 pub struct AdvancedWindow {
@@ -128,6 +129,14 @@ impl AppState {
         }
 
         self.send_command(StreamerCommand::ChangeBuff(producer));
+    }
+
+    fn add_log(&mut self, log: &str) {
+        if !self.logs.is_empty() {
+            self.logs.push('\n');
+        }
+        self.logs.push_str(log);
+        // todo: scroll to bottom
     }
 }
 
@@ -198,6 +207,7 @@ impl Application for AppState {
             audio_devices,
             state: State::Default,
             advanced_window: None,
+            logs: String::new(),
         };
 
         (app, Task::none())
@@ -214,7 +224,8 @@ impl Application for AppState {
             }
             AppMsg::Streamer(streamer_msg) => match streamer_msg {
                 StreamerMsg::Status(status) => match status {
-                    Status::Error(_e) => {
+                    Status::Error(e) => {
+                        self.add_log(&e);
                         self.state = State::Default;
                         self.audio_stream = None;
                     }
@@ -253,6 +264,7 @@ impl Application for AppState {
                 match self.start_audio_stream(consumer) {
                     Ok(stream) => self.audio_stream = Some(stream),
                     Err(e) => {
+                        self.add_log(&e.to_string());
                         error!("{e}")
                     }
                 }

@@ -1,7 +1,10 @@
 use cosmic::{
-    iced::alignment::Horizontal,
+    iced::{alignment::Horizontal, Length},
     iced_widget::pick_list,
-    widget::{button, column, horizontal_space, radio, row, settings, text, vertical_space},
+    widget::{
+        button, column, container, horizontal_space, radio, row, scrollable, settings, text,
+        vertical_space,
+    },
     Element,
 };
 use cpal::traits::DeviceTrait;
@@ -32,8 +35,13 @@ pub fn view_app(app: &AppState) -> Element<'_, AppMsg> {
         .into()
 }
 
-fn logs(_app: &AppState) -> Element<'_, AppMsg> {
-    text("log").into()
+fn logs(app: &AppState) -> Element<'_, AppMsg> {
+    container(scrollable(text(&app.logs).width(Length::Fill)))
+        .width(Length::FillPortion(2))
+        .height(Length::FillPortion(2))
+        .padding(13)
+        .class(cosmic::theme::Container::Card)
+        .into()
 }
 
 fn audio_wave(_app: &AppState) -> Element<'_, AppMsg> {
