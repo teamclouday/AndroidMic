@@ -1,0 +1,5 @@
+/target/
+/res/linux/adb
+/res/windows/adb
+/config/android-mic.toml
+/.vscode

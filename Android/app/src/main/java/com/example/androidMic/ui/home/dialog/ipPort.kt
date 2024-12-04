@@ -6,37 +6,31 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.androidMic.DefaultStates
 import com.example.androidMic.R
-import com.example.androidMic.ui.DefaultStates
-import com.example.androidMic.ui.Dialogs
 import com.example.androidMic.ui.MainViewModel
-import com.example.androidMic.ui.States
 import com.example.androidMic.ui.components.ManagerButton
 import com.example.androidMic.ui.components.ManagerOutlinedTextField
 
 @Composable
-fun DialogWifiIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
+fun DialogIpPort(vm: MainViewModel, expanded: MutableState<Boolean>) {
 
-    val tempIp = remember {
-        mutableStateOf(uiStates.ip)
+    val tempIp = rememberSaveable {
+        mutableStateOf(vm.prefs.ip.getBlocking())
     }
-    val tempPort = remember {
-        mutableStateOf(uiStates.port)
+    val tempPort = rememberSaveable {
+        mutableStateOf(vm.prefs.port.getBlocking())
     }
 
-    ManagerDialog(
-        mainViewModel,
-        uiStates,
-        Dialogs.IpPort,
-        onDismissRequest = {
-            tempIp.value = uiStates.ip; tempPort.value = uiStates.port
-        }
+    BaseDialog(
+        expanded,
     ) {
         Column(
             horizontalAlignment = Alignment.End
@@ -67,7 +61,8 @@ fun DialogWifiIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                 // save Button
                 ManagerButton(
                     onClick = {
-                        mainViewModel.setIpPort(tempIp.value, tempPort.value)
+                        vm.setIpPort(tempIp.value, tempPort.value)
+                        expanded.value = false
                     },
                     text = stringResource(id = R.string.save),
                     modifier = Modifier.fillMaxWidth(0.6f)
@@ -78,8 +73,7 @@ fun DialogWifiIpPort(mainViewModel: MainViewModel, uiStates: States.UiStates) {
                 // cancel Button
                 ManagerButton(
                     onClick = {
-                        tempIp.value = uiStates.ip; tempPort.value = uiStates.port
-                        mainViewModel.showDialog(Dialogs.None)
+                        expanded.value = false
                     },
                     text = stringResource(id = R.string.cancel),
                     modifier = Modifier.fillMaxWidth(0.6f)

@@ -5,13 +5,13 @@ import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.runtime.collectAsState
-import androidx.lifecycle.SavedStateViewModelFactory
-import androidx.lifecycle.ViewModelProvider
+import androidx.activity.viewModels
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.androidMic.AndroidMicApp
 import com.example.androidMic.ui.home.HomeScreen
 import com.example.androidMic.ui.theme.AndroidMicTheme
 import com.example.androidMic.ui.utils.rememberWindowInfo
+import com.example.androidMic.ui.utils.viewModelFactory
 import com.example.androidMic.utils.ignore
 
 
@@ -20,49 +20,45 @@ class MainActivity : ComponentActivity() {
 
     private val WAIT_PERIOD = 500L
 
-    private lateinit var mainViewModel: MainViewModel
+    val vm: MainViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate")
-        mainViewModel = ViewModelProvider(
-            this,
-            SavedStateViewModelFactory(application, this)
-        )[MainViewModel::class.java]
-
 
         setContent {
-            val uiStates = mainViewModel.uiStates.collectAsState()
 
             AndroidMicTheme(
-                theme = uiStates.value.theme,
-                dynamicColor = uiStates.value.dynamicColor
+                theme = vm.prefs.theme.getAsState().value,
+                dynamicColor = vm.prefs.dynamicColor.getAsState().value
             ) {
                 // get windowInfo for rotation change
                 val windowInfo = rememberWindowInfo()
 
-                HomeScreen(mainViewModel, windowInfo)
+                HomeScreen(vm, windowInfo)
             }
         }
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (intent?.extras?.getBoolean("ForegroundServiceBound") == true) {
+        if (intent.extras?.getBoolean("ForegroundServiceBound") == true) {
             Log.d(TAG, "onNewIntent -> ForegroundServiceBound")
             // get variable from application
-            mainViewModel.refreshAppVariables()
+            vm.refreshAppVariables()
             // get status
-            mainViewModel.askForStatus()
+            vm.askForStatus()
         }
     }
 
     override fun onStart() {
         super.onStart()
         Log.d(TAG, "onStart")
-        mainViewModel.handlerServiceResponse()
+
+
+        vm.handlerServiceResponse()
         // get variable from application
-        mainViewModel.refreshAppVariables()
+        vm.refreshAppVariables()
 
         (application as AndroidMicApp).bindService()
     }
@@ -71,9 +67,10 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         Log.d(TAG, "onStop")
-        mainViewModel.mMessengerLooper.quitSafely()
-        ignore { mainViewModel.handlerThread.join(WAIT_PERIOD) }
+        vm.mMessengerLooper.quitSafely()
+        ignore { vm.handlerThread.join(WAIT_PERIOD) }
 
         (application as AndroidMicApp).unBindService()
     }
+
 }

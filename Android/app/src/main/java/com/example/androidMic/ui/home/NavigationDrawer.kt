@@ -10,141 +10,152 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.Divider
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.DarkMode
+import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Usb
+import androidx.compose.material.icons.rounded.Wifi
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.example.androidMic.Modes
 import com.example.androidMic.R
-import com.example.androidMic.ui.Dialogs
 import com.example.androidMic.ui.MainViewModel
-import com.example.androidMic.ui.States
 import com.example.androidMic.ui.home.dialog.DialogAudioFormat
 import com.example.androidMic.ui.home.dialog.DialogChannelCount
 import com.example.androidMic.ui.home.dialog.DialogMode
 import com.example.androidMic.ui.home.dialog.DialogSampleRate
 import com.example.androidMic.ui.home.dialog.DialogTheme
-import com.example.androidMic.ui.home.dialog.DialogWifiIpPort
+import com.example.androidMic.ui.home.dialog.DialogIpPort
 
 data class MenuItem(
-    val id: Dialogs? = null,
     val title: String,
     val subTitle: String,
     val contentDescription: String,
-    val icon: Int? = null
+    val icon: ImageVector? = null
 )
 
 @Composable
-fun DrawerBody(mainViewModel: MainViewModel, uiStates: States.UiStates) {
+fun DrawerBody(vm: MainViewModel) {
 
-    // maybe this could be optimize, idk
-    DialogMode(mainViewModel = mainViewModel, uiStates = uiStates)
-    DialogWifiIpPort(mainViewModel = mainViewModel, uiStates = uiStates)
-    DialogSampleRate(mainViewModel = mainViewModel, uiStates = uiStates)
-    DialogChannelCount(mainViewModel = mainViewModel, uiStates = uiStates)
-    DialogAudioFormat(mainViewModel = mainViewModel, uiStates = uiStates)
-    DialogTheme(mainViewModel = mainViewModel, uiStates = uiStates)
-
-    val connectionItems = listOf(
-        MenuItem(
-            id = Dialogs.Modes,
-            title = stringResource(id = R.string.drawerMode),
-            subTitle = uiStates.mode.toString(),
-            contentDescription = "set mode",
-            icon = R.drawable.settings_24px
-        ),
-        MenuItem(
-            id = Dialogs.IpPort,
-            title = stringResource(id = R.string.drawerIpPort),
-            subTitle = uiStates.ip + ":" + uiStates.port,
-            contentDescription = "set ip and port",
-            icon = R.drawable.wifi_24px
-
-        ),
-    )
-
-    val recordItems = listOf(
-        MenuItem(
-            id = Dialogs.SampleRates,
-            title = stringResource(id = R.string.sample_rate),
-            subTitle = uiStates.sampleRate.value.toString(),
-            contentDescription = "set sample rate",
-        ),
-        MenuItem(
-            id = Dialogs.ChannelCount,
-            title = stringResource(id = R.string.channel_count),
-            subTitle = uiStates.channelCount.toString(),
-            contentDescription = "set channel count",
-        ),
-        MenuItem(
-            id = Dialogs.AudioFormat,
-            title = stringResource(id = R.string.audio_format),
-            subTitle = uiStates.audioFormat.toString(),
-            contentDescription = "set audio format",
-        ),
-    )
-
-    val otherItems = listOf(
-        MenuItem(
-            id = Dialogs.Themes,
-            title = stringResource(id = R.string.drawerTheme),
-            subTitle = uiStates.theme.toString(),
-            contentDescription = "set theme",
-            icon = R.drawable.dark_mode_24px
-        )
-    )
-
-    LazyColumn(
+    Column(
         modifier = Modifier
             .fillMaxHeight()
             .width(355.dp)
             .background(color = MaterialTheme.colorScheme.background)
     ) {
         // setting title
-        item {
-            Box(
-                modifier = Modifier
-                    .padding(vertical = 64.dp)
-                    .padding(start = 25.dp)
-            ) {
-                Text(
-                    text = stringResource(id = R.string.drawerHeader),
-                    style = MaterialTheme.typography.titleLarge,
-                    color = MaterialTheme.colorScheme.onBackground
+        Box(
+            modifier = Modifier
+                .padding(vertical = 64.dp)
+                .padding(start = 25.dp)
+        ) {
+            Text(
+                text = stringResource(id = R.string.drawerHeader),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+
+        // Connection
+        SettingsItemsSubtitle(R.string.drawer_subtitle_connection)
+
+        val dialogModeExpanded = rememberSaveable {
+            mutableStateOf(false)
+        }
+
+        val mode = vm.prefs.mode.getAsState()
+
+        DialogMode(vm = vm, expanded = dialogModeExpanded)
+        SettingsItem(
+            title = stringResource(id = R.string.drawerMode),
+            subTitle = mode.value.toString(),
+            contentDescription = "set mode",
+            icon = Icons.Rounded.Settings,
+            expanded = dialogModeExpanded
+        )
+
+        when (mode.value) {
+            Modes.WIFI, Modes.UDP -> {
+                val dialogIpPortExpanded = rememberSaveable {
+                    mutableStateOf(false)
+                }
+                DialogIpPort(vm = vm, expanded = dialogIpPortExpanded)
+                SettingsItem(
+                    title = stringResource(id = R.string.drawerIpPort),
+                    subTitle = vm.prefs.ip.getAsState().value + ":" + vm.prefs.port.getAsState().value,
+                    contentDescription = "set ip and port",
+                    icon = Icons.Rounded.Wifi,
+                    expanded = dialogIpPortExpanded
                 )
+            }
+
+            Modes.USB, Modes.BLUETOOTH -> {
+
             }
         }
 
-        item {
-            SettingsItemsSubtitle(R.string.drawer_subtitle_connection)
-        }
+        // Audio
+        SettingsItemsSubtitle(R.string.drawer_subtitle_record)
 
-        items(connectionItems) { item ->
-            SettingsItem(mainViewModel, item)
+        val dialogSampleRateExpanded = rememberSaveable {
+            mutableStateOf(false)
         }
+        DialogSampleRate(vm = vm, expanded = dialogSampleRateExpanded)
+        SettingsItem(
+            title = stringResource(id = R.string.sample_rate),
+            subTitle = vm.prefs.sampleRate.getAsState().value.value.toString(),
+            contentDescription = "set sample rate",
+            expanded = dialogSampleRateExpanded
+        )
 
-        item {
-            SettingsItemsSubtitle(R.string.drawer_subtitle_record)
+        val dialogChannelCountExpanded = rememberSaveable {
+            mutableStateOf(false)
         }
+        DialogChannelCount(vm = vm, expanded = dialogChannelCountExpanded)
+        SettingsItem(
+            title = stringResource(id = R.string.channel_count),
+            subTitle = vm.prefs.channelCount.getAsState().value.toString(),
+            contentDescription = "set channel count",
+            expanded = dialogChannelCountExpanded
+        )
 
-        items(recordItems) { item ->
-            SettingsItem(mainViewModel, item)
+        val dialogAudioFormatExpanded = rememberSaveable {
+            mutableStateOf(false)
         }
+        DialogAudioFormat(vm = vm, expanded = dialogAudioFormatExpanded)
+        SettingsItem(
+            title = stringResource(id = R.string.audio_format),
+            subTitle = vm.prefs.audioFormat.getAsState().value.toString(),
+            contentDescription = "set audio format",
+            expanded = dialogAudioFormatExpanded
+        )
 
-        item {
-            SettingsItemsSubtitle(R.string.drawer_subtitle_other)
-        }
+        // Other
+        SettingsItemsSubtitle(R.string.drawer_subtitle_other)
 
-        items(otherItems) { item ->
-            SettingsItem(mainViewModel, item)
+        val dialogThemesExpanded = rememberSaveable {
+            mutableStateOf(false)
         }
+        DialogTheme(vm = vm, expanded = dialogThemesExpanded)
+        SettingsItem(
+            title = stringResource(id = R.string.drawerTheme),
+            subTitle = vm.prefs.theme.getAsState().value.toString(),
+            contentDescription = "set theme",
+            icon = Icons.Rounded.DarkMode,
+            expanded = dialogThemesExpanded
+        )
+
     }
 }
 
@@ -164,43 +175,47 @@ private fun SettingsItemsSubtitle(
             color = MaterialTheme.colorScheme.onBackground
         )
     }
-    Divider(color = MaterialTheme.colorScheme.onBackground)
+    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground)
 }
 
 @Composable
-private fun SettingsItem(mainViewModel: MainViewModel, item: MenuItem) {
+private fun SettingsItem(
+    title: String,
+    subTitle: String,
+    contentDescription: String,
+    icon: ImageVector? = null,
+    expanded: MutableState<Boolean>
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
+            .padding(16.dp)
             .clickable {
-                if (item.id != null) {
-                    mainViewModel.showDialog(item.id)
-                }
-            }
-            .padding(16.dp),
+                expanded.value = true
+            },
         verticalAlignment = Alignment.CenterVertically
     ) {
-        if (item.icon != null) {
+        if (icon != null) {
             Icon(
-                painter = painterResource(id = item.icon),
-                contentDescription = item.contentDescription,
+                imageVector = icon,
+                contentDescription = contentDescription,
                 tint = MaterialTheme.colorScheme.onBackground
             )
         }
         Spacer(modifier = Modifier.width(16.dp))
         Column {
             Text(
-                text = item.title,
+                text = title,
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onBackground
             )
 
             Text(
-                text = item.subTitle,
+                text = subTitle,
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onBackground
             )
         }
     }
-    Divider(color = MaterialTheme.colorScheme.onBackground)
+    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground)
 }

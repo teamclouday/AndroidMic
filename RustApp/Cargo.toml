@@ -1,0 +1,73 @@
+[package]
+name = "android-mic"
+version = "0.1.0"
+edition = "2021"
+authors = ["wiiznokes <wiiznokes2@gmail.com>"]
+license = "GPL-3.0-only"
+
+
+[package.metadata.packager]
+product_name = "AndroidMic"
+before-each-package-command = "cargo build --release"
+identifier = "io.github.teamclouday.android-mic"
+icons = ["res/windows/app_icon.ico"]
+resources = ["res/windows/adb"]
+category = "Utility"
+
+[package.metadata.packager.windows]
+allow_downgrades = true
+
+[lints.rust]
+dead_code = "allow"
+unexpected_cfgs = { level = "warn", check-cfg = [
+    'cfg(ANDROID_MIC_FORMAT, values("flatpak"))',
+] }
+
+[lints.clippy]
+to_string_trait_impl = "allow"
+
+[dependencies]
+# linux: alsa will probably be included as a fallback ?
+cpal = { version = "0.15", features = ["jack"] }
+byteordered = "0.6"
+rtrb = "0.3"
+serde-textual = "0.1.1"
+local-ip-address = "0.6"
+env_logger = "0.11"
+log = "0.4"
+zconf = "0.1"
+serde = "1"
+light_enum = "0.2"
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+thiserror = "2"
+enum_dispatch = "0.3"
+futures = "0.3.31"
+cached = "0.54"
+constcat = "0.5"
+cargo-packager-resource-resolver = { version = "0.1", features = [
+    "auto-detect-format",
+] }
+either = "1.13.0"
+i18n-embed = { version = "0.15", features = [
+    "fluent-system",
+    "desktop-requester",
+] }
+rust-embed = "8"
+i18n-embed-fl = "0.9"
+directories = "5"
+
+[dependencies.libcosmic]
+git = "https://github.com/pop-os/libcosmic"
+default-features = false
+features = ["winit", "wgpu", "tokio", "multi-window"]
+
+# [patch."https://github.com/pop-os/libcosmic"]
+# libcosmic = { path = "../../libcosmic" }
+
+# [patch.crates-io]
+# zconf = { path = "../../zconf" }
+
+
+[build-dependencies]
+winres = "0.1"

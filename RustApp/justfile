@@ -1,0 +1,64 @@
+set windows-powershell := true
+
+rootdir := ''
+prefix := ''
+debug := '0'
+
+name := 'android-mic'
+appid := 'io.github.teamclouday.' + name
+
+cargo-target-dir := env('CARGO_TARGET_DIR', 'target')
+bin-src := cargo-target-dir / if debug == '1' { 'debug' / name } else { 'release' / name }
+
+base-dir := absolute_path(clean(rootdir / prefix))
+share-dst := base-dir / 'share'
+
+bin-dst := base-dir / 'bin' / name
+desktop-dst := share-dst / 'applications' / appid + '.desktop'
+metainfo-dst := share-dst / 'metainfo' / appid + '.metainfo.xml'
+icon-dst := share-dst / 'icons/hicolor/scalable/apps' / appid + '.svg'
+
+
+default: build-release
+
+pull: fmt prettier fix test
+
+build-debug *args:
+	cargo build {{args}}
+
+build-release *args:
+  cargo build --release {{args}}
+	
+
+install: 
+	install -Dm0755 {{bin-src}} {{bin-dst}}
+	install -Dm0644 res/linux/desktop_entry.desktop {{desktop-dst}}
+	install -Dm0644 res/linux/metainfo.xml {{metainfo-dst}}
+	install -Dm0644 res/linux/app_icon.svg {{icon-dst}}
+
+
+uninstall:
+	rm {{bin-dst}}
+	rm {{desktop-dst}}
+	rm {{metainfo-dst}}
+	rm {{icon-dst}}
+
+nsis:
+	cargo packager --release --formats nsis --verbose
+
+test:
+	cargo test --workspace --all-features
+
+fix:
+	cargo clippy --workspace --all-features --fix --allow-dirty --allow-staged
+
+fmt:
+	cargo fmt --all
+
+prettier:
+	# install on Debian: sudo snap install node --classic
+	# npx is the command to run npm package, node is the runtime
+	npx prettier -w .
+
+metainfo-check:
+	appstreamcli validate --pedantic --explain --strict res/linux/metainfo.xml

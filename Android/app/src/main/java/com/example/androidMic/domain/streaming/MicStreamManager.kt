@@ -1,8 +1,8 @@
 package com.example.androidMic.domain.streaming
 
 import android.content.Context
+import com.example.androidMic.Modes
 import com.example.androidMic.domain.audio.AudioBuffer
-import com.example.androidMic.ui.Modes
 
 // StreamManager acts as a minimal RTSP server for audio data
 // reference: https://www.medialan.de/usecase0001.html
@@ -10,25 +10,21 @@ import com.example.androidMic.ui.Modes
 // manage streaming data
 class MicStreamManager(ctx: Context, val mode: Modes, ip: String?, port: Int?) {
 
-    private var streamer: Streamer
+    private var streamer: Streamer = when (mode) {
+        Modes.WIFI -> {
+            WifiStreamer(ctx, ip!!, port!!)
+        }
 
-    init {
-        streamer = when (mode) {
-            Modes.WIFI -> {
-                WifiStreamer(ctx, ip!!, port!!)
-            }
+        Modes.BLUETOOTH -> {
+            BluetoothStreamer(ctx)
+        }
 
-            Modes.BLUETOOTH -> {
-                BluetoothStreamer(ctx)
-            }
+        Modes.USB -> {
+            AdbStreamer()
+        }
 
-            Modes.USB -> {
-                AdbStreamer(port!!)
-            }
-
-            Modes.UDP -> {
-                UdpStreamer(ip!!, port!!)
-            }
+        Modes.UDP -> {
+            UdpStreamer(ip!!, port!!)
         }
     }
 

@@ -15,6 +15,7 @@ import android.os.Message
 import android.os.Messenger
 import android.os.Process
 import android.util.Log
+import com.example.androidMic.Modes
 import com.example.androidMic.R
 import com.example.androidMic.domain.audio.AudioBuffer
 import com.example.androidMic.domain.audio.MicAudioManager
@@ -25,8 +26,6 @@ import com.example.androidMic.domain.service.Command.Companion.COMMAND_START_STR
 import com.example.androidMic.domain.service.Command.Companion.COMMAND_STOP_AUDIO
 import com.example.androidMic.domain.service.Command.Companion.COMMAND_STOP_STREAM
 import com.example.androidMic.domain.streaming.MicStreamManager
-import com.example.androidMic.ui.Modes
-import com.example.androidMic.ui.States
 import com.example.androidMic.utils.ignore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -36,6 +35,15 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+
+
+data class ServiceStates(
+    var isStreamStarted: Boolean = false,
+    var streamShouldStop: Boolean = false,
+    var isAudioStarted: Boolean = false,
+    var audioShouldStop: Boolean = false,
+    var mode: Int = Modes.WIFI.ordinal
+)
 
 class ForegroundService : Service() {
     private val TAG = "MicService"
@@ -67,7 +75,7 @@ class ForegroundService : Service() {
     private var jobAudioM: Job? = null
 
 
-    private val states = States.ServiceStates()
+    private val states = ServiceStates()
     private lateinit var messageui: MessageUi
 
 
@@ -112,8 +120,8 @@ class ForegroundService : Service() {
         super.onUnbind(intent)
         Log.d(TAG, "onUnbind")
 
-        if ((!states.isAudioStarted.get() || states.audioShouldStop.get()) &&
-            (!states.isStreamStarted.get() || states.streamShouldStop.get())
+        if ((!states.isAudioStarted || states.audioShouldStop) &&
+            (!states.isStreamStarted || states.streamShouldStop)
         ) {
             // delay to handle reconfiguration
             // (Service is not destroy when the screen rotate)
@@ -139,8 +147,8 @@ class ForegroundService : Service() {
         managerAudio = null
         managerStream?.shutdown()
         managerStream = null
-        states.streamShouldStop.set(true)
-        states.audioShouldStop.set(true)
+        states.streamShouldStop = true
+        states.audioShouldStop = true
         runBlocking {
             delay(WAIT_PERIOD)
             if (jobStreamM?.isActive == true) jobStreamM?.cancel()
@@ -164,7 +172,7 @@ class ForegroundService : Service() {
         val sender = msg.replyTo
         val replyData = Bundle()
         // check connection state
-        if (states.isStreamStarted.get()) {
+        if (states.isStreamStarted) {
             replyData.putString("reply", this.getString(R.string.stream_already_started))
             reply(sender, replyData, COMMAND_START_STREAM, true)
             return
@@ -176,7 +184,7 @@ class ForegroundService : Service() {
 
         // get params before going into the scope
         val mode: Modes = msg.data.getInt("MODE").let {
-            Modes.values()[it]
+            Modes.entries[it]
         }
         val ip: String? = msg.data.getString("IP")
         val port: Int = msg.data.getInt("PORT")
@@ -198,7 +206,7 @@ class ForegroundService : Service() {
                 cancel()
                 awaitCancellation()
             }
-            states.streamShouldStop.set(false)
+            states.streamShouldStop = false
 
             sharedBuffer.clear()
             if (managerStream?.start() == true && managerStream?.isConnected() == true) {
@@ -221,9 +229,9 @@ class ForegroundService : Service() {
                 awaitCancellation()
             }
             messageui.showMessage(applicationContext.getString(R.string.start_streaming))
-            states.isStreamStarted.set(true)
-            states.streamShouldStop.set(false)
-            while (!states.streamShouldStop.get()) {
+            states.isStreamStarted = true
+            states.streamShouldStop = false
+            while (!states.streamShouldStop) {
                 if (managerStream?.isConnected() == true) {
                     managerStream?.stream(sharedBuffer)
                     delay(MicStreamManager.STREAM_DELAY)
@@ -237,7 +245,7 @@ class ForegroundService : Service() {
                     break
                 }
             }
-            states.isStreamStarted.set(false)
+            states.isStreamStarted = false
         }
     }
 
@@ -247,7 +255,7 @@ class ForegroundService : Service() {
         val sender = msg.replyTo
         val replyData = Bundle()
         runBlocking {
-            states.streamShouldStop.set(true)
+            states.streamShouldStop = true
             managerStream?.shutdown()
             delay(WAIT_PERIOD)
             jobStreamM?.cancel()
@@ -256,7 +264,7 @@ class ForegroundService : Service() {
         jobStreamM = null
         replyData.putString("reply", applicationContext.getString(R.string.device_disconnected))
         messageui.showMessage(applicationContext.getString(R.string.stop_streaming))
-        states.isStreamStarted.set(false)
+        states.isStreamStarted = false
         reply(sender, replyData, COMMAND_STOP_STREAM, true)
     }
 
@@ -265,7 +273,7 @@ class ForegroundService : Service() {
         val sender = msg.replyTo
         val replyData = Bundle()
         // check audio state
-        if (states.isAudioStarted.get()) {
+        if (states.isAudioStarted) {
             replyData.putString("reply", this.getString(R.string.microphone_already_started))
             reply(sender, replyData, COMMAND_START_AUDIO, true)
             return
@@ -313,16 +321,16 @@ class ForegroundService : Service() {
             reply(sender, replyData, COMMAND_START_AUDIO, true)
             Log.d(TAG, "startAudio [recording]")
             // record into buffer
-            states.isAudioStarted.set(true)
-            states.audioShouldStop.set(false)
-            while (!states.audioShouldStop.get()) {
+            states.isAudioStarted = true
+            states.audioShouldStop = false
+            while (!states.audioShouldStop) {
                 managerAudio?.record(sharedBuffer)
                 delay(MicAudioManager.RECORD_DELAY)
             }
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 stopForeground(STOP_FOREGROUND_REMOVE)
             }
-            states.isAudioStarted.set(false)
+            states.isAudioStarted = false
         }
     }
 
@@ -332,7 +340,7 @@ class ForegroundService : Service() {
         val sender = msg.replyTo
         val replyData = Bundle()
         runBlocking {
-            states.audioShouldStop.set(true)
+            states.audioShouldStop = true
             managerAudio?.shutdown()
             delay(WAIT_PERIOD)
             jobAudioM?.cancel()
@@ -344,7 +352,7 @@ class ForegroundService : Service() {
         jobAudioM = null
         replyData.putString("reply", application.getString(R.string.recording_stopped))
         messageui.showMessage(application.getString(R.string.stop_recording))
-        states.isAudioStarted.set(false)
+        states.isAudioStarted = false
         reply(sender, replyData, COMMAND_STOP_AUDIO, true)
     }
 
@@ -353,8 +361,8 @@ class ForegroundService : Service() {
         Log.d(TAG, "getStatus")
         val sender = msg.replyTo
         val replyData = Bundle()
-        replyData.putBoolean("isStreamStarted", states.isStreamStarted.get())
-        replyData.putBoolean("isAudioStarted", states.isAudioStarted.get())
+        replyData.putBoolean("isStreamStarted", states.isStreamStarted)
+        replyData.putBoolean("isAudioStarted", states.isAudioStarted)
         val reply = Message()
         reply.data = replyData
         reply.what = COMMAND_GET_STATUS

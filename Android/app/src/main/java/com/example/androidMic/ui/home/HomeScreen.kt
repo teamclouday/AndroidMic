@@ -21,8 +21,9 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -30,11 +31,12 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
+import com.example.androidMic.Dialogs
+import com.example.androidMic.Modes
 import com.example.androidMic.R
 import com.example.androidMic.ui.MainViewModel
-import com.example.androidMic.ui.Modes
-import com.example.androidMic.ui.States
 import com.example.androidMic.ui.components.ManagerButton
+import com.example.androidMic.ui.home.dialog.DialogIpPort
 import com.example.androidMic.ui.utils.WindowInfo
 import com.example.androidMic.ui.utils.getBluetoothPermission
 import com.example.androidMic.ui.utils.getRecordAudioPermission
@@ -45,8 +47,7 @@ import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.launch
 
 @Composable
-fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
-    val uiStates = mainViewModel.uiStates.collectAsState()
+fun HomeScreen(vm: MainViewModel, currentWindowInfo: WindowInfo) {
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -60,7 +61,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
         gesturesEnabled = true,
 
         drawerContent = {
-            DrawerBody(mainViewModel, uiStates.value)
+            DrawerBody(vm)
         }
     ) {
         ConstraintLayout(
@@ -83,8 +84,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                 )
 
                 Log(
-                    mainViewModel = mainViewModel,
-                    uiStates = uiStates.value,
+                    vm = vm,
                     modifier = Modifier
                         .constrainAs(log) {
                             linkTo(top = appBar.bottom, bottom = interactionButton.top)
@@ -95,8 +95,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                         .padding(top = 15.dp)
                 )
                 InteractionButton(
-                    mainViewModel = mainViewModel,
-                    uiStates = uiStates.value,
+                    mainViewModel = vm,
                     modifier = Modifier
                         .constrainAs(interactionButton) {
                             bottom.linkTo(parent.bottom)
@@ -121,8 +120,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                 }
 
                 Log(
-                    mainViewModel = mainViewModel,
-                    uiStates = uiStates.value,
+                    vm = vm,
                     modifier = Modifier
                         .constrainAs(log) {
                             linkTo(start = parent.start, end = interactionButton.start)
@@ -138,8 +136,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
                 )
 
                 InteractionButton(
-                    mainViewModel = mainViewModel,
-                    uiStates = uiStates.value,
+                    mainViewModel = vm,
                     modifier = Modifier
                         .constrainAs(interactionButton) {
                             end.linkTo(parent.end)
@@ -157,8 +154,7 @@ fun HomeScreen(mainViewModel: MainViewModel, currentWindowInfo: WindowInfo) {
 
 @Composable
 private fun Log(
-    mainViewModel: MainViewModel,
-    uiStates: States.UiStates,
+    vm: MainViewModel,
     modifier: Modifier
 ) {
     Box(
@@ -167,14 +163,14 @@ private fun Log(
             .pointerInput(Unit) {
                 detectTapGestures(
                     onDoubleTap = {
-                        mainViewModel.cleanLog()
+                        vm.cleanLog()
                     }
                 )
             }
     )
     {
         Text(
-            text = uiStates.textLog,
+            text = vm.textLog.value,
             color = MaterialTheme.colorScheme.onSecondary,
             style = MaterialTheme.typography.bodyMedium,
             modifier = Modifier
@@ -187,7 +183,6 @@ private fun Log(
 @Composable
 private fun InteractionButton(
     mainViewModel: MainViewModel,
-    uiStates: States.UiStates,
     modifier: Modifier
 ) {
     Column(
@@ -197,19 +192,17 @@ private fun InteractionButton(
         verticalArrangement = Arrangement.Center
     ) {
         ButtonConnect(
-            mainViewModel = mainViewModel,
-            uiStates = uiStates
+            vm = mainViewModel,
         )
         Spacer(modifier = Modifier.height(10.dp))
-        SwitchAudio(mainViewModel = mainViewModel, uiStates = uiStates)
+        SwitchAudio(vm = mainViewModel)
     }
 }
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 private fun ButtonConnect(
-    mainViewModel: MainViewModel,
-    uiStates: States.UiStates
+    vm: MainViewModel,
 ) {
     val wifiPermissionsState = rememberMultiplePermissionsState(
         permissions = getWifiPermission()
@@ -221,47 +214,55 @@ private fun ButtonConnect(
         permissions = getUsbPermission()
     )
 
+
+    val dialogIpPortExpanded = rememberSaveable {
+        mutableStateOf(false)
+    }
+    DialogIpPort(vm = vm, expanded = dialogIpPortExpanded)
+
     ManagerButton(
         onClick = {
-            when (uiStates.mode) {
+            when (vm.prefs.mode.getBlocking()) {
                 Modes.WIFI -> {
                     if (!wifiPermissionsState.allPermissionsGranted)
-                        wifiPermissionsState.launchMultiplePermissionRequest()
-                    else
-                        mainViewModel.onConnectButton()
+                        return@ManagerButton wifiPermissionsState.launchMultiplePermissionRequest()
                 }
 
                 Modes.BLUETOOTH -> {
                     if (!bluetoothPermissionsState.allPermissionsGranted)
-                        bluetoothPermissionsState.launchMultiplePermissionRequest()
-                    else
-                        mainViewModel.onConnectButton()
+                        return@ManagerButton bluetoothPermissionsState.launchMultiplePermissionRequest()
                 }
 
                 Modes.USB -> {
                     if (!usbPermissionsState.allPermissionsGranted)
-                        usbPermissionsState.launchMultiplePermissionRequest()
-                    else
-                        mainViewModel.onConnectButton()
+                        return@ManagerButton usbPermissionsState.launchMultiplePermissionRequest()
                 }
 
-                Modes.UDP -> {
-                    mainViewModel.onConnectButton()
+                else -> {}
+            }
+
+            val dialog = vm.onConnectButton()
+
+            if (dialog != null) {
+                when (dialog) {
+                    Dialogs.IpPort -> {
+                        dialogIpPortExpanded.value = true
+                    }
                 }
             }
         },
         text =
-        if (uiStates.isStreamStarted)
+        if (vm.isStreamStarted.value)
             stringResource(id = R.string.disconnect)
         else
             stringResource(id = R.string.connect),
-        enabled = uiStates.buttonConnectIsClickable
+        enabled = vm.buttonConnectIsClickable.value
     )
 }
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-private fun SwitchAudio(mainViewModel: MainViewModel, uiStates: States.UiStates) {
+private fun SwitchAudio(vm: MainViewModel) {
 
     val permissionsState = rememberMultiplePermissionsState(
         permissions = getRecordAudioPermission()
@@ -280,16 +281,16 @@ private fun SwitchAudio(mainViewModel: MainViewModel, uiStates: States.UiStates)
         Spacer(Modifier.width(12.dp))
 
         Switch(
-            checked = uiStates.isAudioStarted,
+            checked = vm.isAudioStarted.value,
             onCheckedChange = {
                 // check for audio permission
                 if (!permissionsState.allPermissionsGranted)
                     permissionsState.launchMultiplePermissionRequest()
                 else
-                    mainViewModel.onAudioSwitch()
+                    vm.onAudioSwitch()
 
             },
-            enabled = uiStates.switchAudioIsClickable
+            enabled = vm.switchAudioIsClickable.value
         )
     }
 }

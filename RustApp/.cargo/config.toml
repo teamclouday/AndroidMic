@@ -1,0 +1,4 @@
+[env]
+RUST_LOG = "warn,android_mic=info"
+# RUST_LOG = "info"
+#RUST_BACKTRACE = "1"

@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=AndroidMic
+Comment=Use your Android phone as a mic for your PC
+Comment[fr]=Utilisez votre téléphone Android comme micro pour votre PC
+
+# translators: do not translate this part
+Type=Application
+Categories=Utility;
+Exec=android-mic
+Icon=io.github.teamclouday.android-mic
+StartupWMClass=io.github.teamclouday.android-mic
+Terminal=false

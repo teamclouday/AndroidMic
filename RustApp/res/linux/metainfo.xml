@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines -->
+
+<component type="desktop-application">
+  <id>io.github.teamclouday.android-mic</id>
+
+  <name>AndroidMic</name>
+  <summary>Use your Android phone as a mic for your PC</summary>
+  <summary xml:lang="fr">Utilisez votre téléphone Android comme micro pour votre PC</summary>
+
+  <metadata_license>MIT</metadata_license>
+  <project_license>GPL-3.0-only</project_license>
+
+  <developer id="tld.vendor">
+    <name>wiiznokes</name>
+  </developer>
+
+  <icon type="remote" height="256" width="256">
+    https://raw.githubusercontent.com/teamclouday/AndroidMic/main/RustApp/res/linux/app_icon.svg</icon>
+
+  <url type="homepage">https://github.com/teamclouday/AndroidMic</url>
+  <url type="bugtracker">https://github.com/teamclouday/AndroidMic/issues</url>
+  <url type="vcs-browser">https://github.com/teamclouday/AndroidMic</url>
+
+  <content_rating type="oars-1.1" />
+
+  <launchable type="desktop-id">io.github.teamclouday.android-mic.desktop</launchable>
+  <screenshots>
+    <screenshot type="default">
+      <caption>AndroidMic screenshot</caption>
+      <image>
+        https://media.githubusercontent.com/media/teamclouday/AndroidMic/main/res/screenshots/app.png</image>
+    </screenshot>
+  </screenshots>
+
+  <releases>
+    <release version="2024.11" date="2024-11-10">
+    </release>
+  </releases>
+
+</component>

@@ -10,13 +10,31 @@ import android.os.Messenger
 import android.util.Log
 import com.example.androidMic.domain.service.ForegroundService
 import com.example.androidMic.ui.MainActivity
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
 
 
 class AndroidMicApp : Application() {
     private val TAG = "AndroidMicApp"
 
-    var mService: Messenger? = null
-    var mBound = false
+
+
+    companion object {
+        lateinit var appModule: AppModule
+        var mService: Messenger? = null
+        var mBound = false
+    }
+
+    private val scope = MainScope()
+    override fun onCreate() {
+        super.onCreate()
+
+        appModule = AppModuleImpl(this)
+
+        scope.launch {
+            appModule.appPreferences.preload()
+        }
+    }
 
     private val mConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {

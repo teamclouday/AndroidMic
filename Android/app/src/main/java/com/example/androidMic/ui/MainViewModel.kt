@@ -1,6 +1,5 @@
 package com.example.androidMic.ui
 
-import android.app.Application
 import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
@@ -9,29 +8,34 @@ import android.os.Message
 import android.os.Messenger
 import android.os.Process
 import android.util.Log
-import android.widget.Toast
-import androidx.lifecycle.AndroidViewModel
-import androidx.lifecycle.SavedStateHandle
+import androidx.compose.runtime.mutableStateOf
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.example.androidMic.AndroidMicApp
+import com.example.androidMic.AppPreferences
+import com.example.androidMic.AudioFormat
+import com.example.androidMic.ChannelCount
+import com.example.androidMic.Dialogs
+import com.example.androidMic.Modes
 import com.example.androidMic.R
+import com.example.androidMic.SampleRates
+import com.example.androidMic.Themes
 import com.example.androidMic.domain.service.Command
 import com.example.androidMic.domain.service.Command.Companion.COMMAND_DISC_STREAM
 import com.example.androidMic.domain.service.Command.Companion.COMMAND_GET_STATUS
-import com.example.androidMic.ui.utils.PrefManager
+import com.example.androidMic.ui.utils.UiHelper
 import com.example.androidMic.utils.checkIp
 import com.example.androidMic.utils.checkPort
+import kotlinx.coroutines.launch
 
 
-class MainViewModel(
-    application: Application,
-    private val savedStateHandle: SavedStateHandle
-) : AndroidViewModel(application) {
+class MainViewModel : ViewModel() {
 
     private val TAG = "MainViewModel"
 
-    val uiStates = savedStateHandle.getStateFlow("uiStates", States.UiStates())
 
-    private val prefManager = PrefManager(application as AndroidMicApp)
+    val prefs: AppPreferences = AndroidMicApp.appModule.appPreferences
+    val uiHelper: UiHelper = AndroidMicApp.appModule.uiHelper
 
     private var mService: Messenger? = null
     private var mBound = false
@@ -40,6 +44,18 @@ class MainViewModel(
     private lateinit var mMessenger: Messenger
     lateinit var mMessengerLooper: Looper
     private lateinit var mMessengerHandler: ReplyHandler
+
+
+    val textLog = mutableStateOf("")
+
+    val isAudioStarted = mutableStateOf(false)
+    val isStreamStarted = mutableStateOf(false)
+    val buttonConnectIsClickable = mutableStateOf(false)
+    val switchAudioIsClickable = mutableStateOf(false)
+
+    init {
+        Log.d(TAG, "init")
+    }
 
     private inner class ReplyHandler(looper: Looper) : Handler(looper) {
         override fun handleMessage(msg: Message) {
@@ -60,83 +76,48 @@ class MainViewModel(
         mMessenger = Messenger(mMessengerHandler)
     }
 
-    init {
-        Log.d(TAG, "init")
-
-        savedStateHandle["uiStates"] = uiStates.value.copy(
-            ip = prefManager["IP", uiStates.value.ip],
-            port = prefManager["PORT", uiStates.value.port],
-            mode = Modes.valueOf(prefManager["MODE", uiStates.value.mode.toString()]),
-            theme = Themes.valueOf(prefManager["THEME", uiStates.value.theme.toString()]),
-            dynamicColor = prefManager["DYNAMIC_COLOR", uiStates.value.dynamicColor],
-            sampleRate = SampleRates.valueOf(prefManager["SAMPLE_RATE", uiStates.value.sampleRate.toString()]),
-            channelCount = ChannelCount.valueOf(prefManager["CHANNEL_COUNT", uiStates.value.channelCount.toString()]),
-            audioFormat = AudioFormat.valueOf(prefManager["AUDIO_FORMAT", uiStates.value.audioFormat.toString()]),
-        )
-    }
-
     fun refreshAppVariables() {
-        mBound = getApplication<AndroidMicApp>().mBound
-        mService = getApplication<AndroidMicApp>().mService
+        mBound = AndroidMicApp.mBound
+        mService = AndroidMicApp.mService
 
-        savedStateHandle["uiStates"] = uiStates.value.copy(
-            isAudioStarted = false,
-            isStreamStarted = false,
-            buttonConnectIsClickable = false,
-            switchAudioIsClickable = false
-        )
+        isAudioStarted.value = false
+        isStreamStarted.value = false
+        buttonConnectIsClickable.value = false
+        switchAudioIsClickable.value = false
     }
 
-    fun onConnectButton() {
-        if (!mBound) return
-        val reply = if (uiStates.value.isStreamStarted) {
+    fun onConnectButton(): Dialogs? {
+        if (!mBound) return null
+        val reply = if (isStreamStarted.value) {
             Log.d(TAG, "onConnectButton: stop stream")
             Message.obtain(null, Command.COMMAND_STOP_STREAM)
         } else {
             val data = Bundle()
 
-            when (uiStates.value.mode) {
-                Modes.WIFI, Modes.UDP -> {
-                    if (!checkIp(uiStates.value.ip) || !checkPort(uiStates.value.port)) {
-                        Toast.makeText(
-                            getApplication(),
-                            getApplication<AndroidMicApp>().getString(R.string.invalid_ip_port),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        savedStateHandle["uiStates"] = uiStates.value.copy(
-                            dialogVisible = Dialogs.IpPort
-                        )
-                        return
-                    }
-                    data.putString("IP", uiStates.value.ip)
-                    data.putInt("PORT", uiStates.value.port.toInt())
-                }
+            val ip = prefs.ip.getBlocking()
+            val port = prefs.port.getBlocking()
+            val mode = prefs.mode.getBlocking()
 
-                Modes.USB -> {
-                    if (!checkPort(uiStates.value.port)) {
-                        Toast.makeText(
-                            getApplication(),
-                            getApplication<AndroidMicApp>().getString(R.string.invalid_port),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                        savedStateHandle["uiStates"] = uiStates.value.copy(
-                            dialogVisible = Dialogs.IpPort
+            when (mode) {
+                Modes.WIFI, Modes.UDP -> {
+                    if (!checkIp(ip) || !checkPort(port)) {
+                        uiHelper.makeToast(
+                            uiHelper.getString(R.string.invalid_ip_port)
                         )
-                        return
+                        return Dialogs.IpPort
                     }
-                    data.putInt("PORT", uiStates.value.port.toInt())
+                    data.putString("IP", ip)
+                    data.putInt("PORT", port.toInt())
                 }
 
                 else -> {}
             }
 
-            data.putInt("MODE", uiStates.value.mode.ordinal)
+            data.putInt("MODE", mode.ordinal)
 
             Log.d(TAG, "onConnectButton: start stream")
             // lock button to avoid duplicate events
-            savedStateHandle["uiStates"] = uiStates.value.copy(
-                buttonConnectIsClickable = false
-            )
+            buttonConnectIsClickable.value = false
             Message.obtain(null, Command.COMMAND_START_STREAM).apply {
                 this.data = data
             }
@@ -144,98 +125,77 @@ class MainViewModel(
 
         reply.replyTo = mMessenger
         mService?.send(reply)
+
+        return null
     }
 
     fun onAudioSwitch() {
         if (!mBound) return
-        val reply = if (uiStates.value.isAudioStarted) {
+        val reply = if (isAudioStarted.value) {
             Log.d(TAG, "onAudioSwitch: stop audio")
             Message.obtain(null, Command.COMMAND_STOP_AUDIO)
         } else {
             Log.d(TAG, "onAudioSwitch: start audio")
             Message.obtain(null, Command.COMMAND_START_AUDIO).apply {
                 val data = Bundle()
-                data.putInt("SAMPLE_RATE", uiStates.value.sampleRate.value)
-                data.putInt("CHANNEL_COUNT", uiStates.value.channelCount.value)
-                data.putInt("AUDIO_FORMAT", uiStates.value.audioFormat.value)
+                data.putInt("SAMPLE_RATE", prefs.sampleRate.getBlocking().value)
+                data.putInt("CHANNEL_COUNT", prefs.channelCount.getBlocking().value)
+                data.putInt("AUDIO_FORMAT", prefs.audioFormat.getBlocking().value)
                 this.data = data
             }
         }
         // lock switch to avoid duplicate events
-        savedStateHandle["uiStates"] = uiStates.value.copy(
-            switchAudioIsClickable = false
-        )
+        switchAudioIsClickable.value = false
         reply.replyTo = mMessenger
         mService?.send(reply)
     }
 
     fun setIpPort(ip: String, port: String) {
-        prefManager["IP"] = ip
-        prefManager["PORT"] = port
-        savedStateHandle["uiStates"] = uiStates.value.copy(
-            ip = ip,
-            port = port,
-            dialogVisible = Dialogs.None
-        )
+        viewModelScope.launch {
+            prefs.ip.update(ip)
+            prefs.port.update(port)
+        }
     }
 
     fun setMode(mode: Modes) {
-        prefManager["MODE"] = mode.toString()
-        savedStateHandle["uiStates"] = uiStates.value.copy(
-            mode = mode,
-            dialogVisible = Dialogs.None
-        )
+        viewModelScope.launch {
+            prefs.mode.update(mode)
+        }
     }
 
     fun setSampleRate(sampleRate: SampleRates) {
-        prefManager["SAMPLE_RATE"] = sampleRate.toString()
-        savedStateHandle["uiStates"] = uiStates.value.copy(
-            sampleRate = sampleRate,
-            dialogVisible = Dialogs.None
-        )
+        viewModelScope.launch {
+            prefs.sampleRate.update(sampleRate)
+        }
     }
 
     fun setChannelCount(channelCount: ChannelCount) {
-        prefManager["CHANNEL_COUNT"] = channelCount.toString()
-        savedStateHandle["uiStates"] = uiStates.value.copy(
-            channelCount = channelCount,
-            dialogVisible = Dialogs.None
-        )
+        viewModelScope.launch {
+            prefs.channelCount.update(channelCount)
+        }
     }
 
     fun setAudioFormat(audioFormat: AudioFormat) {
-        prefManager["AUDIO_FORMAT"] = audioFormat.toString()
-        savedStateHandle["uiStates"] = uiStates.value.copy(
-            audioFormat = audioFormat,
-            dialogVisible = Dialogs.None
-        )
+        viewModelScope.launch {
+            prefs.audioFormat.update(audioFormat)
+        }
     }
 
-    fun showDialog(dialog: Dialogs) {
-        savedStateHandle["uiStates"] = uiStates.value.copy(dialogVisible = dialog)
-    }
 
     fun setTheme(theme: Themes) {
-        prefManager["THEME"] = theme.toString()
-        savedStateHandle["uiStates"] =
-            uiStates.value.copy(
-                theme = theme
-            )
+        viewModelScope.launch {
+            prefs.theme.update(theme)
+        }
     }
 
     fun setDynamicColor(dynamicColor: Boolean) {
-        prefManager["DYNAMIC_COLOR"] = dynamicColor
-        savedStateHandle["uiStates"] =
-            uiStates.value.copy(
-                dynamicColor = dynamicColor
-            )
+        viewModelScope.launch {
+            prefs.dynamicColor.update(dynamicColor)
+        }
     }
 
     fun cleanLog() {
-        savedStateHandle["uiStates"] =
-            uiStates.value.copy(
-                textLog = ""
-            )
+        textLog.value = ""
     }
 
 
@@ -250,12 +210,10 @@ class MainViewModel(
 
     // apply status to UI
     private fun handleGetStatus(msg: Message) {
-        savedStateHandle["uiStates"] = uiStates.value.copy(
-            isStreamStarted = msg.data.getBoolean("isStreamStarted"),
-            isAudioStarted = msg.data.getBoolean("isAudioStarted"),
-            switchAudioIsClickable = true,
-            buttonConnectIsClickable = true
-        )
+        isStreamStarted.value = msg.data.getBoolean("isStreamStarted")
+        isAudioStarted.value = msg.data.getBoolean("isAudioStarted")
+        switchAudioIsClickable.value = true
+        buttonConnectIsClickable.value = true
     }
 
     private fun handleResult(msg: Message) {
@@ -265,25 +223,27 @@ class MainViewModel(
         val result = msg.data.getBoolean("result")
 
         when (msg.what) {
-            Command.COMMAND_START_STREAM -> savedStateHandle["uiStates"] = uiStates.value.copy(
-                isStreamStarted = result,
-                buttonConnectIsClickable = true
-            )
+            Command.COMMAND_START_STREAM -> {
+                isStreamStarted.value = result
+                buttonConnectIsClickable.value = true
+            }
 
-            Command.COMMAND_STOP_STREAM -> savedStateHandle["uiStates"] = uiStates.value.copy(
-                isStreamStarted = !result,
-                buttonConnectIsClickable = true
-            )
+            Command.COMMAND_STOP_STREAM -> {
+                isStreamStarted.value = !result
+                buttonConnectIsClickable.value = true
 
-            Command.COMMAND_START_AUDIO -> savedStateHandle["uiStates"] = uiStates.value.copy(
-                isAudioStarted = result,
-                switchAudioIsClickable = true
-            )
+            }
 
-            Command.COMMAND_STOP_AUDIO -> savedStateHandle["uiStates"] = uiStates.value.copy(
-                isAudioStarted = !result,
-                switchAudioIsClickable = true
-            )
+            Command.COMMAND_START_AUDIO -> {
+                isAudioStarted.value = result
+                switchAudioIsClickable.value = true
+            }
+
+            Command.COMMAND_STOP_AUDIO -> {
+
+                isAudioStarted.value = !result
+                switchAudioIsClickable.value = true
+            }
         }
     }
 
@@ -291,15 +251,11 @@ class MainViewModel(
         Log.d(TAG, "handleDisconnect")
         val reply = msg.data.getString("reply")
         if (reply != null) addLogMessage(reply)
-        savedStateHandle["uiStates"] = uiStates.value.copy(
-            isStreamStarted = false
-        )
+        isStreamStarted.value = false
     }
 
     // helper function to append log message to textview
     private fun addLogMessage(message: String) {
-        savedStateHandle["uiStates"] = uiStates.value.copy(
-            textLog = uiStates.value.textLog + message + "\n"
-        )
+        textLog.value = textLog.value + message + "\n"
     }
 }
