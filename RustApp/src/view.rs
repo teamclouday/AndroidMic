@@ -18,12 +18,7 @@ use crate::{
 pub fn view_app(app: &AppState) -> Element<'_, AppMsg> {
     row()
         .padding(50)
-        .push(
-            column()
-                .push(logs(app))
-                .push(vertical_space())
-                .push(audio_wave(app)),
-        )
+        .push(column().push(logs(app)).push(vertical_space()))
         .push(horizontal_space())
         .push(
             column()
@@ -42,10 +37,6 @@ fn logs(app: &AppState) -> Element<'_, AppMsg> {
         .padding(13)
         .class(cosmic::theme::Container::Card)
         .into()
-}
-
-fn audio_wave(_app: &AppState) -> Element<'_, AppMsg> {
-    text("audio wave").into()
 }
 
 fn audio(app: &AppState) -> Element<'_, AppMsg> {

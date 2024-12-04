@@ -1,6 +1,6 @@
 use anyhow::bail;
 use byteordered::{
-    byteorder::{self, BigEndian, ByteOrder, LittleEndian},
+    byteorder::{BigEndian, ByteOrder, LittleEndian},
     Endianness,
 };
 use cpal::{
@@ -13,7 +13,7 @@ use rtrb::{
     Consumer,
 };
 
-use crate::{app::AppState, config::AudioFormat};
+use crate::{app::AppState, config::AudioFormat, map_bytes::MapBytes};
 
 impl AppState {
     pub fn start_audio_stream(&self, consumer: Consumer<u8>) -> anyhow::Result<cpal::Stream> {
@@ -104,7 +104,7 @@ fn build_stream<F, E>(
     channel_strategy: ChannelStrategy,
 ) -> Result<cpal::Stream, BuildStreamError>
 where
-    F: Format + SizedSample,
+    F: MapBytes + SizedSample,
     E: ByteOrder,
 {
     let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
@@ -138,53 +138,6 @@ where
         err_fn,
         None, // todo: find out what this does
     )
-}
-
-trait Format {
-    // the number of byte read to make a value depend on
-    // the format, so we pass an iter to produce the value
-    // - i16: 2 bytes
-    // - i32: 4 bytes
-    fn produce_value_from_chunk<E>(chunk: &mut ReadChunkIntoIter<'_, u8>) -> Option<Self>
-    where
-        Self: Sized,
-        E: ByteOrder;
-}
-
-impl Format for i16 {
-    fn produce_value_from_chunk<T: ByteOrder>(
-        chunk: &mut ReadChunkIntoIter<'_, u8>,
-    ) -> Option<Self> {
-        Some(T::read_i16(&[chunk.next()?, chunk.next()?]))
-    }
-}
-
-// not tested
-impl Format for i32 {
-    fn produce_value_from_chunk<T: byteorder::ByteOrder>(
-        chunk: &mut ReadChunkIntoIter<'_, u8>,
-    ) -> Option<Self> {
-        Some(T::read_i32(&[
-            chunk.next()?,
-            chunk.next()?,
-            chunk.next()?,
-            chunk.next()?,
-        ]))
-    }
-}
-
-// not tested
-impl Format for f32 {
-    fn produce_value_from_chunk<T: byteorder::ByteOrder>(
-        chunk: &mut ReadChunkIntoIter<'_, u8>,
-    ) -> Option<Self> {
-        Some(T::read_f32(&[
-            chunk.next()?,
-            chunk.next()?,
-            chunk.next()?,
-            chunk.next()?,
-        ]))
-    }
 }
 
 #[derive(PartialEq)]
@@ -225,25 +178,25 @@ impl ChannelStrategy {
 
     fn fill_frame<F, E>(&self, frame: &mut [F], chunk: &mut ReadChunkIntoIter<'_, u8>)
     where
-        F: Format + SizedSample,
+        F: MapBytes + SizedSample,
         E: ByteOrder,
     {
         match self {
             ChannelStrategy::Mono => {
-                if let Some(value) = F::produce_value_from_chunk::<E>(chunk) {
+                if let Some(value) = F::map_bytes::<E>(chunk) {
                     frame[0] = value;
                 }
             }
             ChannelStrategy::Stereo => {
-                if let Some(value) = F::produce_value_from_chunk::<E>(chunk) {
+                if let Some(value) = F::map_bytes::<E>(chunk) {
                     frame[0] = value;
                 }
-                if let Some(value) = F::produce_value_from_chunk::<E>(chunk) {
+                if let Some(value) = F::map_bytes::<E>(chunk) {
                     frame[1] = value;
                 }
             }
             ChannelStrategy::MonoCloned => {
-                if let Some(value) = F::produce_value_from_chunk::<E>(chunk) {
+                if let Some(value) = F::map_bytes::<E>(chunk) {
                     frame[0] = value;
                     frame[1] = value;
                 }

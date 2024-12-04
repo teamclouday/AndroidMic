@@ -129,68 +129,54 @@ impl StreamerTrait for TcpStreamer {
                 io_buf,
                 disconnect_loop_detecter,
             } => {
-                async fn process(
-                    stream: &mut TcpStream,
-                    mut io_buf: [u8; 1024],
-                    disconnect_loop_detecter: &mut u32,
-                    producer: &mut Producer<u8>,
-                ) -> Result<usize, WriteError> {
-                    match stream.read(&mut io_buf).await {
-                        Ok(size) => {
-                            if size == 0 {
-                                if *disconnect_loop_detecter >= DISCONNECT_LOOP_DETECTER_MAX {
-                                    return Err(WriteError::Io(io::Error::new(
-                                        io::ErrorKind::NotConnected,
-                                        "disconnect loop detected",
-                                    )));
-                                } else {
-                                    *disconnect_loop_detecter += 1
-                                }
+                match stream.read(io_buf).await {
+                    Ok(size) => {
+                        if size == 0 {
+                            if *disconnect_loop_detecter >= DISCONNECT_LOOP_DETECTER_MAX {
+                                return Err(WriteError::Io(io::Error::new(
+                                    io::ErrorKind::NotConnected,
+                                    "disconnect loop detected",
+                                )))?;
                             } else {
-                                *disconnect_loop_detecter = 0;
-                            };
-                            match producer.write_chunk_uninit(size) {
-                                Ok(chunk) => {
-                                    let moved_item = chunk.fill_from_iter(io_buf);
-                                    if moved_item == size {
-                                        Ok(size)
-                                    } else {
-                                        Err(WriteError::BufferOverfilled(
-                                            moved_item,
-                                            size - moved_item,
-                                        ))
-                                    }
+                                *disconnect_loop_detecter += 1
+                            }
+                        } else {
+                            *disconnect_loop_detecter = 0;
+                        };
+                        match self.producer.write_chunk_uninit(size) {
+                            Ok(chunk) => {
+                                let moved_item = chunk.fill_from_iter(*io_buf);
+                                if moved_item != size {
+                                    warn!(
+                                        "buffer overfilled: moved {}, lossed {}",
+                                        moved_item,
+                                        size - moved_item
+                                    );
                                 }
-                                Err(ChunkError::TooFewSlots(remaining_slots)) => {
-                                    let chunk =
-                                        producer.write_chunk_uninit(remaining_slots).unwrap();
+                            }
+                            Err(ChunkError::TooFewSlots(remaining_slots)) => {
+                                let chunk =
+                                    self.producer.write_chunk_uninit(remaining_slots).unwrap();
 
-                                    let moved_item = chunk.fill_from_iter(io_buf);
+                                let moved_item = chunk.fill_from_iter(*io_buf);
 
-                                    Err(WriteError::BufferOverfilled(moved_item, size - moved_item))
-                                }
+                                warn!(
+                                    "buffer overfilled: moved {}, lossed {}",
+                                    moved_item,
+                                    size - moved_item
+                                );
                             }
                         }
-                        Err(e) => {
-                            match e.kind() {
-                                io::ErrorKind::TimedOut => Ok(0), // timeout use to check for input on stdin
-                                io::ErrorKind::WouldBlock => Ok(0), // trigger on Linux when there is no stream input
-                                _ => Err(WriteError::Io(e)),
-                            }
+
+                        Ok(None)
+                    }
+                    Err(e) => {
+                        match e.kind() {
+                            io::ErrorKind::TimedOut => Ok(None), // timeout use to check for input on stdin
+                            io::ErrorKind::WouldBlock => Ok(None), // trigger on Linux when there is no stream input
+                            _ => Err(WriteError::Io(e))?,
                         }
                     }
-                }
-
-                match process(
-                    stream,
-                    *io_buf,
-                    disconnect_loop_detecter,
-                    &mut self.producer,
-                )
-                .await
-                {
-                    Ok(_moved) => Ok(None),
-                    Err(e) => Err(ConnectError::WriteError(e)),
                 }
             }
         }

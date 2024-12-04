@@ -214,7 +214,7 @@ impl Application for AppState {
     }
 
     fn update(&mut self, message: Self::Message) -> Task<Self::Message> {
-        let settings = self.config.data();
+        let config = self.config.data();
 
         match message {
             AppMsg::ChangeConnectionMode(connection_mode) => {
@@ -249,12 +249,12 @@ impl Application for AppState {
                 self.state = State::WaitingOnStatus;
                 let (producer, consumer) = RingBuffer::<u8>::new(SHARED_BUF_SIZE);
 
-                let connect_option = match settings.connection_mode {
+                let connect_option = match config.connection_mode {
                     ConnectionMode::Tcp => ConnectOption::Tcp {
-                        ip: settings.ip.unwrap_or(local_ip().unwrap()),
+                        ip: config.ip.unwrap_or(local_ip().unwrap()),
                     },
                     ConnectionMode::Udp => ConnectOption::Udp {
-                        ip: settings.ip.unwrap_or(local_ip().unwrap()),
+                        ip: config.ip.unwrap_or(local_ip().unwrap()),
                     },
                     ConnectionMode::Adb => ConnectOption::Adb,
                 };

@@ -8,8 +8,8 @@ extern crate log;
 
 mod app;
 mod audio;
-mod audio_wave;
 mod config;
+mod map_bytes;
 mod streamer;
 mod utils;
 mod view;
