@@ -26,10 +26,10 @@ class MicAudioManager(
 
     companion object {
         const val RECORD_DELAY = 1L
-        const val BUFFER_SIZE = 1024
     }
 
     private val recorder: AudioRecord
+    private val bufferSize: Int
 
     init {
         // check microphone
@@ -44,33 +44,37 @@ class MicAudioManager(
         ) {
             "Microphone recording is not permitted"
         }
-        // find audio device
-        val am = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
-        val devices = am.getDevices(AudioManager.GET_DEVICES_INPUTS)
-        require(devices.isNotEmpty()) {
-            "No valid microphone device"
+
+        // get minimum buffer size
+        val channelConfig = if (channelCount == 2) AudioFormat.CHANNEL_IN_STEREO else AudioFormat.CHANNEL_IN_MONO
+        bufferSize = AudioRecord.getMinBufferSize(
+            sampleRate,
+            channelConfig,
+            audioFormat,
+        )
+
+        require(bufferSize != AudioRecord.ERROR && bufferSize != AudioRecord.ERROR_BAD_VALUE) {
+            "Microphone buffer size ($bufferSize) is invalid\nAudio format is likely not supported"
         }
-        var selectedDevice = devices[0]
-        for (device in devices) {
-            if (device.type == AudioDeviceInfo.TYPE_BUILTIN_MIC) {
-                selectedDevice = device
-                break
-            }
-        }
-        Log.d(TAG, "[init] selected input device ${selectedDevice.productName}")
+
         // init recorder
         recorder = AudioRecord(
             MediaRecorder.AudioSource.MIC,
             sampleRate,
-            if (channelCount == 2) AudioFormat.CHANNEL_IN_STEREO else AudioFormat.CHANNEL_IN_MONO,
+            channelConfig,
             audioFormat,
-            BUFFER_SIZE,
+            bufferSize,
         )
+
+        // check if recorder is intiialized
+        require(recorder.state == AudioRecord.STATE_INITIALIZED) {
+            "Microphone recording failed to initialize"
+        }
     }
 
     // store data in shared audio buffer
     suspend fun record(audioBuffer: AudioBuffer) {
-        val region = audioBuffer.openWriteRegion(BUFFER_SIZE)
+        val region = audioBuffer.openWriteRegion(bufferSize)
         val regionLen = region.first
         val regionOffset = region.second
         val bytesWritten = recorder.read(audioBuffer.buffer, regionOffset, regionLen)

@@ -35,7 +35,7 @@ class AppPreferences(
 
     val sampleRate = enumPreference("sampleRate", SampleRates.S16000)
     val channelCount = enumPreference("channelCount", ChannelCount.Mono)
-    val audioFormat = enumPreference("audioFormat", AudioFormat.Default)
+    val audioFormat = enumPreference("audioFormat", AudioFormat.I16)
 
 }
 
@@ -70,17 +70,12 @@ enum class SampleRates(val value: Int) {
 }
 
 enum class AudioFormat(val value: Int, val description: String) {
-    Default(android.media.AudioFormat.ENCODING_DEFAULT, "Default"),
-    I16(android.media.AudioFormat.ENCODING_PCM_16BIT, "PCM i16"),
+    I16(android.media.AudioFormat.ENCODING_PCM_16BIT, "i16"),
     @RequiresApi(Build.VERSION_CODES.S)
-    I24(android.media.AudioFormat.ENCODING_PCM_24BIT_PACKED, "PCM i24"),
+    I24(android.media.AudioFormat.ENCODING_PCM_24BIT_PACKED, "i24"),
     @RequiresApi(Build.VERSION_CODES.S)
-    I32(android.media.AudioFormat.ENCODING_PCM_32BIT, "PCM i32"),
-    F32(android.media.AudioFormat.ENCODING_PCM_FLOAT, "PCM f32"),
-    @RequiresApi(Build.VERSION_CODES.P)
-    MP3(android.media.AudioFormat.ENCODING_MP3, "MP3"),
-    @RequiresApi(Build.VERSION_CODES.R)
-    OPUS(android.media.AudioFormat.ENCODING_OPUS, "Opus");
+    I32(android.media.AudioFormat.ENCODING_PCM_32BIT, "i32"),
+    F32(android.media.AudioFormat.ENCODING_PCM_FLOAT, "f32");
 
     override fun toString(): String = description
 }
