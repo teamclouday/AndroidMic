@@ -115,7 +115,7 @@ impl AppState {
         self.streamer.as_ref().unwrap().blocking_send(cmd).unwrap();
     }
 
-    fn update_audio_buf(&mut self) {
+    fn update_audio_stream(&mut self) {
         if self.audio_stream.is_none() {
             return;
         }
@@ -243,7 +243,7 @@ impl Application for AppState {
                 self.audio_device = Some(audio_device.device.clone());
                 self.config
                     .update(|c| c.device_name = Some(audio_device.name.clone()));
-                self.update_audio_buf();
+                self.update_audio_stream();
             }
             AppMsg::Connect => {
                 self.state = State::WaitingOnStatus;
@@ -296,12 +296,15 @@ impl Application for AppState {
             },
             AppMsg::ChangeSampleRate(sample_rate) => {
                 self.config.update(|s| s.sample_rate = sample_rate);
+                self.update_audio_stream();
             }
             AppMsg::ChangeChannelCount(channel_count) => {
                 self.config.update(|s| s.channel_count = channel_count);
+                self.update_audio_stream();
             }
             AppMsg::ChangeAudioFormat(audio_format) => {
                 self.config.update(|s| s.audio_format = audio_format);
+                self.update_audio_stream();
             }
         }
 
