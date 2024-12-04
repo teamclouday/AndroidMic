@@ -1,6 +1,8 @@
 package com.example.androidMic
 
 import android.content.Context
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.example.androidMic.AudioFormat.F32
@@ -22,10 +24,7 @@ object DefaultStates {
 class AppPreferences(
     context: Context
 ) : PreferencesManager(context, "settings") {
-
-
     val mode = enumPreference("mode", Modes.WIFI)
-
 
     val ip = stringPreference("ip", "192.168.")
     val port = stringPreference("port", "55555")
@@ -36,7 +35,7 @@ class AppPreferences(
 
     val sampleRate = enumPreference("sampleRate", SampleRates.S16000)
     val channelCount = enumPreference("channelCount", ChannelCount.Mono)
-    val audioFormat = enumPreference("audioFormat", AudioFormat.I16)
+    val audioFormat = enumPreference("audioFormat", AudioFormat.Default)
 
 }
 
@@ -70,20 +69,20 @@ enum class SampleRates(val value: Int) {
     S384000(384000),
 }
 
-enum class AudioFormat(val value: Int) {
-    I16(1),
-    I24(3),
-    I32(4),
-    F32(2);
+enum class AudioFormat(val value: Int, val description: String) {
+    Default(android.media.AudioFormat.ENCODING_DEFAULT, "Default"),
+    I16(android.media.AudioFormat.ENCODING_PCM_16BIT, "PCM i16"),
+    @RequiresApi(Build.VERSION_CODES.S)
+    I24(android.media.AudioFormat.ENCODING_PCM_24BIT_PACKED, "PCM i24"),
+    @RequiresApi(Build.VERSION_CODES.S)
+    I32(android.media.AudioFormat.ENCODING_PCM_32BIT, "PCM i32"),
+    F32(android.media.AudioFormat.ENCODING_PCM_FLOAT, "PCM f32"),
+    @RequiresApi(Build.VERSION_CODES.P)
+    MP3(android.media.AudioFormat.ENCODING_MP3, "MP3"),
+    @RequiresApi(Build.VERSION_CODES.R)
+    OPUS(android.media.AudioFormat.ENCODING_OPUS, "Opus");
 
-    override fun toString(): String {
-        return when (this) {
-            I16 -> "i16"
-            I24 -> "i24"
-            I32 -> "i32"
-            F32 -> "f32"
-        }
-    }
+    override fun toString(): String = description
 }
 
 
