@@ -73,6 +73,7 @@ impl AudioDevice {
 
 const SHARED_BUF_SIZE: usize = 5 * 1024;
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum State {
     Default,
     WaitingOnStatus,
@@ -116,7 +117,7 @@ impl AppState {
     }
 
     fn update_audio_stream(&mut self) {
-        if self.audio_stream.is_none() {
+        if self.state != State::Connected {
             return;
         }
         let (producer, consumer) = RingBuffer::<u8>::new(SHARED_BUF_SIZE);
@@ -124,7 +125,8 @@ impl AppState {
         match self.start_audio_stream(consumer) {
             Ok(stream) => self.audio_stream = Some(stream),
             Err(e) => {
-                error!("{e}")
+                error!("{e}");
+                self.add_log(&e.to_string());
             }
         }
 
@@ -321,7 +323,7 @@ impl Application for AppState {
             }
         }
 
-        cosmic::widget::text("no view for window {id:?}").into()
+        cosmic::widget::text(format!("no view for window {id:?}")).into()
     }
 
     fn subscription(&self) -> cosmic::iced::Subscription<Self::Message> {
