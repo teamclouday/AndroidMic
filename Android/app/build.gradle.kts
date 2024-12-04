@@ -23,16 +23,9 @@ android {
                 "fr"
             )
         )
-
-        externalNativeBuild {
-            cmake {
-                arguments += "-DANDROID_STL=c++_shared"
-            }
-        }
     }
 
     buildTypes {
-
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -65,12 +58,6 @@ android {
         compose = true
     }
 
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-        }
-    }
-
     lint {
         abortOnError = false
         checkReleaseBuilds = false
@@ -78,10 +65,6 @@ android {
 }
 
 dependencies {
-
-    // audio lib
-    implementation(libs.oboe)
-
     // AndroidX Core
     implementation(libs.androidx.ktx)
     implementation(libs.androidx.viewmodel.compose)

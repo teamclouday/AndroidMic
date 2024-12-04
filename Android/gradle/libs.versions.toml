@@ -28,8 +28,6 @@ compose-constraintlayout = { group = "androidx.constraintlayout", name = "constr
 # Accompanist
 accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version = "0.34.0" }
 
-oboe = { module = "com.google.oboe:oboe", version = "1.9.0" }
-
 # Test
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version = "1.9.0" }
 test-junit-ktx = { group = "androidx.test.ext", name = "junit-ktx", version = "1.2.1" }

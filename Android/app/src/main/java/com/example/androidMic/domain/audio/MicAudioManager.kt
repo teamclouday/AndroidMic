@@ -4,7 +4,10 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioDeviceInfo
+import android.media.AudioFormat
 import android.media.AudioManager
+import android.media.AudioRecord
+import android.media.MediaRecorder
 import android.util.Log
 import androidx.core.content.ContextCompat
 
@@ -24,10 +27,9 @@ class MicAudioManager(
     companion object {
         const val RECORD_DELAY = 1L
         const val BUFFER_SIZE = 1024
-        const val BUFFER_COUNT = 2
     }
 
-    private val recorder: OboeRecorder
+    private val recorder: AudioRecord
 
     init {
         // check microphone
@@ -57,12 +59,12 @@ class MicAudioManager(
         }
         Log.d(TAG, "[init] selected input device ${selectedDevice.productName}")
         // init recorder
-        recorder = OboeRecorder(
-            deviceId = selectedDevice.id,
-            sampleRate = sampleRate,
-            audioFormat = audioFormat,
-            channelCount = channelCount,
-            bufferSize = BUFFER_SIZE * BUFFER_COUNT
+        recorder = AudioRecord(
+            MediaRecorder.AudioSource.MIC,
+            sampleRate,
+            if (channelCount == 2) AudioFormat.CHANNEL_IN_STEREO else AudioFormat.CHANNEL_IN_MONO,
+            audioFormat,
+            BUFFER_SIZE,
         )
     }
 
@@ -71,7 +73,7 @@ class MicAudioManager(
         val region = audioBuffer.openWriteRegion(BUFFER_SIZE)
         val regionLen = region.first
         val regionOffset = region.second
-        val bytesWritten = recorder.readToBytes(audioBuffer.buffer, regionOffset, regionLen)
+        val bytesWritten = recorder.read(audioBuffer.buffer, regionOffset, regionLen)
         audioBuffer.closeWriteRegion(bytesWritten)
         if (bytesWritten > 0)
             Log.d(TAG, "[record] audio data recorded (${bytesWritten} bytes)")
@@ -79,20 +81,21 @@ class MicAudioManager(
 
     // start recording
     fun start() {
-        recorder.startRecord()
+        recorder.startRecording()
         Log.d(TAG, "start")
     }
 
     // stop recording
     fun stop() {
-        recorder.stopRecord()
+        recorder.stop()
         Log.d(TAG, "stop")
     }
 
     // shutdown manager
     // should not call any methods after calling
     fun shutdown() {
-        recorder.stopRecord()
+        recorder.stop()
+        recorder.release()
         Log.d(TAG, "shutdown")
     }
 }
