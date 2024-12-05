@@ -5,10 +5,6 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import com.example.androidMic.AudioFormat.F32
-import com.example.androidMic.AudioFormat.I16
-import com.example.androidMic.AudioFormat.I24
-import com.example.androidMic.AudioFormat.I32
 import com.example.androidMic.utils.PreferencesManager
 
 object DefaultStates {
@@ -70,16 +66,18 @@ enum class SampleRates(val value: Int) {
 }
 
 enum class AudioFormat(val value: Int, val description: String) {
+    I8(android.media.AudioFormat.ENCODING_PCM_8BIT, "u8"),
     I16(android.media.AudioFormat.ENCODING_PCM_16BIT, "i16"),
+
     @RequiresApi(Build.VERSION_CODES.S)
     I24(android.media.AudioFormat.ENCODING_PCM_24BIT_PACKED, "i24"),
+
     @RequiresApi(Build.VERSION_CODES.S)
     I32(android.media.AudioFormat.ENCODING_PCM_32BIT, "i32"),
     F32(android.media.AudioFormat.ENCODING_PCM_FLOAT, "f32");
 
     override fun toString(): String = description
 }
-
 
 
 enum class ChannelCount(val value: Int) {

@@ -201,7 +201,7 @@ name = "android-mic"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "byteordered",
+ "byteorder",
  "cached",
  "cargo-packager-resource-resolver",
  "chrono",
@@ -835,15 +835,6 @@ name = "byteorder"
 version = "1.5.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1fd0f2584146f6f2ef48085050886acf353beff7305ebd1ae69500e27c67f64b"
-
-[[package]]
-name = "byteordered"
-version = "0.6.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bbf2cd9424f5ff404aba1959c835cbc448ee8b689b870a9981c76c0fd46280e6"
-dependencies = [
- "byteorder",
-]
 
 [[package]]
 name = "bytes"

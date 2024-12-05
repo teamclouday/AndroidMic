@@ -1,8 +1,5 @@
 use anyhow::bail;
-use byteordered::{
-    byteorder::{BigEndian, ByteOrder, LittleEndian},
-    Endianness,
-};
+use byteorder::{ByteOrder, NativeEndian};
 use cpal::{
     traits::{DeviceTrait, StreamTrait},
     BuildStreamError, Device, SizedSample, StreamConfig,
@@ -19,13 +16,7 @@ impl AppState {
     pub fn start_audio_stream(&self, consumer: Consumer<u8>) -> anyhow::Result<cpal::Stream> {
         // info!("{:?}", Endianness::native());
 
-        let stream = match Endianness::native() {
-            Endianness::Little => self.build_audio_stream_inner::<LittleEndian>(consumer),
-            Endianness::Big => {
-                warn!("warning! most phone use little endian nowdays. we might need to convert little -> big");
-                self.build_audio_stream_inner::<BigEndian>(consumer)
-            }
-        }?;
+        let stream = self.build_audio_stream_inner::<NativeEndian>(consumer)?;
 
         stream.play()?;
 
@@ -39,10 +30,6 @@ impl AppState {
         let Some(device) = &self.audio_device else {
             bail!("no device");
         };
-
-        // print_supported_config(device);
-
-        let default_config: cpal::StreamConfig = device.default_output_config().unwrap().into();
 
         let config = self.config.data();
 
@@ -67,29 +54,53 @@ impl AppState {
         let stream_config = StreamConfig {
             channels: channel_count,
             sample_rate,
-            buffer_size: default_config.buffer_size,
+            buffer_size: cpal::BufferSize::Default,
         };
 
         let stream = match config.audio_format {
             AudioFormat::I8 => todo!(),
-            AudioFormat::I16 => {
-                build_stream::<i16, E>(device, &stream_config, consumer, channel_strategy)
-            }
-            AudioFormat::I24 => todo!(),
-            AudioFormat::I32 => {
-                build_stream::<i32, E>(device, &stream_config, consumer, channel_strategy)
-            }
+            AudioFormat::I16 => build_stream::<i16, E>(
+                device,
+                &stream_config,
+                consumer,
+                channel_strategy,
+                config.audio_format.sample_size(),
+            ),
+            AudioFormat::I24 => build_stream::<f32, E>(
+                device,
+                &stream_config,
+                consumer,
+                channel_strategy,
+                config.audio_format.sample_size(),
+            ),
+            AudioFormat::I32 => build_stream::<i32, E>(
+                device,
+                &stream_config,
+                consumer,
+                channel_strategy,
+                config.audio_format.sample_size(),
+            ),
             AudioFormat::I48 => todo!(),
             AudioFormat::I64 => todo!(),
-            AudioFormat::U8 => todo!(),
+            AudioFormat::U8 => build_stream::<u8, E>(
+                device,
+                &stream_config,
+                consumer,
+                channel_strategy,
+                config.audio_format.sample_size(),
+            ),
             AudioFormat::U16 => todo!(),
             AudioFormat::U24 => todo!(),
             AudioFormat::U32 => todo!(),
             AudioFormat::U48 => todo!(),
             AudioFormat::U64 => todo!(),
-            AudioFormat::F32 => {
-                build_stream::<f32, E>(device, &stream_config, consumer, channel_strategy)
-            }
+            AudioFormat::F32 => build_stream::<f32, E>(
+                device,
+                &stream_config,
+                consumer,
+                channel_strategy,
+                config.audio_format.sample_size(),
+            ),
             AudioFormat::F64 => todo!(),
         }?;
 
@@ -102,19 +113,22 @@ fn build_stream<F, E>(
     config: &cpal::StreamConfig,
     mut consumer: Consumer<u8>,
     channel_strategy: ChannelStrategy,
+    sample_size: usize,
 ) -> Result<cpal::Stream, BuildStreamError>
 where
-    F: MapBytes + SizedSample,
+    F: MapBytes + SizedSample + std::fmt::Debug,
     E: ByteOrder,
 {
     let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
     let channel_count = config.channels as usize;
     device.build_output_stream(
-        config,
+        &config,
         move |data: &mut [F], _: &cpal::OutputCallbackInfo| {
             // data is the internal buf of cpal
             // we try to read the exact lenght of data from the shared buf here
-            match consumer.read_chunk(data.len()) {
+            let data_size = data.len() * sample_size;
+            let read_size = data_size - (data_size % sample_size); // make sure we read a multiple of sample_size
+            match consumer.read_chunk(read_size) {
                 Ok(chunk) => {
                     // transform the part of sharred buf into an iter
                     // only itered byte will be remove
@@ -123,14 +137,15 @@ where
                     // a frame contain sample * channel_count
                     // a sample contain a value of type Format
                     for frame in data.chunks_mut(channel_count) {
-                        channel_strategy.fill_frame::<F, E>(frame, &mut chunk_iter);
+                        channel_strategy.fill_frame::<F, E>(frame, &mut chunk_iter, sample_size);
                     }
                 }
                 // fallback
                 Err(ChunkError::TooFewSlots(available_slots)) => {
-                    let mut chunk_iter = consumer.read_chunk(available_slots).unwrap().into_iter();
+                    let read_size = available_slots - (available_slots % sample_size);
+                    let mut chunk_iter = consumer.read_chunk(read_size).unwrap().into_iter();
                     for frame in data.chunks_mut(channel_count) {
-                        channel_strategy.fill_frame::<F, E>(frame, &mut chunk_iter);
+                        channel_strategy.fill_frame::<F, E>(frame, &mut chunk_iter, sample_size);
                     }
                 }
             }
@@ -169,6 +184,7 @@ impl ChannelStrategy {
                 }
             }
             if supported_channel == 2 && channel_count == 1 {
+                info!("Upmixing mono audio stream to stereo");
                 fall_back = Some(ChannelStrategy::MonoCloned);
             }
         }
@@ -176,27 +192,31 @@ impl ChannelStrategy {
         fall_back
     }
 
-    fn fill_frame<F, E>(&self, frame: &mut [F], chunk: &mut ReadChunkIntoIter<'_, u8>)
-    where
-        F: MapBytes + SizedSample,
+    fn fill_frame<F, E>(
+        &self,
+        frame: &mut [F],
+        chunk: &mut ReadChunkIntoIter<'_, u8>,
+        sample_size: usize,
+    ) where
+        F: MapBytes + SizedSample + std::fmt::Debug,
         E: ByteOrder,
     {
         match self {
             ChannelStrategy::Mono => {
-                if let Some(value) = F::map_bytes::<E>(chunk) {
+                if let Some(value) = F::map_bytes::<E>(chunk, sample_size) {
                     frame[0] = value;
                 }
             }
             ChannelStrategy::Stereo => {
-                if let Some(value) = F::map_bytes::<E>(chunk) {
+                if let Some(value) = F::map_bytes::<E>(chunk, sample_size) {
                     frame[0] = value;
                 }
-                if let Some(value) = F::map_bytes::<E>(chunk) {
+                if let Some(value) = F::map_bytes::<E>(chunk, sample_size) {
                     frame[1] = value;
                 }
             }
             ChannelStrategy::MonoCloned => {
-                if let Some(value) = F::map_bytes::<E>(chunk) {
+                if let Some(value) = F::map_bytes::<E>(chunk, sample_size) {
                     frame[0] = value;
                     frame[1] = value;
                 }

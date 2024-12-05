@@ -88,11 +88,13 @@ class MicAudioManager(
             while (true) {
                 if (recorder.state != AudioRecord.STATE_INITIALIZED || recorder.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
                     delay(RECORD_DELAY_MS)
+                    continue
                 }
                 val bytesRead = recorder.read(buffer, 0, buffer.size)
 
                 if (bytesRead <= 0) {
                     delay(RECORD_DELAY_MS)
+                    continue
                 }
 
                 val packetBuffer = ByteArray(bytesRead)

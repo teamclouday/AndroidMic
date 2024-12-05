@@ -71,7 +71,7 @@ impl AudioDevice {
     }
 }
 
-const SHARED_BUF_SIZE: usize = 5 * 1024;
+const SHARED_BUF_SIZE_S: f32 = 0.05; // 0.05s
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum State {
@@ -120,7 +120,7 @@ impl AppState {
         if self.state != State::Connected {
             return;
         }
-        let (producer, consumer) = RingBuffer::<u8>::new(SHARED_BUF_SIZE);
+        let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
 
         match self.start_audio_stream(consumer) {
             Ok(stream) => self.audio_stream = Some(stream),
@@ -139,6 +139,17 @@ impl AppState {
         }
         self.logs.push_str(log);
         // todo: scroll to bottom
+    }
+
+    fn get_shared_buf_size(&self) -> usize {
+        let size = ((self.config.data().sample_rate.number() as f32
+            * self.config.data().channel_count.number() as f32
+            * self.config.data().audio_format.sample_size() as f32)
+            * SHARED_BUF_SIZE_S)
+            .ceil() as usize;
+        info!("shared buf size: {size}");
+
+        size
     }
 }
 
@@ -249,7 +260,7 @@ impl Application for AppState {
             }
             AppMsg::Connect => {
                 self.state = State::WaitingOnStatus;
-                let (producer, consumer) = RingBuffer::<u8>::new(SHARED_BUF_SIZE);
+                let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
 
                 let connect_option = match config.connection_mode {
                     ConnectionMode::Tcp => ConnectOption::Tcp {

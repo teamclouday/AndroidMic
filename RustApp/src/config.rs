@@ -79,6 +79,27 @@ pub enum AudioFormat {
     F64,
 }
 
+impl AudioFormat {
+    pub fn sample_size(&self) -> usize {
+        match self {
+            AudioFormat::I8 => 1,
+            AudioFormat::I16 => 2,
+            AudioFormat::I24 => 3,
+            AudioFormat::I32 => 4,
+            AudioFormat::I48 => 6,
+            AudioFormat::I64 => 8,
+            AudioFormat::U8 => 1,
+            AudioFormat::U16 => 2,
+            AudioFormat::U24 => 3,
+            AudioFormat::U32 => 4,
+            AudioFormat::U48 => 6,
+            AudioFormat::U64 => 8,
+            AudioFormat::F32 => 4,
+            AudioFormat::F64 => 8,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, DisplaySerde, Values)]
 pub enum SampleRate {
     #[serde(rename = "8000")]

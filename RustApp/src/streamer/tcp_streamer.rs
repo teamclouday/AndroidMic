@@ -1,7 +1,7 @@
-use std::{net::IpAddr, str::from_utf8, time::Duration};
 use futures::StreamExt;
 use prost::Message;
 use rtrb::Producer;
+use std::{net::IpAddr, str::from_utf8, time::Duration};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
@@ -9,7 +9,7 @@ use tokio::{
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 use crate::streamer::{
-    AudioPacketMessage, WriteError, DEFAULT_PC_PORT, DEVICE_CHECK, DEVICE_CHECK_EXPECTED, MAX_PORT
+    AudioPacketMessage, WriteError, DEFAULT_PC_PORT, DEVICE_CHECK, DEVICE_CHECK_EXPECTED, MAX_PORT,
 };
 
 use super::{ConnectError, Status, StreamerTrait};
@@ -122,22 +122,38 @@ impl StreamerTrait for TcpStreamer {
 
                 Ok(Some(Status::Connected))
             }
-            TcpStreamerState::Streaming {
-                framed,
-            } => {
-                info!("waiting for frame");
+            TcpStreamerState::Streaming { framed } => {
                 if let Some(Ok(frame)) = framed.next().await {
-                    info!("received {} frame bytes", frame.len());
                     match AudioPacketMessage::decode(frame) {
                         Ok(packet) => {
                             let buffer_size = packet.buffer.len();
-                            match self.producer.write_chunk_uninit(buffer_size) {
+                            let chunk_size = std::cmp::min(buffer_size, self.producer.slots());
+
+                            // mapping from android AudioFormat to encoding size
+                            let encoding_size = match packet.audio_format {
+                                3 => 1,  // PCM 8 bits
+                                2 => 2,  // PCM 16 bits
+                                21 => 3, // PCM 24 bits
+                                22 => 4, // PCM 32 bits
+                                4 => 4,  // PCM Float 32 bits
+                                _ => 4,  // default to 4 bytes
+                            } * packet.channel_count as usize;
+
+                            // make sure chunk_size is a multiple of encoding_size
+                            let correction = chunk_size % encoding_size;
+
+                            match self.producer.write_chunk_uninit(chunk_size - correction) {
                                 Ok(chunk) => {
                                     chunk.fill_from_iter(packet.buffer.into_iter());
-                                    info!("received {} stream bytes", buffer_size);
+                                    info!(
+                                        "received {} bytes, corrected {} bytes, lost {} bytes",
+                                        buffer_size,
+                                        correction,
+                                        buffer_size - chunk_size + correction
+                                    );
                                 }
                                 Err(e) => {
-                                    warn!("dropped packet, can't write chunk: {}", e);
+                                    warn!("dropped packet: {}", e);
                                 }
                             }
                         }
@@ -145,8 +161,7 @@ impl StreamerTrait for TcpStreamer {
                             return Err(WriteError::Deserializer(e).into());
                         }
                     }
-                }
-                else {
+                } else {
                     info!("frame not ready");
                     // sleep for a while to not consume all CPU
                     tokio::time::sleep(MAX_WAIT_TIME).await;
