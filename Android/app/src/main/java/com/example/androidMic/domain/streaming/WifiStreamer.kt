@@ -98,7 +98,7 @@ class WifiStreamer(
                         .build()
                     val pack = message.toByteArray()
 
-                    Log.d(TAG, "audio buffer size = ${message.buffer.size()}")
+//                    Log.d(TAG, "audio buffer size = ${message.buffer.size()}")
                     socket!!.outputStream.write(pack.size.toBigEndianU32())
                     socket!!.outputStream.write(message.toByteArray())
                     socket!!.outputStream.flush()

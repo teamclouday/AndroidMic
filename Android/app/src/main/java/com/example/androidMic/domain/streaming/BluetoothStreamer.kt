@@ -16,6 +16,8 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import com.example.androidMic.domain.service.AudioPacket
 import com.example.androidMic.utils.ignore
+import com.example.androidMic.utils.toBigEndianU32
+import com.google.protobuf.ByteString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -121,24 +123,33 @@ class BluetoothStreamer(private val ctx: Context, val scope: CoroutineScope) : S
     // stream data through socket
     override fun start(audioStream: Flow<AudioPacket>) {
         streamJob?.cancel()
-//        val moshiPack = MoshiPack()
-//
-//        streamJob = scope.launch {
-//            audioStream.collect { data ->
-//                if (socket == null || socket?.isConnected != true) return@collect
-//
-//                try {
-//                    val packed = moshiPack.pack(data)
-//                    socket!!.outputStream.write(packed.readByteArray())
-//                } catch (e: IOException) {
-//                    Log.d(TAG, "stream: ${e.message}")
-//                    delay(5)
-//                    disconnect()
-//                } catch (e: Exception) {
-//                    Log.d(TAG, "stream: ${e.message}")
-//                }
-//            }
-//        }
+
+        streamJob = scope.launch {
+            audioStream.collect { data ->
+                if (socket == null || socket?.isConnected != true) return@collect
+
+                try {
+                    val message = Message.AudioPacketMessage.newBuilder()
+                        .setBuffer(ByteString.copyFrom(data.buffer))
+                        .setSampleRate(data.sampleRate)
+                        .setAudioFormat(data.audioFormat)
+                        .setChannelCount(data.channelCount)
+                        .build()
+                    val pack = message.toByteArray()
+
+//                    Log.d(TAG, "audio buffer size = ${message.buffer.size()}")
+                    socket!!.outputStream.write(pack.size.toBigEndianU32())
+                    socket!!.outputStream.write(message.toByteArray())
+                    socket!!.outputStream.flush()
+                } catch (e: IOException) {
+                    Log.d(TAG, "stream: ${e.message}")
+                    delay(5)
+                    disconnect()
+                } catch (e: Exception) {
+                    Log.d(TAG, "stream: ${e.message}")
+                }
+            }
+        }
     }
 
     // disconnect from target device
