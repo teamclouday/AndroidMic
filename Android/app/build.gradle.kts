@@ -1,7 +1,10 @@
+import com.google.protobuf.gradle.*
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.google.protobuf)
 }
 
 android {
@@ -62,6 +65,28 @@ android {
         abortOnError = false
         checkReleaseBuilds = false
     }
+
+//    packaging {
+//        resources.excludes.add("google/protobuf/*.proto")
+//    }
+
+    sourceSets.getByName("main").resources.srcDir("src/main/proto")
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.25.5"
+    }
+
+    generateProtoTasks {
+        all().forEach { task ->
+            task.builtins {
+                id("java") {
+                    option("lite")
+                }
+            }
+        }
+    }
 }
 
 dependencies {
@@ -90,6 +115,10 @@ dependencies {
     // Compose Debug
     implementation(libs.compose.ui.preview)
     debugImplementation(libs.androidx.ui.tooling)
+
+    // Streaming
+    implementation(libs.protobuf.java.lite)
+    implementation(libs.protobuf.gradle.plugin)
 
     // unit test
     testImplementation(libs.test.junit.ktx)

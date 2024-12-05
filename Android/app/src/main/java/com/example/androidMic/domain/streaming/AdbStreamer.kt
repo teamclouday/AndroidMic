@@ -1,13 +1,15 @@
 package com.example.androidMic.domain.streaming
 
 import android.util.Log
-import com.example.androidMic.domain.audio.AudioBuffer
+import com.example.androidMic.domain.service.AudioPacket
 import com.example.androidMic.utils.ignore
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
@@ -15,7 +17,7 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.SocketTimeoutException
 
-class AdbStreamer() : Streamer {
+class AdbStreamer(private val scope: CoroutineScope) : Streamer {
 
     private val TAG: String = "UsbAdbStreamer"
 
@@ -23,6 +25,7 @@ class AdbStreamer() : Streamer {
 
     private var socket: Socket? = null
     private val address: String = "127.0.0.1"
+    private var streamJob: Job? = null
 
     // connect to server
     override fun connect(): Boolean {
@@ -51,29 +54,26 @@ class AdbStreamer() : Streamer {
     }
 
     // stream data through socket
-    override suspend fun stream(audioBuffer: AudioBuffer) = withContext(Dispatchers.IO)
-    {
-        if (socket == null || socket?.isConnected != true || audioBuffer.isEmpty()) return@withContext
-        var readSize = 0
-        try {
-            val streamOut = socket!!.outputStream
-            val region = audioBuffer.openReadRegion(Streamer.BUFFER_SIZE)
-            val regionSize = region.first
-            val regionOffset = region.second
-            streamOut.write(audioBuffer.buffer, regionOffset, regionSize)
-            readSize = regionSize
-            // streamOut.flush()
-        } catch (e: IOException) {
-            Log.d(TAG, "${e.message}")
-            delay(5)
-            disconnect()
-            readSize = 0
-        } catch (e: Exception) {
-            Log.d(TAG, "${e.message}")
-            readSize = 0
-        } finally {
-            audioBuffer.closeReadRegion(readSize)
-        }
+    override fun start(audioStream: Flow<AudioPacket>) {
+        streamJob?.cancel()
+//        val moshiPack = MoshiPack()
+//
+//        streamJob = scope.launch {
+//            audioStream.collect { data ->
+//                if (socket == null || socket?.isConnected != true)  return@collect
+//
+//                try {
+//                    val packed = moshiPack.pack(data)
+//                    socket!!.outputStream.write(packed.readByteArray())
+//                } catch (e: IOException) {
+//                    Log.d(TAG, "${e.message}")
+//                    delay(5)
+//                    disconnect()
+//                } catch (e: Exception) {
+//                    Log.d(TAG, "${e.message}")
+//                }
+//            }
+//        }
     }
 
     // disconnect from server
@@ -87,6 +87,8 @@ class AdbStreamer() : Streamer {
             return false
         }
         socket = null
+        streamJob?.cancel()
+        streamJob = null
         Log.d(TAG, "disconnect: complete")
         return true
     }

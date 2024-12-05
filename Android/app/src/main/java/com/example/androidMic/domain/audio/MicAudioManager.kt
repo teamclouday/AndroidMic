@@ -3,33 +3,39 @@ package com.example.androidMic.domain.audio
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
-import android.media.AudioDeviceInfo
 import android.media.AudioFormat
-import android.media.AudioManager
 import android.media.AudioRecord
 import android.media.MediaRecorder
 import android.util.Log
 import androidx.core.content.ContextCompat
-
-// reference: https://dolby.io/blog/recording-audio-on-android-with-examples
-// reference: https://twigstechtips.blogspot.com/2013/07/android-enable-noise-cancellation-in.html
+import com.example.androidMic.domain.service.AudioPacket
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.launch
 
 // manage microphone recording
 class MicAudioManager(
     ctx: Context,
+    val scope: CoroutineScope,
     val sampleRate: Int,
-    audioFormat: Int,
-    channelCount: Int
+    val audioFormat: Int,
+    val channelCount: Int
 
 ) {
     private val TAG: String = "MicAM"
 
     companion object {
-        const val RECORD_DELAY = 1L
+        const val RECORD_DELAY_MS = 100L
     }
 
     private val recorder: AudioRecord
     private val bufferSize: Int
+    private val buffer: ByteArray
+    private var streamJob: Job? = null
 
     init {
         // check microphone
@@ -46,7 +52,8 @@ class MicAudioManager(
         }
 
         // get minimum buffer size
-        val channelConfig = if (channelCount == 2) AudioFormat.CHANNEL_IN_STEREO else AudioFormat.CHANNEL_IN_MONO
+        val channelConfig =
+            if (channelCount == 2) AudioFormat.CHANNEL_IN_STEREO else AudioFormat.CHANNEL_IN_MONO
         bufferSize = AudioRecord.getMinBufferSize(
             sampleRate,
             channelConfig,
@@ -66,21 +73,44 @@ class MicAudioManager(
             bufferSize,
         )
 
-        // check if recorder is intiialized
+        // check if recorder is initialized
         require(recorder.state == AudioRecord.STATE_INITIALIZED) {
             "Microphone recording failed to initialize"
         }
+
+        buffer = ByteArray(bufferSize)
     }
 
-    // store data in shared audio buffer
-    suspend fun record(audioBuffer: AudioBuffer) {
-        val region = audioBuffer.openWriteRegion(bufferSize)
-        val regionLen = region.first
-        val regionOffset = region.second
-        val bytesWritten = recorder.read(audioBuffer.buffer, regionOffset, regionLen)
-        audioBuffer.closeWriteRegion(bytesWritten)
-        if (bytesWritten > 0)
-            Log.d(TAG, "[record] audio data recorded (${bytesWritten} bytes)")
+    // audio stream publisher
+    fun audioStream(): Flow<AudioPacket> = channelFlow {
+        // launch in scope so infinite loop will be canceled when scope exits
+        streamJob = scope.launch {
+            while (true) {
+                if (recorder.state != AudioRecord.STATE_INITIALIZED || recorder.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
+                    delay(RECORD_DELAY_MS)
+                }
+                val bytesRead = recorder.read(buffer, 0, buffer.size)
+
+                if (bytesRead <= 0) {
+                    delay(RECORD_DELAY_MS)
+                }
+
+                val packetBuffer = ByteArray(bytesRead)
+                buffer.copyInto(packetBuffer, 0, 0, bytesRead)
+                send(
+                    AudioPacket(
+                        buffer = packetBuffer,
+                        sampleRate = sampleRate,
+                        audioFormat = audioFormat,
+                        channelCount = channelCount
+                    )
+                )
+            }
+        }
+
+        awaitClose {
+            streamJob?.cancel()
+        }
     }
 
     // start recording
@@ -100,6 +130,7 @@ class MicAudioManager(
     fun shutdown() {
         recorder.stop()
         recorder.release()
+        streamJob?.cancel()
         Log.d(TAG, "shutdown")
     }
 }

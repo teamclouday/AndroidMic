@@ -2,29 +2,34 @@ package com.example.androidMic.domain.streaming
 
 import android.content.Context
 import com.example.androidMic.Modes
-import com.example.androidMic.domain.audio.AudioBuffer
-
-// StreamManager acts as a minimal RTSP server for audio data
-// reference: https://www.medialan.de/usecase0001.html
+import com.example.androidMic.domain.service.AudioPacket
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.Flow
 
 // manage streaming data
-class MicStreamManager(ctx: Context, val mode: Modes, ip: String?, port: Int?) {
+class MicStreamManager(
+    ctx: Context,
+    val scope: CoroutineScope,
+    val mode: Modes,
+    ip: String?,
+    port: Int?
+) {
 
     private var streamer: Streamer = when (mode) {
         Modes.WIFI -> {
-            WifiStreamer(ctx, ip!!, port!!)
+            WifiStreamer(ctx, scope, ip!!, port!!)
         }
 
         Modes.BLUETOOTH -> {
-            BluetoothStreamer(ctx)
+            BluetoothStreamer(ctx, scope)
         }
 
         Modes.USB -> {
-            AdbStreamer()
+            AdbStreamer(scope)
         }
 
         Modes.UDP -> {
-            UdpStreamer(ip!!, port!!)
+            UdpStreamer(scope, ip!!, port!!)
         }
     }
 
@@ -33,18 +38,17 @@ class MicStreamManager(ctx: Context, val mode: Modes, ip: String?, port: Int?) {
         const val STREAM_DELAY = 1L
     }
 
-    fun start(): Boolean {
-        return streamer.connect()
+    fun start(audioStream: Flow<AudioPacket>): Boolean {
+        val connected = streamer.connect()
+        if (connected) {
+            streamer.start(audioStream)
+        }
+        return connected
     }
 
     fun stop() {
         streamer.disconnect()
     }
-
-    suspend fun stream(audioBuffer: AudioBuffer) {
-        streamer.stream(audioBuffer)
-    }
-
 
     // should not call any methods after calling
     fun shutdown() {

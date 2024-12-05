@@ -56,6 +56,9 @@ i18n-embed = { version = "0.15", features = [
 rust-embed = "8"
 i18n-embed-fl = "0.9"
 directories = "5"
+prost = "0.13.3"
+tokio-util = {version="0.7.13", features = ["codec"]}
+chrono = "0.4.38"
 
 [dependencies.libcosmic]
 git = "https://github.com/pop-os/libcosmic"
@@ -70,4 +73,5 @@ features = ["winit", "wgpu", "tokio", "multi-window"]
 
 
 [build-dependencies]
+prost-build = "0.13.3"
 winres = "0.1"

@@ -2,7 +2,8 @@ use std::io;
 
 use adb_streamer::AdbStreamer;
 use enum_dispatch::enum_dispatch;
-use rtrb::Producer;
+use prost::DecodeError;
+use rtrb::{chunks::ChunkError, Producer};
 use tcp_streamer::TcpStreamer;
 use thiserror::Error;
 
@@ -10,8 +11,10 @@ use thiserror::Error;
 mod adb_streamer;
 mod streamer_sub;
 mod tcp_streamer;
+mod message;
 
 pub use streamer_sub::{sub, ConnectOption, StreamerCommand, StreamerMsg};
+pub use message::AudioPacketMessage;
 
 /// Status reported from the streamer
 #[derive(Clone, Debug)]
@@ -87,6 +90,10 @@ enum WriteError {
     Io(#[from] io::Error),
     #[error("BufferOverfilled")]
     BufferOverfilled(usize, usize), // moved, lossed
+    #[error(transparent)]
+    Deserializer(#[from] DecodeError),
+    #[error(transparent)]
+    Chunk(#[from] ChunkError)
 }
 
 /// Used to simplified futures logic

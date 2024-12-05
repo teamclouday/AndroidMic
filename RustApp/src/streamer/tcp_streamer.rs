@@ -1,18 +1,20 @@
-use std::{io, net::IpAddr, str::from_utf8, time::Duration};
-
-use rtrb::{chunks::ChunkError, Producer};
+use std::{net::IpAddr, str::from_utf8, time::Duration};
+use futures::StreamExt;
+use prost::Message;
+use rtrb::Producer;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
 };
+use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 use crate::streamer::{
-    WriteError, DEFAULT_PC_PORT, DEVICE_CHECK, DEVICE_CHECK_EXPECTED, IO_BUF_SIZE, MAX_PORT,
+    AudioPacketMessage, WriteError, DEFAULT_PC_PORT, DEVICE_CHECK, DEVICE_CHECK_EXPECTED, MAX_PORT
 };
 
 use super::{ConnectError, Status, StreamerTrait};
 
-const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
+const MAX_WAIT_TIME: Duration = Duration::from_millis(100);
 
 const DISCONNECT_LOOP_DETECTER_MAX: u32 = 1000;
 
@@ -29,9 +31,7 @@ pub enum TcpStreamerState {
         listener: TcpListener,
     },
     Streaming {
-        stream: TcpStream,
-        io_buf: [u8; 1024],
-        disconnect_loop_detecter: u32,
+        framed: Framed<TcpStream, LengthDelimitedCodec>,
     },
 }
 
@@ -117,67 +117,42 @@ impl StreamerTrait for TcpStreamer {
                 info!("connection accepted, remote address: {}", addr);
 
                 self.state = TcpStreamerState::Streaming {
-                    stream,
-                    io_buf: [0u8; IO_BUF_SIZE],
-                    disconnect_loop_detecter: 0,
+                    framed: Framed::new(stream, LengthDelimitedCodec::new()),
                 };
 
                 Ok(Some(Status::Connected))
             }
             TcpStreamerState::Streaming {
-                stream,
-                io_buf,
-                disconnect_loop_detecter,
+                framed,
             } => {
-                match stream.read(io_buf).await {
-                    Ok(size) => {
-                        if size == 0 {
-                            if *disconnect_loop_detecter >= DISCONNECT_LOOP_DETECTER_MAX {
-                                return Err(WriteError::Io(io::Error::new(
-                                    io::ErrorKind::NotConnected,
-                                    "disconnect loop detected",
-                                )))?;
-                            } else {
-                                *disconnect_loop_detecter += 1
-                            }
-                        } else {
-                            *disconnect_loop_detecter = 0;
-                        };
-                        match self.producer.write_chunk_uninit(size) {
-                            Ok(chunk) => {
-                                let moved_item = chunk.fill_from_iter(*io_buf);
-                                if moved_item != size {
-                                    warn!(
-                                        "buffer overfilled: moved {}, lossed {}",
-                                        moved_item,
-                                        size - moved_item
-                                    );
+                info!("waiting for frame");
+                if let Some(Ok(frame)) = framed.next().await {
+                    info!("received {} frame bytes", frame.len());
+                    match AudioPacketMessage::decode(frame) {
+                        Ok(packet) => {
+                            let buffer_size = packet.buffer.len();
+                            match self.producer.write_chunk_uninit(buffer_size) {
+                                Ok(chunk) => {
+                                    chunk.fill_from_iter(packet.buffer.into_iter());
+                                    info!("received {} stream bytes", buffer_size);
+                                }
+                                Err(e) => {
+                                    warn!("dropped packet, can't write chunk: {}", e);
                                 }
                             }
-                            Err(ChunkError::TooFewSlots(remaining_slots)) => {
-                                let chunk =
-                                    self.producer.write_chunk_uninit(remaining_slots).unwrap();
-
-                                let moved_item = chunk.fill_from_iter(*io_buf);
-
-                                warn!(
-                                    "buffer overfilled: moved {}, lossed {}",
-                                    moved_item,
-                                    size - moved_item
-                                );
-                            }
                         }
-
-                        Ok(None)
-                    }
-                    Err(e) => {
-                        match e.kind() {
-                            io::ErrorKind::TimedOut => Ok(None), // timeout use to check for input on stdin
-                            io::ErrorKind::WouldBlock => Ok(None), // trigger on Linux when there is no stream input
-                            _ => Err(WriteError::Io(e))?,
+                        Err(e) => {
+                            return Err(WriteError::Deserializer(e).into());
                         }
                     }
                 }
+                else {
+                    info!("frame not ready");
+                    // sleep for a while to not consume all CPU
+                    tokio::time::sleep(MAX_WAIT_TIME).await;
+                }
+
+                Ok(None)
             }
         }
     }
