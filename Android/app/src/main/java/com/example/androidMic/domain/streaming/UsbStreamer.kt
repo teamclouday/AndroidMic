@@ -1,12 +1,15 @@
 package com.example.androidMic.domain.streaming
 
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.hardware.usb.UsbAccessory
 import android.hardware.usb.UsbManager
+import android.os.Build
 import android.util.Log
+import androidx.core.os.BundleCompat
 import com.example.androidMic.domain.service.AudioPacket
 import com.example.androidMic.utils.toBigEndianU32
 import com.google.protobuf.ByteString
@@ -19,6 +22,7 @@ import java.io.FileOutputStream
 class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
 
     private val TAG: String = "USB streamer"
+    private val USB_PERMISSION = "com.example.androidMic.USB_PERMISSION"
 
     private var streamJob: Job? = null
 
@@ -29,29 +33,54 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
         override fun onReceive(context: Context?, intent: Intent?) {
             val action = intent?.action ?: return
 
-//            if (action == UsbManager.ACTION_USB_ACCESSORY_ATTACHED) {
-//                Log.d(TAG, "onReceive: USB accessory attached")
-//
-//                outputStream?.close()
-//                accessory = IntentCompat.getParcelableExtra<UsbAccessory>(
-//                    intent,
-//                    UsbManager.EXTRA_ACCESSORY,
-//                    UsbAccessory::class.java
-//                )
-//
-//                val fd = (ctx.getSystemService(Context.USB_SERVICE) as UsbManager).openAccessory(
-//                    accessory
-//                ).fileDescriptor
-//                outputStream = FileOutputStream(fd)
-//            }
+            if (action == UsbManager.ACTION_USB_ACCESSORY_DETACHED) {
+                Log.d(TAG, "onReceive: USB accessory detached")
+
+                val acc = BundleCompat.getParcelable<UsbAccessory>(
+                    intent.extras!!,
+                    UsbManager.EXTRA_ACCESSORY,
+                    UsbAccessory::class.java,
+                )
+
+                if (acc == accessory) {
+                    shutdown()
+                }
+            } else if (action == USB_PERMISSION) {
+                val granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
+                if (granted) {
+                    Log.d(TAG, "permission granted")
+
+                    val usbManager = ctx.getSystemService(Context.USB_SERVICE) as UsbManager
+
+                    val fd = usbManager.openAccessory(accessory).fileDescriptor
+
+                    if (fd == null) {
+                        Log.d(TAG, "Failed to open USB accessory file descriptor")
+                        return
+                    }
+                    outputStream = FileOutputStream(fd)
+                } else {
+                    Log.d(TAG, "permission denied")
+                }
+            }
         }
     }
 
     // init everything
     init {
         // set up filter
-        val filter = IntentFilter(UsbManager.ACTION_USB_ACCESSORY_ATTACHED)
-        ctx.registerReceiver(receiver, filter)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            val filter = IntentFilter(
+                UsbManager.ACTION_USB_ACCESSORY_DETACHED
+            )
+            filter.addAction(USB_PERMISSION)
+            ctx.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            val filter = IntentFilter(
+                UsbManager.ACTION_USB_ACCESSORY_DETACHED
+            )
+            ctx.registerReceiver(receiver, filter)
+        }
 
         // select usb device
         val usbManager = ctx.getSystemService(Context.USB_SERVICE) as UsbManager
@@ -65,8 +94,22 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
 
         Log.d(
             TAG,
-            "init USB accessory: ${accessory?.manufacturer} ${accessory?.model} ${accessory?.version}"
+            "choose USB accessory: ${accessory?.manufacturer} ${accessory?.model} ${accessory?.version}"
         )
+
+        // check permission
+        if (!usbManager.hasPermission(accessory)) {
+            Log.d(TAG, "requesting permission")
+            usbManager.requestPermission(
+                accessory, PendingIntent.getBroadcast(
+                    ctx, 0, Intent(USB_PERMISSION), 0
+                )
+            )
+        }
+
+        require(usbManager.hasPermission(accessory)) {
+            "Failed to get permission for USB accessory"
+        }
 
         // open stream
         val fd = usbManager.openAccessory(accessory).fileDescriptor
