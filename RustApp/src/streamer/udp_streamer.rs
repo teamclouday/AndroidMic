@@ -1,87 +1,135 @@
-use std::{
-    io::{self},
-    net::{IpAddr, UdpSocket},
-    time::Duration,
+use futures::StreamExt;
+use prost::Message;
+use rtrb::Producer;
+use std::net::IpAddr;
+use std::time::Duration;
+use tokio::net::UdpSocket;
+use tokio_util::codec::LengthDelimitedCodec;
+use tokio_util::udp::UdpFramed;
+
+use crate::{
+    config::AudioFormat,
+    streamer::{AudioWaveData, WriteError, DEFAULT_PC_PORT, MAX_PORT},
 };
 
-use rtrb::{chunks::ChunkError, Producer};
+use super::{AudioPacketMessageOrdered, ConnectError, Status, StreamerTrait};
 
-use crate::streamer::{Streamer, WriteError, DEFAULT_PORT, IO_BUF_SIZE, MAX_PORT};
+const MAX_WAIT_TIME: Duration = Duration::from_millis(100);
 
 pub struct UdpStreamer {
     ip: IpAddr,
     port: u16,
-    socket: UdpSocket,
     producer: Producer<u8>,
-    io_buf: [u8; 1024],
+    framed: UdpFramed<LengthDelimitedCodec, UdpSocket>,
+    tracked_sequence: u32,
 }
 
-impl Streamer for UdpStreamer {
-    fn new(shared_buf: Producer<u8>, ip: IpAddr) -> Option<UdpStreamer> {
-        let mut socket = None;
+pub async fn new(ip: IpAddr, producer: Producer<u8>) -> Result<UdpStreamer, ConnectError> {
+    let mut socket = None;
 
-        for p in DEFAULT_PORT..=MAX_PORT {
-            if let Ok(s) = UdpSocket::bind((ip, p)) {
-                socket = Some(s);
-                break;
-            }
+    // try to always bind the same port, to not change it everytime Android side
+    for p in DEFAULT_PC_PORT..=MAX_PORT {
+        if let Ok(l) = UdpSocket::bind((ip, p)).await {
+            socket = Some(l);
+            break;
         }
+    }
 
-        let socket = if let Some(socket) = socket {
-            socket
-        } else {
-            UdpSocket::bind((ip, 0)).expect("Failed to bind to socket")
-        };
-
+    let socket = if let Some(socket) = socket {
         socket
-            .set_read_timeout(Some(Duration::from_millis(200)))
-            .unwrap();
+    } else {
+        UdpSocket::bind((ip, 0))
+            .await
+            .map_err(ConnectError::CantBindPort)?
+    };
 
-        let addr = match socket.local_addr() {
-            Ok(addr) => addr,
-            Err(e) => {
-                dbg!(e);
-                return None;
-            }
-        };
-        println!("UDP server listening on {}", addr);
+    let addr = socket.local_addr().map_err(ConnectError::NoLocalAddress)?;
 
-        Some(Self {
-            ip,
-            port: addr.port(),
-            socket,
-            producer: shared_buf,
-            io_buf: [0u8; IO_BUF_SIZE],
+    let streamer = UdpStreamer {
+        ip,
+        port: addr.port(),
+        producer,
+        framed: UdpFramed::new(socket, LengthDelimitedCodec::new()),
+        tracked_sequence: 0,
+    };
+
+    Ok(streamer)
+}
+
+impl StreamerTrait for UdpStreamer {
+    fn set_buff(&mut self, producer: Producer<u8>) {
+        self.producer = producer;
+    }
+
+    fn status(&self) -> Option<Status> {
+        Some(Status::Connected {
+            port: Some(self.port),
         })
     }
 
-    fn process(&mut self) -> Result<usize, WriteError> {
-        // Receive data into the buffer
-        match self.socket.recv_from(&mut self.io_buf) {
-            Ok((size, _)) => match self.producer.write_chunk_uninit(size) {
-                Ok(chunk) => {
-                    let moved_item = chunk.fill_from_iter(self.io_buf);
-                    if moved_item == size {
-                        Ok(size)
-                    } else {
-                        Err(WriteError::BufferOverfilled(moved_item, size - moved_item))
+    async fn next(&mut self) -> Result<Option<Status>, ConnectError> {
+        if let Some(Ok((frame, addr))) = self.framed.next().await {
+            match AudioPacketMessageOrdered::decode(frame) {
+                Ok(packet) => {
+                    if packet.sequence_number < self.tracked_sequence {
+                        // drop packet
+                        info!(
+                            "dropped packet: old sequence number {} < {}",
+                            packet.sequence_number, self.tracked_sequence
+                        );
+                        return Ok(None);
+                    }
+                    self.tracked_sequence = packet.sequence_number;
+
+                    let packet = packet.audio_packet.unwrap();
+                    let buffer_size = packet.buffer.len();
+                    let chunk_size = std::cmp::min(buffer_size, self.producer.slots());
+
+                    // mapping from android AudioFormat to encoding size
+                    let audio_format =
+                        AudioFormat::from_android_format(packet.audio_format).unwrap();
+                    let encoding_size = audio_format.sample_size() * packet.channel_count as usize;
+
+                    // make sure chunk_size is a multiple of encoding_size
+                    let correction = chunk_size % encoding_size;
+
+                    match self.producer.write_chunk_uninit(chunk_size - correction) {
+                        Ok(chunk) => {
+                            // compute the audio wave from the buffer
+                            let response = if let Some(audio_wave_data) = packet.to_f32_vec() {
+                                Some(Status::UpdateAudioWave {
+                                    data: audio_wave_data,
+                                })
+                            } else {
+                                None
+                            };
+
+                            chunk.fill_from_iter(packet.buffer.into_iter());
+                            info!(
+                                "From {}, received {} bytes, corrected {} bytes, lost {} bytes",
+                                addr,
+                                buffer_size,
+                                correction,
+                                buffer_size - chunk_size + correction
+                            );
+
+                            Ok(response)
+                        }
+                        Err(e) => {
+                            warn!("dropped packet: {}", e);
+                            Ok(None)
+                        }
                     }
                 }
-                Err(ChunkError::TooFewSlots(remaining_slots)) => {
-                    let chunk = self.producer.write_chunk_uninit(remaining_slots).unwrap();
-
-                    let moved_item = chunk.fill_from_iter(self.io_buf);
-
-                    Err(WriteError::BufferOverfilled(moved_item, size - moved_item))
-                }
-            },
-            Err(e) => {
-                match e.kind() {
-                    io::ErrorKind::TimedOut => Ok(0), // timeout use to check for input on stdin
-                    io::ErrorKind::WouldBlock => Ok(0), // trigger on Linux when there is no stream input
-                    _ => Err(WriteError::Io(e)),
+                Err(e) => {
+                    return Err(WriteError::Deserializer(e).into());
                 }
             }
+        } else {
+            info!("frame not ready");
+            // sleep for a while to not consume all CPU
+            tokio::time::sleep(MAX_WAIT_TIME).await;
+            Ok(None)
         }
     }
 }

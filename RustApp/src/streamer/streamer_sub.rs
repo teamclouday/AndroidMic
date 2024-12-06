@@ -13,7 +13,7 @@ use cosmic::iced::stream;
 
 use crate::streamer::{StreamerTrait, WriteError};
 
-use super::{adb_streamer, tcp_streamer, ConnectError, DummyStreamer, Status, Streamer};
+use super::{adb_streamer, udp_streamer, tcp_streamer, ConnectError, DummyStreamer, Status, Streamer};
 
 #[derive(Debug)]
 pub enum ConnectOption {
@@ -73,7 +73,9 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                 ConnectOption::Tcp { ip } => {
                                     tcp_streamer::new(ip, producer).await.map(Streamer::from)
                                 }
-                                ConnectOption::Udp { ip: _ip } => todo!(),
+                                ConnectOption::Udp { ip } => {
+                                    udp_streamer::new(ip, producer).await.map(Streamer::from)
+                                },
                                 ConnectOption::Adb => {
                                     adb_streamer::new(producer).await.map(Streamer::from)
                                 }

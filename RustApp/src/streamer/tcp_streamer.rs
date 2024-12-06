@@ -74,7 +74,9 @@ impl StreamerTrait for TcpStreamer {
             TcpStreamerState::Listening { .. } => Some(Status::Listening {
                 port: Some(self.port),
             }),
-            TcpStreamerState::Streaming { .. } => Some(Status::Connected),
+            TcpStreamerState::Streaming { .. } => Some(Status::Connected {
+                port: None, // this is only set in udp streamer
+            }),
         }
     }
 
@@ -94,7 +96,7 @@ impl StreamerTrait for TcpStreamer {
                     framed: Framed::new(stream, LengthDelimitedCodec::new()),
                 };
 
-                Ok(Some(Status::Connected))
+                Ok(Some(Status::Connected { port: None }))
             }
             TcpStreamerState::Streaming { framed } => {
                 if let Some(Ok(frame)) = framed.next().await {

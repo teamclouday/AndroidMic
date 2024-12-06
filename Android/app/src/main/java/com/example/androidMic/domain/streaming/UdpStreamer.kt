@@ -19,6 +19,7 @@ class UdpStreamer(private val scope: CoroutineScope, val ip: String, val port: I
     private val socket: DatagramSocket = DatagramSocket()
     private val address = InetAddress.getByName(ip)
     private var streamJob: Job? = null
+    private var sequenceIdx = 0
 
     override fun connect(): Boolean {
         return true
@@ -41,12 +42,18 @@ class UdpStreamer(private val scope: CoroutineScope, val ip: String, val port: I
         streamJob = scope.launch {
             audioStream.collect { data ->
                 try {
-                    val message = Message.AudioPacketMessage.newBuilder()
-                        .setBuffer(ByteString.copyFrom(data.buffer))
-                        .setSampleRate(data.sampleRate)
-                        .setAudioFormat(data.audioFormat)
-                        .setChannelCount(data.channelCount)
+                    val message = Message.AudioPacketMessageOrdered.newBuilder()
+                        .setSequenceNumber(sequenceIdx++)
+                        .setAudioPacket(
+                            Message.AudioPacketMessage.newBuilder()
+                                .setBuffer(ByteString.copyFrom(data.buffer))
+                                .setSampleRate(data.sampleRate)
+                                .setAudioFormat(data.audioFormat)
+                                .setChannelCount(data.channelCount)
+                                .build()
+                        )
                         .build()
+
                     val pack = message.toByteArray()
                     val combined = pack.size.toBigEndianU32() + pack
 

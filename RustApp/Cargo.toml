@@ -56,7 +56,7 @@ rust-embed = "8"
 i18n-embed-fl = "0.9"
 directories = "5"
 prost = "0.13.3"
-tokio-util = { version = "0.7.13", features = ["codec"] }
+tokio-util = { version = "0.7.13", features = ["codec", "net"] }
 chrono = "0.4.38"
 libcosmic = { git = "https://github.com/pop-os/libcosmic", branch = "master", features = [
     "winit",

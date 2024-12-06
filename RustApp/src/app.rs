@@ -248,10 +248,15 @@ impl Application for AppState {
                     Status::Listening { port } => {
                         let port = port.unwrap_or(0);
                         info!("listening: {port:?}");
-                        self.add_log(format!("listening on port {port:?}").as_str());
+                        self.add_log(format!("Listening on port {port:?}").as_str());
                         self.state = State::Listening;
                     }
-                    Status::Connected => {
+                    Status::Connected { port } => {
+                        if let Some(port) = port {
+                            // for udp streamer only
+                            info!("listening: {port:?}");
+                            self.add_log(format!("Listening on port {port:?}").as_str());
+                        }
                         self.state = State::Connected;
                     }
                     Status::UpdateAudioWave { data } => {
@@ -273,12 +278,12 @@ impl Application for AppState {
                 let connect_option = match config.connection_mode {
                     ConnectionMode::Tcp => {
                         let ip = config.ip.unwrap_or(local_ip().unwrap());
-                        self.add_log(format!("listening on ip {ip:?}").as_str());
+                        self.add_log(format!("Listening on ip {ip:?}").as_str());
                         ConnectOption::Tcp { ip }
                     }
                     ConnectionMode::Udp => {
                         let ip = config.ip.unwrap_or(local_ip().unwrap());
-                        self.add_log(format!("listening on ip {ip:?}").as_str());
+                        self.add_log(format!("Listening on ip {ip:?}").as_str());
                         ConnectOption::Udp { ip }
                     }
                     ConnectionMode::Adb => ConnectOption::Adb,

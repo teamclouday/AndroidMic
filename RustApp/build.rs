@@ -21,9 +21,9 @@ fn main() -> io::Result<()> {
 
     // build protobuf
     prost_build::Config::new()
-    .out_dir("./src/streamer").compile_protos(&["./src/proto/message.proto"], &["src/proto"]).expect(
-        "Failed to compile protobuf files"
-    );
+        .out_dir("src/streamer")
+        .compile_protos(&["src/proto/message.proto"], &["src/proto"])
+        .expect("Failed to compile protobuf files");
 
     Ok(())
 }

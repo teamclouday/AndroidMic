@@ -7,14 +7,15 @@ use prost::DecodeError;
 use rtrb::{chunks::ChunkError, Producer};
 use tcp_streamer::TcpStreamer;
 use thiserror::Error;
+use udp_streamer::UdpStreamer;
 
-// mod udp_streamer;
 mod adb_streamer;
 mod message;
 mod streamer_sub;
 mod tcp_streamer;
+mod udp_streamer;
 
-pub use message::AudioPacketMessage;
+pub use message::{AudioPacketMessage, AudioPacketMessageOrdered};
 pub use streamer_sub::{sub, ConnectOption, StreamerCommand, StreamerMsg};
 
 use crate::config::AudioFormat;
@@ -25,7 +26,7 @@ pub enum Status {
     UpdateAudioWave { data: Vec<(f32, f32)> },
     Error(String),
     Listening { port: Option<u16> },
-    Connected,
+    Connected { port: Option<u16> },
 }
 
 impl Status {
@@ -37,7 +38,6 @@ impl Status {
 /// Default port on the PC
 const DEFAULT_PC_PORT: u16 = 55555;
 const MAX_PORT: u16 = 60000;
-const IO_BUF_SIZE: usize = 1024;
 
 #[enum_dispatch]
 trait StreamerTrait {
@@ -57,6 +57,7 @@ trait StreamerTrait {
 enum Streamer {
     TcpStreamer,
     AdbStreamer,
+    UdpStreamer,
     DummyStreamer,
 }
 
