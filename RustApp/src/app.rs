@@ -245,7 +245,9 @@ impl Application for AppState {
                         self.audio_stream = None;
                     }
                     Status::Listening { port } => {
+                        let port = port.unwrap_or(0);
                         info!("listening: {port:?}");
+                        self.add_log(format!("listening on port {port:?}").as_str());
                         self.state = State::Listening;
                     }
                     Status::Connected => {
@@ -268,12 +270,16 @@ impl Application for AppState {
                 let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
 
                 let connect_option = match config.connection_mode {
-                    ConnectionMode::Tcp => ConnectOption::Tcp {
-                        ip: config.ip.unwrap_or(local_ip().unwrap()),
-                    },
-                    ConnectionMode::Udp => ConnectOption::Udp {
-                        ip: config.ip.unwrap_or(local_ip().unwrap()),
-                    },
+                    ConnectionMode::Tcp => {
+                        let ip = config.ip.unwrap_or(local_ip().unwrap());
+                        self.add_log(format!("listening on ip {ip:?}").as_str());
+                        ConnectOption::Tcp { ip }
+                    }
+                    ConnectionMode::Udp => {
+                        let ip = config.ip.unwrap_or(local_ip().unwrap());
+                        self.add_log(format!("listening on ip {ip:?}").as_str());
+                        ConnectOption::Udp { ip }
+                    }
                     ConnectionMode::Adb => ConnectOption::Adb,
                 };
 

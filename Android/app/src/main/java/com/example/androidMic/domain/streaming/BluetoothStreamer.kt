@@ -19,15 +19,10 @@ import com.example.androidMic.utils.ignore
 import com.example.androidMic.utils.toBigEndianU32
 import com.google.protobuf.ByteString
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import java.io.DataInputStream
-import java.io.DataOutputStream
 import java.io.IOException
 import java.util.UUID
 
@@ -35,7 +30,6 @@ class BluetoothStreamer(private val ctx: Context, val scope: CoroutineScope) : S
     private val TAG: String = "MicStreamBTH"
 
     private val myUUID: UUID = UUID.fromString("34335e34-bccf-11eb-8529-0242ac130003")
-    private val MAX_WAIT_TIME = 1500L // timeout
 
     private val adapter: BluetoothAdapter
     private var target: BluetoothDevice? = null
@@ -62,8 +56,6 @@ class BluetoothStreamer(private val ctx: Context, val scope: CoroutineScope) : S
         // get bluetooth adapter
         val bm = ctx.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         adapter = bm.adapter
-        // check bluetooth adapter
-        require(adapter != null) { "Bluetooth adapter is not found" }
         // check permission
         require(
             ContextCompat.checkSelfPermission(
@@ -137,7 +129,6 @@ class BluetoothStreamer(private val ctx: Context, val scope: CoroutineScope) : S
                         .build()
                     val pack = message.toByteArray()
 
-//                    Log.d(TAG, "audio buffer size = ${message.buffer.size()}")
                     socket!!.outputStream.write(pack.size.toBigEndianU32())
                     socket!!.outputStream.write(message.toByteArray())
                     socket!!.outputStream.flush()
@@ -182,78 +173,15 @@ class BluetoothStreamer(private val ctx: Context, val scope: CoroutineScope) : S
             val pairedDevices = adapter.bondedDevices ?: return
             for (device in pairedDevices) {
                 if (device.bluetoothClass.majorDeviceClass == BluetoothClass.Device.Major.COMPUTER) {
-                    Log.d(TAG, "selectTargetDevice: testing ${device.name}")
-                    if (testConnection(device)) {
-                        target = device
-                        Log.d(TAG, "selectTargetDevice: ${device.name} is valid")
-                        break
-                    } else
-                        Log.d(TAG, "selectTargetDevice: ${device.name} is invalid")
+                    target = device
+                    Log.d(TAG, "selected device ${device.name}")
+                    break
                 }
             }
         } catch (e: SecurityException) {
             Log.d(TAG, "selectTargetDevice: ${e.message}")
         }
 
-    }
-
-    // test connection with a device
-    // return true if valid device
-    // return false if invalid device
-    private fun testConnection(device: BluetoothDevice): Boolean {
-        // get socket from device
-        val socket: BluetoothSocket = try {
-            device.createInsecureRfcommSocketToServiceRecord(myUUID)
-        } catch (e: IOException) {
-            Log.d(TAG, "testConnection [createInsecureRfcommSocketToServiceRecord]: ${e.message}")
-            null
-        } catch (e: SecurityException) {
-            Log.d(TAG, "testConnection [createInsecureRfcommSocketToServiceRecord]: ${e.message}")
-            null
-        } ?: return false
-        // try to connect
-        try {
-            socket.connect()
-        } catch (e: IOException) {
-            Log.d(TAG, "testConnection [connect]: ${e.message}")
-            return false
-        } catch (e: SecurityException) {
-            Log.d(TAG, "testConnection [connect]: ${e.message}")
-            return false
-        }
-        var isValid = false
-        runBlocking(Dispatchers.IO) {
-            val job = launch {
-                ignore {
-                    val streamOut = DataOutputStream(socket.outputStream)
-                    streamOut.write(Streamer.DEVICE_CHECK.toByteArray(Charsets.UTF_8))
-                    streamOut.flush()
-                    val streamIn = DataInputStream(socket.inputStream)
-                    val buffer = ByteArray(100)
-                    val size = streamIn.read(buffer, 0, 100)
-                    val received = String(buffer, 0, size, Charsets.UTF_8)
-                    Log.d(TAG, "testConnection: received $received")
-                    if (received == Streamer.DEVICE_CHECK_EXPECT) {
-                        isValid = true
-                        Log.d(TAG, "testConnection: device matched!")
-                    } else
-                        Log.d(TAG, "testConnection: device mismatch with $received!")
-                }
-            }
-            var time = 5
-            while (!job.isCompleted && time < MAX_WAIT_TIME) {
-                delay(5)
-                time += 5
-            }
-            if (!job.isCompleted) {
-                ignore { socket.close() }
-                job.cancelAndJoin()
-                Log.d(TAG, "testConnection: timeout!")
-            }
-        }
-        // close socket
-        ignore { socket.close() }
-        return isValid
     }
 
     // get connected device information
