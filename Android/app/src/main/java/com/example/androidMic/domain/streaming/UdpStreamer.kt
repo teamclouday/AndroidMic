@@ -33,7 +33,7 @@ class UdpStreamer(private val scope: CoroutineScope, val ip: String, val port: I
     }
 
     override fun shutdown() {
-
+        disconnect()
     }
 
     override fun start(audioStream: Flow<AudioPacket>) {

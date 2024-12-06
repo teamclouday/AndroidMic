@@ -287,6 +287,7 @@ impl Application for AppState {
                         ConnectOption::Udp { ip }
                     }
                     ConnectionMode::Adb => ConnectOption::Adb,
+                    ConnectionMode::Usb => ConnectOption::Usb,
                 };
 
                 self.send_command(StreamerCommand::Connect(connect_option, producer));

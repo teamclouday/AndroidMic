@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material.icons.rounded.Usb
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -33,10 +32,10 @@ import com.example.androidMic.R
 import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.home.dialog.DialogAudioFormat
 import com.example.androidMic.ui.home.dialog.DialogChannelCount
+import com.example.androidMic.ui.home.dialog.DialogIpPort
 import com.example.androidMic.ui.home.dialog.DialogMode
 import com.example.androidMic.ui.home.dialog.DialogSampleRate
 import com.example.androidMic.ui.home.dialog.DialogTheme
-import com.example.androidMic.ui.home.dialog.DialogIpPort
 
 data class MenuItem(
     val title: String,
@@ -100,9 +99,13 @@ fun DrawerBody(vm: MainViewModel) {
                 )
             }
 
-            Modes.USB, Modes.BLUETOOTH -> {
-
+            else -> {
+                
             }
+
+//            Modes.USB, Modes.BLUETOOTH -> {
+//
+//            }
         }
 
         // Audio

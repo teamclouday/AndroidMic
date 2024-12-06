@@ -96,7 +96,13 @@ fn connection_type(app: &AppState) -> Element<'_, AppMsg> {
                     |mode| AppMsg::ChangeConnectionMode(*mode),
                 ))
                 .push(radio(
-                    "USB (ADB)",
+                    "USB Serial",
+                    &ConnectionMode::Usb,
+                    Some(connection_mode),
+                    |mode| AppMsg::ChangeConnectionMode(*mode),
+                ))
+                .push(radio(
+                    "USB Adb",
                     &ConnectionMode::Adb,
                     Some(connection_mode),
                     |mode| AppMsg::ChangeConnectionMode(*mode),

@@ -8,17 +8,22 @@ use rtrb::{chunks::ChunkError, Producer};
 use tcp_streamer::TcpStreamer;
 use thiserror::Error;
 use udp_streamer::UdpStreamer;
+use usb_streamer::UsbStreamer;
 
 mod adb_streamer;
 mod message;
 mod streamer_sub;
 mod tcp_streamer;
 mod udp_streamer;
+mod usb_streamer;
 
 pub use message::{AudioPacketMessage, AudioPacketMessageOrdered};
 pub use streamer_sub::{sub, ConnectOption, StreamerCommand, StreamerMsg};
 
-use crate::config::AudioFormat;
+use crate::{
+    config::AudioFormat,
+    usb::{AccessoryError, EndpointError},
+};
 
 /// Status reported from the streamer
 #[derive(Clone, Debug)]
@@ -58,6 +63,7 @@ enum Streamer {
     TcpStreamer,
     AdbStreamer,
     UdpStreamer,
+    UsbStreamer,
     DummyStreamer,
 }
 
@@ -80,9 +86,16 @@ enum ConnectError {
     CommandFailed(io::Error),
     #[error("command failed: {code:?}:{stderr}")]
     StatusCommand { code: Option<i32>, stderr: String },
-
     #[error(transparent)]
     WriteError(#[from] WriteError),
+    #[error("no usb device found: {0}")]
+    NoUsbDevice(rusb::Error),
+    #[error("can't open usb handle: {0}, make sure adb is not running")]
+    CantOpenUsbHandle(rusb::Error),
+    #[error("can't open usb accessory: {0}")]
+    CantOpenUsbAccessory(AccessoryError),
+    #[error("can't open usb accessory endpoint: {0}")]
+    CantOpenUsbAccessoryEndpoint(EndpointError),
 }
 
 #[derive(Debug, Error)]

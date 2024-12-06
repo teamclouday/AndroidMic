@@ -38,7 +38,7 @@ impl AppState {
             Some(strategy) => {
                 if strategy == ChannelStrategy::MonoCloned {
                     // notify the user because it will change the printed config
-                    println!("Only stereo is supported, fall back to mono cloned strategy.");
+                    warn!("Only stereo is supported, fall back to mono cloned strategy.");
                     channel_count = 2;
                 }
                 strategy

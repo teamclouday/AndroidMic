@@ -65,6 +65,8 @@ libcosmic = { git = "https://github.com/pop-os/libcosmic", branch = "master", fe
     "multi-window",
 ] }
 byteorder = "1.5.0"
+rusb = "0.9.4"
+usb-ids = "1.2024.4"
 
 
 [build-dependencies]
