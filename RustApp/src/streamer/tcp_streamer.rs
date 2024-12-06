@@ -8,8 +8,11 @@ use tokio::{
 };
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
-use crate::streamer::{
-    AudioPacketMessage, WriteError, DEFAULT_PC_PORT, DEVICE_CHECK, DEVICE_CHECK_EXPECTED, MAX_PORT,
+use crate::{
+    config::AudioFormat, streamer::{
+        AudioPacketMessage, WriteError, DEFAULT_PC_PORT, DEVICE_CHECK, DEVICE_CHECK_EXPECTED,
+        MAX_PORT, AudioWaveData
+    }
 };
 
 use super::{ConnectError, Status, StreamerTrait};
@@ -130,20 +133,24 @@ impl StreamerTrait for TcpStreamer {
                             let chunk_size = std::cmp::min(buffer_size, self.producer.slots());
 
                             // mapping from android AudioFormat to encoding size
-                            let encoding_size = match packet.audio_format {
-                                3 => 1,  // PCM 8 bits
-                                2 => 2,  // PCM 16 bits
-                                21 => 3, // PCM 24 bits
-                                22 => 4, // PCM 32 bits
-                                4 => 4,  // PCM Float 32 bits
-                                _ => 4,  // default to 4 bytes
-                            } * packet.channel_count as usize;
+                            let audio_format =
+                                AudioFormat::from_android_format(packet.audio_format).unwrap();
+                            let encoding_size =
+                                audio_format.sample_size() * packet.channel_count as usize;
 
                             // make sure chunk_size is a multiple of encoding_size
                             let correction = chunk_size % encoding_size;
 
                             match self.producer.write_chunk_uninit(chunk_size - correction) {
                                 Ok(chunk) => {
+                                    // compute the audio wave from the buffer
+                                    let response = if let Some(audio_wave_data) = packet.to_f32_vec() {
+                                        Some(Status::UpdateAudioWave {data: audio_wave_data})
+                                    }
+                                    else {
+                                        None
+                                    };
+
                                     chunk.fill_from_iter(packet.buffer.into_iter());
                                     info!(
                                         "received {} bytes, corrected {} bytes, lost {} bytes",
@@ -151,9 +158,12 @@ impl StreamerTrait for TcpStreamer {
                                         correction,
                                         buffer_size - chunk_size + correction
                                     );
+
+                                    Ok(response)
                                 }
                                 Err(e) => {
                                     warn!("dropped packet: {}", e);
+                                    Ok(None)
                                 }
                             }
                         }
@@ -165,9 +175,8 @@ impl StreamerTrait for TcpStreamer {
                     info!("frame not ready");
                     // sleep for a while to not consume all CPU
                     tokio::time::sleep(MAX_WAIT_TIME).await;
+                    Ok(None)
                 }
-
-                Ok(None)
             }
         }
     }

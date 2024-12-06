@@ -24,7 +24,7 @@ use crate::{
     fl,
     streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg},
     utils::{APP, APP_ID, ORG, QUALIFIER},
-    view::{advanced_window, view_app},
+    view::{advanced_window, view_app, AudioWave},
 };
 use zconf::ConfigManager;
 
@@ -89,6 +89,7 @@ pub struct AppState {
     pub audio_devices: Vec<AudioDevice>,
     pub audio_device: Option<cpal::Device>,
     pub audio_stream: Option<cpal::Stream>,
+    pub audio_wave: AudioWave,
     pub state: State,
     pub advanced_window: Option<AdvancedWindow>,
     pub logs: String,
@@ -142,8 +143,8 @@ impl AppState {
     }
 
     fn get_shared_buf_size(&self) -> usize {
-        let size = ((self.config.data().sample_rate.number() as f32
-            * self.config.data().channel_count.number() as f32
+        let size = ((self.config.data().sample_rate.to_number() as f32
+            * self.config.data().channel_count.to_number() as f32
             * self.config.data().audio_format.sample_size() as f32)
             * SHARED_BUF_SIZE_S)
             .ceil() as usize;
@@ -218,6 +219,7 @@ impl Application for AppState {
             audio_device,
             audio_host,
             audio_devices,
+            audio_wave: AudioWave::new(),
             state: State::Default,
             advanced_window: None,
             logs: String::new(),
@@ -248,6 +250,9 @@ impl Application for AppState {
                     }
                     Status::Connected => {
                         self.state = State::Connected;
+                    }
+                    Status::UpdateAudioWave { data } => {
+                        self.audio_wave.write_chunk(&data);
                     }
                 },
                 StreamerMsg::Ready(sender) => self.streamer = Some(sender),

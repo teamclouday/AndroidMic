@@ -4,7 +4,6 @@ use cpal::{
     traits::{DeviceTrait, StreamTrait},
     BuildStreamError, Device, SizedSample, StreamConfig,
 };
-
 use rtrb::{
     chunks::{ChunkError, ReadChunkIntoIter},
     Consumer,
@@ -33,7 +32,7 @@ impl AppState {
 
         let config = self.config.data();
 
-        let mut channel_count = config.channel_count.number();
+        let mut channel_count = config.channel_count.to_number();
 
         let channel_strategy = match ChannelStrategy::new(device, channel_count) {
             Some(strategy) => {
@@ -49,7 +48,7 @@ impl AppState {
             }
         };
 
-        let sample_rate = cpal::SampleRate(config.sample_rate.number());
+        let sample_rate = cpal::SampleRate(config.sample_rate.to_number());
 
         let stream_config = StreamConfig {
             channels: channel_count,
@@ -142,6 +141,9 @@ where
                 }
                 // fallback
                 Err(ChunkError::TooFewSlots(available_slots)) => {
+                    if available_slots == 0 {
+                        return;
+                    }
                     let read_size = available_slots - (available_slots % sample_size);
                     let mut chunk_iter = consumer.read_chunk(read_size).unwrap().into_iter();
                     for frame in data.chunks_mut(channel_count) {
