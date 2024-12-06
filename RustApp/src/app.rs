@@ -243,6 +243,7 @@ impl Application for AppState {
                         self.add_log(&e);
                         self.state = State::Default;
                         self.audio_stream = None;
+                        self.audio_wave.clear();
                     }
                     Status::Listening { port } => {
                         let port = port.unwrap_or(0);
@@ -297,6 +298,7 @@ impl Application for AppState {
                 self.send_command(StreamerCommand::Stop);
                 self.state = State::Default;
                 self.audio_stream = None;
+                self.audio_wave.clear();
             }
             AppMsg::AdvancedOptions => match &self.advanced_window {
                 Some(advanced_window) => {

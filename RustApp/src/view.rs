@@ -241,4 +241,11 @@ impl AudioWave {
 
         self.cache.clear();
     }
+
+    pub fn clear(&mut self) {
+        self.data = [(0.0, 0.0); 512];
+        self.end_index = 0;
+
+        self.cache.clear();
+    }
 }
