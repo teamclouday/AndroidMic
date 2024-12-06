@@ -24,7 +24,7 @@ use crate::{
     fl,
     streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg},
     utils::{APP, APP_ID, ORG, QUALIFIER},
-    view::{advanced_window, view_app},
+    view::{advanced_window, view_app, AudioWave},
 };
 use zconf::ConfigManager;
 
@@ -71,7 +71,7 @@ impl AudioDevice {
     }
 }
 
-const SHARED_BUF_SIZE: usize = 5 * 1024;
+const SHARED_BUF_SIZE_S: f32 = 0.05; // 0.05s
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum State {
@@ -89,6 +89,7 @@ pub struct AppState {
     pub audio_devices: Vec<AudioDevice>,
     pub audio_device: Option<cpal::Device>,
     pub audio_stream: Option<cpal::Stream>,
+    pub audio_wave: AudioWave,
     pub state: State,
     pub advanced_window: Option<AdvancedWindow>,
     pub logs: String,
@@ -120,7 +121,7 @@ impl AppState {
         if self.state != State::Connected {
             return;
         }
-        let (producer, consumer) = RingBuffer::<u8>::new(SHARED_BUF_SIZE);
+        let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
 
         match self.start_audio_stream(consumer) {
             Ok(stream) => self.audio_stream = Some(stream),
@@ -139,6 +140,17 @@ impl AppState {
         }
         self.logs.push_str(log);
         // todo: scroll to bottom
+    }
+
+    fn get_shared_buf_size(&self) -> usize {
+        let size = ((self.config.data().sample_rate.to_number() as f32
+            * self.config.data().channel_count.to_number() as f32
+            * self.config.data().audio_format.sample_size() as f32)
+            * SHARED_BUF_SIZE_S)
+            .ceil() as usize;
+        info!("shared buf size: {size}");
+
+        size
     }
 }
 
@@ -207,6 +219,7 @@ impl Application for AppState {
             audio_device,
             audio_host,
             audio_devices,
+            audio_wave: AudioWave::new(),
             state: State::Default,
             advanced_window: None,
             logs: String::new(),
@@ -238,6 +251,9 @@ impl Application for AppState {
                     Status::Connected => {
                         self.state = State::Connected;
                     }
+                    Status::UpdateAudioWave { data } => {
+                        self.audio_wave.write_chunk(&data);
+                    }
                 },
                 StreamerMsg::Ready(sender) => self.streamer = Some(sender),
             },
@@ -249,7 +265,7 @@ impl Application for AppState {
             }
             AppMsg::Connect => {
                 self.state = State::WaitingOnStatus;
-                let (producer, consumer) = RingBuffer::<u8>::new(SHARED_BUF_SIZE);
+                let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
 
                 let connect_option = match config.connection_mode {
                     ConnectionMode::Tcp => ConnectOption::Tcp {

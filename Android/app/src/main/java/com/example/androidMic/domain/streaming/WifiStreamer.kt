@@ -4,13 +4,17 @@ import android.content.Context
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.util.Log
-import com.example.androidMic.domain.audio.AudioBuffer
+import com.example.androidMic.domain.service.AudioPacket
 import com.example.androidMic.utils.ignore
+import com.example.androidMic.utils.toBigEndianU32
+import com.google.protobuf.ByteString
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
@@ -19,7 +23,12 @@ import java.net.NetworkInterface
 import java.net.Socket
 import java.net.SocketTimeoutException
 
-class WifiStreamer(private val ctx: Context, ip: String, port: Int) : Streamer {
+class WifiStreamer(
+    private val ctx: Context,
+    private val scope: CoroutineScope,
+    ip: String,
+    port: Int
+) : Streamer {
     private val TAG: String = "MicStreamWIFI"
 
     private val MAX_WAIT_TIME = 1500 // timeout
@@ -27,6 +36,7 @@ class WifiStreamer(private val ctx: Context, ip: String, port: Int) : Streamer {
     private var socket: Socket? = null
     private var address: String
     private val port: Int
+    private var streamJob: Job? = null
 
     enum class Mode {
         NONE,
@@ -72,28 +82,34 @@ class WifiStreamer(private val ctx: Context, ip: String, port: Int) : Streamer {
     }
 
     // stream data through socket
-    override suspend fun stream(audioBuffer: AudioBuffer) = withContext(Dispatchers.IO)
-    {
-        if (socket == null || socket?.isConnected != true || audioBuffer.isEmpty()) return@withContext
-        var readSize = 0
-        try {
-            val streamOut = socket!!.outputStream
-            val region = audioBuffer.openReadRegion(Streamer.BUFFER_SIZE)
-            val regionSize = region.first
-            val regionOffset = region.second
-            streamOut.write(audioBuffer.buffer, regionOffset, regionSize)
-            readSize = regionSize
-            // streamOut.flush()
-        } catch (e: IOException) {
-            Log.d(TAG, "${e.message}")
-            delay(5)
-            disconnect()
-            readSize = 0
-        } catch (e: Exception) {
-            Log.d(TAG, "${e.message}")
-            readSize = 0
-        } finally {
-            audioBuffer.closeReadRegion(readSize)
+    override fun start(audioStream: Flow<AudioPacket>) {
+        streamJob?.cancel()
+
+        streamJob = scope.launch {
+            audioStream.collect { data ->
+                if (socket == null || socket?.isConnected != true) return@collect
+
+                try {
+                    val message = Message.AudioPacketMessage.newBuilder()
+                        .setBuffer(ByteString.copyFrom(data.buffer))
+                        .setSampleRate(data.sampleRate)
+                        .setAudioFormat(data.audioFormat)
+                        .setChannelCount(data.channelCount)
+                        .build()
+                    val pack = message.toByteArray()
+
+//                    Log.d(TAG, "audio buffer size = ${message.buffer.size()}")
+                    socket!!.outputStream.write(pack.size.toBigEndianU32())
+                    socket!!.outputStream.write(message.toByteArray())
+                    socket!!.outputStream.flush()
+                } catch (e: IOException) {
+                    Log.d(TAG, "${e.message}")
+                    delay(5)
+                    disconnect()
+                } catch (e: Exception) {
+                    Log.d(TAG, "${e.message}")
+                }
+            }
         }
     }
 
@@ -108,6 +124,8 @@ class WifiStreamer(private val ctx: Context, ip: String, port: Int) : Streamer {
             return false
         }
         socket = null
+        streamJob?.cancel()
+        streamJob = null
         Log.d(TAG, "disconnect: complete")
         return true
     }

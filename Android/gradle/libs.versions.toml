@@ -1,7 +1,8 @@
 [versions]
 agp = "8.7.2"
 kotlin = "2.0.21"
-
+protobuf = "0.9.4"
+protobuf-kotlin = "3.25.5"
 ktx-lifecycle = "2.8.7"
 
 [libraries]
@@ -28,7 +29,9 @@ compose-constraintlayout = { group = "androidx.constraintlayout", name = "constr
 # Accompanist
 accompanist-permissions = { group = "com.google.accompanist", name = "accompanist-permissions", version = "0.34.0" }
 
-oboe = { module = "com.google.oboe:oboe", version = "1.9.0" }
+# Streaming
+protobuf-gradle-plugin = { module = "com.google.protobuf:protobuf-gradle-plugin", version.ref = "protobuf" }
+protobuf-java-lite = { group = "com.google.protobuf", name = "protobuf-javalite", version.ref = "protobuf-kotlin" }
 
 # Test
 kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-coroutines-test", version = "1.9.0" }
@@ -39,3 +42,4 @@ androidx-runner = { group = "androidx.test", name = "runner", version = "1.6.2" 
 android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+google-protobuf = { id = "com.google.protobuf", version.ref = "protobuf" }

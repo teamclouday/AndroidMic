@@ -19,5 +19,11 @@ fn main() -> io::Result<()> {
 
     set_env("ANDROID_MIC_FORMAT");
 
+    // build protobuf
+    prost_build::Config::new()
+    .out_dir("./src/streamer").compile_protos(&["./src/proto/message.proto"], &["src/proto"]).expect(
+        "Failed to compile protobuf files"
+    );
+
     Ok(())
 }

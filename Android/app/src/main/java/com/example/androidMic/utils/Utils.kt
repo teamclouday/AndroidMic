@@ -34,3 +34,14 @@ fun checkPort(portStr: String): Boolean {
         false
     }
 }
+
+fun Int.toBigEndianU32(): ByteArray {
+    val unsigned = this.toLong() and 0xFFFFFFFFL
+
+    val bytes = ByteArray(4)
+    for (i in 0 until 4) {
+        bytes[i] = (unsigned shr (24 - i * 8) and 0xFF).toByte()
+    }
+
+    return bytes
+}

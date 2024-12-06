@@ -14,20 +14,24 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
-import com.example.androidMic.domain.audio.AudioBuffer
+import com.example.androidMic.domain.service.AudioPacket
 import com.example.androidMic.utils.ignore
+import com.example.androidMic.utils.toBigEndianU32
+import com.google.protobuf.ByteString
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import java.io.DataInputStream
 import java.io.DataOutputStream
 import java.io.IOException
 import java.util.UUID
 
-class BluetoothStreamer(private val ctx: Context) : Streamer {
+class BluetoothStreamer(private val ctx: Context, val scope: CoroutineScope) : Streamer {
     private val TAG: String = "MicStreamBTH"
 
     private val myUUID: UUID = UUID.fromString("34335e34-bccf-11eb-8529-0242ac130003")
@@ -36,6 +40,7 @@ class BluetoothStreamer(private val ctx: Context) : Streamer {
     private val adapter: BluetoothAdapter
     private var target: BluetoothDevice? = null
     private var socket: BluetoothSocket? = null
+    private var streamJob: Job? = null
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -116,28 +121,34 @@ class BluetoothStreamer(private val ctx: Context) : Streamer {
     }
 
     // stream data through socket
-    override suspend fun stream(audioBuffer: AudioBuffer) = withContext(Dispatchers.IO)
-    {
-        if (socket == null || socket?.isConnected != true || audioBuffer.isEmpty()) return@withContext
-        var readSize = 0
-        try {
-            val streamOut = socket!!.outputStream
-            val region = audioBuffer.openReadRegion(Streamer.BUFFER_SIZE)
-            val regionSize = region.first
-            val regionOffset = region.second
-            streamOut.write(audioBuffer.buffer, regionOffset, regionSize)
-            readSize = regionSize
-            // streamOut.flush()
-        } catch (e: IOException) {
-            Log.d(TAG, "stream: ${e.message}")
-            delay(5)
-            disconnect()
-            readSize = 0
-        } catch (e: Exception) {
-            Log.d(TAG, "stream: ${e.message}")
-            readSize = 0
-        } finally {
-            audioBuffer.closeReadRegion(readSize)
+    override fun start(audioStream: Flow<AudioPacket>) {
+        streamJob?.cancel()
+
+        streamJob = scope.launch {
+            audioStream.collect { data ->
+                if (socket == null || socket?.isConnected != true) return@collect
+
+                try {
+                    val message = Message.AudioPacketMessage.newBuilder()
+                        .setBuffer(ByteString.copyFrom(data.buffer))
+                        .setSampleRate(data.sampleRate)
+                        .setAudioFormat(data.audioFormat)
+                        .setChannelCount(data.channelCount)
+                        .build()
+                    val pack = message.toByteArray()
+
+//                    Log.d(TAG, "audio buffer size = ${message.buffer.size()}")
+                    socket!!.outputStream.write(pack.size.toBigEndianU32())
+                    socket!!.outputStream.write(message.toByteArray())
+                    socket!!.outputStream.flush()
+                } catch (e: IOException) {
+                    Log.d(TAG, "stream: ${e.message}")
+                    delay(5)
+                    disconnect()
+                } catch (e: Exception) {
+                    Log.d(TAG, "stream: ${e.message}")
+                }
+            }
         }
     }
 
@@ -152,6 +163,8 @@ class BluetoothStreamer(private val ctx: Context) : Streamer {
             return false
         }
         socket = null
+        streamJob?.cancel()
+        streamJob = null
         Log.d(TAG, "disconnect: complete")
         return true
     }

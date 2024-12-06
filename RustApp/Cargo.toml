@@ -29,7 +29,6 @@ to_string_trait_impl = "allow"
 [dependencies]
 # linux: alsa will probably be included as a fallback ?
 cpal = { version = "0.15", features = ["jack"] }
-byteordered = "0.6"
 rtrb = "0.3"
 serde-textual = "0.1.1"
 local-ip-address = "0.6"
@@ -56,18 +55,18 @@ i18n-embed = { version = "0.15", features = [
 rust-embed = "8"
 i18n-embed-fl = "0.9"
 directories = "5"
-
-[dependencies.libcosmic]
-git = "https://github.com/pop-os/libcosmic"
-default-features = false
-features = ["winit", "wgpu", "tokio", "multi-window"]
-
-# [patch."https://github.com/pop-os/libcosmic"]
-# libcosmic = { path = "../../libcosmic" }
-
-# [patch.crates-io]
-# zconf = { path = "../../zconf" }
+prost = "0.13.3"
+tokio-util = { version = "0.7.13", features = ["codec"] }
+chrono = "0.4.38"
+libcosmic = { git = "https://github.com/pop-os/libcosmic", branch = "master", features = [
+    "winit",
+    "wgpu",
+    "tokio",
+    "multi-window",
+] }
+byteorder = "1.5.0"
 
 
 [build-dependencies]
+prost-build = "0.13.3"
 winres = "0.1"

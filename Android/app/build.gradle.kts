@@ -1,7 +1,10 @@
+import com.google.protobuf.gradle.*
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.compose.compiler)
+    alias(libs.plugins.google.protobuf)
 }
 
 android {
@@ -23,16 +26,9 @@ android {
                 "fr"
             )
         )
-
-        externalNativeBuild {
-            cmake {
-                arguments += "-DANDROID_STL=c++_shared"
-            }
-        }
     }
 
     buildTypes {
-
         release {
             isMinifyEnabled = false
             proguardFiles(
@@ -65,23 +61,35 @@ android {
         compose = true
     }
 
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-        }
-    }
-
     lint {
         abortOnError = false
         checkReleaseBuilds = false
     }
+
+//    packaging {
+//        resources.excludes.add("google/protobuf/*.proto")
+//    }
+
+    sourceSets.getByName("main").resources.srcDir("src/main/proto")
+}
+
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:3.25.5"
+    }
+
+    generateProtoTasks {
+        all().forEach { task ->
+            task.builtins {
+                id("java") {
+                    option("lite")
+                }
+            }
+        }
+    }
 }
 
 dependencies {
-
-    // audio lib
-    implementation(libs.oboe)
-
     // AndroidX Core
     implementation(libs.androidx.ktx)
     implementation(libs.androidx.viewmodel.compose)
@@ -107,6 +115,10 @@ dependencies {
     // Compose Debug
     implementation(libs.compose.ui.preview)
     debugImplementation(libs.androidx.ui.tooling)
+
+    // Streaming
+    implementation(libs.protobuf.java.lite)
+    implementation(libs.protobuf.gradle.plugin)
 
     // unit test
     testImplementation(libs.test.junit.ktx)

@@ -1,0 +1,8 @@
+syntax = "proto3";
+
+message AudioPacketMessage {
+    bytes buffer = 1;
+    uint32 sample_rate = 2;
+    uint32 channel_count = 3;
+    uint32 audio_format = 4;
+}

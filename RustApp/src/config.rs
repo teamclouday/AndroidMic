@@ -36,7 +36,7 @@ pub enum ChannelCount {
 }
 
 impl ChannelCount {
-    pub fn number(&self) -> u16 {
+    pub fn to_number(&self) -> u16 {
         match self {
             ChannelCount::Mono => 1,
             ChannelCount::Stereo => 2,
@@ -79,6 +79,38 @@ pub enum AudioFormat {
     F64,
 }
 
+impl AudioFormat {
+    pub fn sample_size(&self) -> usize {
+        match self {
+            AudioFormat::I8 => 1,
+            AudioFormat::I16 => 2,
+            AudioFormat::I24 => 3,
+            AudioFormat::I32 => 4,
+            AudioFormat::I48 => 6,
+            AudioFormat::I64 => 8,
+            AudioFormat::U8 => 1,
+            AudioFormat::U16 => 2,
+            AudioFormat::U24 => 3,
+            AudioFormat::U32 => 4,
+            AudioFormat::U48 => 6,
+            AudioFormat::U64 => 8,
+            AudioFormat::F32 => 4,
+            AudioFormat::F64 => 8,
+        }
+    }
+
+    pub fn from_android_format(format: u32) -> Option<Self> {
+        match format {
+            3 => Some(AudioFormat::U8),
+            2 => Some(AudioFormat::I16),
+            21 => Some(AudioFormat::I24),
+            22 => Some(AudioFormat::I32),
+            4 => Some(AudioFormat::F32),
+            _ => None,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, DisplaySerde, Values)]
 pub enum SampleRate {
     #[serde(rename = "8000")]
@@ -109,7 +141,7 @@ pub enum SampleRate {
 }
 
 impl SampleRate {
-    pub fn number(&self) -> u32 {
+    pub fn to_number(&self) -> u32 {
         match self {
             SampleRate::S8000 => 8000,
             SampleRate::S11025 => 11025,
@@ -123,6 +155,24 @@ impl SampleRate {
             SampleRate::S192000 => 192000,
             SampleRate::S352800 => 352800,
             SampleRate::S384000 => 384000,
+        }
+    }
+
+    pub fn from_number(number: u32) -> Option<Self> {
+        match number {
+            8000 => Some(SampleRate::S8000),
+            11025 => Some(SampleRate::S11025),
+            16000 => Some(SampleRate::S16000),
+            22050 => Some(SampleRate::S22050),
+            44100 => Some(SampleRate::S44100),
+            48000 => Some(SampleRate::S48000),
+            88200 => Some(SampleRate::S88200),
+            96600 => Some(SampleRate::S96600),
+            176400 => Some(SampleRate::S176400),
+            192000 => Some(SampleRate::S192000),
+            352800 => Some(SampleRate::S352800),
+            384000 => Some(SampleRate::S384000),
+            _ => None,
         }
     }
 }

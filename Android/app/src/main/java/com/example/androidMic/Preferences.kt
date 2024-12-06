@@ -1,12 +1,10 @@
 package com.example.androidMic
 
 import android.content.Context
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
-import com.example.androidMic.AudioFormat.F32
-import com.example.androidMic.AudioFormat.I16
-import com.example.androidMic.AudioFormat.I24
-import com.example.androidMic.AudioFormat.I32
 import com.example.androidMic.utils.PreferencesManager
 
 object DefaultStates {
@@ -22,10 +20,7 @@ object DefaultStates {
 class AppPreferences(
     context: Context
 ) : PreferencesManager(context, "settings") {
-
-
     val mode = enumPreference("mode", Modes.WIFI)
-
 
     val ip = stringPreference("ip", "192.168.")
     val port = stringPreference("port", "55555")
@@ -70,22 +65,19 @@ enum class SampleRates(val value: Int) {
     S384000(384000),
 }
 
-enum class AudioFormat(val value: Int) {
-    I16(1),
-    I24(3),
-    I32(4),
-    F32(2);
+enum class AudioFormat(val value: Int, val description: String) {
+    I8(android.media.AudioFormat.ENCODING_PCM_8BIT, "u8"),
+    I16(android.media.AudioFormat.ENCODING_PCM_16BIT, "i16"),
 
-    override fun toString(): String {
-        return when (this) {
-            I16 -> "i16"
-            I24 -> "i24"
-            I32 -> "i32"
-            F32 -> "f32"
-        }
-    }
+    @RequiresApi(Build.VERSION_CODES.S)
+    I24(android.media.AudioFormat.ENCODING_PCM_24BIT_PACKED, "i24"),
+
+    @RequiresApi(Build.VERSION_CODES.S)
+    I32(android.media.AudioFormat.ENCODING_PCM_32BIT, "i32"),
+    F32(android.media.AudioFormat.ENCODING_PCM_FLOAT, "f32");
+
+    override fun toString(): String = description
 }
-
 
 
 enum class ChannelCount(val value: Int) {
