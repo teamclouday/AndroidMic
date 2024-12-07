@@ -173,7 +173,7 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
                     for (chunk in pack.chunked(1024)) {
                         outputStream!!.write(chunk)
                     }
-                    
+
                     outputStream!!.flush()
                 } catch (e: Exception) {
                     Log.d(TAG, "stream: ${e.message}")

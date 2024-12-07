@@ -42,24 +42,44 @@ pub enum EndpointError {
     #[error("libusb error")]
     RusbError(#[from] rusb::Error),
     #[error("unable to find endpoints (in: {}, out: {})", match .0 {
-        Some(n) => format!("Some({})", n),
+        Some(n) => format!("Some({})", n.address),
         None => "None".to_string()
     }, match .1 {
-        Some(n) => format!("Some({})", n),
+        Some(n) => format!("Some({})", n.address),
         None => "None".to_string()
     })]
-    InvalidEndpoints(Option<u8>, Option<u8>),
+    InvalidEndpoints(Option<Endpoint>, Option<Endpoint>),
 }
 
 #[derive(Copy, Clone, Debug)]
-pub struct Endpoints(u8, u8);
+pub struct Endpoint {
+    pub config: u8,
+    pub iface: u8,
+    pub setting: u8,
+    pub address: u8,
+}
+
+impl Endpoint {
+    pub fn config_endpoint<T: UsbContext>(
+        &self,
+        handle: &DeviceHandle<T>,
+    ) -> Result<(), rusb::Error> {
+        handle.set_active_configuration(self.config)?;
+        handle.claim_interface(self.iface)?;
+        handle.set_alternate_setting(self.iface, self.setting)?;
+        Ok(())
+    }
+}
+
+#[derive(Copy, Clone, Debug)]
+pub struct Endpoints(pub Endpoint, pub Endpoint);
 
 impl Endpoints {
-    pub fn endpoint_in(&self) -> u8 {
+    pub fn endpoint_in(&self) -> Endpoint {
         self.0
     }
 
-    pub fn endpoint_out(&self) -> u8 {
+    pub fn endpoint_out(&self) -> Endpoint {
         self.1
     }
 }
@@ -85,19 +105,24 @@ impl<T: UsbContext> AccessoryDevice for Device<T> {
     fn find_endpoints(&self) -> Result<Endpoints, EndpointError> {
         let device_desc = self.device_descriptor()?;
 
-        let mut endpoint_in: Option<u8> = None;
-        let mut endpoint_out: Option<u8> = None;
+        let mut endpoint_in: Option<Endpoint> = None;
+        let mut endpoint_out: Option<Endpoint> = None;
 
         'outer: for config_index in 0..device_desc.num_configurations() {
-            for iface in self.config_descriptor(config_index)?.interfaces() {
+            let config = self.config_descriptor(config_index)?;
+            for iface in config.interfaces() {
                 for iface_desc in iface.descriptors() {
                     for endpoint_desc in iface_desc.endpoint_descriptors() {
                         if let TransferType::Bulk = endpoint_desc.transfer_type() {
                             match endpoint_desc.direction() {
                                 Direction::In => {
                                     if endpoint_in.is_none() {
-                                        endpoint_in = Some(endpoint_desc.address());
-                                        // If out was already set, then we have both so break out.
+                                        endpoint_in = Some(Endpoint {
+                                            config: config.number(),
+                                            iface: iface_desc.interface_number(),
+                                            setting: iface_desc.setting_number(),
+                                            address: endpoint_desc.address(),
+                                        });
                                         if endpoint_out.is_some() {
                                             break 'outer;
                                         }
@@ -105,8 +130,12 @@ impl<T: UsbContext> AccessoryDevice for Device<T> {
                                 }
                                 Direction::Out => {
                                     if endpoint_out.is_none() {
-                                        endpoint_out = Some(endpoint_desc.address());
-                                        // If in was already set, then we have both so break out.
+                                        endpoint_out = Some(Endpoint {
+                                            config: config.number(),
+                                            iface: iface_desc.interface_number(),
+                                            setting: iface_desc.setting_number(),
+                                            address: endpoint_desc.address(),
+                                        });
                                         if endpoint_in.is_some() {
                                             break 'outer;
                                         }

@@ -15,7 +15,7 @@ use tokio_util::codec::{Framed, LengthDelimitedCodec};
 use crate::{
     config::AudioFormat,
     streamer::{AudioWaveData, WriteError},
-    usb::{AccessoryDevice, AccessoryHandle, AccessoryStrings},
+    usb::{AccessoryDevice, AccessoryHandle, AccessoryStrings, Endpoint, EndpointError},
 };
 
 use super::{AudioPacketMessage, ConnectError, Status, StreamerTrait};
@@ -93,10 +93,24 @@ pub async fn new(producer: Producer<u8>) -> Result<UsbStreamer, ConnectError> {
         info!(
             "USB device {:X} opened, read endpoint: {:X}, write endpoint: {:X}, protocol {:X}",
             device.address(),
-            read_endpoint,
-            write_endpoint,
+            read_endpoint.address,
+            write_endpoint.address,
             protocol
         );
+
+        // detach kernel driver if active
+        match handle.kernel_driver_active(read_endpoint.iface) {
+            Ok(true) => {
+                handle.detach_kernel_driver(read_endpoint.iface).ok();
+            }
+            _ => {}
+        };
+
+        // configure read endpoint
+        read_endpoint
+            .config_endpoint(&handle)
+            .map_err(EndpointError::RusbError)
+            .map_err(ConnectError::CantOpenUsbAccessoryEndpoint)?;
 
         Ok(UsbStreamer {
             producer,
@@ -136,11 +150,25 @@ pub async fn new(producer: Producer<u8>) -> Result<UsbStreamer, ConnectError> {
         let read_endpoint = endpoints.endpoint_in();
         let write_endpoint = endpoints.endpoint_out();
 
+        // detach kernel driver if active
+        match handle.kernel_driver_active(read_endpoint.iface) {
+            Ok(true) => {
+                handle.detach_kernel_driver(read_endpoint.iface).ok();
+            }
+            _ => {}
+        };
+
+        // configure read endpoint
+        read_endpoint
+            .config_endpoint(&handle)
+            .map_err(EndpointError::RusbError)
+            .map_err(ConnectError::CantOpenUsbAccessoryEndpoint)?;
+
         info!(
             "USB device {:X} opened, read endpoint: {:X}, write endpoint: {:X}, protocol {:X}",
             device.address(),
-            read_endpoint,
-            write_endpoint,
+            read_endpoint.address,
+            write_endpoint.address,
             protocol
         );
 
@@ -220,12 +248,16 @@ impl StreamerTrait for UsbStreamer {
 
 pub struct UsbStream {
     handle: Arc<Mutex<DeviceHandle<GlobalContext>>>,
-    read_endpoint: u8,
-    write_endpoint: u8,
+    read_endpoint: Endpoint,
+    write_endpoint: Endpoint,
 }
 
 impl UsbStream {
-    pub fn new(handle: DeviceHandle<GlobalContext>, read_endpoint: u8, write_endpoint: u8) -> Self {
+    pub fn new(
+        handle: DeviceHandle<GlobalContext>,
+        read_endpoint: Endpoint,
+        write_endpoint: Endpoint,
+    ) -> Self {
         Self {
             handle: Arc::new(Mutex::new(handle)),
             read_endpoint,
@@ -244,7 +276,7 @@ impl AsyncRead for UsbStream {
         let mut temp_buf = vec![0; buf.capacity()];
 
         match handle.read_bulk(
-            self.read_endpoint,
+            self.read_endpoint.address,
             &mut temp_buf,
             std::time::Duration::from_secs(1),
         ) {
@@ -265,7 +297,11 @@ impl AsyncWrite for UsbStream {
     ) -> Poll<io::Result<usize>> {
         let handle = self.handle.lock().unwrap();
 
-        match handle.write_bulk(self.write_endpoint, buf, std::time::Duration::from_secs(1)) {
+        match handle.write_bulk(
+            self.write_endpoint.address,
+            buf,
+            std::time::Duration::from_secs(1),
+        ) {
             Ok(bytes_written) => std::task::Poll::Ready(Ok(bytes_written)),
             Err(e) => {
                 std::task::Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, e)))
