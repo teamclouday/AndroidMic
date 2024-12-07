@@ -20,12 +20,12 @@ class MicStreamManager(
             WifiStreamer(ctx, scope, ip!!, port!!)
         }
 
-        Modes.BLUETOOTH -> {
-            BluetoothStreamer(ctx, scope)
+        Modes.ADB -> {
+            AdbStreamer(scope)
         }
 
         Modes.USB -> {
-            AdbStreamer(scope)
+            UsbStreamer(ctx, scope)
         }
 
         Modes.UDP -> {

@@ -36,7 +36,7 @@ class AppPreferences(
 }
 
 enum class Modes {
-    WIFI, BLUETOOTH, USB, UDP
+    WIFI, UDP, USB, ADB
 }
 
 enum class Themes {

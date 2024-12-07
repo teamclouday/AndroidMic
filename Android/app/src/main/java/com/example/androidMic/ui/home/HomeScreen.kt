@@ -228,10 +228,10 @@ private fun ButtonConnect(
                         return@ManagerButton wifiPermissionsState.launchMultiplePermissionRequest()
                 }
 
-                Modes.BLUETOOTH -> {
-                    if (!bluetoothPermissionsState.allPermissionsGranted)
-                        return@ManagerButton bluetoothPermissionsState.launchMultiplePermissionRequest()
-                }
+//                Modes.BLUETOOTH -> {
+//                    if (!bluetoothPermissionsState.allPermissionsGranted)
+//                        return@ManagerButton bluetoothPermissionsState.launchMultiplePermissionRequest()
+//                }
 
                 Modes.USB -> {
                     if (!usbPermissionsState.allPermissionsGranted)

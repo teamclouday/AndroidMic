@@ -16,6 +16,7 @@ pub struct Config {
     // i'm not using an index because i'm not sure it will works well with
     // device that could be disconnected sometime.
     pub device_name: Option<String>,
+    pub usb_device_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Copy, Default, PartialEq, Eq, DisplaySerde)]
@@ -24,6 +25,7 @@ pub enum ConnectionMode {
     Tcp,
     Udp,
     Adb,
+    Usb,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, DisplaySerde, Values)]

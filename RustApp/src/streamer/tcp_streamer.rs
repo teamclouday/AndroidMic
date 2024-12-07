@@ -1,18 +1,13 @@
 use futures::StreamExt;
 use prost::Message;
 use rtrb::Producer;
-use std::{net::IpAddr, str::from_utf8, time::Duration};
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::{TcpListener, TcpStream},
-};
+use std::{net::IpAddr, time::Duration};
+use tokio::net::{TcpListener, TcpStream};
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 use crate::{
-    config::AudioFormat, streamer::{
-        AudioPacketMessage, WriteError, DEFAULT_PC_PORT, DEVICE_CHECK, DEVICE_CHECK_EXPECTED,
-        MAX_PORT, AudioWaveData
-    }
+    config::AudioFormat,
+    streamer::{AudioPacketMessage, AudioWaveData, WriteError, DEFAULT_PC_PORT, MAX_PORT},
 };
 
 use super::{ConnectError, Status, StreamerTrait};
@@ -79,7 +74,9 @@ impl StreamerTrait for TcpStreamer {
             TcpStreamerState::Listening { .. } => Some(Status::Listening {
                 port: Some(self.port),
             }),
-            TcpStreamerState::Streaming { .. } => Some(Status::Connected),
+            TcpStreamerState::Streaming { .. } => Some(Status::Connected {
+                port: None, // this is only set in udp streamer
+            }),
         }
     }
 
@@ -91,31 +88,7 @@ impl StreamerTrait for TcpStreamer {
 
                 info!("TCP server listening on {}", addr);
 
-                let (mut stream, addr) =
-                    listener.accept().await.map_err(ConnectError::CantAccept)?;
-
-                // read check
-                let mut check_buf = [0u8; DEVICE_CHECK_EXPECTED.len()];
-                // read_to_string doesn't works somehow, we need a fixed buffer
-                match stream.read(&mut check_buf).await {
-                    Ok(_) => {
-                        let message = from_utf8(&check_buf).unwrap();
-                        if DEVICE_CHECK_EXPECTED != message {
-                            return Err(ConnectError::CheckFailed {
-                                expected: DEVICE_CHECK_EXPECTED,
-                                received: message.into(),
-                            });
-                        }
-                    }
-                    Err(e) => {
-                        return Err(ConnectError::CheckFailedIo(e));
-                    }
-                }
-
-                // write check
-                if let Err(e) = stream.write(DEVICE_CHECK.as_bytes()).await {
-                    return Err(ConnectError::CheckFailedIo(e));
-                }
+                let (stream, addr) = listener.accept().await.map_err(ConnectError::CantAccept)?;
 
                 info!("connection accepted, remote address: {}", addr);
 
@@ -123,7 +96,7 @@ impl StreamerTrait for TcpStreamer {
                     framed: Framed::new(stream, LengthDelimitedCodec::new()),
                 };
 
-                Ok(Some(Status::Connected))
+                Ok(Some(Status::Connected { port: None }))
             }
             TcpStreamerState::Streaming { framed } => {
                 if let Some(Ok(frame)) = framed.next().await {
@@ -144,12 +117,14 @@ impl StreamerTrait for TcpStreamer {
                             match self.producer.write_chunk_uninit(chunk_size - correction) {
                                 Ok(chunk) => {
                                     // compute the audio wave from the buffer
-                                    let response = if let Some(audio_wave_data) = packet.to_f32_vec() {
-                                        Some(Status::UpdateAudioWave {data: audio_wave_data})
-                                    }
-                                    else {
-                                        None
-                                    };
+                                    let response =
+                                        if let Some(audio_wave_data) = packet.to_f32_vec() {
+                                            Some(Status::UpdateAudioWave {
+                                                data: audio_wave_data,
+                                            })
+                                        } else {
+                                            None
+                                        };
 
                                     chunk.fill_from_iter(packet.buffer.into_iter());
                                     info!(

@@ -2,9 +2,13 @@ package com.example.androidMic.domain.streaming
 
 import android.util.Log
 import com.example.androidMic.domain.service.AudioPacket
+import com.example.androidMic.utils.toBigEndianU32
+import com.google.protobuf.ByteString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.launch
+import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 
@@ -15,6 +19,7 @@ class UdpStreamer(private val scope: CoroutineScope, val ip: String, val port: I
     private val socket: DatagramSocket = DatagramSocket()
     private val address = InetAddress.getByName(ip)
     private var streamJob: Job? = null
+    private var sequenceIdx = 0
 
     override fun connect(): Boolean {
         return true
@@ -28,30 +33,44 @@ class UdpStreamer(private val scope: CoroutineScope, val ip: String, val port: I
     }
 
     override fun shutdown() {
-
+        disconnect()
     }
 
     override fun start(audioStream: Flow<AudioPacket>) {
         streamJob?.cancel()
-//        val moshiPack = MoshiPack()
-//
-//        streamJob = scope.launch {
-//            audioStream.collect { data ->
-//                try {
-//                    val packed = moshiPack.pack(data).readByteArray()
-//                    val packet = DatagramPacket(
-//                        packed,
-//                        0,
-//                        packed.size,
-//                        address,
-//                        port
-//                    )
-//                    socket.send(packet)
-//                } catch (e: Exception) {
-//                    Log.d(TAG, "${e.message}")
-//                }
-//            }
-//        }
+
+        streamJob = scope.launch {
+            audioStream.collect { data ->
+                try {
+                    val message = Message.AudioPacketMessageOrdered.newBuilder()
+                        .setSequenceNumber(sequenceIdx++)
+                        .setAudioPacket(
+                            Message.AudioPacketMessage.newBuilder()
+                                .setBuffer(ByteString.copyFrom(data.buffer))
+                                .setSampleRate(data.sampleRate)
+                                .setAudioFormat(data.audioFormat)
+                                .setChannelCount(data.channelCount)
+                                .build()
+                        )
+                        .build()
+
+                    val pack = message.toByteArray()
+                    val combined = pack.size.toBigEndianU32() + pack
+
+                    val packet = DatagramPacket(
+                        combined,
+                        0,
+                        combined.size,
+                        address,
+                        port
+                    )
+
+                    socket.send(packet)
+                } catch (e: Exception) {
+                    Log.d(TAG, "stream: ${e.message}")
+                }
+            }
+        }
     }
 
     override fun getInfo(): String {

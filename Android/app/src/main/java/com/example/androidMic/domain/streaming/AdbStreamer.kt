@@ -2,25 +2,19 @@ package com.example.androidMic.domain.streaming
 
 import android.util.Log
 import com.example.androidMic.domain.service.AudioPacket
-import com.example.androidMic.utils.ignore
 import com.example.androidMic.utils.toBigEndianU32
 import com.google.protobuf.ByteString
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
-import java.io.DataInputStream
-import java.io.DataOutputStream
 import java.io.IOException
 import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.SocketTimeoutException
 
 class AdbStreamer(private val scope: CoroutineScope) : Streamer {
-
     private val TAG: String = "UsbAdbStreamer"
 
     private val MAX_WAIT_TIME = 1500 // timeout
@@ -46,12 +40,6 @@ class AdbStreamer(private val scope: CoroutineScope) : Streamer {
             null
         } ?: return false
         socket?.soTimeout = MAX_WAIT_TIME
-        // test server
-        if (!testConnection(socket!!)) {
-            socket?.close()
-            socket = null
-            return false
-        }
         return true
     }
 
@@ -107,40 +95,6 @@ class AdbStreamer(private val scope: CoroutineScope) : Streamer {
     // shutdown streamer
     override fun shutdown() {
         disconnect()
-    }
-
-    // test connection
-    private fun testConnection(socket: Socket): Boolean {
-        if (!socket.isConnected) return false
-        var isValid = false
-        runBlocking(Dispatchers.IO) {
-            val job = launch {
-                ignore {
-                    val streamOut = DataOutputStream(socket.outputStream)
-                    streamOut.write(Streamer.DEVICE_CHECK.toByteArray(Charsets.UTF_8))
-                    streamOut.flush()
-                    val streamIn = DataInputStream(socket.inputStream)
-                    val buffer = ByteArray(100)
-                    val size = streamIn.read(buffer, 0, 100)
-                    val received = String(buffer, 0, size, Charsets.UTF_8)
-                    if (received == Streamer.DEVICE_CHECK_EXPECT) {
-                        isValid = true
-                        Log.d(TAG, "testConnection: device matched!")
-                    } else
-                        Log.d(TAG, "testConnection: device mismatch with $received!")
-                }
-            }
-            var time = 5
-            while (!job.isCompleted && time < MAX_WAIT_TIME) {
-                delay(5)
-                time += 5
-            }
-            if (!job.isCompleted) {
-                job.cancel()
-                Log.d(TAG, "testConnection: timeout!")
-            }
-        }
-        return isValid
     }
 
     // get connected server information
