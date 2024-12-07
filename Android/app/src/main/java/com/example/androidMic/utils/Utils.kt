@@ -45,3 +45,14 @@ fun Int.toBigEndianU32(): ByteArray {
 
     return bytes
 }
+
+fun ByteArray.chunked(size: Int): List<ByteArray> {
+    if (size <= 0) throw IllegalArgumentException("Size must be greater than 0")
+    return (0 until size step size).map { start ->
+        copyOfRange(
+            start, (start + size).coerceAtMost(
+                size
+            )
+        )
+    }
+}

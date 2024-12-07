@@ -1,5 +1,6 @@
 package com.example.androidMic.domain.streaming
 
+import Message
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -8,15 +9,19 @@ import android.content.IntentFilter
 import android.hardware.usb.UsbAccessory
 import android.hardware.usb.UsbManager
 import android.os.Build
+import android.os.ParcelFileDescriptor
 import android.util.Log
 import androidx.core.os.BundleCompat
 import com.example.androidMic.domain.service.AudioPacket
+import com.example.androidMic.utils.chunked
 import com.example.androidMic.utils.toBigEndianU32
 import com.google.protobuf.ByteString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import java.io.FileDescriptor
+import java.io.FileInputStream
 import java.io.FileOutputStream
 
 class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
@@ -27,7 +32,10 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
     private var streamJob: Job? = null
 
     private var accessory: UsbAccessory? = null
+    private var accessoryPfd: ParcelFileDescriptor? = null
+    private var accessoryFd: FileDescriptor? = null
     private var outputStream: FileOutputStream? = null
+    private var inputStream: FileInputStream? = null
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -52,13 +60,17 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
 
                     val usbManager = ctx.getSystemService(Context.USB_SERVICE) as UsbManager
 
-                    val fd = usbManager.openAccessory(accessory).fileDescriptor
+                    val pfd = usbManager.openAccessory(accessory)
+                    val fd = pfd?.fileDescriptor
 
                     if (fd == null) {
                         Log.d(TAG, "Failed to open USB accessory file descriptor")
                         return
                     }
+                    accessoryPfd = pfd
+                    accessoryFd = fd
                     outputStream = FileOutputStream(fd)
+                    inputStream = FileInputStream(fd)
                 } else {
                     Log.d(TAG, "permission denied")
                 }
@@ -112,11 +124,15 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
         }
 
         // open stream
-        val fd = usbManager.openAccessory(accessory).fileDescriptor
+        val pfd = usbManager.openAccessory(accessory)
+        val fd = pfd?.fileDescriptor
         require(fd != null) {
             "Failed to open USB accessory file descriptor"
         }
+        accessoryPfd = pfd
+        accessoryFd = fd
         outputStream = FileOutputStream(fd)
+        inputStream = FileInputStream(fd)
     }
 
     override fun connect(): Boolean {
@@ -153,7 +169,11 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
                     val pack = message.toByteArray()
 
                     outputStream!!.write(pack.size.toBigEndianU32())
-                    outputStream!!.write(pack)
+
+                    for (chunk in pack.chunked(1024)) {
+                        outputStream!!.write(chunk)
+                    }
+                    
                     outputStream!!.flush()
                 } catch (e: Exception) {
                     Log.d(TAG, "stream: ${e.message}")

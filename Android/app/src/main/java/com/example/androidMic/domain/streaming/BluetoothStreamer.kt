@@ -15,6 +15,7 @@ import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.example.androidMic.domain.service.AudioPacket
+import com.example.androidMic.utils.chunked
 import com.example.androidMic.utils.ignore
 import com.example.androidMic.utils.toBigEndianU32
 import com.google.protobuf.ByteString
@@ -130,7 +131,11 @@ class BluetoothStreamer(private val ctx: Context, val scope: CoroutineScope) : S
                     val pack = message.toByteArray()
 
                     socket!!.outputStream.write(pack.size.toBigEndianU32())
-                    socket!!.outputStream.write(message.toByteArray())
+
+                    for (chunk in pack.chunked(1024)) {
+                        socket!!.outputStream.write(chunk)
+                    }
+
                     socket!!.outputStream.flush()
                 } catch (e: IOException) {
                     Log.d(TAG, "stream: ${e.message}")
