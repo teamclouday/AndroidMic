@@ -168,6 +168,8 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
 
                     val pack = message.toByteArray()
 
+                    Log.d(TAG, "usb stream: sending ${pack.size} bytes")
+
                     outputStream!!.write(pack.size.toBigEndianU32())
 
                     for (chunk in pack.chunked(1024)) {

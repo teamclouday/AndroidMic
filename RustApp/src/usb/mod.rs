@@ -1,14 +1,14 @@
-// Copied from https://github.com/ZeroErrors/aoa-rs
+// Adapted from https://github.com/ZeroErrors/aoa-rs
 // Not installing it because it has some dependency issues
 //! This crate provides the ability to use the [Android Open Accessory Protocol 1.0](https://source.android.com/devices/accessories/aoa)
 use std::ffi::{CString, NulError};
-use std::mem::size_of;
 use std::time::Duration;
 
 use byteorder::{ByteOrder, LittleEndian};
-use rusb::{
-    request_type, Device, DeviceHandle, Direction, Recipient, RequestType, TransferType, UsbContext,
-};
+use futures::executor::block_on;
+use nusb::descriptors::Configuration;
+use nusb::transfer::{ControlIn, ControlOut, ControlType, Direction, EndpointType, Recipient};
+use nusb::{DeviceInfo, Interface};
 use thiserror::Error;
 
 pub const USB_ACCESSORY_VENDOR_ID: u16 = 0x18D1;
@@ -30,7 +30,7 @@ pub const ACCESSORY_START: u8 = 0x35;
 #[derive(Error, Debug)]
 pub enum AccessoryError {
     #[error("libusb error")]
-    RusbError(#[from] rusb::Error),
+    NusbError(#[from] nusb::Error),
     #[error("invalid length (size: {0})")]
     InvalidLength(usize),
     #[error("unsupported accessory protocol (size: {0})")]
@@ -40,7 +40,7 @@ pub enum AccessoryError {
 #[derive(Error, Debug)]
 pub enum EndpointError {
     #[error("libusb error")]
-    RusbError(#[from] rusb::Error),
+    NusbError(#[from] nusb::Error),
     #[error("unable to find endpoints (in: {}, out: {})", match .0 {
         Some(n) => format!("Some({})", n.address),
         None => "None".to_string()
@@ -53,22 +53,9 @@ pub enum EndpointError {
 
 #[derive(Copy, Clone, Debug)]
 pub struct Endpoint {
-    pub config: u8,
     pub iface: u8,
     pub setting: u8,
     pub address: u8,
-}
-
-impl Endpoint {
-    pub fn config_endpoint<T: UsbContext>(
-        &self,
-        handle: &DeviceHandle<T>,
-    ) -> Result<(), rusb::Error> {
-        handle.set_active_configuration(self.config)?;
-        handle.claim_interface(self.iface)?;
-        handle.set_alternate_setting(self.iface, self.setting)?;
-        Ok(())
-    }
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -84,62 +71,55 @@ impl Endpoints {
     }
 }
 
-pub trait AccessoryDevice {
+pub trait AccessoryDeviceInfo {
     /// Checks if the device is in accessory mode.
-    ///
-    /// See: https://source.android.com/devices/accessories/aoa#establish-communication-with-the-device
     fn in_accessory_mode(&self) -> Result<bool, AccessoryError>;
+}
+
+impl AccessoryDeviceInfo for DeviceInfo {
+    fn in_accessory_mode(&self) -> Result<bool, AccessoryError> {
+        let vid = self.vendor_id();
+        let pid = self.product_id();
+        Ok(vid == USB_ACCESSORY_VENDOR_ID
+            && (pid == USB_ACCESSORY_PRODUCT_ID || pid == USB_ACCESSORY_ADB_PRODUCT_ID))
+    }
+}
+
+pub trait AccessoryConfigurations {
     /// Finds the bulk in and out endpoints for this accessory.
     fn find_endpoints(&self) -> Result<Endpoints, EndpointError>;
 }
 
-impl<T: UsbContext> AccessoryDevice for Device<T> {
-    fn in_accessory_mode(&self) -> Result<bool, AccessoryError> {
-        let device_desc = self.device_descriptor()?;
-        let vid = device_desc.vendor_id();
-        let pid = device_desc.product_id();
-        Ok(vid == USB_ACCESSORY_VENDOR_ID
-            && (pid == USB_ACCESSORY_PRODUCT_ID || pid == USB_ACCESSORY_ADB_PRODUCT_ID))
-    }
-
+impl<'a> AccessoryConfigurations for Configuration<'a> {
     fn find_endpoints(&self) -> Result<Endpoints, EndpointError> {
-        let device_desc = self.device_descriptor()?;
-
         let mut endpoint_in: Option<Endpoint> = None;
         let mut endpoint_out: Option<Endpoint> = None;
 
-        'outer: for config_index in 0..device_desc.num_configurations() {
-            let config = self.config_descriptor(config_index)?;
-            for iface in config.interfaces() {
-                for iface_desc in iface.descriptors() {
-                    for endpoint_desc in iface_desc.endpoint_descriptors() {
-                        if let TransferType::Bulk = endpoint_desc.transfer_type() {
-                            match endpoint_desc.direction() {
-                                Direction::In => {
-                                    if endpoint_in.is_none() {
-                                        endpoint_in = Some(Endpoint {
-                                            config: config.number(),
-                                            iface: iface_desc.interface_number(),
-                                            setting: iface_desc.setting_number(),
-                                            address: endpoint_desc.address(),
-                                        });
-                                        if endpoint_out.is_some() {
-                                            break 'outer;
-                                        }
-                                    }
+        'outer: for iface in self.interface_alt_settings() {
+            for endpoint in iface.endpoints() {
+                if let EndpointType::Bulk = endpoint.transfer_type() {
+                    match endpoint.direction() {
+                        Direction::In => {
+                            if endpoint_in.is_none() {
+                                endpoint_in = Some(Endpoint {
+                                    iface: iface.interface_number(),
+                                    setting: iface.alternate_setting(),
+                                    address: endpoint.address(),
+                                });
+                                if endpoint_out.is_some() {
+                                    break 'outer;
                                 }
-                                Direction::Out => {
-                                    if endpoint_out.is_none() {
-                                        endpoint_out = Some(Endpoint {
-                                            config: config.number(),
-                                            iface: iface_desc.interface_number(),
-                                            setting: iface_desc.setting_number(),
-                                            address: endpoint_desc.address(),
-                                        });
-                                        if endpoint_in.is_some() {
-                                            break 'outer;
-                                        }
-                                    }
+                            }
+                        }
+                        Direction::Out => {
+                            if endpoint_out.is_none() {
+                                endpoint_out = Some(Endpoint {
+                                    iface: iface.interface_number(),
+                                    setting: iface.alternate_setting(),
+                                    address: endpoint.address(),
+                                });
+                                if endpoint_in.is_some() {
+                                    break 'outer;
                                 }
                             }
                         }
@@ -205,7 +185,7 @@ impl AccessoryStrings {
     }
 }
 
-pub trait AccessoryHandle {
+pub trait AccessoryInterface {
     /// Sends the `ACCESSORY_GET_PROTOCOL` control request and reads the reply.
     ///
     /// Returns the protocol version supported by the device.
@@ -249,22 +229,30 @@ pub trait AccessoryHandle {
     ) -> Result<u16, AccessoryError>;
 }
 
-impl<T: UsbContext> AccessoryHandle for DeviceHandle<T> {
+impl AccessoryInterface for Interface {
     fn get_protocol(&mut self, timeout: Duration) -> Result<u16, AccessoryError> {
-        let mut buf = [0; size_of::<u16>()];
-        let size = self.read_control(
-            request_type(Direction::In, RequestType::Vendor, Recipient::Device),
-            ACCESSORY_GET_PROTOCOL,
-            0,
-            0,
-            &mut buf,
-            timeout,
-        )?;
-        if size != buf.len() {
-            return Err(AccessoryError::InvalidLength(size));
+        let size = block_on(
+            tokio::time::timeout(
+                timeout,
+                self.control_in(ControlIn {
+                    control_type: ControlType::Vendor,
+                    recipient: Recipient::Device,
+                    request: ACCESSORY_GET_PROTOCOL,
+                    value: 0,
+                    index: 0,
+                    length: size_of::<u16>() as u16,
+                }),
+            )
+            .into_inner(),
+        )
+        .into_result()
+        .map_err(nusb::Error::other)?;
+
+        if size.len() != size_of::<u16>() {
+            return Err(AccessoryError::InvalidLength(size.len()));
         }
 
-        Ok(LittleEndian::read_u16(&buf))
+        Ok(LittleEndian::read_u16(size.as_ref()))
     }
 
     fn send_string(
@@ -273,17 +261,26 @@ impl<T: UsbContext> AccessoryHandle for DeviceHandle<T> {
         str: &CString,
         timeout: Duration,
     ) -> Result<(), AccessoryError> {
-        let buf = str.as_bytes_with_nul();
-        let size = self.write_control(
-            request_type(Direction::Out, RequestType::Vendor, Recipient::Device),
-            ACCESSORY_SEND_STRING,
-            0,
-            index,
-            buf,
-            timeout,
-        )?;
-        if size != buf.len() {
-            return Err(AccessoryError::InvalidLength(size));
+        let data = str.as_bytes_with_nul();
+        let size = block_on(
+            tokio::time::timeout(
+                timeout,
+                self.control_out(ControlOut {
+                    control_type: ControlType::Vendor,
+                    recipient: Recipient::Device,
+                    request: ACCESSORY_SEND_STRING,
+                    index,
+                    value: 0,
+                    data,
+                }),
+            )
+            .into_inner(),
+        )
+        .into_result()
+        .map_err(nusb::Error::other)?;
+
+        if size.actual_length() != data.len() {
+            return Err(AccessoryError::InvalidLength(size.actual_length()));
         }
 
         Ok(())
@@ -309,14 +306,22 @@ impl<T: UsbContext> AccessoryHandle for DeviceHandle<T> {
     }
 
     fn send_start(&mut self, timeout: Duration) -> Result<(), AccessoryError> {
-        self.write_control(
-            request_type(Direction::Out, RequestType::Vendor, Recipient::Device),
-            ACCESSORY_START,
-            0,
-            0,
-            &[],
-            timeout,
-        )?;
+        block_on(
+            tokio::time::timeout(
+                timeout,
+                self.control_out(ControlOut {
+                    control_type: ControlType::Vendor,
+                    recipient: Recipient::Device,
+                    request: ACCESSORY_START,
+                    index: 0,
+                    value: 0,
+                    data: &[],
+                }),
+            )
+            .into_inner(),
+        )
+        .into_result()
+        .map_err(nusb::Error::other)?;
 
         Ok(())
     }

@@ -98,7 +98,7 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                     streamer = new_streamer;
                                 }
                                 Err(e) => {
-                                    error!("{e}");
+                                    error!("{:#?}", e);
                                     send(
                                         &mut sender,
                                         StreamerMsg::Status(Status::Error(e.to_string())),

@@ -1,21 +1,25 @@
-use futures::StreamExt;
+use anyhow::Result;
+use futures::{executor::block_on, StreamExt};
+use nusb::{descriptors::Configuration, transfer::RequestBuffer, Interface};
 use prost::Message;
 use rtrb::Producer;
-use rusb::{DeviceHandle, GlobalContext};
 use std::{
     io,
     pin::Pin,
-    sync::{Arc, Mutex},
     task::{Context, Poll},
+    thread::sleep,
     time::Duration,
 };
-use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
+use tokio::{
+    io::{AsyncRead, AsyncWrite, ReadBuf},
+    time::timeout,
+};
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 use crate::{
     config::AudioFormat,
     streamer::{AudioWaveData, WriteError},
-    usb::{AccessoryDevice, AccessoryHandle, AccessoryStrings, Endpoint, EndpointError},
+    usb::{AccessoryConfigurations, AccessoryInterface, AccessoryStrings, Endpoint},
 };
 
 use super::{AudioPacketMessage, ConnectError, Status, StreamerTrait};
@@ -29,157 +33,95 @@ pub struct UsbStreamer {
 
 const VENDOR_NAME_LIST: [&'static str; 1] = ["samsung"];
 
-fn open_usb_accessory(handle: &DeviceHandle<GlobalContext>) -> Result<(), rusb::Error> {
-    let request_type = (rusb::RequestType::Vendor as u8) | (rusb::Direction::Out as u8);
-    let data: Vec<u8> = vec![];
-    handle.write_control(request_type, 51, 0, 0, &data, Duration::from_secs(1))?;
-
-    Ok(())
-}
-
 pub async fn new(producer: Producer<u8>) -> Result<UsbStreamer, ConnectError> {
-    let devices = rusb::devices().map_err(ConnectError::NoUsbDevice)?;
+    let mut info_list = nusb::list_devices().map_err(ConnectError::NoUsbDevice)?;
 
     // find the first android phone device
-    let device = devices
-        .iter()
+    let info = info_list
         .find(|d| {
-            if let Ok(desc) = d.device_descriptor() {
-                if let Some(product) =
-                    usb_ids::Device::from_vid_pid(desc.vendor_id(), desc.product_id())
-                {
-                    info!(
-                        "Checking USB device at address 0x{:X}: {} from {}, 0x{:X} 0x{:X}",
-                        d.address(),
-                        product.name(),
-                        product.vendor().name(),
-                        desc.vendor_id(),
-                        desc.product_id()
-                    );
+            let manufacturer = d.manufacturer_string().unwrap_or("unknown");
+            let product = d.product_string().unwrap_or("unknown");
 
-                    for vendor_name in VENDOR_NAME_LIST {
-                        if product.vendor().name().to_lowercase().contains(vendor_name) {
-                            return true;
-                        }
-                    }
+            info!(
+                "Checking USB device at 0x{:X}: {}, {}, 0x{:X} 0x{:X}",
+                d.device_address(),
+                manufacturer,
+                product,
+                d.vendor_id(),
+                d.product_id()
+            );
+
+            for vendor_name in VENDOR_NAME_LIST {
+                if manufacturer.to_lowercase().contains(vendor_name) {
+                    return true;
                 }
             }
 
             false
         })
-        .ok_or(rusb::Error::NotFound)
+        .ok_or(nusb::Error::other("No android phone found"))
         .map_err(ConnectError::NoUsbDevice)?;
 
-    let mut handle = device.open().map_err(ConnectError::CantOpenUsbHandle)?;
-
     // open the device
-    if device
-        .in_accessory_mode()
-        .map_err(ConnectError::CantOpenUsbAccessory)?
-    {
-        info!("USB device 0x{:X} is in accessory mode", device.address());
+    info!("Opening USB device 0x{:X}", info.device_address());
+    let device = info.open().map_err(ConnectError::CantOpenUsbHandle)?;
+    let configs = device
+        .active_configuration()
+        .map_err(|e| ConnectError::CantOpenUsbHandle(e.into()))?;
 
-        let protocol = handle
-            .get_protocol(Duration::from_secs(1))
-            .map_err(ConnectError::CantOpenUsbAccessory)?;
+    // switch to accessory mode
+    info!(
+        "USB device 0x{:X} switching to accessory mode",
+        info.device_address()
+    );
 
-        let endpoints = device
-            .find_endpoints()
-            .map_err(ConnectError::CantOpenUsbAccessoryEndpoint)?;
+    sleep(Duration::from_secs(1));
 
-        let read_endpoint = endpoints.endpoint_in();
-        let write_endpoint = endpoints.endpoint_out();
+    // claim the interface
+    let mut iface = device
+        .detach_and_claim_interface(0)
+        .map_err(ConnectError::CantOpenUsbHandle)?;
 
-        info!(
-            "USB device {:X} opened, read endpoint: {:X}, write endpoint: {:X}, protocol {:X}",
-            device.address(),
-            read_endpoint.address,
-            write_endpoint.address,
-            protocol
-        );
+    let strings = AccessoryStrings::new(
+        "AndroidMic",
+        "Android Mic USB Streamer",
+        "Accessory device for AndroidMic app",
+        "1.0",
+        "https://github.com/teamclouday/AndroidMic",
+        "34335e34-bccf-11eb-8529-0242ac130003",
+    )
+    .map_err(|_| {
+        ConnectError::CantOpenUsbHandle(nusb::Error::other("Invalid accessory settings"))
+    })?;
 
-        // detach kernel driver if active
-        match handle.kernel_driver_active(read_endpoint.iface) {
-            Ok(true) => {
-                handle.detach_kernel_driver(read_endpoint.iface).ok();
-            }
-            _ => {}
-        };
+    let protocol = iface
+        .start_accessory(&strings, Duration::from_secs(1))
+        .map_err(ConnectError::CantOpenUsbAccessory)?;
 
-        // configure read endpoint
-        read_endpoint
-            .config_endpoint(&handle)
-            .map_err(EndpointError::RusbError)
-            .map_err(ConnectError::CantOpenUsbAccessoryEndpoint)?;
+    sleep(Duration::from_secs(1));
 
-        Ok(UsbStreamer {
-            producer,
-            framed: Framed::new(
-                UsbStream::new(handle, read_endpoint, write_endpoint),
-                LengthDelimitedCodec::new(),
-            ),
-        })
-    } else {
-        info!(
-            "USB device 0x{:X} is not in accessory mode, trying to switch",
-            device.address()
-        );
+    let endpoints = configs
+        .find_endpoints()
+        .map_err(ConnectError::CantOpenUsbAccessoryEndpoint)?;
 
-        let strings = AccessoryStrings::new(
-            "AndroidMic",
-            "Android Mic USB Streamer",
-            "Accessory device for AndroidMic app",
-            "1.0",
-            "https://github.com/teamclouday/AndroidMic",
-            "34335e34-bccf-11eb-8529-0242ac130003",
-        )
-        .map_err(|_| ConnectError::CantOpenUsbHandle(rusb::Error::InvalidParam))?;
+    let read_endpoint = endpoints.endpoint_in();
+    let write_endpoint = endpoints.endpoint_out();
 
-        handle
-            .claim_interface(0)
-            .map_err(ConnectError::CantOpenUsbHandle)?;
+    info!(
+        "USB device 0x{:X} opened, read endpoint: 0x{:X}, write endpoint: 0x{:X}, protocol: 0x{:X}",
+        info.device_address(),
+        read_endpoint.address,
+        write_endpoint.address,
+        protocol
+    );
 
-        let protocol = handle
-            .start_accessory(&strings, Duration::from_secs(1))
-            .map_err(ConnectError::CantOpenUsbAccessory)?;
-
-        let endpoints = device
-            .find_endpoints()
-            .map_err(ConnectError::CantOpenUsbAccessoryEndpoint)?;
-
-        let read_endpoint = endpoints.endpoint_in();
-        let write_endpoint = endpoints.endpoint_out();
-
-        // detach kernel driver if active
-        match handle.kernel_driver_active(read_endpoint.iface) {
-            Ok(true) => {
-                handle.detach_kernel_driver(read_endpoint.iface).ok();
-            }
-            _ => {}
-        };
-
-        // configure read endpoint
-        read_endpoint
-            .config_endpoint(&handle)
-            .map_err(EndpointError::RusbError)
-            .map_err(ConnectError::CantOpenUsbAccessoryEndpoint)?;
-
-        info!(
-            "USB device {:X} opened, read endpoint: {:X}, write endpoint: {:X}, protocol {:X}",
-            device.address(),
-            read_endpoint.address,
-            write_endpoint.address,
-            protocol
-        );
-
-        Ok(UsbStreamer {
-            producer,
-            framed: Framed::new(
-                UsbStream::new(handle, read_endpoint, write_endpoint),
-                LengthDelimitedCodec::new(),
-            ),
-        })
-    }
+    Ok(UsbStreamer {
+        producer,
+        framed: Framed::new(
+            UsbStream::new(iface, read_endpoint, write_endpoint),
+            LengthDelimitedCodec::new(),
+        ),
+    })
 }
 
 impl StreamerTrait for UsbStreamer {
@@ -238,7 +180,7 @@ impl StreamerTrait for UsbStreamer {
                 }
             }
         } else {
-            info!("frame not ready");
+            // info!("frame not ready");
             // sleep for a while to not consume all CPU
             tokio::time::sleep(MAX_WAIT_TIME).await;
             Ok(None)
@@ -247,19 +189,15 @@ impl StreamerTrait for UsbStreamer {
 }
 
 pub struct UsbStream {
-    handle: Arc<Mutex<DeviceHandle<GlobalContext>>>,
+    iface: Interface,
     read_endpoint: Endpoint,
     write_endpoint: Endpoint,
 }
 
 impl UsbStream {
-    pub fn new(
-        handle: DeviceHandle<GlobalContext>,
-        read_endpoint: Endpoint,
-        write_endpoint: Endpoint,
-    ) -> Self {
+    pub fn new(iface: Interface, read_endpoint: Endpoint, write_endpoint: Endpoint) -> Self {
         Self {
-            handle: Arc::new(Mutex::new(handle)),
+            iface,
             read_endpoint,
             write_endpoint,
         }
@@ -272,16 +210,20 @@ impl AsyncRead for UsbStream {
         _: &mut Context<'_>,
         buf: &mut ReadBuf<'_>,
     ) -> Poll<io::Result<()>> {
-        let handle = self.handle.lock().unwrap();
-        let mut temp_buf = vec![0; buf.capacity()];
-
-        match handle.read_bulk(
-            self.read_endpoint.address,
-            &mut temp_buf,
-            std::time::Duration::from_secs(1),
-        ) {
+        match block_on(
+            timeout(
+                Duration::from_secs(1),
+                self.iface.bulk_in(
+                    self.read_endpoint.address,
+                    RequestBuffer::new(buf.capacity()),
+                ),
+            )
+            .into_inner(),
+        )
+        .into_result()
+        {
             Ok(bytes_read) => {
-                buf.put_slice(&temp_buf[..bytes_read]);
+                buf.put_slice(bytes_read.as_slice());
                 Poll::Ready(Ok(()))
             }
             Err(e) => Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, e))),
@@ -295,14 +237,17 @@ impl AsyncWrite for UsbStream {
         _: &mut Context<'_>,
         buf: &[u8],
     ) -> Poll<io::Result<usize>> {
-        let handle = self.handle.lock().unwrap();
-
-        match handle.write_bulk(
-            self.write_endpoint.address,
-            buf,
-            std::time::Duration::from_secs(1),
-        ) {
-            Ok(bytes_written) => std::task::Poll::Ready(Ok(bytes_written)),
+        match block_on(
+            timeout(
+                Duration::from_secs(1),
+                self.iface
+                    .bulk_out(self.write_endpoint.address, Vec::from(buf)),
+            )
+            .into_inner(),
+        )
+        .into_result()
+        {
+            Ok(bytes_written) => std::task::Poll::Ready(Ok(bytes_written.actual_length())),
             Err(e) => {
                 std::task::Poll::Ready(Err(std::io::Error::new(std::io::ErrorKind::Other, e)))
             }

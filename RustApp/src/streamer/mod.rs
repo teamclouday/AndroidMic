@@ -89,9 +89,9 @@ enum ConnectError {
     #[error(transparent)]
     WriteError(#[from] WriteError),
     #[error("no usb device found: {0}")]
-    NoUsbDevice(rusb::Error),
-    #[error("can't open usb handle: {0}, make sure adb is not running")]
-    CantOpenUsbHandle(rusb::Error),
+    NoUsbDevice(nusb::Error),
+    #[error("can't open usb handle: {0}, make sure phone is set to charging only mode")]
+    CantOpenUsbHandle(nusb::Error),
     #[error("can't open usb accessory: {0}")]
     CantOpenUsbAccessory(AccessoryError),
     #[error("can't open usb accessory endpoint: {0}")]
