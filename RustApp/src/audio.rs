@@ -186,11 +186,11 @@ impl ChannelStrategy {
                 }
             }
             if supported_channel == 2 && channel_count == 1 {
-                info!("Upmixing mono audio stream to stereo");
                 fall_back = Some(ChannelStrategy::MonoCloned);
             }
         }
 
+        info!("Upmixing mono audio stream to stereo");
         fall_back
     }
 

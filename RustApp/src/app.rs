@@ -246,17 +246,14 @@ impl Application for AppState {
                         self.audio_wave.clear();
                     }
                     Status::Listening { port } => {
-                        let port = port.unwrap_or(0);
-                        info!("listening: {port:?}");
-                        self.add_log(format!("Listening on port {port:?}").as_str());
-                        self.state = State::Listening;
-                    }
-                    Status::Connected { port } => {
-                        if let Some(port) = port {
-                            // for udp streamer only
+                        if self.state != State::Listening {
+                            let port = port.unwrap_or(0);
                             info!("listening: {port:?}");
                             self.add_log(format!("Listening on port {port:?}").as_str());
+                            self.state = State::Listening;
                         }
+                    }
+                    Status::Connected => {
                         self.state = State::Connected;
                     }
                     Status::UpdateAudioWave { data } => {
