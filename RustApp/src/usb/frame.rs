@@ -32,29 +32,8 @@ impl AsyncRead for UsbStream {
     ) -> Poll<io::Result<()>> {
         let pin = self.get_mut();
 
-        let (copy_from_buffer, remaining) = {
-            let unfilled = buf.initialize_unfilled();
-
-            // check if possible to read more
-            if unfilled.is_empty() {
-                return Poll::Pending;
-            }
-
-            // first copy from local buffer
-            let copy_from_buffer = std::cmp::min(unfilled.len(), pin.read_buffer.len());
-
-            if copy_from_buffer > 0 {
-                unfilled[..copy_from_buffer].copy_from_slice(&pin.read_buffer[..copy_from_buffer]);
-                pin.read_buffer.drain(..copy_from_buffer);
-            }
-
-            (copy_from_buffer, unfilled.len() - copy_from_buffer)
-        };
-
-        buf.advance(copy_from_buffer);
-
-        // check if can request from remote
-        if remaining > 0 {
+        // either read from local buffer or request from remote
+        if pin.read_buffer.is_empty() {
             // make sure there's pending request
             if pin.read_queue.pending() == 0 {
                 pin.read_queue.submit(RequestBuffer::new(MAX_PACKET_SIZE));
@@ -69,8 +48,7 @@ impl AsyncRead for UsbStream {
                     // copy into poll buffer
                     let copy_from_buffer = {
                         let unfilled = buf.initialize_unfilled();
-
-                        let copy_from_buffer = std::cmp::min(remaining, res.data.len());
+                        let copy_from_buffer = std::cmp::min(unfilled.len(), res.data.len());
                         unfilled[..copy_from_buffer].copy_from_slice(&res.data[..copy_from_buffer]);
 
                         copy_from_buffer
@@ -87,6 +65,28 @@ impl AsyncRead for UsbStream {
                 Err(e) => Poll::Ready(Err(io::Error::new(io::ErrorKind::Other, e))),
             }
         } else {
+            let copy_from_buffer = {
+                let unfilled = buf.initialize_unfilled();
+
+                // check if possible to read more
+                if unfilled.is_empty() {
+                    return Poll::Pending;
+                }
+
+                // first copy from local buffer
+                let copy_from_buffer = std::cmp::min(unfilled.len(), pin.read_buffer.len());
+
+                if copy_from_buffer > 0 {
+                    unfilled[..copy_from_buffer]
+                        .copy_from_slice(&pin.read_buffer[..copy_from_buffer]);
+                    pin.read_buffer.drain(..copy_from_buffer);
+                }
+
+                copy_from_buffer
+            };
+
+            buf.advance(copy_from_buffer);
+
             Poll::Ready(Ok(()))
         }
     }
