@@ -97,6 +97,8 @@ class MicAudioManager(
                     continue
                 }
 
+//                Log.d(TAG, "audioStream: $bytesRead bytes read")
+
                 val packetBuffer = ByteArray(bytesRead)
                 buffer.copyInto(packetBuffer, 0, 0, bytesRead)
                 send(

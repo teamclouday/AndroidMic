@@ -10,3 +10,10 @@ pub struct AudioPacketMessage {
     #[prost(uint32, tag = "4")]
     pub audio_format: u32,
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct AudioPacketMessageOrdered {
+    #[prost(uint32, tag = "1")]
+    pub sequence_number: u32,
+    #[prost(message, optional, tag = "2")]
+    pub audio_packet: ::core::option::Option<AudioPacketMessage>,
+}

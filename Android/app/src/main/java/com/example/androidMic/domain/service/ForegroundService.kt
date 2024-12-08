@@ -209,6 +209,7 @@ class ForegroundService : Service() {
         Log.d(TAG, "stopStream")
         val sender = msg.replyTo
         val replyData = Bundle()
+        managerStream?.shutdown()
         managerStream = null
         replyData.putString("reply", applicationContext.getString(R.string.device_disconnected))
         messageui.showMessage(applicationContext.getString(R.string.stop_streaming))
@@ -274,6 +275,7 @@ class ForegroundService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         }
+        managerAudio?.shutdown()
         managerAudio = null
         replyData.putString("reply", application.getString(R.string.recording_stopped))
         messageui.showMessage(application.getString(R.string.stop_recording))

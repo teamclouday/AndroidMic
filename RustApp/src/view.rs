@@ -89,14 +89,20 @@ fn connection_type(app: &AppState) -> Element<'_, AppMsg> {
                     Some(connection_mode),
                     |mode| AppMsg::ChangeConnectionMode(*mode),
                 ))
-                // .push(radio(
-                //     "WIFI / LAN (UDP)",
-                //     &ConnectionMode::Udp,
-                //     Some(connection_mode),
-                //     |mode| AppMsg::ChangeConnectionMode(*mode),
-                // ))
                 .push(radio(
-                    "USB (ADB)",
+                    "WIFI / LAN (UDP)",
+                    &ConnectionMode::Udp,
+                    Some(connection_mode),
+                    |mode| AppMsg::ChangeConnectionMode(*mode),
+                ))
+                .push(radio(
+                    "USB Serial",
+                    &ConnectionMode::Usb,
+                    Some(connection_mode),
+                    |mode| AppMsg::ChangeConnectionMode(*mode),
+                ))
+                .push(radio(
+                    "USB Adb",
                     &ConnectionMode::Adb,
                     Some(connection_mode),
                     |mode| AppMsg::ChangeConnectionMode(*mode),
@@ -238,6 +244,13 @@ impl AudioWave {
         for &val in chunk {
             self.write(val);
         }
+
+        self.cache.clear();
+    }
+
+    pub fn clear(&mut self) {
+        self.data = [(0.0, 0.0); 512];
+        self.end_index = 0;
 
         self.cache.clear();
     }

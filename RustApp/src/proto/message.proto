@@ -8,3 +8,8 @@ message AudioPacketMessage {
     uint32 channel_count = 3;
     uint32 audio_format = 4;
 }
+
+message AudioPacketMessageOrdered {
+    uint32 sequence_number = 1;
+    AudioPacketMessage audio_packet = 2;
+}

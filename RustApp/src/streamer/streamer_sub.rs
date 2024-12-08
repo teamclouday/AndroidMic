@@ -1,25 +1,27 @@
-use std::net::IpAddr;
-
 use cosmic::iced::futures::{SinkExt, Stream};
+use cosmic::iced::stream;
 use either::Either;
 use futures::{
     future::{self},
     pin_mut,
 };
 use rtrb::Producer;
+use std::net::IpAddr;
 use tokio::sync::mpsc::{self, Sender};
-
-use cosmic::iced::stream;
 
 use crate::streamer::{StreamerTrait, WriteError};
 
-use super::{adb_streamer, tcp_streamer, ConnectError, DummyStreamer, Status, Streamer};
+use super::{
+    adb_streamer, tcp_streamer, udp_streamer, usb_streamer, ConnectError, DummyStreamer, Status,
+    Streamer,
+};
 
 #[derive(Debug)]
 pub enum ConnectOption {
     Tcp { ip: IpAddr },
     Udp { ip: IpAddr },
     Adb,
+    Usb,
 }
 
 /// App -> Streamer
@@ -52,7 +54,7 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
         loop {
             let either = {
                 let recv_future = command_receiver.recv();
-                let process_future = streamer.next();
+                let process_future = streamer.poll_status();
 
                 pin_mut!(recv_future);
                 pin_mut!(process_future);
@@ -68,28 +70,25 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                 Either::Left(command) => match command {
                     Some(command) => match command {
                         StreamerCommand::Connect(connect_option, producer) => {
-                            let new_streamer: Result<Streamer, ConnectError> = match connect_option
-                            {
+                            let mut new_streamer = match connect_option {
                                 ConnectOption::Tcp { ip } => {
-                                    tcp_streamer::new(ip, producer).await.map(Streamer::from)
+                                    Streamer::from(tcp_streamer::new(ip, producer))
                                 }
-                                ConnectOption::Udp { ip: _ip } => todo!(),
-                                ConnectOption::Adb => {
-                                    adb_streamer::new(producer).await.map(Streamer::from)
+                                ConnectOption::Udp { ip } => {
+                                    Streamer::from(udp_streamer::new(ip, producer))
                                 }
+                                ConnectOption::Adb => Streamer::from(adb_streamer::new(producer)),
+                                ConnectOption::Usb => Streamer::from(usb_streamer::new(producer)),
                             };
 
-                            match new_streamer {
-                                Ok(new_streamer) => {
-                                    send(
-                                        &mut sender,
-                                        StreamerMsg::Status(new_streamer.status().unwrap()),
-                                    )
-                                    .await;
+                            match new_streamer.start().await {
+                                Ok(()) => {
                                     streamer = new_streamer;
+                                    let status = streamer.poll_status().await.unwrap().unwrap();
+                                    send(&mut sender, StreamerMsg::Status(status)).await;
                                 }
                                 Err(e) => {
-                                    error!("{e}");
+                                    error!("{:#?}", e);
                                     send(
                                         &mut sender,
                                         StreamerMsg::Status(Status::Error(e.to_string())),
@@ -99,13 +98,14 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                             }
                         }
                         StreamerCommand::ChangeBuff(producer) => {
-                            streamer.set_buff(producer);
+                            streamer.set_buff(producer).await;
                         }
                         StreamerCommand::Stop => {
+                            streamer.shutdown().await;
                             streamer = DummyStreamer::new();
                         }
                     },
-                    None => todo!(),
+                    None => {}
                 },
                 Either::Right(res) => match res {
                     Ok(status) => {

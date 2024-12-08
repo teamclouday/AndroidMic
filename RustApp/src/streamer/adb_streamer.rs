@@ -1,8 +1,8 @@
-use std::process::Command;
-
+use adb_client::ADBServer;
+use anyhow::Result;
 use rtrb::Producer;
 
-use crate::{streamer::tcp_streamer, utils};
+use crate::streamer::tcp_streamer;
 
 use super::{tcp_streamer::TcpStreamer, ConnectError, Status, StreamerTrait};
 
@@ -10,74 +10,56 @@ pub struct AdbStreamer {
     tcp_streamer: TcpStreamer,
 }
 
-fn remove_all_adb_reverse_proxy() -> Result<(), ConnectError> {
-    let adb_exe_path = utils::resource_dir(true).join("adb/adb");
+fn start_reverse_proxy(port: u16) -> Result<(), ConnectError> {
+    let mut server = ADBServer::default();
+    let mut device = server.get_device().map_err(ConnectError::AdbFailed)?;
 
-    let mut cmd = Command::new(&adb_exe_path);
-    cmd.arg("reverse").arg("--remove-all");
+    // remove all reverse proxy
+    device
+        .reverse_remove_all()
+        .map_err(ConnectError::AdbFailed)?;
 
-    exec_cmd(cmd)?;
+    // start reverse proxy
+    device
+        .reverse("tcp:6000".to_string(), format!("tcp:{port}"))
+        .map_err(ConnectError::AdbFailed)?;
 
     Ok(())
 }
 
-fn exec_cmd(mut cmd: Command) -> Result<(), ConnectError> {
-    #[cfg(target_os = "windows")]
-    use std::os::windows::process::CommandExt;
+fn stop_reverse_proxy() -> Result<(), ConnectError> {
+    let mut server = ADBServer::default();
+    let mut device = server.get_device().map_err(ConnectError::AdbFailed)?;
 
-    // https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
-    #[cfg(target_os = "windows")]
-    cmd.creation_flags(0x08000000);
+    // remove all reverse proxy
+    device
+        .reverse_remove_all()
+        .map_err(ConnectError::AdbFailed)?;
 
-    let status = cmd.output().map_err(ConnectError::CommandFailed)?;
-
-    if !status.status.success() {
-        let stderr = String::from_utf8_lossy(&status.stderr).to_string();
-
-        return Err(ConnectError::StatusCommand {
-            code: status.status.code(),
-            stderr,
-        });
-    }
     Ok(())
 }
 
-pub async fn new(producer: Producer<u8>) -> Result<AdbStreamer, ConnectError> {
-    let tcp_streamer = tcp_streamer::new(str::parse("127.0.0.1").unwrap(), producer).await?;
-
-    let adb_exe_path = utils::resource_dir(true).join("adb/adb");
-
-    remove_all_adb_reverse_proxy()?;
-
-    let mut cmd = Command::new(&adb_exe_path);
-    cmd.arg("reverse")
-        .arg(format!("tcp:{}", 6000))
-        .arg(format!("tcp:{}", tcp_streamer.port));
-
-    exec_cmd(cmd)?;
-
-    let streamer = AdbStreamer { tcp_streamer };
-    Ok(streamer)
+pub fn new(producer: Producer<u8>) -> AdbStreamer {
+    let tcp_streamer = tcp_streamer::new(str::parse("127.0.0.1").unwrap(), producer);
+    AdbStreamer { tcp_streamer }
 }
 
 impl StreamerTrait for AdbStreamer {
-    async fn next(&mut self) -> Result<Option<Status>, ConnectError> {
-        self.tcp_streamer.next().await
+    async fn poll_status(&mut self) -> Result<Option<Status>, ConnectError> {
+        self.tcp_streamer.poll_status().await
     }
 
-    fn set_buff(&mut self, buff: Producer<u8>) {
-        self.tcp_streamer.set_buff(buff)
+    async fn start(&mut self) -> Result<(), ConnectError> {
+        start_reverse_proxy(6000)?;
+        self.tcp_streamer.start().await
     }
 
-    fn status(&self) -> Option<Status> {
-        self.tcp_streamer.status()
+    async fn set_buff(&mut self, buff: Producer<u8>) {
+        self.tcp_streamer.set_buff(buff).await
     }
-}
 
-impl Drop for AdbStreamer {
-    fn drop(&mut self) {
-        if let Err(e) = remove_all_adb_reverse_proxy() {
-            error!("drop AdbStreamer: {e}");
-        }
+    async fn shutdown(&mut self) {
+        stop_reverse_proxy().ok();
+        self.tcp_streamer.shutdown().await
     }
 }
