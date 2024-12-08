@@ -11,7 +11,7 @@ pub struct UsbStream {
     write_buffer: Vec<u8>,
 }
 
-const MAX_PACKET_SIZE: usize = 512;
+const MAX_PACKET_SIZE: usize = 1024;
 
 impl UsbStream {
     pub fn new(read_queue: Queue<RequestBuffer>, write_queue: Queue<Vec<u8>>) -> Self {
