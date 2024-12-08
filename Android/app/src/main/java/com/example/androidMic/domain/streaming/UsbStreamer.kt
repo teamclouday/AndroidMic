@@ -13,7 +13,6 @@ import android.os.ParcelFileDescriptor
 import android.util.Log
 import androidx.core.os.BundleCompat
 import com.example.androidMic.domain.service.AudioPacket
-import com.example.androidMic.utils.chunked
 import com.example.androidMic.utils.toBigEndianU32
 import com.google.protobuf.ByteString
 import kotlinx.coroutines.CoroutineScope
@@ -168,14 +167,10 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
 
                     val pack = message.toByteArray()
 
-                    Log.d(TAG, "usb stream: sending ${pack.size} bytes")
+//                    Log.d(TAG, "usb stream: sending ${pack.size} bytes")
 
                     outputStream!!.write(pack.size.toBigEndianU32())
-
-                    for (chunk in pack.chunked(1024)) {
-                        outputStream!!.write(chunk)
-                    }
-
+                    outputStream!!.write(pack)
                     outputStream!!.flush()
                 } catch (e: Exception) {
                     Log.d(TAG, "stream: ${e.message}")
