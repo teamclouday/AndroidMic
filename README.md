@@ -1,160 +1,73 @@
 # Android Microphone
 
-Use your Android phone as a microphone to Windows PC
+Use your Android phone as a microphone to PC
 
 ------
 
-## Requirements
-* Android phone with bluetooth/wifi
-* Windows PC with bluetooth/wifi
-* Installed [Virtual Audio Cable (VAC)](https://vac.muzychenko.net/en/) on Windows, will hear "trial" voice if your driver is in trial mode\
-  Also try using [VB-Audio](https://vb-audio.com/Cable/) as alternative now since it is completely free
+## How to Use
 
-------
+### PC Side
 
-## How to use
+__Start the app__: The installer will be released in the future. For now, make sure rust and cargo are installed on the system and run following command to build the app:
+```
+cd RustApp
+cargo run --release
+```
+
+__Pick an output audio device__: You will see a list of audio player devices from the dropdown list. Here you want to choose a device that is wired to the virtual mic device on your system that you will be using.
 
 <details>
-<summary>Config Audio Device</summary>
+<summary>
+More about output device
+</summary>
 
-1. Run Windows side app
-2. Select audio speaker from drop down list to the one that VB created\
-   <img src="Assets/sound_config1.png" width="300" alt="sound config1">
-3. Use the corresponding microphone created by VB\
-   <img src="Assets/sound_config2.png" width="300" alt="sound config2">
-4. In `Properties` of both, make sure both set default format to following:\
-   <img src="Assets/sound_config4.png" width="300" alt="sound config4">
-5. For speaker, click `Configure Speakers` and set channel to `Mono`:\
-   <img src="Assets/sound_config3.png" width="300" alt="sound config3">
-6. For microphone, click `Properties` and set following:\
-   <img src="Assets/sound_config5.png" width="300" alt="sound config5">
+The step is system independent.
 
-On my machine, this setup has the lowest delay and best sound quality.\
-Can further improve audio latency by opening `VBCABLE_ControlPanel.exe` (from downloaded folder of VB) and set `Max Latency` in Options to 2048 smp:\
-<img src="Assets/sound_config6.png" width="600" alt="sound config6">
-
-Do not set to 512 smp since that will cause most buffers lost. If 2048 has no sound or bad quality, consider a higher smp.
-
+On Windows you can use [Virtual Audio Cable](https://vac.muzychenko.net/en/download.htm) or [VB Cable](https://vb-audio.com/Cable/). Both software will install virtual input and output audio devices on your system. After that map the output player device to the input mic device so any audio our app played to the device is transferred to the virtual mic device.
 </details>
+
+__Choose a connection method__: This is how your phone will be connected to your PC and stream audio from the mic.
+
+For TCP & UDP, connect your phone and PC to the same internet.
+
+For USB serial, connect your phone to PC with a cable.
 
 <details>
-<summary>Volume Control</summary>
+<summary>
+More about USB serial
+</summary>
 
-1. Run Windows side app
-2. Drag slider to control volume
+This option also requires configurations that are system independent.
 
+On Windows, make sure the adb process is shutdown and android studio is closed.
+
+On MacOS, it should just work.
+
+On Linux, you will need to configure [udev](https://github.com/libusb/libusb/wiki/FAQ#can-i-run-libusb-applications-on-linux-without-root-privilege) so that the app has permission to use USB.
 </details>
+
+For USB adb, make sure the system has installed [adb](https://developer.android.com/tools/adb). The connect your phone to PC.
+
+__Configure advanced settings__: Click to open the advanced settings window, and pick an audio format the output audio device supports. Usually sample rate of 44.1k or 48k, mono channel, and i16 or i24 are supported.
+
+### Android Side
+
+__Start the app__: Similar to the PC side, the installer will be released in the future. For now, compile the app from Android studio and install on your phone.
+
+__Configure the app__: Open the side drawer menu, configure the connection method according to the option on PC app. Then pick the same audio format as the one in PC app advanced settings.
+
+__Connect__: First start recording and give sufficient permissions. Recording permission for accessing your phone's mic. Notification permission so the app can let you know if it is still recording in the background. Then connect to the PC app.
 
 <details>
-<summary>Connection: Bluetooth</summary>
+<summary>More about connection configurations</summary>
 
-1. Make sure PC and phone are paired once
-2. Check `Bluetooth` button on Windows app
-3. Click `Connect` on Windows app to start server
-4. Click `Connect` on Android app to connect
-5. Tap `Record Audio` on Android app to start transferring audio
+For TCP/UDP, you will need to enter the PC address and port. You can find that information from the log area on PC app.
 
+For USB adb, set your phone to developer mode and enable USB debugging.
+
+For USB serial, make sure your phone's USB setting is charging only.
 </details>
 
-<details>
-<summary>Connection: Wifi / LAN</summary>
+--------
 
-1. Make sure PC and phone are under the same network
-   1. Can be under the same router with Wifi
-   2. Can have PC connected to ethernet of the same router
-   3. Can have PC connected to phone by cable and enable USB tethering on phone
-2. Click `Connect` on Windows app to start server
-3. Click `Connect` on Android app to connect
-4. Enter `IP` and `Port` (displayed on Windows side) on Android app
-5. Tap `Record Audio` on Android app to start transferring audio
-
-</details>
-
-<details>
-<summary>Advanced Filters</summary>
-
-1. Run Windows side app
-2. Connect phone to app
-3. Click `Advanced Effects` to open advanced settings window
-4. Expand a filter and check `enabled` to test effects
-
-__Pitch Shifter__:
-* Slider controls pitch shift factor
-
-__White Noise__:
-* Slider controls the noise strength
-
-__Repeat Track__:
-* Check `Repeat` to enable looped audio track
-* Slider controls audio track volume strength
-* `Select File` to select an audio file to play
-
-__SpeexDSP Filters__:
-* Check corresponding filters to enable/disable
-* If Echo Cancellation does not work (your friend hears echo from your speaker)\
-  Try re-enable echo cancellation to restart cancellation state\
-  Echo Cancellation may take a while (5-10s) to optimize
-
-__Rnnoise Filter__:
-* Check "Noise Cancellation" and try
-
-</details>
-
-------
-
-## Feature Plans
-
-- [x] Windows app can minimize to system tray
-- [x] Volume control on Windows side
-- [x] Audio visualization on Windows side
-- [x] Show notification when mic is in use on Android side
-- [x] Audio effect filters
-  - [x] Pitch Shifter
-  - [x] Add White Noise
-  - [x] Repeated Background Audio
-  - [x] ~~SpeexDSP Noise Cancellation~~
-  - [x] SpeexDSP Automatic Gain Control
-  - [x] SpeexDSP Voice Activity Detection
-  - [x] SpeexDSP Echo Cancellation
-  - [x] Rnnoise Noise Cancellation
-- [x] Memorized user settings
-- [x] Select network adapter in Wifi/LAN mode
-- [ ] Port all Windows code & dependencies to .Net Core (with [Avalonia](https://github.com/AvaloniaUI/Avalonia))
-  - [ ] MacOS Support
-  - [ ] Linux Support
-
-------
-
-## Optimization Plans
-
-To further reduce latency, here're the possible areas to optimize:
-- [x] Use `Oboe` audio library
-- [x] Improve `NAudio` filters
-- [x] Use modern `NAudio` WASAPI player (no more Windows XP / lower support)
-- [x] Garbage Collection friendly buffers on Android Kotlin
-- [x] Garbage Collection friendly buffers on Windows C#
-- [ ] Threads / Coroutines priority level
-- [ ] Profile and analyze hot code paths on each
-
-------
-
-## Releases
-
-Pre-built installers can be found [here](https://github.com/teamclouday/AndroidMic/releases)
-
-------
-
-## Windows Side
-
-<p float="left">
-<img src="Assets/p1.png" width="510" alt="Windows Side">
-<img src="Assets/p4.png" width="250" alt="Windows Side">
-</p>
-
-## Android Side
-
-<img src="Assets/p2.png" width="250" alt="Android Side">
-<img src="Assets/p3.png" width="250" alt="Android Side">
-
-<img src="Assets/p5.png" width="500" alt="Android Side">
-
+For more question / feature request / bug report, please submit issues to ask.
