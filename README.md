@@ -65,9 +65,19 @@ For TCP/UDP, you will need to enter the PC address and port. You can find that i
 
 For USB adb, set your phone to developer mode and enable USB debugging.
 
-For USB serial, make sure your phone's USB setting is charging only.
+For USB serial, make sure your phone's USB setting is charging only. With this option, the app will ask your permission to launch the app in accessory mode.
 </details>
 
 --------
 
 For more question / feature request / bug report, please submit issues to ask.
+
+-------
+
+## Some Notes
+
+The PC app started as a WPF app written in C# and was only supported on Windows. Now most of the features are recreated in Rust app thanks to @wiiznokes and it's cross platform supported. But here's the [link to the WPF app branch](https://github.com/teamclouday/AndroidMic/tree/wpf-app-backup) in case you are interested.
+
+Bluetooth is no longer supported because USB serial is made possible.
+
+There is still plan to add some advanced features such as automatic resampling and DSPs for noise cancellation etc.
