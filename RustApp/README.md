@@ -16,7 +16,6 @@ Debian
 sudo apt install libasound2-dev
 ```
 
-
 ## Use usb
 
 - https://www.reddit.com/r/scrcpy/comments/1ga2nli/solution_get_scrcpy_otg_working_on_windows_a/
@@ -24,3 +23,9 @@ sudo apt install libasound2-dev
 
 - disable ADB!!
 - select "Options", "List All Devices"
+- select your device
+- select the WinUSB driver
+- click "Reinstall Driver"
+- it can take a long time
+
+then, if it still don't work, you can make the same process when your phone is in accessory mode

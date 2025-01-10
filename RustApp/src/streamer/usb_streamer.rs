@@ -129,7 +129,9 @@ pub async fn new(producer: Producer<u8>) -> Result<UsbStreamer, ConnectError> {
         let info = nusb::list_devices()
             .map_err(ConnectError::NoUsbDevice)?
             .find(|d| d.in_accessory_mode())
-            .ok_or(nusb::Error::other("No android phone found"))
+            .ok_or(nusb::Error::other(
+                "No android phone found after switching to accessory",
+            ))
             .map_err(ConnectError::NoUsbDevice)?;
 
         let device = info.open().map_err(ConnectError::CantOpenUsbHandle)?;
