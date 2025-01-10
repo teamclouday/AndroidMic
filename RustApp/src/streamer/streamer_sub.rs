@@ -11,10 +11,7 @@ use tokio::sync::mpsc::{self, Sender};
 
 use crate::streamer::{StreamerTrait, WriteError};
 
-use super::{
-    adb_streamer, tcp_streamer, udp_streamer, usb_streamer, ConnectError, DummyStreamer, Status,
-    Streamer,
-};
+use super::{adb_streamer, tcp_streamer, ConnectError, DummyStreamer, Status, Streamer};
 
 #[derive(Debug)]
 pub enum ConnectOption {
@@ -54,7 +51,7 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
         loop {
             let either = {
                 let recv_future = command_receiver.recv();
-                let process_future = streamer.poll_status();
+                let process_future = streamer.next();
 
                 pin_mut!(recv_future);
                 pin_mut!(process_future);
@@ -70,25 +67,29 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                 Either::Left(command) => match command {
                     Some(command) => match command {
                         StreamerCommand::Connect(connect_option, producer) => {
-                            let mut new_streamer = match connect_option {
-                                ConnectOption::Tcp { ip } => {
-                                    Streamer::from(tcp_streamer::new(ip, producer))
-                                }
-                                ConnectOption::Udp { ip } => {
-                                    Streamer::from(udp_streamer::new(ip, producer))
-                                }
-                                ConnectOption::Adb => Streamer::from(adb_streamer::new(producer)),
-                                ConnectOption::Usb => Streamer::from(usb_streamer::new(producer)),
-                            };
+                            let new_streamer: Result<Streamer, ConnectError> =
+                                match connect_option {
+                                    ConnectOption::Tcp { ip } => {
+                                        tcp_streamer::new(ip, producer).await.map(Streamer::from)
+                                    }
+                                    ConnectOption::Adb => {
+                                        adb_streamer::new(producer).await.map(Streamer::from)
+                                    }
+                                    ConnectOption::Udp { ip } => todo!(),
+                                    ConnectOption::Usb => todo!(),
+                                };
 
-                            match new_streamer.start().await {
-                                Ok(()) => {
+                            match new_streamer {
+                                Ok(new_streamer) => {
+                                    send(
+                                        &mut sender,
+                                        StreamerMsg::Status(new_streamer.status().unwrap()),
+                                    )
+                                    .await;
                                     streamer = new_streamer;
-                                    let status = streamer.poll_status().await.unwrap().unwrap();
-                                    send(&mut sender, StreamerMsg::Status(status)).await;
                                 }
                                 Err(e) => {
-                                    error!("{:#?}", e);
+                                    error!("{e}");
                                     send(
                                         &mut sender,
                                         StreamerMsg::Status(Status::Error(e.to_string())),
@@ -98,10 +99,9 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                             }
                         }
                         StreamerCommand::ChangeBuff(producer) => {
-                            streamer.set_buff(producer).await;
+                            streamer.set_buff(producer);
                         }
                         StreamerCommand::Stop => {
-                            streamer.shutdown().await;
                             streamer = DummyStreamer::new();
                         }
                     },

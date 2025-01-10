@@ -1,36 +1,30 @@
-use anyhow::Result;
+use std::{io, net::IpAddr, str::from_utf8, time::Duration};
+
 use futures::StreamExt;
 use prost::Message;
-use rtrb::Producer;
-use std::{net::IpAddr, sync::Arc};
+use rtrb::{chunks::ChunkError, Producer};
 use tokio::{
-    io::AsyncWriteExt,
+    io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
-    sync::Mutex,
-    time::Duration,
 };
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 use crate::{
     config::AudioFormat,
-    streamer::{AudioPacketMessage, AudioWaveData, WriteError, DEFAULT_PC_PORT, MAX_PORT},
+    streamer::{AudioWaveData, WriteError, DEFAULT_PC_PORT, MAX_PORT},
 };
 
-use super::{ConnectError, Status, StreamerTrait};
+use super::{AudioPacketMessage, ConnectError, Status, StreamerTrait};
 
-const MAX_WAIT_TIME: Duration = Duration::from_millis(100);
+const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
+
+const DISCONNECT_LOOP_DETECTER_MAX: u32 = 1000;
 
 pub struct TcpStreamer {
     ip: IpAddr,
-    producer: Arc<Mutex<Producer<u8>>>,
-    // set once, read many times
-    status: Arc<Mutex<Option<Status>>>,
-    // read once, discarded after
-    action: Arc<Mutex<Option<Result<Option<Status>, ConnectError>>>>,
-    // the task handle
-    task: Option<tokio::task::JoinHandle<()>>,
-    // task cancel signal sender
-    task_running: Arc<Mutex<bool>>,
+    pub port: u16,
+    producer: Producer<u8>,
+    state: TcpStreamerState,
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -40,177 +34,138 @@ pub enum TcpStreamerState {
     },
     Streaming {
         framed: Framed<TcpStream, LengthDelimitedCodec>,
+        disconnect_loop_detecter: u32,
     },
 }
 
-pub fn new(ip: IpAddr, producer: Producer<u8>) -> TcpStreamer {
-    TcpStreamer {
-        ip,
-        producer: Arc::new(Mutex::new(producer)),
-        status: Arc::new(Mutex::new(None)),
-        action: Arc::new(Mutex::new(None)),
-        task: None,
-        task_running: Arc::new(Mutex::new(false)),
+pub async fn new(ip: IpAddr, producer: Producer<u8>) -> Result<TcpStreamer, ConnectError> {
+    let mut listener = None;
+
+    // try to always bind the same port, to not change it everytime Android side
+    for p in DEFAULT_PC_PORT..=MAX_PORT {
+        if let Ok(l) = TcpListener::bind((ip, p)).await {
+            listener = Some(l);
+            break;
+        }
     }
+
+    let listener = if let Some(listener) = listener {
+        listener
+    } else {
+        TcpListener::bind((ip, 0))
+            .await
+            .map_err(ConnectError::CantBindPort)?
+    };
+
+    let addr = TcpListener::local_addr(&listener).map_err(ConnectError::NoLocalAddress)?;
+
+    let streamer = TcpStreamer {
+        ip,
+        port: addr.port(),
+        producer,
+        state: TcpStreamerState::Listening { listener },
+    };
+
+    Ok(streamer)
 }
 
 impl StreamerTrait for TcpStreamer {
-    async fn start(&mut self) -> Result<(), ConnectError> {
-        let mut listener = None;
+    fn set_buff(&mut self, producer: Producer<u8>) {
+        self.producer = producer;
+    }
 
-        // try to always bind the same port, to not change it everytime Android side
-        for p in DEFAULT_PC_PORT..=MAX_PORT {
-            if let Ok(l) = TcpListener::bind((self.ip, p)).await {
-                listener = Some(l);
-                break;
-            }
+    fn status(&self) -> Option<Status> {
+        match &self.state {
+            TcpStreamerState::Listening { .. } => Some(Status::Listening {
+                port: Some(self.port),
+            }),
+            TcpStreamerState::Streaming { .. } => Some(Status::Connected),
         }
+    }
 
-        let listener = if let Some(listener) = listener {
-            listener
-        } else {
-            TcpListener::bind((self.ip, 0))
-                .await
-                .map_err(ConnectError::CantBindPort)?
-        };
-        let addr = TcpListener::local_addr(&listener).map_err(ConnectError::NoLocalAddress)?;
+    async fn next(&mut self) -> Result<Option<Status>, ConnectError> {
+        match &mut self.state {
+            TcpStreamerState::Listening { listener } => {
+                let addr =
+                    TcpListener::local_addr(listener).map_err(ConnectError::NoLocalAddress)?;
 
-        info!("TCP server listening on {:?}:{}", addr.ip(), addr.port());
+                info!("TCP server listening on {}", addr);
 
-        *self.status.lock().await = Some(Status::Listening {
-            port: Some(addr.port()),
-        });
-        *self.task_running.lock().await = true;
+                let (stream, addr) = listener.accept().await.map_err(ConnectError::CantAccept)?;
 
-        let status = self.status.clone();
-        let action = self.action.clone();
-        let producer = self.producer.clone();
-        let task_running = self.task_running.clone();
+                info!("connection accepted, remote address: {}", addr);
 
-        self.task = Some(tokio::task::spawn(async move {
-            let mut framed_created: Option<Framed<TcpStream, LengthDelimitedCodec>> = None;
+                self.state = TcpStreamerState::Streaming {
+                    framed: Framed::new(stream, LengthDelimitedCodec::new()),
+                    disconnect_loop_detecter: 0,
+                };
 
-            loop {
-                if !*task_running.lock().await {
-                    info!("TCP server is shutting down");
-                    break;
-                }
+                Ok(Some(Status::Connected))
+            }
+            TcpStreamerState::Streaming {
+                framed,
+                disconnect_loop_detecter: _,
+            } => {
+                match framed.next().await {
+                    Some(Ok(frame)) => {
+                        let mut res = None;
 
-                let mut status_lock = status.lock().await;
+                        match AudioPacketMessage::decode(frame) {
+                            Ok(packet) => {
+                                let buffer_size = packet.buffer.len();
+                                let chunk_size = std::cmp::min(buffer_size, self.producer.slots());
 
-                match *status_lock {
-                    Some(Status::Listening { .. }) => {
-                        match listener.accept().await {
-                            Ok((stream, addr)) => {
-                                info!("Connection accepted from: {:?}:{}", addr.ip(), addr.port());
-                                *status_lock = Some(Status::Connected);
-                                framed_created =
-                                    Some(Framed::new(stream, LengthDelimitedCodec::new()));
-                                continue; // continue to skip the sleep
-                            }
-                            Err(e) => {
-                                warn!("Error accepting connection: {}", e);
-                                *action.lock().await = Some(Err(ConnectError::CantAccept(e)));
-                            }
-                        };
-                    }
-                    Some(Status::Connected) => {
-                        if let Some(framed) = &mut framed_created {
-                            if let Some(Ok(frame)) = framed.next().await {
-                                match AudioPacketMessage::decode(frame) {
-                                    Ok(packet) => {
-                                        let mut producer_lock = producer.lock().await;
+                                // mapping from android AudioFormat to encoding size
+                                let audio_format =
+                                    AudioFormat::from_android_format(packet.audio_format).unwrap();
+                                let encoding_size =
+                                    audio_format.sample_size() * packet.channel_count as usize;
 
-                                        let buffer_size = packet.buffer.len();
-                                        let chunk_size =
-                                            std::cmp::min(buffer_size, producer_lock.slots());
+                                // make sure chunk_size is a multiple of encoding_size
+                                let correction = chunk_size % encoding_size;
 
-                                        // mapping from android AudioFormat to encoding size
-                                        let audio_format =
-                                            AudioFormat::from_android_format(packet.audio_format)
-                                                .unwrap();
-                                        let encoding_size = audio_format.sample_size()
-                                            * packet.channel_count as usize;
+                                match self.producer.write_chunk_uninit(chunk_size - correction) {
+                                    Ok(chunk) => {
+                                        // compute the audio wave from the buffer
+                                        if let Some(audio_wave_data) = packet.to_f32_vec() {
+                                            res = Some(Status::UpdateAudioWave {
+                                                data: audio_wave_data,
+                                            });
+                                        }
 
-                                        // make sure chunk_size is a multiple of encoding_size
-                                        let correction = chunk_size % encoding_size;
-
-                                        match producer_lock
-                                            .write_chunk_uninit(chunk_size - correction)
-                                        {
-                                            Ok(chunk) => {
-                                                // compute the audio wave from the buffer
-                                                if let Some(audio_wave_data) = packet.to_f32_vec() {
-                                                    *action.lock().await =
-                                                        Some(Ok(Some(Status::UpdateAudioWave {
-                                                            data: audio_wave_data,
-                                                        })));
-                                                }
-
-                                                chunk.fill_from_iter(packet.buffer.into_iter());
-                                                info!(
-                                                    "received {} bytes, corrected {} bytes, lost {} bytes",
-                                                    buffer_size,
-                                                    correction,
-                                                    buffer_size - chunk_size + correction
-                                                );
-
-                                                continue; // continue to skip the sleep
-                                            }
-                                            Err(e) => {
-                                                warn!("dropped packet: {}", e);
-                                            }
-                                        };
+                                        chunk.fill_from_iter(packet.buffer.into_iter());
+                                        info!(
+                                            "received {} bytes, corrected {} bytes, lost {} bytes",
+                                            buffer_size,
+                                            correction,
+                                            buffer_size - chunk_size + correction
+                                        );
                                     }
                                     Err(e) => {
-                                        *action.lock().await = Some(Err(ConnectError::WriteError(
-                                            WriteError::Deserializer(e),
-                                        )));
+                                        warn!("dropped packet: {}", e);
                                     }
-                                }
-                            } else {
-                                info!("frame not ready");
+                                };
+                            }
+                            Err(e) => {
+                                return Err(ConnectError::WriteError(WriteError::Deserializer(e)));
                             }
                         }
+
+                        Ok(res)
                     }
-                    _ => {}
+
+                    Some(Err(e)) => {
+                        match e.kind() {
+                            io::ErrorKind::TimedOut => Ok(None), // timeout use to check for input on stdin
+                            io::ErrorKind::WouldBlock => Ok(None), // trigger on Linux when there is no stream input
+                            _ => Err(WriteError::Io(e))?,
+                        }
+                    }
+                    None => {
+                        todo!()
+                    }
                 }
-
-                // sleep for a while to not consume all CPU
-                tokio::time::sleep(MAX_WAIT_TIME).await;
             }
-
-            if let Some(framed) = &mut framed_created {
-                framed.get_mut().shutdown().await.ok();
-            }
-
-            drop(framed_created);
-
-            info!("TCP server stopped successfully");
-        }));
-
-        Ok(())
-    }
-
-    async fn poll_status(&mut self) -> Result<Option<Status>, ConnectError> {
-        let status = self.status.lock().await.clone();
-        let mut action_lock = self.action.lock().await;
-        if let Some(action) = action_lock.take() {
-            return action;
-        }
-
-        Ok(status)
-    }
-
-    async fn set_buff(&mut self, producer: Producer<u8>) {
-        *self.producer.lock().await = producer;
-    }
-
-    async fn shutdown(&mut self) {
-        *self.task_running.lock().await = false;
-
-        if let Some(task) = self.task.take() {
-            task.await.ok();
         }
     }
 }

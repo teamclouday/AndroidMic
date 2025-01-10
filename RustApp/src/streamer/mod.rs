@@ -8,15 +8,15 @@ use rtrb::{chunks::ChunkError, Producer};
 use std::io;
 use tcp_streamer::TcpStreamer;
 use thiserror::Error;
-use udp_streamer::UdpStreamer;
-use usb_streamer::UsbStreamer;
+// use udp_streamer::UdpStreamer;
+// use usb_streamer::UsbStreamer;
 
 mod adb_streamer;
 mod message;
 mod streamer_sub;
 mod tcp_streamer;
-mod udp_streamer;
-mod usb_streamer;
+// mod udp_streamer;
+// mod usb_streamer;
 
 pub use message::{AudioPacketMessage, AudioPacketMessageOrdered};
 pub use streamer_sub::{sub, ConnectOption, StreamerCommand, StreamerMsg};
@@ -47,21 +47,25 @@ const MAX_PORT: u16 = 60000;
 
 #[enum_dispatch]
 trait StreamerTrait {
-    async fn start(&mut self) -> Result<(), ConnectError>;
+    /// I know it seems weird to have a next method like that, but it is actually the easiest way i found
+    /// to handle the multiple async functions of streamers (process, accept) while still receiving command from the app.
+    /// This method make them behave like a state machine, always reaching the next state. (init -> accepted -> read data -> read data ...).
+    ///
+    /// A nice benefit of this pattern is that there is no usage of Atomic what so ever.
+    async fn next(&mut self) -> Result<Option<Status>, ConnectError>;
 
-    async fn poll_status(&mut self) -> Result<Option<Status>, ConnectError>;
+    
+    fn set_buff(&mut self, buff: Producer<u8>);
 
-    async fn set_buff(&mut self, buff: Producer<u8>);
-
-    async fn shutdown(&mut self);
+    fn status(&self) -> Option<Status>;
 }
 #[allow(clippy::enum_variant_names)]
 #[enum_dispatch(StreamerTrait)]
 enum Streamer {
     TcpStreamer,
     AdbStreamer,
-    UdpStreamer,
-    UsbStreamer,
+    // UdpStreamer,
+    // UsbStreamer,
     DummyStreamer,
 }
 
@@ -111,18 +115,16 @@ impl DummyStreamer {
 }
 
 impl StreamerTrait for DummyStreamer {
-    async fn start(&mut self) -> Result<(), ConnectError> {
-        Ok(())
-    }
-
-    async fn poll_status(&mut self) -> Result<Option<Status>, ConnectError> {
+    async fn next(&mut self) -> Result<Option<Status>, ConnectError> {
         std::future::pending::<()>().await;
-        Ok(None)
+        unreachable!()
     }
 
-    async fn set_buff(&mut self, _buff: Producer<u8>) {}
+    fn set_buff(&mut self, _buff: Producer<u8>) {}
 
-    async fn shutdown(&mut self) {}
+    fn status(&self) -> Option<Status> {
+        None
+    }
 }
 
 trait AudioWaveData {
