@@ -128,6 +128,19 @@ pub async fn new(producer: Producer<u8>) -> Result<UsbStreamer, ConnectError> {
 
         let info = nusb::list_devices()
             .map_err(ConnectError::NoUsbDevice)?
+            .inspect(|d| {
+                let manufacturer = d.manufacturer_string().unwrap_or("unknown");
+                let product = d.product_string().unwrap_or("unknown");
+
+                info!(
+                    "Checking2 USB device at 0x{:X}: {}, {}, 0x{:X} 0x{:X}",
+                    d.device_address(),
+                    manufacturer,
+                    product,
+                    d.vendor_id(),
+                    d.product_id()
+                );
+            })
             .find(|d| d.in_accessory_mode())
             .ok_or(nusb::Error::other(
                 "No android phone found after switching to accessory",
