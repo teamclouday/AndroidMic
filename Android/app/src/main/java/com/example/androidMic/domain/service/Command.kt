@@ -97,9 +97,6 @@ enum class Response {
     Standard,
 }
 
-/**
- * Response Service -> UI
- */
 enum class ServiceState {
     Connected,
     Disconnected,
