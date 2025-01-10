@@ -16,15 +16,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
 
-fun reply(sender: Messenger, data: Bundle, what: Int, success: Boolean) {
-    data.putBoolean("result", success)
-    val reply = Message()
-    reply.data = data
-    reply.what = what
-    sender.send(reply)
-}
-
-
 const val CHANNEL_ID = "Service"
 
 class MessageUi(private val ctx: ForegroundService) {

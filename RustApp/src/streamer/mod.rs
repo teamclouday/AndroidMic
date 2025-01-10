@@ -88,6 +88,8 @@ enum ConnectError {
     CantOpenUsbAccessory(AccessoryError),
     #[error("can't open usb accessory endpoint: {0}")]
     CantOpenUsbAccessoryEndpoint(EndpointError),
+    #[error("device disconnected")]
+    Disconnected,
 }
 
 #[derive(Debug, Error)]

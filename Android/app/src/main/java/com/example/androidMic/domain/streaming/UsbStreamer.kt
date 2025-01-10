@@ -9,6 +9,7 @@ import android.content.IntentFilter
 import android.hardware.usb.UsbAccessory
 import android.hardware.usb.UsbManager
 import android.os.Build
+import android.os.Messenger
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import androidx.core.os.BundleCompat
@@ -150,7 +151,7 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
         disconnect()
     }
 
-    override fun start(audioStream: Flow<AudioPacket>) {
+    override fun start(audioStream: Flow<AudioPacket>, tx: Messenger) {
         streamJob?.cancel()
 
         streamJob = scope.launch {

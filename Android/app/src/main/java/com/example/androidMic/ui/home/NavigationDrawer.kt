@@ -10,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Settings
@@ -27,7 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.example.androidMic.Modes
+import com.example.androidMic.Mode
 import com.example.androidMic.R
 import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.home.dialog.DialogAudioFormat
@@ -52,6 +54,7 @@ fun DrawerBody(vm: MainViewModel) {
             .fillMaxHeight()
             .width(355.dp)
             .background(color = MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
     ) {
         // setting title
         Box(
@@ -85,7 +88,7 @@ fun DrawerBody(vm: MainViewModel) {
         )
 
         when (mode.value) {
-            Modes.WIFI, Modes.UDP -> {
+            Mode.WIFI, Mode.UDP -> {
                 val dialogIpPortExpanded = rememberSaveable {
                     mutableStateOf(false)
                 }

@@ -36,6 +36,7 @@
     <string name="stream_already_started">Le stream a déjà commencé</string>
     <string name="microphone_already_started">Le microphone enregistre déjà</string>
 
+    <string name="microphone_not_recording">Le microphone n\'enregistre pas</string>
     <string name="connected_device">Appareil connecté:\n</string>
     <string name="mic_start_recording">Le microphone a commencé à enregister</string>
 
@@ -46,7 +47,7 @@
     <!--
     Service
     -->
-    <string name="notification_info">Notification pour enregister l\'audio en arrière plan</string>
+    <string name="notification_info">Le stream audio est actif</string>
 
     <string name="start_streaming">Début stream</string>
     <string name="start_recording">Début enregistrement</string>

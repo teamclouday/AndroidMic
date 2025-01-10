@@ -1,5 +1,5 @@
 [versions]
-agp = "8.7.2"
+agp = "8.8.0"
 kotlin = "2.0.21"
 protobuf = "0.9.4"
 protobuf-kotlin = "3.25.5"
@@ -17,7 +17,7 @@ datastore-preferences = { group = "androidx.datastore", name = "datastore-prefer
 # Compose
 # https://central.sonatype.com/artifact/dev.chrisbanes.compose/compose-bom/versions
 # compose-bom-alpha = { group = "dev.chrisbanes.compose", name = "compose-bom", version = "2024.05.00-alpha03" }
-compose-bom = { group = "androidx.compose", name = "compose-bom", version = "2024.11.00" }
+compose-bom = { group = "androidx.compose", name = "compose-bom", version = "2024.12.01" }
 compose-ui = { group = "androidx.compose.ui", name = "ui" }
 compose-ui-preview = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }

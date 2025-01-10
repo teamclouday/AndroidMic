@@ -121,7 +121,7 @@ impl StreamerTrait for UdpStreamer {
                                         };
 
                                         chunk.fill_from_iter(packet.buffer.into_iter());
-                                        info!(
+                                        debug!(
                                             "From {:?}, received {} bytes, corrected {} bytes, lost {} bytes",
                                             addr,
                                             buffer_size,

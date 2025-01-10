@@ -20,7 +20,7 @@ fn start_reverse_proxy(port: u16) -> Result<(), ConnectError> {
         .map_err(ConnectError::AdbFailed)?;
 
     let remote = "tcp:6000".to_string();
-    let local = format!("udp:{port}");
+    let local = format!("tcp:{port}");
 
     info!("starting adb streamer on remote: {remote}, local: {local}");
 

@@ -16,13 +16,15 @@ import com.example.androidMic.AppPreferences
 import com.example.androidMic.AudioFormat
 import com.example.androidMic.ChannelCount
 import com.example.androidMic.Dialogs
-import com.example.androidMic.Modes
+import com.example.androidMic.Mode
 import com.example.androidMic.R
 import com.example.androidMic.SampleRates
 import com.example.androidMic.Themes
 import com.example.androidMic.domain.service.Command
-import com.example.androidMic.domain.service.Command.Companion.COMMAND_DISC_STREAM
-import com.example.androidMic.domain.service.Command.Companion.COMMAND_GET_STATUS
+import com.example.androidMic.domain.service.CommandData
+import com.example.androidMic.domain.service.Response
+import com.example.androidMic.domain.service.ResponseData
+import com.example.androidMic.domain.service.ServiceState
 import com.example.androidMic.ui.utils.UiHelper
 import com.example.androidMic.utils.checkIp
 import com.example.androidMic.utils.checkPort
@@ -48,10 +50,8 @@ class MainViewModel : ViewModel() {
 
     val textLog = mutableStateOf("")
 
-    val isAudioStarted = mutableStateOf(false)
     val isStreamStarted = mutableStateOf(false)
-    val buttonConnectIsClickable = mutableStateOf(false)
-    val switchAudioIsClickable = mutableStateOf(false)
+    val isButtonConnectClickable = mutableStateOf(false)
 
     init {
         Log.d(TAG, "init")
@@ -59,11 +59,20 @@ class MainViewModel : ViewModel() {
 
     private inner class ReplyHandler(looper: Looper) : Handler(looper) {
         override fun handleMessage(msg: Message) {
-            when (msg.what) {
-                COMMAND_DISC_STREAM -> handleDisconnect(msg)
-                COMMAND_GET_STATUS -> handleGetStatus(msg)
 
-                else -> handleResult(msg)
+            val data = ResponseData.fromMessage(msg);
+
+            when (Response.entries[msg.what]) {
+                Response.Standard -> {
+                    data.state?.let {
+                        isButtonConnectClickable.value = true
+                        isStreamStarted.value = it == ServiceState.Connected
+                    }
+
+                    data.msg?.let {
+                        addLogMessage(it)
+                    }
+                }
             }
         }
     }
@@ -80,74 +89,58 @@ class MainViewModel : ViewModel() {
         mBound = AndroidMicApp.mBound
         mService = AndroidMicApp.mService
 
-        isAudioStarted.value = false
         isStreamStarted.value = false
-        buttonConnectIsClickable.value = false
-        switchAudioIsClickable.value = false
+        isButtonConnectClickable.value = false
+
+        val msg = CommandData(Command.BindCheck).toCommandMsg()
+        msg.replyTo = mMessenger
+        mService?.send(msg)
     }
 
     fun onConnectButton(): Dialogs? {
         if (!mBound) return null
         val reply = if (isStreamStarted.value) {
             Log.d(TAG, "onConnectButton: stop stream")
-            Message.obtain(null, Command.COMMAND_STOP_STREAM)
+            CommandData(Command.StopStream).toCommandMsg()
         } else {
-            val data = Bundle()
-
             val ip = prefs.ip.getBlocking()
             val port = prefs.port.getBlocking()
             val mode = prefs.mode.getBlocking()
 
+            val data = CommandData(
+                command = Command.StartStream,
+                sampleRate = prefs.sampleRate.getBlocking(),
+                channelCount = prefs.channelCount.getBlocking(),
+                audioFormat = prefs.audioFormat.getBlocking(),
+                mode = mode
+            )
+
             when (mode) {
-                Modes.WIFI, Modes.UDP -> {
+                Mode.WIFI, Mode.UDP -> {
                     if (!checkIp(ip) || !checkPort(port)) {
                         uiHelper.makeToast(
                             uiHelper.getString(R.string.invalid_ip_port)
                         )
                         return Dialogs.IpPort
                     }
-                    data.putString("IP", ip)
-                    data.putInt("PORT", port.toInt())
+                    data.ip = ip
+                    data.port =  port.toInt()
                 }
 
                 else -> {}
             }
 
-            data.putInt("MODE", mode.ordinal)
-
             Log.d(TAG, "onConnectButton: start stream")
             // lock button to avoid duplicate events
-            buttonConnectIsClickable.value = false
-            Message.obtain(null, Command.COMMAND_START_STREAM).apply {
-                this.data = data
-            }
+            isButtonConnectClickable.value = false
+
+            data.toCommandMsg()
         }
 
         reply.replyTo = mMessenger
         mService?.send(reply)
 
         return null
-    }
-
-    fun onAudioSwitch() {
-        if (!mBound) return
-        val reply = if (isAudioStarted.value) {
-            Log.d(TAG, "onAudioSwitch: stop audio")
-            Message.obtain(null, Command.COMMAND_STOP_AUDIO)
-        } else {
-            Log.d(TAG, "onAudioSwitch: start audio")
-            Message.obtain(null, Command.COMMAND_START_AUDIO).apply {
-                val data = Bundle()
-                data.putInt("SAMPLE_RATE", prefs.sampleRate.getBlocking().value)
-                data.putInt("CHANNEL_COUNT", prefs.channelCount.getBlocking().value)
-                data.putInt("AUDIO_FORMAT", prefs.audioFormat.getBlocking().value)
-                this.data = data
-            }
-        }
-        // lock switch to avoid duplicate events
-        switchAudioIsClickable.value = false
-        reply.replyTo = mMessenger
-        mService?.send(reply)
     }
 
     fun setIpPort(ip: String, port: String) {
@@ -157,7 +150,7 @@ class MainViewModel : ViewModel() {
         }
     }
 
-    fun setMode(mode: Modes) {
+    fun setMode(mode: Mode) {
         viewModelScope.launch {
             prefs.mode.update(mode)
         }
@@ -202,57 +195,12 @@ class MainViewModel : ViewModel() {
     // ask foreground service for current status
     fun askForStatus() {
         if (!mBound) return
-        val reply = Message.obtain(null, COMMAND_GET_STATUS)
+        val reply = Message.obtain()
+        reply.what = Command.GetStatus.ordinal
         reply.replyTo = mMessenger
         mService?.send(reply)
     }
 
-
-    // apply status to UI
-    private fun handleGetStatus(msg: Message) {
-        isStreamStarted.value = msg.data.getBoolean("isStreamStarted")
-        isAudioStarted.value = msg.data.getBoolean("isAudioStarted")
-        switchAudioIsClickable.value = true
-        buttonConnectIsClickable.value = true
-    }
-
-    private fun handleResult(msg: Message) {
-        val reply = msg.data.getString("reply")
-        if (reply != null) addLogMessage(reply)
-
-        val result = msg.data.getBoolean("result")
-
-        when (msg.what) {
-            Command.COMMAND_START_STREAM -> {
-                isStreamStarted.value = result
-                buttonConnectIsClickable.value = true
-            }
-
-            Command.COMMAND_STOP_STREAM -> {
-                isStreamStarted.value = !result
-                buttonConnectIsClickable.value = true
-
-            }
-
-            Command.COMMAND_START_AUDIO -> {
-                isAudioStarted.value = result
-                switchAudioIsClickable.value = true
-            }
-
-            Command.COMMAND_STOP_AUDIO -> {
-
-                isAudioStarted.value = !result
-                switchAudioIsClickable.value = true
-            }
-        }
-    }
-
-    private fun handleDisconnect(msg: Message) {
-        Log.d(TAG, "handleDisconnect")
-        val reply = msg.data.getString("reply")
-        if (reply != null) addLogMessage(reply)
-        isStreamStarted.value = false
-    }
 
     // helper function to append log message to textview
     private fun addLogMessage(message: String) {

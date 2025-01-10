@@ -12,6 +12,7 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Messenger
 import android.util.Log
 import androidx.core.content.ContextCompat
 import com.example.androidMic.domain.service.AudioPacket
@@ -114,7 +115,7 @@ class BluetoothStreamer(private val ctx: Context, val scope: CoroutineScope) : S
     }
 
     // stream data through socket
-    override fun start(audioStream: Flow<AudioPacket>) {
+    override fun start(audioStream: Flow<AudioPacket>, tx: Messenger) {
         streamJob?.cancel()
 
         streamJob = scope.launch {

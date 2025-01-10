@@ -15,14 +15,9 @@ import android.os.Message
 import android.os.Messenger
 import android.os.Process
 import android.util.Log
-import com.example.androidMic.Modes
+import com.example.androidMic.Mode
 import com.example.androidMic.R
 import com.example.androidMic.domain.audio.MicAudioManager
-import com.example.androidMic.domain.service.Command.Companion.COMMAND_GET_STATUS
-import com.example.androidMic.domain.service.Command.Companion.COMMAND_START_AUDIO
-import com.example.androidMic.domain.service.Command.Companion.COMMAND_START_STREAM
-import com.example.androidMic.domain.service.Command.Companion.COMMAND_STOP_AUDIO
-import com.example.androidMic.domain.service.Command.Companion.COMMAND_STOP_STREAM
 import com.example.androidMic.domain.streaming.MicStreamManager
 import com.example.androidMic.utils.ignore
 import kotlinx.coroutines.CoroutineScope
@@ -34,8 +29,9 @@ import kotlinx.coroutines.launch
 data class ServiceStates(
     var isStreamStarted: Boolean = false,
     var isAudioStarted: Boolean = false,
-    var mode: Int = Modes.WIFI.ordinal
+    var mode: Mode = Mode.WIFI
 )
+
 
 class ForegroundService : Service() {
     private val TAG = "MicService"
@@ -45,14 +41,23 @@ class ForegroundService : Service() {
 
     private inner class ServiceHandler(looper: Looper) : Handler(looper) {
         override fun handleMessage(msg: Message) {
-            when (msg.what) {
-                COMMAND_START_STREAM -> startStream(msg)
-                COMMAND_STOP_STREAM -> stopStream(msg)
-                COMMAND_START_AUDIO -> startAudio(msg)
-                COMMAND_STOP_AUDIO -> stopAudio(msg)
-                COMMAND_GET_STATUS -> getStatus(msg)
+
+            val commandData = CommandData.fromMessage(msg);
+
+            when (Command.entries[msg.what]) {
+                Command.StartStream -> startStream(commandData, msg.replyTo)
+                Command.StopStream -> stopStream(msg.replyTo)
+                Command.GetStatus -> getStatus(msg.replyTo)
+                Command.BindCheck -> {
+                    uiMessenger = msg.replyTo
+                }
             }
+
         }
+    }
+
+    private fun reply(replyTo: Messenger?, resp: ResponseData) {
+        replyTo?.send(resp.toResponseMsg())
     }
 
     private lateinit var handlerThread: HandlerThread
@@ -66,6 +71,10 @@ class ForegroundService : Service() {
 
     private val states = ServiceStates()
     private lateinit var messageui: MessageUi
+
+    // This field is true if the UI is running
+    private var isBind = false
+    private var uiMessenger: Messenger? = null
 
 
     override fun onCreate() {
@@ -93,6 +102,7 @@ class ForegroundService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? {
         Log.d(TAG, "onBind")
+        isBind = true
 
         return serviceMessenger.binder
     }
@@ -108,8 +118,10 @@ class ForegroundService : Service() {
     override fun onUnbind(intent: Intent?): Boolean {
         super.onUnbind(intent)
         Log.d(TAG, "onUnbind")
+        isBind = false
+        uiMessenger = null
 
-        if (!states.isAudioStarted && !states.isStreamStarted) {
+        if (!states.isStreamStarted) {
             // delay to handle reconfiguration
             // (Service is not destroy when the screen rotate)
             serviceShouldStop = true
@@ -144,27 +156,26 @@ class ForegroundService : Service() {
     }
 
 
+    private fun showMessage(msg: String) {
+        if (!isBind) {
+            messageui.showMessage(msg)
+        }
+    }
+
     // start streaming
-    private fun startStream(msg: Message) {
-        val sender = msg.replyTo
-        val replyData = Bundle()
-        // check connection state
-        if (states.isStreamStarted) {
-            replyData.putString("reply", this.getString(R.string.stream_already_started))
-            reply(sender, replyData, COMMAND_START_STREAM, true)
-            return
-        } else if (managerAudio == null) {
-            replyData.putString("reply", this.getString(R.string.microphone_not_recording))
-            reply(sender, replyData, COMMAND_START_STREAM, false)
-            return
+    private fun startStream(msg: CommandData, replyTo: Messenger) {
+
+        if (!states.isAudioStarted) {
+            if (!startAudio(msg, replyTo)) {
+                return
+            }
         }
 
-        // get params before going into the scope
-        val mode: Modes = msg.data.getInt("MODE").let {
-            Modes.entries[it]
+        // check connection state
+        if (states.isStreamStarted) {
+            reply(replyTo, ResponseData(ServiceState.Connected, this.getString(R.string.stream_already_started)))
+            return
         }
-        val ip: String? = msg.data.getString("IP")
-        val port: Int = msg.data.getInt("PORT")
 
         Log.d(TAG, "startStream [start]")
 
@@ -172,66 +183,63 @@ class ForegroundService : Service() {
         managerStream?.shutdown()
 
         try {
-            managerStream = MicStreamManager(applicationContext, scope, mode, ip, port)
+            managerStream = MicStreamManager(applicationContext, scope, msg.mode!!, msg.ip, msg.port)
         } catch (e: IllegalArgumentException) {
-            Log.d(TAG, "start stream with mode ${mode.name} failed:\n${e.message}")
-            replyData.putString(
-                "reply",
-                applicationContext.getString(R.string.error) + e.message
-            )
-            reply(sender, replyData, COMMAND_START_STREAM, false)
+            Log.d(TAG, "start stream with mode ${msg.mode!!.name} failed:\n${e.message}")
+
+            reply(replyTo, ResponseData(ServiceState.Disconnected,  applicationContext.getString(R.string.error) + e.message))
             return
         }
 
-        if (managerStream?.start(managerAudio!!.audioStream()) == true && managerStream?.isConnected() == true) {
-            replyData.putString(
-                "reply",
-                applicationContext.getString(R.string.connected_device) +
-                        managerStream?.getInfo()
-            )
-            reply(sender, replyData, COMMAND_START_STREAM, true)
-            messageui.showMessage(applicationContext.getString(R.string.start_streaming))
+        if (managerStream?.start(managerAudio!!.audioStream(), serviceMessenger) == true && managerStream?.isConnected() == true) {
+
+            reply(replyTo, ResponseData(ServiceState.Connected,  applicationContext.getString(R.string.connected_device) + managerStream?.getInfo()))
+
+
             states.isStreamStarted = true
             Log.d(TAG, "startStream [connected]")
         } else {
-            replyData.putString(
-                "reply",
-                applicationContext.getString(R.string.failed_to_connect)
-            )
-            reply(sender, replyData, COMMAND_START_STREAM, false)
+
+            reply(replyTo, ResponseData(ServiceState.Disconnected,  applicationContext.getString(R.string.failed_to_connect)))
+
             managerStream?.shutdown()
             managerStream = null
         }
     }
 
     // stop streaming
-    private fun stopStream(msg: Message) {
+    fun stopStream(replyTo: Messenger?) {
         Log.d(TAG, "stopStream")
-        val sender = msg.replyTo
-        val replyData = Bundle()
+
+        stopAudio(replyTo)
+
         managerStream?.shutdown()
         managerStream = null
-        replyData.putString("reply", applicationContext.getString(R.string.device_disconnected))
-        messageui.showMessage(applicationContext.getString(R.string.stop_streaming))
+        showMessage(applicationContext.getString(R.string.stop_streaming))
         states.isStreamStarted = false
-        reply(sender, replyData, COMMAND_STOP_STREAM, true)
+
+        reply(uiMessenger, ResponseData(ServiceState.Disconnected, applicationContext.getString(R.string.device_disconnected)))
+
+        if (!isBind) {
+            stopService()
+        }
+    }
+
+    private fun isConnected(): ServiceState {
+       return if (states.isStreamStarted) {
+           ServiceState.Connected
+        } else {
+           ServiceState.Disconnected
+        }
     }
 
     // start mic
-    private fun startAudio(msg: Message) {
-        val sender = msg.replyTo
-        val replyData = Bundle()
+    private fun startAudio(msg: CommandData, replyTo: Messenger): Boolean {
         // check audio state
         if (states.isAudioStarted) {
-            replyData.putString("reply", this.getString(R.string.microphone_already_started))
-            reply(sender, replyData, COMMAND_START_AUDIO, true)
-            return
+            reply(replyTo, ResponseData(msg = this.getString(R.string.microphone_already_started)))
+            return true
         }
-
-        // get params before going into the scope
-        val sampleRate: Int = msg.data.getInt("SAMPLE_RATE")
-        val channelCount: Int = msg.data.getInt("CHANNEL_COUNT")
-        val audioFormat: Int = msg.data.getInt("AUDIO_FORMAT")
 
         Log.d(TAG, "startAudio [start]")
 
@@ -241,14 +249,13 @@ class ForegroundService : Service() {
             managerAudio = MicAudioManager(
                 ctx = applicationContext,
                 scope = scope,
-                sampleRate = sampleRate,
-                audioFormat = audioFormat,
-                channelCount = channelCount,
+                sampleRate = msg.sampleRate!!.value,
+                audioFormat = msg.audioFormat!!.value,
+                channelCount = msg.channelCount!!.value,
             )
         } catch (e: IllegalArgumentException) {
-            replyData.putString("reply", application.getString(R.string.error) + e.message)
-            reply(sender, replyData, COMMAND_START_AUDIO, false)
-            return
+            reply(replyTo, ResponseData(msg = application.getString(R.string.error) + e.message))
+            return false
         }
 
         managerAudio?.start()
@@ -259,40 +266,33 @@ class ForegroundService : Service() {
         // the type in manifest
         startForeground(3, messageui.getNotification())
 
-        messageui.showMessage(application.getString(R.string.start_recording))
-        replyData.putString("reply", application.getString(R.string.mic_start_recording))
-        reply(sender, replyData, COMMAND_START_AUDIO, true)
+        showMessage(application.getString(R.string.start_recording))
         Log.d(TAG, "startAudio [recording]")
-
         states.isAudioStarted = true
+
+        reply(replyTo, ResponseData(msg = application.getString(R.string.mic_start_recording)))
+
+        return true
     }
 
     // stop mic
-    private fun stopAudio(msg: Message) {
+    private fun stopAudio(replyTo: Messenger?) {
         Log.d(TAG, "stopAudio")
-        val sender = msg.replyTo
-        val replyData = Bundle()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         }
         managerAudio?.shutdown()
         managerAudio = null
-        replyData.putString("reply", application.getString(R.string.recording_stopped))
-        messageui.showMessage(application.getString(R.string.stop_recording))
+        showMessage(application.getString(R.string.stop_recording))
         states.isAudioStarted = false
-        reply(sender, replyData, COMMAND_STOP_AUDIO, true)
+
+        reply(replyTo, ResponseData(msg = application.getString(R.string.recording_stopped)))
     }
 
 
-    private fun getStatus(msg: Message) {
+    private fun getStatus(replyTo: Messenger) {
         Log.d(TAG, "getStatus")
-        val sender = msg.replyTo
-        val replyData = Bundle()
-        replyData.putBoolean("isStreamStarted", states.isStreamStarted)
-        replyData.putBoolean("isAudioStarted", states.isAudioStarted)
-        val reply = Message()
-        reply.data = replyData
-        reply.what = COMMAND_GET_STATUS
-        sender.send(reply)
+
+        reply(replyTo, ResponseData(isConnected()))
     }
 }
