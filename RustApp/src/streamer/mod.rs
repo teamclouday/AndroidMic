@@ -90,6 +90,8 @@ enum ConnectError {
     CantOpenUsbAccessoryEndpoint(EndpointError),
     #[error("device disconnected")]
     Disconnected,
+    #[error(transparent)]
+    CantJoin(#[from] tokio::task::JoinError),
 }
 
 #[derive(Debug, Error)]
