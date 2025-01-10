@@ -59,7 +59,7 @@
     <!--
     Service
     -->
-    <string name="notification_info">Notification to allow record audio in background</string>
+    <string name="notification_info">Audio stream is active</string>
 
     <string name="start_streaming">Start streaming</string>
     <string name="start_recording">Start recording</string>

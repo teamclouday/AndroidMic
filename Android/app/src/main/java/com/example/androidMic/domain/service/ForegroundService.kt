@@ -32,11 +32,6 @@ data class ServiceStates(
     var mode: Mode = Mode.WIFI
 )
 
-data class Result(
-    val success: Boolean,
-    val log: String
-)
-
 
 class ForegroundService : Service() {
     private val TAG = "MicService"
@@ -116,7 +111,7 @@ class ForegroundService : Service() {
         super.onUnbind(intent)
         Log.d(TAG, "onUnbind")
 
-        if (!states.isAudioStarted && !states.isStreamStarted) {
+        if (!states.isStreamStarted) {
             // delay to handle reconfiguration
             // (Service is not destroy when the screen rotate)
             serviceShouldStop = true
