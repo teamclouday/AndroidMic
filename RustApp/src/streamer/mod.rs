@@ -5,10 +5,10 @@ use byteorder::{ByteOrder, NativeEndian};
 use enum_dispatch::enum_dispatch;
 use prost::DecodeError;
 use rtrb::{chunks::ChunkError, Producer};
-use udp_streamer::UdpStreamer;
 use std::io;
 use tcp_streamer::TcpStreamer;
 use thiserror::Error;
+use udp_streamer::UdpStreamer;
 // use usb_streamer::UsbStreamer;
 
 mod adb_streamer;

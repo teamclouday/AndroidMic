@@ -4,10 +4,7 @@ use futures::StreamExt;
 use prost::Message;
 use rtrb::Producer;
 use tokio::net::UdpSocket;
-use tokio_util::{
-    codec::LengthDelimitedCodec,
-    udp::UdpFramed,
-};
+use tokio_util::{codec::LengthDelimitedCodec, udp::UdpFramed};
 
 use crate::{
     config::AudioFormat,

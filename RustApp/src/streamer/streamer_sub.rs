@@ -81,7 +81,9 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                             adb_streamer::new(producer).await.map(Streamer::from)
                                         }
                                         ConnectOption::Udp { ip } => {
-                                            udp_streamer::new(ip, producer).await.map(Streamer::from)
+                                            udp_streamer::new(ip, producer)
+                                                .await
+                                                .map(Streamer::from)
                                         }
                                         ConnectOption::Usb => todo!(),
                                     };
