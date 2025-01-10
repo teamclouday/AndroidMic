@@ -9,14 +9,14 @@ use std::io;
 use tcp_streamer::TcpStreamer;
 use thiserror::Error;
 use udp_streamer::UdpStreamer;
-// use usb_streamer::UsbStreamer;
+use usb_streamer::UsbStreamer;
 
 mod adb_streamer;
 mod message;
 mod streamer_sub;
 mod tcp_streamer;
 mod udp_streamer;
-// mod usb_streamer;
+mod usb_streamer;
 
 pub use message::{AudioPacketMessage, AudioPacketMessageOrdered};
 pub use streamer_sub::{sub, ConnectOption, StreamerCommand, StreamerMsg};
@@ -64,7 +64,7 @@ enum Streamer {
     TcpStreamer,
     AdbStreamer,
     UdpStreamer,
-    // UsbStreamer,
+    UsbStreamer,
     DummyStreamer,
 }
 

@@ -12,7 +12,8 @@ use tokio::sync::mpsc::{self, Sender};
 use crate::streamer::{StreamerTrait, WriteError};
 
 use super::{
-    adb_streamer, tcp_streamer, udp_streamer, ConnectError, DummyStreamer, Status, Streamer,
+    adb_streamer, tcp_streamer, udp_streamer, usb_streamer, ConnectError, DummyStreamer, Status,
+    Streamer,
 };
 
 #[derive(Debug)]
@@ -85,7 +86,9 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                                 .await
                                                 .map(Streamer::from)
                                         }
-                                        ConnectOption::Usb => todo!(),
+                                        ConnectOption::Usb => {
+                                            usb_streamer::new(producer).await.map(Streamer::from)
+                                        }
                                     };
 
                                 match new_streamer {
