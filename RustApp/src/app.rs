@@ -137,6 +137,37 @@ impl AppState {
 
         size
     }
+
+    fn connect(&mut self) {
+        let config = &self.config.data();
+        self.state = State::WaitingOnStatus;
+        let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
+
+        let connect_option = match config.connection_mode {
+            ConnectionMode::Tcp => {
+                let ip = config.ip.unwrap_or(local_ip().unwrap());
+                self.add_log(format!("Listening on ip {ip:?}").as_str());
+                ConnectOption::Tcp { ip }
+            }
+            ConnectionMode::Udp => {
+                let ip = config.ip.unwrap_or(local_ip().unwrap());
+                self.add_log(format!("Listening on ip {ip:?}").as_str());
+                ConnectOption::Udp { ip }
+            }
+            ConnectionMode::Adb => ConnectOption::Adb,
+            ConnectionMode::Usb => ConnectOption::Usb,
+        };
+
+        self.send_command(StreamerCommand::Connect(connect_option, producer));
+
+        match self.start_audio_stream(consumer) {
+            Ok(stream) => self.audio_stream = Some(stream),
+            Err(e) => {
+                self.add_log(&e.to_string());
+                error!("{e}")
+            }
+        }
+    }
 }
 
 pub struct Flags {
@@ -238,7 +269,12 @@ impl Application for AppState {
                         self.audio_wave.write_chunk(&data);
                     }
                 },
-                StreamerMsg::Ready(sender) => self.streamer = Some(sender),
+                StreamerMsg::Ready(sender) => {
+                    self.streamer = Some(sender);
+                    if config.auto_connect {
+                        self.connect();
+                    }
+                }
             },
             AppMsg::Device(audio_device) => {
                 self.audio_device = Some(audio_device.device.clone());
@@ -247,33 +283,7 @@ impl Application for AppState {
                 self.update_audio_stream();
             }
             AppMsg::Connect => {
-                self.state = State::WaitingOnStatus;
-                let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
-
-                let connect_option = match config.connection_mode {
-                    ConnectionMode::Tcp => {
-                        let ip = config.ip.unwrap_or(local_ip().unwrap());
-                        self.add_log(format!("Listening on ip {ip:?}").as_str());
-                        ConnectOption::Tcp { ip }
-                    }
-                    ConnectionMode::Udp => {
-                        let ip = config.ip.unwrap_or(local_ip().unwrap());
-                        self.add_log(format!("Listening on ip {ip:?}").as_str());
-                        ConnectOption::Udp { ip }
-                    }
-                    ConnectionMode::Adb => ConnectOption::Adb,
-                    ConnectionMode::Usb => ConnectOption::Usb,
-                };
-
-                self.send_command(StreamerCommand::Connect(connect_option, producer));
-
-                match self.start_audio_stream(consumer) {
-                    Ok(stream) => self.audio_stream = Some(stream),
-                    Err(e) => {
-                        self.add_log(&e.to_string());
-                        error!("{e}")
-                    }
-                }
+                self.connect();
             }
             AppMsg::Stop => {
                 self.send_command(StreamerCommand::Stop);

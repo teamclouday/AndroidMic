@@ -44,6 +44,7 @@ fn stop_reverse_proxy() -> Result<(), ConnectError> {
     Ok(())
 }
 
+// this function seems to block the async runtime for some second. Maybe we need an ADB async impl
 pub async fn new(producer: Producer<u8>) -> Result<AdbStreamer, ConnectError> {
     let tcp_streamer = tcp_streamer::new(str::parse("127.0.0.1").unwrap(), producer).await?;
 
