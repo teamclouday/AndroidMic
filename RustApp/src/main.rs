@@ -17,6 +17,7 @@ mod app;
 mod audio;
 mod config;
 mod map_bytes;
+mod message;
 mod streamer;
 mod usb;
 mod utils;

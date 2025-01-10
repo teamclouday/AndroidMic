@@ -5,16 +5,17 @@ use cosmic::{
     },
     widget::{
         button, canvas, column, container, horizontal_space, radio, row, scrollable, settings,
-        text, vertical_space,
+        text, toggler, vertical_space,
     },
     Element,
 };
 use cpal::traits::DeviceTrait;
 
 use crate::{
-    app::{AdvancedWindow, AppMsg, AppState, State},
+    app::{AdvancedWindow, AppState, State},
     config::{AudioFormat, ChannelCount, ConnectionMode, SampleRate},
     fl,
+    message::{AppMsg, ConfigMsg},
 };
 
 pub fn view_app(app: &AppState) -> Element<'_, AppMsg> {
@@ -125,14 +126,14 @@ fn connect_button(app: &AppState) -> Element<'_, AppMsg> {
 pub fn advanced_window<'a>(
     app: &'a AppState,
     _advanced_window: &'a AdvancedWindow,
-) -> Element<'a, AppMsg> {
+) -> Element<'a, ConfigMsg> {
     let config = app.config.data();
 
     column()
         .push(settings::section().title(fl!("sample_rate")).add(pick_list(
             SampleRate::VALUES,
             Some(&config.sample_rate),
-            AppMsg::ChangeSampleRate,
+            ConfigMsg::SampleRate,
         )))
         .push(
             settings::section()
@@ -140,7 +141,7 @@ pub fn advanced_window<'a>(
                 .add(pick_list(
                     ChannelCount::VALUES,
                     Some(&config.channel_count),
-                    AppMsg::ChangeChannelCount,
+                    ConfigMsg::ChannelCount,
                 )),
         )
         .push(
@@ -149,8 +150,18 @@ pub fn advanced_window<'a>(
                 .add(pick_list(
                     AudioFormat::VALUES,
                     Some(&config.audio_format),
-                    AppMsg::ChangeAudioFormat,
+                    ConfigMsg::AudioFormat,
                 )),
+        )
+        .push(
+            settings::section()
+                .title(fl!("start_at_login"))
+                .add(toggler(config.start_at_login).on_toggle(ConfigMsg::StartAtLogin)),
+        )
+        .push(
+            settings::section()
+                .title(fl!("auto_connect"))
+                .add(toggler(config.auto_connect).on_toggle(ConfigMsg::AutoConnect)),
         )
         .into()
 }

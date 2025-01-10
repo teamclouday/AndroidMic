@@ -17,8 +17,9 @@ use cosmic::{
 };
 
 use crate::{
-    config::{AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
+    config::{Config, ConnectionMode},
     fl,
+    message::{AppMsg, ConfigMsg},
     streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg},
     utils::APP_ID,
     view::{advanced_window, view_app, AudioWave},
@@ -94,19 +95,6 @@ pub struct AppState {
 
 pub struct AdvancedWindow {
     pub window_id: window::Id,
-}
-
-#[derive(Debug, Clone)]
-pub enum AppMsg {
-    ChangeConnectionMode(ConnectionMode),
-    Streamer(StreamerMsg),
-    Device(AudioDevice),
-    Connect,
-    Stop,
-    AdvancedOptions,
-    ChangeSampleRate(SampleRate),
-    ChangeChannelCount(ChannelCount),
-    ChangeAudioFormat(AudioFormat),
 }
 
 impl AppState {
@@ -313,18 +301,26 @@ impl Application for AppState {
                     return command.map(|_| cosmic::app::Message::None);
                 }
             },
-            AppMsg::ChangeSampleRate(sample_rate) => {
-                self.config.update(|s| s.sample_rate = sample_rate);
-                self.update_audio_stream();
-            }
-            AppMsg::ChangeChannelCount(channel_count) => {
-                self.config.update(|s| s.channel_count = channel_count);
-                self.update_audio_stream();
-            }
-            AppMsg::ChangeAudioFormat(audio_format) => {
-                self.config.update(|s| s.audio_format = audio_format);
-                self.update_audio_stream();
-            }
+            AppMsg::Config(msg) => match msg {
+                ConfigMsg::SampleRate(sample_rate) => {
+                    self.config.update(|s| s.sample_rate = sample_rate);
+                    self.update_audio_stream();
+                }
+                ConfigMsg::ChannelCount(channel_count) => {
+                    self.config.update(|s| s.channel_count = channel_count);
+                    self.update_audio_stream();
+                }
+                ConfigMsg::AudioFormat(audio_format) => {
+                    self.config.update(|s| s.audio_format = audio_format);
+                    self.update_audio_stream();
+                }
+                ConfigMsg::StartAtLogin(start_at_login) => {
+                    self.config.update(|s| s.start_at_login = start_at_login);
+                }
+                ConfigMsg::AutoConnect(auto_connect) => {
+                    self.config.update(|s| s.auto_connect = auto_connect);
+                }
+            },
         }
 
         Task::none()
@@ -336,7 +332,7 @@ impl Application for AppState {
     fn view_window(&self, id: window::Id) -> Element<Self::Message> {
         if let Some(window) = &self.advanced_window {
             if window.window_id == id {
-                return advanced_window(self, window);
+                return advanced_window(self, window).map(AppMsg::Config);
             }
         }
 

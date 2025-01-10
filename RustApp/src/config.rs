@@ -17,6 +17,8 @@ pub struct Config {
     // device that could be disconnected sometime.
     pub device_name: Option<String>,
     pub usb_device_name: Option<String>,
+    pub start_at_login: bool,
+    pub auto_connect: bool,
 }
 
 #[derive(Parser, Debug)]
