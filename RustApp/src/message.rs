@@ -13,6 +13,7 @@ pub enum AppMsg {
     Stop,
     AdvancedOptions,
     Config(ConfigMsg),
+    RefreshAudioDevices,
 }
 
 #[derive(Debug, Clone)]

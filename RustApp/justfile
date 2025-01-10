@@ -21,7 +21,7 @@ icon-dst := share-dst / 'icons/hicolor/scalable/apps' / appid + '.svg'
 
 default: build-release
 
-pull: fmt prettier fix test
+pull: prettier fix test
 
 build-debug *args:
 	cargo build {{args}}
@@ -49,7 +49,7 @@ nsis:
 test:
 	cargo test --workspace --all-features
 
-fix:
+fix: fmt
 	cargo clippy --workspace --all-features --fix --allow-dirty --allow-staged
 
 fmt:

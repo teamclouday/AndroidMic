@@ -14,7 +14,7 @@ use cpal::traits::DeviceTrait;
 use crate::{
     app::{AdvancedWindow, AppState, State},
     config::{AudioFormat, ChannelCount, ConnectionMode, SampleRate},
-    fl,
+    fl, icon_button,
     message::{AppMsg, ConfigMsg},
 };
 
@@ -66,11 +66,15 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
         .spacing(20)
         .align_x(Horizontal::Center)
         .push(text::title4(fl!("audio_device")))
-        .push(pick_list(
-            app.audio_devices.clone(),
-            selected,
-            AppMsg::Device,
-        ))
+        .push(
+            row()
+                .push(pick_list(
+                    app.audio_devices.clone(),
+                    selected,
+                    AppMsg::Device,
+                ))
+                .push(icon_button!("refresh24").on_press(AppMsg::RefreshAudioDevices)),
+        )
         .push(button::text(fl!("advanced")).on_press(AppMsg::AdvancedOptions))
         .into()
 }

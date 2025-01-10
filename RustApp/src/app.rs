@@ -69,6 +69,15 @@ impl AudioDevice {
     }
 }
 
+fn get_audio_devices(audio_host: &Host) -> Vec<AudioDevice> {
+    audio_host
+        .output_devices()
+        .unwrap()
+        .enumerate()
+        .map(|(pos, device)| AudioDevice::new(device, pos))
+        .collect()
+}
+
 const SHARED_BUF_SIZE_S: f32 = 0.05; // 0.05s
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -197,12 +206,7 @@ impl Application for AppState {
     ) -> (Self, cosmic::app::Task<Self::Message>) {
         let audio_host = cpal::default_host();
 
-        let audio_devices = audio_host
-            .output_devices()
-            .unwrap()
-            .enumerate()
-            .map(|(pos, device)| AudioDevice::new(device, pos))
-            .collect::<Vec<_>>();
+        let audio_devices = get_audio_devices(&audio_host);
 
         let audio_device = match &flags.config.data().device_name {
             Some(name) => {
@@ -245,6 +249,10 @@ impl Application for AppState {
                 self.config.update(|config| {
                     config.connection_mode = connection_mode;
                 });
+            }
+            AppMsg::RefreshAudioDevices => {
+                let audio_host = cpal::default_host();
+                self.audio_devices = get_audio_devices(&audio_host);
             }
             AppMsg::Streamer(streamer_msg) => match streamer_msg {
                 StreamerMsg::Status(status) => match status {
