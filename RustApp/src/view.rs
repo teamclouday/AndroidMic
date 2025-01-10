@@ -157,11 +157,15 @@ pub fn advanced_window<'a>(
                     ConfigMsg::AudioFormat,
                 )),
         )
-        .push(
-            settings::section()
-                .title(fl!("start_at_login"))
-                .add(toggler(config.start_at_login).on_toggle(ConfigMsg::StartAtLogin)),
-        )
+        .push_maybe(if cfg!(target_os = "windows") {
+            Some(
+                settings::section()
+                    .title(fl!("start_at_login"))
+                    .add(toggler(config.start_at_login).on_toggle(ConfigMsg::StartAtLogin)),
+            )
+        } else {
+            None
+        })
         .push(
             settings::section()
                 .title(fl!("auto_connect"))
