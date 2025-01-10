@@ -1,7 +1,4 @@
-use std::{
-    fmt::{Debug, Display},
-    path::Path,
-};
+use std::fmt::{Debug, Display};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait},
@@ -23,15 +20,15 @@ use crate::{
     config::{AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
     fl,
     streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg},
-    utils::{APP, APP_ID, ORG, QUALIFIER},
+    utils::APP_ID,
     view::{advanced_window, view_app, AudioWave},
 };
 use zconf::ConfigManager;
 
-use directories::ProjectDirs;
+pub fn run_ui(config: ConfigManager<Config>) {
+    let flags = Flags { config };
 
-pub fn run_ui() {
-    cosmic::app::run::<AppState>(Settings::default(), ()).unwrap();
+    cosmic::app::run::<AppState>(Settings::default(), flags).unwrap();
 }
 
 #[derive(Clone)]
@@ -154,10 +151,14 @@ impl AppState {
     }
 }
 
+pub struct Flags {
+    config: ConfigManager<Config>,
+}
+
 impl Application for AppState {
     type Executor = executor::Default;
 
-    type Flags = ();
+    type Flags = Flags;
 
     type Message = AppMsg;
 
@@ -173,19 +174,8 @@ impl Application for AppState {
 
     fn init(
         core: cosmic::app::Core,
-        _flags: Self::Flags,
+        flags: Self::Flags,
     ) -> (Self, cosmic::app::Task<Self::Message>) {
-        let project_dirs = ProjectDirs::from(QUALIFIER, ORG, APP).unwrap();
-
-        let config_path = if cfg!(debug_assertions) {
-            Path::new("config")
-        } else {
-            project_dirs.config_dir()
-        };
-
-        let config: ConfigManager<Config> =
-            ConfigManager::new(config_path.join(format!("{APP}.toml")));
-
         let audio_host = cpal::default_host();
 
         let audio_devices = audio_host
@@ -195,7 +185,7 @@ impl Application for AppState {
             .map(|(pos, device)| AudioDevice::new(device, pos))
             .collect::<Vec<_>>();
 
-        let audio_device = match &config.data().device_name {
+        let audio_device = match &flags.config.data().device_name {
             Some(name) => {
                 match audio_devices
                     .iter()
@@ -215,7 +205,7 @@ impl Application for AppState {
             core,
             audio_stream: None,
             streamer: None,
-            config,
+            config: flags.config,
             audio_device,
             audio_host,
             audio_devices,

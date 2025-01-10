@@ -1,8 +1,8 @@
 use std::net::IpAddr;
 
+use clap::Parser;
 use light_enum::Values;
 use serde::{Deserialize, Serialize};
-use serde_textual::DisplaySerde;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -19,21 +19,91 @@ pub struct Config {
     pub usb_device_name: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Copy, Default, PartialEq, Eq, DisplaySerde)]
+#[derive(Parser, Debug)]
+#[clap(author = "wiiznokes", version, about = "AndroidMic", long_about = None)]
+pub struct Args {
+    #[arg(short, long, help = "example: -i 192.168.1.79")]
+    pub ip: Option<IpAddr>,
+
+    #[arg(
+        short = 'm',
+        long = "mode",
+        id = "connection mode",
+        help = "UDP or TCP"
+    )]
+    pub connection_mode: Option<ConnectionMode>,
+
+    #[arg(short = 'd', long = "device", id = "output device")]
+    pub output_device: Option<String>,
+
+    #[arg(
+        short = 'f',
+        long = "format",
+        id = "audio format",
+        help = "i16, f32, ..."
+    )]
+    pub audio_format: Option<AudioFormat>,
+
+    #[arg(short = 'c', long = "channel", id = "channel count", help = "1 or 2")]
+    pub channel_count: Option<ChannelCount>,
+
+    #[arg(
+        short = 's',
+        long = "sample",
+        id = "sample rate",
+        help = "16000, 44100, ..."
+    )]
+    pub sample_rate: Option<SampleRate>,
+
+    #[arg(
+        long = "info",
+        id = "supported audio config",
+        help = "show supported audio config",
+        default_value_t = false
+    )]
+    pub show_supported_audio_config: bool,
+}
+
+#[derive(
+    Debug,
+    Clone,
+    Copy,
+    Default,
+    PartialEq,
+    Eq,
+    strum::Display,
+    strum::EnumString,
+    serde_with::SerializeDisplay,
+    serde_with::DeserializeFromStr,
+)]
 pub enum ConnectionMode {
     #[default]
+    #[strum(serialize = "tcp", serialize = "TCP")]
     Tcp,
+    #[strum(serialize = "udp", serialize = "UDP")]
     Udp,
+    #[strum(serialize = "adb", serialize = "ADB")]
     Adb,
+    #[strum(serialize = "usb", serialize = "USB")]
     Usb,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, DisplaySerde, Values)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Default,
+    Values,
+    strum::Display,
+    strum::EnumString,
+    serde_with::SerializeDisplay,
+    serde_with::DeserializeFromStr,
+)]
 pub enum ChannelCount {
     #[default]
-    #[serde(alias = "1")]
+    #[strum(serialize = "mono", serialize = "MONO", serialize = "1")]
     Mono,
-    #[serde(alias = "2")]
+    #[strum(serialize = "stereo", serialize = "STEREO", serialize = "2")]
     Stereo,
 }
 
@@ -46,38 +116,48 @@ impl ChannelCount {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, DisplaySerde, Values)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Default,
+    Values,
+    strum::Display,
+    strum::EnumString,
+    serde_with::SerializeDisplay,
+    serde_with::DeserializeFromStr,
+)]
 pub enum AudioFormat {
-    #[serde(rename = "i8")]
+    #[strum(serialize = "i8")]
     I8,
     #[default]
-    #[serde(rename = "i16")]
+    #[strum(serialize = "i16")]
     I16,
-    #[serde(rename = "i24")]
+    #[strum(serialize = "i24")]
     I24,
-    #[serde(rename = "i32")]
+    #[strum(serialize = "i32")]
     I32,
-    #[serde(rename = "i48")]
+    #[strum(serialize = "i48")]
     I48,
-    #[serde(rename = "i64")]
+    #[strum(serialize = "i64")]
     I64,
 
-    #[serde(rename = "u8")]
+    #[strum(serialize = "u8")]
     U8,
-    #[serde(rename = "u16")]
+    #[strum(serialize = "u16")]
     U16,
-    #[serde(rename = "u24")]
+    #[strum(serialize = "u24")]
     U24,
-    #[serde(rename = "u32")]
+    #[strum(serialize = "u32")]
     U32,
-    #[serde(rename = "u48")]
+    #[strum(serialize = "u48")]
     U48,
-    #[serde(rename = "u64")]
+    #[strum(serialize = "u64")]
     U64,
 
-    #[serde(rename = "f32")]
+    #[strum(serialize = "f32")]
     F32,
-    #[serde(rename = "f64")]
+    #[strum(serialize = "f64")]
     F64,
 }
 
@@ -113,68 +193,47 @@ impl AudioFormat {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default, DisplaySerde, Values)]
+#[derive(
+    Debug,
+    Clone,
+    PartialEq,
+    Default,
+    Values,
+    strum::Display,
+    strum::EnumString,
+    serde_with::SerializeDisplay,
+    serde_with::DeserializeFromStr,
+)]
 pub enum SampleRate {
-    #[serde(rename = "8000")]
+    #[strum(serialize = "8000")]
     S8000,
-    #[serde(rename = "11025")]
+    #[strum(serialize = "11025")]
     S11025,
     #[default]
-    #[serde(rename = "16000")]
+    #[strum(serialize = "16000")]
     S16000,
-    #[serde(rename = "22050")]
+    #[strum(serialize = "22050")]
     S22050,
-    #[serde(rename = "44100")]
+    #[strum(serialize = "44100")]
     S44100,
-    #[serde(rename = "48000")]
+    #[strum(serialize = "48000")]
     S48000,
-    #[serde(rename = "88200")]
+    #[strum(serialize = "88200")]
     S88200,
-    #[serde(rename = "96600")]
+    #[strum(serialize = "96600")]
     S96600,
-    #[serde(rename = "176400")]
+    #[strum(serialize = "176400")]
     S176400,
-    #[serde(rename = "192000")]
+    #[strum(serialize = "192000")]
     S192000,
-    #[serde(rename = "352800")]
+    #[strum(serialize = "352800")]
     S352800,
-    #[serde(rename = "384000")]
+    #[strum(serialize = "384000")]
     S384000,
 }
 
 impl SampleRate {
     pub fn to_number(&self) -> u32 {
-        match self {
-            SampleRate::S8000 => 8000,
-            SampleRate::S11025 => 11025,
-            SampleRate::S16000 => 16000,
-            SampleRate::S22050 => 22050,
-            SampleRate::S44100 => 44100,
-            SampleRate::S48000 => 48000,
-            SampleRate::S88200 => 88200,
-            SampleRate::S96600 => 96600,
-            SampleRate::S176400 => 176400,
-            SampleRate::S192000 => 192000,
-            SampleRate::S352800 => 352800,
-            SampleRate::S384000 => 384000,
-        }
-    }
-
-    pub fn from_number(number: u32) -> Option<Self> {
-        match number {
-            8000 => Some(SampleRate::S8000),
-            11025 => Some(SampleRate::S11025),
-            16000 => Some(SampleRate::S16000),
-            22050 => Some(SampleRate::S22050),
-            44100 => Some(SampleRate::S44100),
-            48000 => Some(SampleRate::S48000),
-            88200 => Some(SampleRate::S88200),
-            96600 => Some(SampleRate::S96600),
-            176400 => Some(SampleRate::S176400),
-            192000 => Some(SampleRate::S192000),
-            352800 => Some(SampleRate::S352800),
-            384000 => Some(SampleRate::S384000),
-            _ => None,
-        }
+        self.to_string().parse().unwrap()
     }
 }
