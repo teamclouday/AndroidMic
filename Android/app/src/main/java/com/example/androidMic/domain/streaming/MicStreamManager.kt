@@ -1,7 +1,7 @@
 package com.example.androidMic.domain.streaming
 
 import android.content.Context
-import com.example.androidMic.Modes
+import com.example.androidMic.Mode
 import com.example.androidMic.domain.service.AudioPacket
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.Flow
@@ -10,25 +10,25 @@ import kotlinx.coroutines.flow.Flow
 class MicStreamManager(
     ctx: Context,
     val scope: CoroutineScope,
-    val mode: Modes,
+    val mode: Mode,
     ip: String?,
     port: Int?
 ) {
 
     private var streamer: Streamer = when (mode) {
-        Modes.WIFI -> {
+        Mode.WIFI -> {
             WifiStreamer(ctx, scope, ip!!, port!!)
         }
 
-        Modes.ADB -> {
+        Mode.ADB -> {
             AdbStreamer(scope)
         }
 
-        Modes.USB -> {
+        Mode.USB -> {
             UsbStreamer(ctx, scope)
         }
 
-        Modes.UDP -> {
+        Mode.UDP -> {
             UdpStreamer(scope, ip!!, port!!)
         }
     }

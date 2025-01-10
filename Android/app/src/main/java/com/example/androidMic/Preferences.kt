@@ -20,7 +20,7 @@ object DefaultStates {
 class AppPreferences(
     context: Context
 ) : PreferencesManager(context, "settings") {
-    val mode = enumPreference("mode", Modes.WIFI)
+    val mode = enumPreference("mode", Mode.WIFI)
 
     val ip = stringPreference("ip", "192.168.")
     val port = stringPreference("port", "55555")
@@ -35,7 +35,7 @@ class AppPreferences(
 
 }
 
-enum class Modes {
+enum class Mode {
     WIFI, UDP, USB, ADB
 }
 

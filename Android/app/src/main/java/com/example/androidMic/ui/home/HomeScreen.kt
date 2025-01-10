@@ -32,7 +32,7 @@ import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
 import com.example.androidMic.Dialogs
-import com.example.androidMic.Modes
+import com.example.androidMic.Mode
 import com.example.androidMic.R
 import com.example.androidMic.ui.MainViewModel
 import com.example.androidMic.ui.components.ManagerButton
@@ -100,6 +100,7 @@ fun HomeScreen(vm: MainViewModel, currentWindowInfo: WindowInfo) {
                         .constrainAs(interactionButton) {
                             bottom.linkTo(parent.bottom)
                             width = Dimension.matchParent
+                            height = Dimension.percent(0.15f)
                         }
                 )
 
@@ -194,8 +195,6 @@ private fun InteractionButton(
         ButtonConnect(
             vm = mainViewModel,
         )
-        Spacer(modifier = Modifier.height(10.dp))
-        SwitchAudio(vm = mainViewModel)
     }
 }
 
@@ -214,6 +213,10 @@ private fun ButtonConnect(
         permissions = getUsbPermission()
     )
 
+    val audioPermissionsState = rememberMultiplePermissionsState(
+        permissions = getRecordAudioPermission()
+    )
+
 
     val dialogIpPortExpanded = rememberSaveable {
         mutableStateOf(false)
@@ -223,7 +226,7 @@ private fun ButtonConnect(
     ManagerButton(
         onClick = {
             when (vm.prefs.mode.getBlocking()) {
-                Modes.WIFI -> {
+                Mode.WIFI -> {
                     if (!wifiPermissionsState.allPermissionsGranted)
                         return@ManagerButton wifiPermissionsState.launchMultiplePermissionRequest()
                 }
@@ -233,13 +236,17 @@ private fun ButtonConnect(
 //                        return@ManagerButton bluetoothPermissionsState.launchMultiplePermissionRequest()
 //                }
 
-                Modes.USB -> {
+                Mode.USB -> {
                     if (!usbPermissionsState.allPermissionsGranted)
                         return@ManagerButton usbPermissionsState.launchMultiplePermissionRequest()
                 }
 
                 else -> {}
             }
+
+
+            if (!audioPermissionsState.allPermissionsGranted)
+                return@ManagerButton audioPermissionsState.launchMultiplePermissionRequest()
 
             val dialog = vm.onConnectButton()
 
@@ -256,41 +263,7 @@ private fun ButtonConnect(
             stringResource(id = R.string.disconnect)
         else
             stringResource(id = R.string.connect),
-        enabled = vm.buttonConnectIsClickable.value
+        enabled = vm.isButtonConnectClickable.value
     )
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
-@Composable
-private fun SwitchAudio(vm: MainViewModel) {
-
-    val permissionsState = rememberMultiplePermissionsState(
-        permissions = getRecordAudioPermission()
-    )
-
-    Row(
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = stringResource(id = R.string.turn_audio),
-            color = MaterialTheme.colorScheme.onBackground,
-            style = MaterialTheme.typography.labelLarge
-        )
-
-        Spacer(Modifier.width(12.dp))
-
-        Switch(
-            checked = vm.isAudioStarted.value,
-            onCheckedChange = {
-                // check for audio permission
-                if (!permissionsState.allPermissionsGranted)
-                    permissionsState.launchMultiplePermissionRequest()
-                else
-                    vm.onAudioSwitch()
-
-            },
-            enabled = vm.switchAudioIsClickable.value
-        )
-    }
-}

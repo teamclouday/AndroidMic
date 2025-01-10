@@ -233,7 +233,7 @@ impl StreamerTrait for UsbStreamer {
                                 }
 
                                 chunk.fill_from_iter(packet.buffer.into_iter());
-                                info!(
+                                debug!(
                                     "received {} bytes, corrected {} bytes, lost {} bytes",
                                     buffer_size,
                                     correction,
