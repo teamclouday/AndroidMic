@@ -76,5 +76,5 @@ strum = { version = "0.26.3", features = ["derive"] }
 prost-build = "0.13.3"
 winres = "0.1"
 
-[patch.crates-io]
-zconf =  { path = "../../zconf" }
+# [patch.crates-io]
+# zconf =  { path = "../../zconf" }

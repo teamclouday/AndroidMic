@@ -7799,7 +7799,9 @@ dependencies = [
 
 [[package]]
 name = "zconf"
-version = "0.1.1"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5b6b1dcc314a0d775422c9223c5a0c6a9951b9393e9ad7815256c5b467c632bb"
 dependencies = [
  "anyhow",
  "log",
