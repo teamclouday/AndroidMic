@@ -4,9 +4,6 @@ package com.example.androidMic.domain.service
 import android.app.Notification
 import android.app.PendingIntent
 import android.content.Intent
-import android.os.Bundle
-import android.os.Message
-import android.os.Messenger
 import android.widget.Toast
 import androidx.core.app.NotificationCompat
 import com.example.androidMic.R

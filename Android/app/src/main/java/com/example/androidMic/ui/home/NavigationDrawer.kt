@@ -103,7 +103,7 @@ fun DrawerBody(vm: MainViewModel) {
             }
 
             else -> {
-                
+
             }
 
 //            Modes.USB, Modes.BLUETOOTH -> {
