@@ -2,6 +2,7 @@ package com.example.androidMic.domain.streaming
 
 import android.content.Context
 import android.net.ConnectivityManager
+import android.os.Messenger
 import android.util.Log
 import com.example.androidMic.domain.service.AudioPacket
 import com.example.androidMic.utils.toBigEndianU32
@@ -67,7 +68,7 @@ class WifiStreamer(
     }
 
     // stream data through socket
-    override fun start(audioStream: Flow<AudioPacket>) {
+    override fun start(audioStream: Flow<AudioPacket>, tx: Messenger) {
         streamJob?.cancel()
 
         streamJob = scope.launch {

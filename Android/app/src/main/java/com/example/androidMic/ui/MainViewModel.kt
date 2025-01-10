@@ -91,6 +91,10 @@ class MainViewModel : ViewModel() {
 
         isStreamStarted.value = false
         isButtonConnectClickable.value = false
+
+        val msg = CommandData(Command.BindCheck).toCommandMsg()
+        msg.replyTo = mMessenger
+        mService?.send(msg)
     }
 
     fun onConnectButton(): Dialogs? {

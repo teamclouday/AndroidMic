@@ -48,13 +48,16 @@ class ForegroundService : Service() {
                 Command.StartStream -> startStream(commandData, msg.replyTo)
                 Command.StopStream -> stopStream(msg.replyTo)
                 Command.GetStatus -> getStatus(msg.replyTo)
+                Command.BindCheck -> {
+                    uiMessenger = msg.replyTo
+                }
             }
 
         }
     }
 
-    private fun reply(replyTo: Messenger, resp: ResponseData) {
-        replyTo.send(resp.toResponseMsg())
+    private fun reply(replyTo: Messenger?, resp: ResponseData) {
+        replyTo?.send(resp.toResponseMsg())
     }
 
     private lateinit var handlerThread: HandlerThread
@@ -68,6 +71,10 @@ class ForegroundService : Service() {
 
     private val states = ServiceStates()
     private lateinit var messageui: MessageUi
+
+    // This field is true if the UI is running
+    private var isBind = false
+    private var uiMessenger: Messenger? = null
 
 
     override fun onCreate() {
@@ -95,6 +102,7 @@ class ForegroundService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? {
         Log.d(TAG, "onBind")
+        isBind = true
 
         return serviceMessenger.binder
     }
@@ -110,6 +118,8 @@ class ForegroundService : Service() {
     override fun onUnbind(intent: Intent?): Boolean {
         super.onUnbind(intent)
         Log.d(TAG, "onUnbind")
+        isBind = false
+        uiMessenger = null
 
         if (!states.isStreamStarted) {
             // delay to handle reconfiguration
@@ -146,6 +156,12 @@ class ForegroundService : Service() {
     }
 
 
+    private fun showMessage(msg: String) {
+        if (!isBind) {
+            messageui.showMessage(msg)
+        }
+    }
+
     // start streaming
     private fun startStream(msg: CommandData, replyTo: Messenger) {
 
@@ -175,10 +191,11 @@ class ForegroundService : Service() {
             return
         }
 
-        if (managerStream?.start(managerAudio!!.audioStream()) == true && managerStream?.isConnected() == true) {
+        if (managerStream?.start(managerAudio!!.audioStream(), serviceMessenger) == true && managerStream?.isConnected() == true) {
 
             reply(replyTo, ResponseData(ServiceState.Connected,  applicationContext.getString(R.string.connected_device) + managerStream?.getInfo()))
-            messageui.showMessage(applicationContext.getString(R.string.start_streaming))
+
+
             states.isStreamStarted = true
             Log.d(TAG, "startStream [connected]")
         } else {
@@ -191,17 +208,21 @@ class ForegroundService : Service() {
     }
 
     // stop streaming
-    private fun stopStream(replyTo: Messenger) {
+    fun stopStream(replyTo: Messenger?) {
         Log.d(TAG, "stopStream")
 
         stopAudio(replyTo)
 
         managerStream?.shutdown()
         managerStream = null
-        messageui.showMessage(applicationContext.getString(R.string.stop_streaming))
+        showMessage(applicationContext.getString(R.string.stop_streaming))
         states.isStreamStarted = false
 
-        reply(replyTo, ResponseData(ServiceState.Disconnected, applicationContext.getString(R.string.device_disconnected)))
+        reply(uiMessenger, ResponseData(ServiceState.Disconnected, applicationContext.getString(R.string.device_disconnected)))
+
+        if (!isBind) {
+            stopService()
+        }
     }
 
     private fun isConnected(): ServiceState {
@@ -245,7 +266,7 @@ class ForegroundService : Service() {
         // the type in manifest
         startForeground(3, messageui.getNotification())
 
-        messageui.showMessage(application.getString(R.string.start_recording))
+        showMessage(application.getString(R.string.start_recording))
         Log.d(TAG, "startAudio [recording]")
         states.isAudioStarted = true
 
@@ -255,14 +276,14 @@ class ForegroundService : Service() {
     }
 
     // stop mic
-    private fun stopAudio(replyTo: Messenger) {
+    private fun stopAudio(replyTo: Messenger?) {
         Log.d(TAG, "stopAudio")
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         }
         managerAudio?.shutdown()
         managerAudio = null
-        messageui.showMessage(application.getString(R.string.stop_recording))
+        showMessage(application.getString(R.string.stop_recording))
         states.isAudioStarted = false
 
         reply(replyTo, ResponseData(msg = application.getString(R.string.recording_stopped)))

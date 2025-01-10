@@ -1,7 +1,10 @@
 package com.example.androidMic.domain.streaming
 
+import android.os.Messenger
 import android.util.Log
 import com.example.androidMic.domain.service.AudioPacket
+import com.example.androidMic.domain.service.Command
+import com.example.androidMic.domain.service.CommandData
 import com.example.androidMic.utils.toBigEndianU32
 import com.google.protobuf.ByteString
 import kotlinx.coroutines.CoroutineScope
@@ -44,7 +47,7 @@ class AdbStreamer(private val scope: CoroutineScope) : Streamer {
     }
 
     // stream data through socket
-    override fun start(audioStream: Flow<AudioPacket>) {
+    override fun start(audioStream: Flow<AudioPacket>, tx: Messenger) {
         streamJob?.cancel()
 
         streamJob = scope.launch {
@@ -68,6 +71,7 @@ class AdbStreamer(private val scope: CoroutineScope) : Streamer {
                     Log.d(TAG, "${e.message}")
                     delay(5)
                     disconnect()
+                    tx.send(CommandData(Command.StopStream).toCommandMsg())
                 } catch (e: Exception) {
                     Log.d(TAG, "${e.message}")
                 }

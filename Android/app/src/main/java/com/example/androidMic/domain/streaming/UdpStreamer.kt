@@ -1,5 +1,6 @@
 package com.example.androidMic.domain.streaming
 
+import android.os.Messenger
 import android.util.Log
 import com.example.androidMic.domain.service.AudioPacket
 import com.example.androidMic.utils.toBigEndianU32
@@ -36,7 +37,7 @@ class UdpStreamer(private val scope: CoroutineScope, val ip: String, val port: I
         disconnect()
     }
 
-    override fun start(audioStream: Flow<AudioPacket>) {
+    override fun start(audioStream: Flow<AudioPacket>, tx: Messenger) {
         streamJob?.cancel()
 
         streamJob = scope.launch {

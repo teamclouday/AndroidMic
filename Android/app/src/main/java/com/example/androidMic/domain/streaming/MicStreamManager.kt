@@ -1,6 +1,7 @@
 package com.example.androidMic.domain.streaming
 
 import android.content.Context
+import android.os.Messenger
 import com.example.androidMic.Mode
 import com.example.androidMic.domain.service.AudioPacket
 import kotlinx.coroutines.CoroutineScope
@@ -38,10 +39,10 @@ class MicStreamManager(
         const val STREAM_DELAY = 1L
     }
 
-    fun start(audioStream: Flow<AudioPacket>): Boolean {
+    fun start(audioStream: Flow<AudioPacket>, tx: Messenger): Boolean {
         val connected = streamer.connect()
         if (connected) {
-            streamer.start(audioStream)
+            streamer.start(audioStream, tx)
         }
         return connected
     }

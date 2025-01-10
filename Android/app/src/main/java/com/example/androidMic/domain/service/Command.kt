@@ -27,7 +27,9 @@ private const val ID_AUDIO_FORMAT: String = "ID_AUDIO_FORMAT"
 enum class Command {
     StartStream,
     StopStream,
-    GetStatus
+    GetStatus,
+    // called when the ui is bind
+    BindCheck,
 }
 
 fun Bundle.getOrdinal(key: String) : Int? {
