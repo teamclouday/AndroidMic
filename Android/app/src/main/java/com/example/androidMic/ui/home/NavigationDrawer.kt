@@ -2,6 +2,7 @@ package com.example.androidMic.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,6 +11,8 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Settings
@@ -52,6 +55,7 @@ fun DrawerBody(vm: MainViewModel) {
             .fillMaxHeight()
             .width(355.dp)
             .background(color = MaterialTheme.colorScheme.background)
+            .verticalScroll(rememberScrollState())
     ) {
         // setting title
         Box(
