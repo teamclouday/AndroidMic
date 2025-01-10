@@ -19,9 +19,14 @@ fn start_reverse_proxy(port: u16) -> Result<(), ConnectError> {
         .reverse_remove_all()
         .map_err(ConnectError::AdbFailed)?;
 
+    let remote = "tcp:6000".to_string();
+    let local = format!("udp:{port}");
+
+    info!("starting adb streamer on remote: {remote}, local: {local}");
+
     // start reverse proxy
     device
-        .reverse("tcp:6000".to_string(), format!("tcp:{port}"))
+        .reverse(remote, local)
         .map_err(ConnectError::AdbFailed)?;
 
     Ok(())
@@ -39,27 +44,24 @@ fn stop_reverse_proxy() -> Result<(), ConnectError> {
     Ok(())
 }
 
-pub fn new(producer: Producer<u8>) -> AdbStreamer {
-    let tcp_streamer = tcp_streamer::new(str::parse("127.0.0.1").unwrap(), producer);
-    AdbStreamer { tcp_streamer }
+pub async fn new(producer: Producer<u8>) -> Result<AdbStreamer, ConnectError> {
+    let tcp_streamer = tcp_streamer::new(str::parse("127.0.0.1").unwrap(), producer).await?;
+
+    start_reverse_proxy(tcp_streamer.port)?;
+
+    Ok(AdbStreamer { tcp_streamer })
 }
 
 impl StreamerTrait for AdbStreamer {
-    async fn poll_status(&mut self) -> Result<Option<Status>, ConnectError> {
-        self.tcp_streamer.poll_status().await
+    async fn next(&mut self) -> Result<Option<Status>, ConnectError> {
+        self.tcp_streamer.next().await
     }
 
-    async fn start(&mut self) -> Result<(), ConnectError> {
-        start_reverse_proxy(6000)?;
-        self.tcp_streamer.start().await
+    fn set_buff(&mut self, buff: Producer<u8>) {
+        self.tcp_streamer.set_buff(buff)
     }
 
-    async fn set_buff(&mut self, buff: Producer<u8>) {
-        self.tcp_streamer.set_buff(buff).await
-    }
-
-    async fn shutdown(&mut self) {
-        stop_reverse_proxy().ok();
-        self.tcp_streamer.shutdown().await
+    fn status(&self) -> Option<Status> {
+        self.tcp_streamer.status()
     }
 }

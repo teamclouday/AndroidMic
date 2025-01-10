@@ -43,6 +43,11 @@ android {
             applicationIdSuffix = ".testing"
         }
 
+        create("proto") {
+            initWith(buildTypes["release"])
+            applicationIdSuffix = ".proto"
+        }
+
         debug {
             applicationIdSuffix = ".debug"
         }

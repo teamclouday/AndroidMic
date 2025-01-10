@@ -19,7 +19,15 @@ mod view;
 mod localize;
 
 fn main() {
-    env_logger::init();
+    env_logger::try_init().unwrap_or_else(|_| {
+        env_logger::builder()
+            .filter_level(log::LevelFilter::Warn)
+            .filter_module("android_mic", log::LevelFilter::Debug)
+            .init()
+    });
+
+    info!("hello");
+
     localize::localize();
     run_ui()
 }
