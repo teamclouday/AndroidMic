@@ -141,7 +141,7 @@ impl AsyncWrite for UsbStream {
         }
 
         // fill the rest into a whole packet padded with zeros
-        if remainder.len() > 0 {
+        if !remainder.is_empty() {
             let mut remainder_vec = vec![0; MAX_PACKET_SIZE];
             remainder_vec[..remainder.len()].copy_from_slice(remainder);
             pin.write_queue.submit(remainder_vec);

@@ -11,7 +11,9 @@ use tokio::sync::mpsc::{self, Sender};
 
 use crate::streamer::{StreamerTrait, WriteError};
 
-use super::{adb_streamer, tcp_streamer, ConnectError, DummyStreamer, Status, Streamer};
+use super::{
+    adb_streamer, tcp_streamer, udp_streamer, ConnectError, DummyStreamer, Status, Streamer,
+};
 
 #[derive(Debug)]
 pub enum ConnectOption {
@@ -64,49 +66,54 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
             };
 
             match either {
-                Either::Left(command) => match command {
-                    Some(command) => match command {
-                        StreamerCommand::Connect(connect_option, producer) => {
-                            let new_streamer: Result<Streamer, ConnectError> =
-                                match connect_option {
-                                    ConnectOption::Tcp { ip } => {
-                                        tcp_streamer::new(ip, producer).await.map(Streamer::from)
-                                    }
-                                    ConnectOption::Adb => {
-                                        adb_streamer::new(producer).await.map(Streamer::from)
-                                    }
-                                    ConnectOption::Udp { ip } => todo!(),
-                                    ConnectOption::Usb => todo!(),
-                                };
+                Either::Left(command) => {
+                    if let Some(command) = command {
+                        match command {
+                            StreamerCommand::Connect(connect_option, producer) => {
+                                let new_streamer: Result<Streamer, ConnectError> =
+                                    match connect_option {
+                                        ConnectOption::Tcp { ip } => {
+                                            tcp_streamer::new(ip, producer)
+                                                .await
+                                                .map(Streamer::from)
+                                        }
+                                        ConnectOption::Adb => {
+                                            adb_streamer::new(producer).await.map(Streamer::from)
+                                        }
+                                        ConnectOption::Udp { ip } => {
+                                            udp_streamer::new(ip, producer).await.map(Streamer::from)
+                                        }
+                                        ConnectOption::Usb => todo!(),
+                                    };
 
-                            match new_streamer {
-                                Ok(new_streamer) => {
-                                    send(
-                                        &mut sender,
-                                        StreamerMsg::Status(new_streamer.status().unwrap()),
-                                    )
-                                    .await;
-                                    streamer = new_streamer;
-                                }
-                                Err(e) => {
-                                    error!("{e}");
-                                    send(
-                                        &mut sender,
-                                        StreamerMsg::Status(Status::Error(e.to_string())),
-                                    )
-                                    .await;
+                                match new_streamer {
+                                    Ok(new_streamer) => {
+                                        send(
+                                            &mut sender,
+                                            StreamerMsg::Status(new_streamer.status().unwrap()),
+                                        )
+                                        .await;
+                                        streamer = new_streamer;
+                                    }
+                                    Err(e) => {
+                                        error!("{e}");
+                                        send(
+                                            &mut sender,
+                                            StreamerMsg::Status(Status::Error(e.to_string())),
+                                        )
+                                        .await;
+                                    }
                                 }
                             }
+                            StreamerCommand::ChangeBuff(producer) => {
+                                streamer.set_buff(producer);
+                            }
+                            StreamerCommand::Stop => {
+                                streamer = DummyStreamer::new();
+                            }
                         }
-                        StreamerCommand::ChangeBuff(producer) => {
-                            streamer.set_buff(producer);
-                        }
-                        StreamerCommand::Stop => {
-                            streamer = DummyStreamer::new();
-                        }
-                    },
-                    None => {}
-                },
+                    }
+                }
                 Either::Right(res) => match res {
                     Ok(status) => {
                         if let Some(status) = status {

@@ -5,17 +5,17 @@ use byteorder::{ByteOrder, NativeEndian};
 use enum_dispatch::enum_dispatch;
 use prost::DecodeError;
 use rtrb::{chunks::ChunkError, Producer};
+use udp_streamer::UdpStreamer;
 use std::io;
 use tcp_streamer::TcpStreamer;
 use thiserror::Error;
-// use udp_streamer::UdpStreamer;
 // use usb_streamer::UsbStreamer;
 
 mod adb_streamer;
 mod message;
 mod streamer_sub;
 mod tcp_streamer;
-// mod udp_streamer;
+mod udp_streamer;
 // mod usb_streamer;
 
 pub use message::{AudioPacketMessage, AudioPacketMessageOrdered};
@@ -54,7 +54,6 @@ trait StreamerTrait {
     /// A nice benefit of this pattern is that there is no usage of Atomic what so ever.
     async fn next(&mut self) -> Result<Option<Status>, ConnectError>;
 
-    
     fn set_buff(&mut self, buff: Producer<u8>);
 
     fn status(&self) -> Option<Status>;
@@ -64,7 +63,7 @@ trait StreamerTrait {
 enum Streamer {
     TcpStreamer,
     AdbStreamer,
-    // UdpStreamer,
+    UdpStreamer,
     // UsbStreamer,
     DummyStreamer,
 }
@@ -138,8 +137,7 @@ impl AudioWaveData for AudioPacketMessage {
 
         let iter = self
             .buffer
-            .chunks_exact(audio_format.sample_size() * channel_count)
-            .into_iter();
+            .chunks_exact(audio_format.sample_size() * channel_count);
         let mut result =
             Vec::with_capacity(self.buffer.len() / audio_format.sample_size() / channel_count);
 

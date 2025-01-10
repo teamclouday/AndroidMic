@@ -121,7 +121,7 @@ where
     let err_fn = |err| eprintln!("an error occurred on stream: {}", err);
     let channel_count = config.channels as usize;
     device.build_output_stream(
-        &config,
+        config,
         move |data: &mut [F], _: &cpal::OutputCallbackInfo| {
             // data is the internal buf of cpal
             // we try to read the exact lenght of data from the shared buf here
