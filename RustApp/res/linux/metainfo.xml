@@ -25,14 +25,39 @@
 
   <content_rating type="oars-1.1" />
 
+  <description>
+    <p>AndroidMic lets you use your Android device as a microphone for your PC. This tool
+      supports multiple connection methods, including TCP, UDP, USB serial, and USB ADB. Stream
+      audio directly from your phone's microphone to your PC with minimal setup and flexibility in
+      choosing audio formats and output devices.</p>
+    <p>Key Features</p>
+    <ul>
+      <li>Connect via TCP/UDP over the same network or USB cable</li>
+      <li>Supports advanced audio settings like sample rate, channels, and format</li>
+      <li>Audio wave to visualize the sound</li>
+    </ul>
+    <p>How to Use</p>
+    <p>To get started, compile the Android app via Android Studio. Configure connection settings and
+      audio formats to match
+      between both applications. Detailed instructions for each platform are provided in the README
+      file on the app's repository.</p>
+  </description>
+
   <launchable type="desktop-id">io.github.teamclouday.android-mic.desktop</launchable>
   <screenshots>
     <screenshot type="default">
       <caption>AndroidMic screenshot</caption>
       <image>
-        https://media.githubusercontent.com/media/teamclouday/AndroidMic/main/res/screenshots/app.png</image>
+        https://github.com/teamclouday/AndroidMic/blob/main/Assets/sound_config1.png</image>
+      <!-- <image>
+      https://media.githubusercontent.com/media/teamclouday/AndroidMic/main/res/screenshots/app.png</image> -->
     </screenshot>
   </screenshots>
+
+  <provides>
+    <id>com.system76.CosmicApplication</id>
+    <binary>android-mic</binary>
+  </provides>
 
   <releases>
     <release version="2024.11" date="2024-11-10">

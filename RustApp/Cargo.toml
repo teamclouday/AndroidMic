@@ -38,7 +38,7 @@ zconf = "0.1"
 serde = "1"
 light_enum = "0.2"
 tokio = { version = "1", features = ["full"] }
-anyhow = {version="1", features = ["backtrace"]}
+anyhow = { version = "1", features = ["backtrace"] }
 thiserror = "2"
 enum_dispatch = "0.3"
 futures = "0.3.31"
@@ -70,11 +70,17 @@ adb_client = "2.0.6"
 bytes = "1.9.0"
 serde_with = "3.12.0"
 strum = { version = "0.26.3", features = ["derive"] }
+
+
+[target.'cfg(target_os = "windows")'.dependencies]
 mslnk = "0.1.8"
 
 
 [build-dependencies]
 prost-build = "0.13.3"
+
+
+[target.'cfg(target_os = "windows")'.build-dependencies]
 winres = "0.1"
 
 # [patch.crates-io]

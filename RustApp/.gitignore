@@ -3,3 +3,8 @@
 /res/windows/adb
 /config/android-mic.toml
 /.vscode
+/.flatpak-builder
+/cargo-sources.json
+/flatpak-builder-tools
+/flatpak-out
+/repo

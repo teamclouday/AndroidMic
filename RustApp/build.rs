@@ -9,6 +9,7 @@ fn set_env(var_name: &str) {
 }
 
 fn main() -> io::Result<()> {
+    #[cfg(target_os = "windows")]
     if env::var_os("CARGO_CFG_WINDOWS").is_some() && std::env::var("PROFILE").unwrap() == "release"
     {
         // https://github.com/mxre/winres/

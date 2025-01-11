@@ -62,3 +62,45 @@ prettier:
 
 metainfo-check:
 	appstreamcli validate --pedantic --explain --strict res/linux/metainfo.xml
+
+
+
+setup:
+    rm -rf flatpak-builder-tools
+    git clone https://github.com/flatpak/flatpak-builder-tools
+    pip install aiohttp toml
+
+sources-gen:
+    python3 flatpak-builder-tools/cargo/flatpak-cargo-generator.py ./Cargo.lock -o cargo-sources.json
+
+
+sdk-version := "24.08"
+
+install-sdk:
+    flatpak remote-add --if-not-exists --user flathub https://flathub.org/repo/flathub.flatpakrepo
+    flatpak install --noninteractive --user flathub \
+        org.freedesktop.Platform//{{sdk-version}} \
+        org.freedesktop.Sdk//{{sdk-version}} \
+        org.freedesktop.Sdk.Extension.rust-stable//{{sdk-version}} \
+        org.freedesktop.Sdk.Extension.llvm18//{{sdk-version}}
+
+uninstallf:
+    flatpak uninstall io.github.teamclouday.android-mic -y || true
+
+# deps: flatpak-builder git-lfs
+build-and-install: uninstallf
+    rm -rf flatpak-out || true
+    flatpak-builder \
+        --verbose \
+        --ccache \
+        --user --install \
+        --install-deps-from=flathub \
+        --repo=repo \
+        flatpak-out \
+        io.github.teamclouday.android-mic.json
+
+runf:
+    RUST_LOG="warn,android_mic=info" flatpak run io.github.teamclouday.android-mic
+
+# https://github.com/flathub/io.github.wiiznokes.fan-control/blob/master/io.github.wiiznokes.fan-control.json
+# https://docs.flatpak.org/fr/latest/module-sources.html
