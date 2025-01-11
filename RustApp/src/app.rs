@@ -1,15 +1,9 @@
-use std::{
-    env,
-    fmt::{Debug, Display},
-    fs,
-    path::Path,
-};
+use std::fmt::{Debug, Display};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait},
     Device, Host,
 };
-use directories::BaseDirs;
 use local_ip_address::local_ip;
 use rtrb::RingBuffer;
 use tokio::sync::mpsc::Sender;
@@ -340,39 +334,7 @@ impl Application for AppState {
                 }
                 ConfigMsg::StartAtLogin(start_at_login) => {
                     #[cfg(windows)]
-                    {
-                        fn create_shortcut(lnk: &Path) -> anyhow::Result<()> {
-                            let target = env::current_exe()?;
-
-                            mslnk::ShellLink::new(target)?.create_lnk(lnk)?;
-
-                            Ok(())
-                        }
-
-                        fn remove_shortcut(lnk: &Path) -> anyhow::Result<()> {
-                            fs::remove_file(lnk)?;
-                            Ok(())
-                        }
-
-                        let dirs = BaseDirs::new().unwrap();
-                        let file_path = dirs
-                            .data_dir()
-                            .join("Microsoft/Windows/Start Menu/Programs/Startup/AndroidMic.lnk");
-
-                        if start_at_login {
-                            if let Err(e) = create_shortcut(&file_path) {
-                                error!("can't create shortcut: {e}");
-                                self.config.update(|s| s.start_at_login = false);
-                            } else {
-                                self.config.update(|s| s.start_at_login = true);
-                            }
-                        } else {
-                            if let Err(e) = remove_shortcut(&file_path) {
-                                error!("can't remove shortcut: {e}");
-                            }
-                            self.config.update(|s| s.start_at_login = false);
-                        }
-                    }
+                    crate::start_at_login::start_at_login(start_at_login, &mut self.config);
                 }
                 ConfigMsg::AutoConnect(auto_connect) => {
                     self.config.update(|s| s.auto_connect = auto_connect);

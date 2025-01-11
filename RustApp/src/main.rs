@@ -19,6 +19,7 @@ mod config;
 mod icon;
 mod map_bytes;
 mod message;
+mod start_at_login;
 mod streamer;
 mod usb;
 mod utils;
