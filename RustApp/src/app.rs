@@ -333,7 +333,6 @@ impl Application for AppState {
                     self.update_audio_stream();
                 }
                 ConfigMsg::StartAtLogin(start_at_login) => {
-                    #[cfg(windows)]
                     crate::start_at_login::start_at_login(start_at_login, &mut self.config);
                 }
                 ConfigMsg::AutoConnect(auto_connect) => {

@@ -60,7 +60,7 @@
         {
           "type": "git",
           "url": "https://github.com/wiiznokes/AndroidMic.git",
-          "commit": "f1a6b19b484e97e599fe42866ca660cc84618a15"
+          "commit": "bc7e766af3d73a90e6f1aba55148d05fa7c27881"
         },
         "cargo-sources.json"
       ]
