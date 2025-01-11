@@ -164,11 +164,7 @@ class ForegroundService : Service() {
     // start streaming
     private fun startStream(msg: CommandData, replyTo: Messenger) {
 
-        if (!states.isAudioStarted) {
-            if (!startAudio(msg, replyTo)) {
-                return
-            }
-        }
+
 
         // check connection state
         if (states.isStreamStarted) {
@@ -184,9 +180,10 @@ class ForegroundService : Service() {
 
         Log.d(TAG, "startStream [start]")
 
-        // try to start streaming
         managerStream?.shutdown()
+        managerAudio?.shutdown()
 
+        // try to start streaming
         try {
             managerStream =
                 MicStreamManager(applicationContext, scope, msg.mode!!, msg.ip, msg.port)
@@ -203,6 +200,16 @@ class ForegroundService : Service() {
             return
         }
 
+        if (!states.isAudioStarted) {
+            if (!startAudio(msg, replyTo)) {
+                managerStream?.shutdown()
+                managerStream = null
+                managerAudio?.shutdown()
+                managerAudio = null
+                return
+            }
+        }
+
         if (managerStream?.start(
                 managerAudio!!.audioStream(),
                 serviceMessenger
@@ -217,9 +224,9 @@ class ForegroundService : Service() {
                 )
             )
 
-
             states.isStreamStarted = true
             Log.d(TAG, "startStream [connected]")
+
         } else {
 
             reply(
@@ -232,6 +239,9 @@ class ForegroundService : Service() {
 
             managerStream?.shutdown()
             managerStream = null
+            managerAudio?.shutdown()
+            managerAudio = null
+            states.isAudioStarted = false
         }
     }
 
