@@ -236,12 +236,8 @@ class ForegroundService : Service() {
                     applicationContext.getString(R.string.failed_to_connect)
                 )
             )
-
-            managerStream?.shutdown()
-            managerStream = null
-            managerAudio?.shutdown()
-            managerAudio = null
-            states.isAudioStarted = false
+            stopStream(null)
+            stopAudio(null)
         }
     }
 
