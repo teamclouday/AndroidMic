@@ -158,9 +158,7 @@ impl StreamerTrait for TcpStreamer {
                             _ => Err(WriteError::Io(e))?,
                         }
                     }
-                    None => {
-                        Err(ConnectError::Disconnected)
-                    }
+                    None => Err(ConnectError::Disconnected),
                 }
             }
         }

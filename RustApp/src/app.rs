@@ -1,7 +1,4 @@
-use std::{
-    fmt::{Debug, Display},
-    path::Path,
-};
+use std::fmt::{Debug, Display};
 
 use cpal::{
     traits::{DeviceTrait, HostTrait},
@@ -20,18 +17,19 @@ use cosmic::{
 };
 
 use crate::{
-    config::{AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
+    config::{Config, ConnectionMode},
     fl,
+    message::{AppMsg, ConfigMsg},
     streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg},
-    utils::{APP, APP_ID, ORG, QUALIFIER},
+    utils::APP_ID,
     view::{advanced_window, view_app, AudioWave},
 };
 use zconf::ConfigManager;
 
-use directories::ProjectDirs;
+pub fn run_ui(config: ConfigManager<Config>) {
+    let flags = Flags { config };
 
-pub fn run_ui() {
-    cosmic::app::run::<AppState>(Settings::default(), ()).unwrap();
+    cosmic::app::run::<AppState>(Settings::default(), flags).unwrap();
 }
 
 #[derive(Clone)]
@@ -71,6 +69,15 @@ impl AudioDevice {
     }
 }
 
+fn get_audio_devices(audio_host: &Host) -> Vec<AudioDevice> {
+    audio_host
+        .output_devices()
+        .unwrap()
+        .enumerate()
+        .map(|(pos, device)| AudioDevice::new(device, pos))
+        .collect()
+}
+
 const SHARED_BUF_SIZE_S: f32 = 0.05; // 0.05s
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -97,19 +104,6 @@ pub struct AppState {
 
 pub struct AdvancedWindow {
     pub window_id: window::Id,
-}
-
-#[derive(Debug, Clone)]
-pub enum AppMsg {
-    ChangeConnectionMode(ConnectionMode),
-    Streamer(StreamerMsg),
-    Device(AudioDevice),
-    Connect,
-    Stop,
-    AdvancedOptions,
-    ChangeSampleRate(SampleRate),
-    ChangeChannelCount(ChannelCount),
-    ChangeAudioFormat(AudioFormat),
 }
 
 impl AppState {
@@ -152,12 +146,47 @@ impl AppState {
 
         size
     }
+
+    fn connect(&mut self) {
+        let config = &self.config.data();
+        self.state = State::WaitingOnStatus;
+        let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
+
+        let connect_option = match config.connection_mode {
+            ConnectionMode::Tcp => {
+                let ip = config.ip.unwrap_or(local_ip().unwrap());
+                self.add_log(format!("Listening on ip {ip:?}").as_str());
+                ConnectOption::Tcp { ip }
+            }
+            ConnectionMode::Udp => {
+                let ip = config.ip.unwrap_or(local_ip().unwrap());
+                self.add_log(format!("Listening on ip {ip:?}").as_str());
+                ConnectOption::Udp { ip }
+            }
+            ConnectionMode::Adb => ConnectOption::Adb,
+            ConnectionMode::Usb => ConnectOption::Usb,
+        };
+
+        self.send_command(StreamerCommand::Connect(connect_option, producer));
+
+        match self.start_audio_stream(consumer) {
+            Ok(stream) => self.audio_stream = Some(stream),
+            Err(e) => {
+                self.add_log(&e.to_string());
+                error!("{e}")
+            }
+        }
+    }
+}
+
+pub struct Flags {
+    config: ConfigManager<Config>,
 }
 
 impl Application for AppState {
     type Executor = executor::Default;
 
-    type Flags = ();
+    type Flags = Flags;
 
     type Message = AppMsg;
 
@@ -173,29 +202,13 @@ impl Application for AppState {
 
     fn init(
         core: cosmic::app::Core,
-        _flags: Self::Flags,
+        flags: Self::Flags,
     ) -> (Self, cosmic::app::Task<Self::Message>) {
-        let project_dirs = ProjectDirs::from(QUALIFIER, ORG, APP).unwrap();
-
-        let config_path = if cfg!(debug_assertions) {
-            Path::new("config")
-        } else {
-            project_dirs.config_dir()
-        };
-
-        let config: ConfigManager<Config> =
-            ConfigManager::new(config_path.join(format!("{APP}.toml")));
-
         let audio_host = cpal::default_host();
 
-        let audio_devices = audio_host
-            .output_devices()
-            .unwrap()
-            .enumerate()
-            .map(|(pos, device)| AudioDevice::new(device, pos))
-            .collect::<Vec<_>>();
+        let audio_devices = get_audio_devices(&audio_host);
 
-        let audio_device = match &config.data().device_name {
+        let audio_device = match &flags.config.data().device_name {
             Some(name) => {
                 match audio_devices
                     .iter()
@@ -215,7 +228,7 @@ impl Application for AppState {
             core,
             audio_stream: None,
             streamer: None,
-            config,
+            config: flags.config,
             audio_device,
             audio_host,
             audio_devices,
@@ -236,6 +249,10 @@ impl Application for AppState {
                 self.config.update(|config| {
                     config.connection_mode = connection_mode;
                 });
+            }
+            AppMsg::RefreshAudioDevices => {
+                let audio_host = cpal::default_host();
+                self.audio_devices = get_audio_devices(&audio_host);
             }
             AppMsg::Streamer(streamer_msg) => match streamer_msg {
                 StreamerMsg::Status(status) => match status {
@@ -260,7 +277,12 @@ impl Application for AppState {
                         self.audio_wave.write_chunk(&data);
                     }
                 },
-                StreamerMsg::Ready(sender) => self.streamer = Some(sender),
+                StreamerMsg::Ready(sender) => {
+                    self.streamer = Some(sender);
+                    if config.auto_connect {
+                        self.connect();
+                    }
+                }
             },
             AppMsg::Device(audio_device) => {
                 self.audio_device = Some(audio_device.device.clone());
@@ -269,33 +291,7 @@ impl Application for AppState {
                 self.update_audio_stream();
             }
             AppMsg::Connect => {
-                self.state = State::WaitingOnStatus;
-                let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
-
-                let connect_option = match config.connection_mode {
-                    ConnectionMode::Tcp => {
-                        let ip = config.ip.unwrap_or(local_ip().unwrap());
-                        self.add_log(format!("Listening on ip {ip:?}").as_str());
-                        ConnectOption::Tcp { ip }
-                    }
-                    ConnectionMode::Udp => {
-                        let ip = config.ip.unwrap_or(local_ip().unwrap());
-                        self.add_log(format!("Listening on ip {ip:?}").as_str());
-                        ConnectOption::Udp { ip }
-                    }
-                    ConnectionMode::Adb => ConnectOption::Adb,
-                    ConnectionMode::Usb => ConnectOption::Usb,
-                };
-
-                self.send_command(StreamerCommand::Connect(connect_option, producer));
-
-                match self.start_audio_stream(consumer) {
-                    Ok(stream) => self.audio_stream = Some(stream),
-                    Err(e) => {
-                        self.add_log(&e.to_string());
-                        error!("{e}")
-                    }
-                }
+                self.connect();
             }
             AppMsg::Stop => {
                 self.send_command(StreamerCommand::Stop);
@@ -323,18 +319,26 @@ impl Application for AppState {
                     return command.map(|_| cosmic::app::Message::None);
                 }
             },
-            AppMsg::ChangeSampleRate(sample_rate) => {
-                self.config.update(|s| s.sample_rate = sample_rate);
-                self.update_audio_stream();
-            }
-            AppMsg::ChangeChannelCount(channel_count) => {
-                self.config.update(|s| s.channel_count = channel_count);
-                self.update_audio_stream();
-            }
-            AppMsg::ChangeAudioFormat(audio_format) => {
-                self.config.update(|s| s.audio_format = audio_format);
-                self.update_audio_stream();
-            }
+            AppMsg::Config(msg) => match msg {
+                ConfigMsg::SampleRate(sample_rate) => {
+                    self.config.update(|s| s.sample_rate = sample_rate);
+                    self.update_audio_stream();
+                }
+                ConfigMsg::ChannelCount(channel_count) => {
+                    self.config.update(|s| s.channel_count = channel_count);
+                    self.update_audio_stream();
+                }
+                ConfigMsg::AudioFormat(audio_format) => {
+                    self.config.update(|s| s.audio_format = audio_format);
+                    self.update_audio_stream();
+                }
+                ConfigMsg::StartAtLogin(start_at_login) => {
+                    crate::start_at_login::start_at_login(start_at_login, &mut self.config);
+                }
+                ConfigMsg::AutoConnect(auto_connect) => {
+                    self.config.update(|s| s.auto_connect = auto_connect);
+                }
+            },
         }
 
         Task::none()
@@ -346,7 +350,7 @@ impl Application for AppState {
     fn view_window(&self, id: window::Id) -> Element<Self::Message> {
         if let Some(window) = &self.advanced_window {
             if window.window_id == id {
-                return advanced_window(self, window);
+                return advanced_window(self, window).map(AppMsg::Config);
             }
         }
 

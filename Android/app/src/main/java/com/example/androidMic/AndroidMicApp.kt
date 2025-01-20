@@ -18,7 +18,6 @@ class AndroidMicApp : Application() {
     private val TAG = "AndroidMicApp"
 
 
-
     companion object {
         lateinit var appModule: AppModule
         var mService: Messenger? = null

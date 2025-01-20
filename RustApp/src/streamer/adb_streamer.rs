@@ -46,8 +46,9 @@ fn stop_reverse_proxy() -> Result<(), ConnectError> {
 
 pub async fn new(producer: Producer<u8>) -> Result<AdbStreamer, ConnectError> {
     let tcp_streamer = tcp_streamer::new(str::parse("127.0.0.1").unwrap(), producer).await?;
+    let port = tcp_streamer.port;
 
-    start_reverse_proxy(tcp_streamer.port)?;
+    tokio::task::spawn_blocking(move || start_reverse_proxy(port)).await??;
 
     Ok(AdbStreamer { tcp_streamer })
 }
@@ -63,5 +64,15 @@ impl StreamerTrait for AdbStreamer {
 
     fn status(&self) -> Option<Status> {
         self.tcp_streamer.status()
+    }
+}
+
+impl Drop for AdbStreamer {
+    fn drop(&mut self) {
+        tokio::task::spawn_blocking(|| {
+            if let Err(e) = stop_reverse_proxy() {
+                error!("{e}");
+            }
+        });
     }
 }

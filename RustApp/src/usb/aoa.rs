@@ -90,7 +90,7 @@ pub trait AccessoryConfigurations {
     fn find_endpoints(&self) -> Result<Endpoints, EndpointError>;
 }
 
-impl<'a> AccessoryConfigurations for Configuration<'a> {
+impl AccessoryConfigurations for Configuration<'_> {
     fn find_endpoints(&self) -> Result<Endpoints, EndpointError> {
         let mut endpoint_in: Option<Endpoint> = None;
         let mut endpoint_out: Option<Endpoint> = None;

@@ -83,7 +83,7 @@ pub async fn new(producer: Producer<u8>) -> Result<UsbStreamer, ConnectError> {
         (iface, endpoints)
     } else {
         let device = info.open().map_err(ConnectError::CantOpenUsbHandle)?;
-        let configs = device
+        let _configs = device
             .active_configuration()
             .map_err(|e| ConnectError::CantOpenUsbHandle(e.into()))?;
 
@@ -123,8 +123,7 @@ pub async fn new(producer: Producer<u8>) -> Result<UsbStreamer, ConnectError> {
         );
 
         // close device and reopen
-        drop(iface);
-        drop(configs);
+        drop(device);
 
         let info = nusb::list_devices()
             .map_err(ConnectError::NoUsbDevice)?

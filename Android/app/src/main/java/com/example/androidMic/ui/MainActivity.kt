@@ -6,12 +6,10 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.androidMic.AndroidMicApp
 import com.example.androidMic.ui.home.HomeScreen
 import com.example.androidMic.ui.theme.AndroidMicTheme
 import com.example.androidMic.ui.utils.rememberWindowInfo
-import com.example.androidMic.ui.utils.viewModelFactory
 import com.example.androidMic.utils.ignore
 
 

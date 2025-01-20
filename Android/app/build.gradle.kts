@@ -20,12 +20,10 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         vectorDrawables.useSupportLibrary = true
-        resourceConfigurations.addAll(
-            listOf(
-                "en",
-                "fr"
-            )
-        )
+        androidResources {
+            localeFilters += listOf("en", "fr")
+        }
+
     }
 
     buildTypes {
@@ -43,7 +41,7 @@ android {
             applicationIdSuffix = ".testing"
         }
 
-        create("proto") {
+        create("releaseProto") {
             initWith(buildTypes["release"])
             applicationIdSuffix = ".proto"
         }

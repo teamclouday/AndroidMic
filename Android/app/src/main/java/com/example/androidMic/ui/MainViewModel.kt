@@ -1,6 +1,5 @@
 package com.example.androidMic.ui
 
-import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.Looper
@@ -124,7 +123,7 @@ class MainViewModel : ViewModel() {
                         return Dialogs.IpPort
                     }
                     data.ip = ip
-                    data.port =  port.toInt()
+                    data.port = port.toInt()
                 }
 
                 else -> {}

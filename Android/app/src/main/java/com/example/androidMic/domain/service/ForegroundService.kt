@@ -6,7 +6,6 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import android.os.Bundle
 import android.os.Handler
 import android.os.HandlerThread
 import android.os.IBinder
@@ -165,45 +164,80 @@ class ForegroundService : Service() {
     // start streaming
     private fun startStream(msg: CommandData, replyTo: Messenger) {
 
-        if (!states.isAudioStarted) {
-            if (!startAudio(msg, replyTo)) {
-                return
-            }
-        }
+
 
         // check connection state
         if (states.isStreamStarted) {
-            reply(replyTo, ResponseData(ServiceState.Connected, this.getString(R.string.stream_already_started)))
+            reply(
+                replyTo,
+                ResponseData(
+                    ServiceState.Connected,
+                    this.getString(R.string.stream_already_started)
+                )
+            )
             return
         }
 
         Log.d(TAG, "startStream [start]")
 
-        // try to start streaming
         managerStream?.shutdown()
+        managerAudio?.shutdown()
 
+        // try to start streaming
         try {
-            managerStream = MicStreamManager(applicationContext, scope, msg.mode!!, msg.ip, msg.port)
+            managerStream =
+                MicStreamManager(applicationContext, scope, msg.mode!!, msg.ip, msg.port)
         } catch (e: IllegalArgumentException) {
             Log.d(TAG, "start stream with mode ${msg.mode!!.name} failed:\n${e.message}")
 
-            reply(replyTo, ResponseData(ServiceState.Disconnected,  applicationContext.getString(R.string.error) + e.message))
+            reply(
+                replyTo,
+                ResponseData(
+                    ServiceState.Disconnected,
+                    applicationContext.getString(R.string.error) + e.message
+                )
+            )
             return
         }
 
-        if (managerStream?.start(managerAudio!!.audioStream(), serviceMessenger) == true && managerStream?.isConnected() == true) {
+        if (!states.isAudioStarted) {
+            if (!startAudio(msg, replyTo)) {
+                managerStream?.shutdown()
+                managerStream = null
+                managerAudio?.shutdown()
+                managerAudio = null
+                return
+            }
+        }
 
-            reply(replyTo, ResponseData(ServiceState.Connected,  applicationContext.getString(R.string.connected_device) + managerStream?.getInfo()))
+        if (managerStream?.start(
+                managerAudio!!.audioStream(),
+                serviceMessenger
+            ) == true && managerStream?.isConnected() == true
+        ) {
 
+            reply(
+                replyTo,
+                ResponseData(
+                    ServiceState.Connected,
+                    applicationContext.getString(R.string.connected_device) + managerStream?.getInfo()
+                )
+            )
 
             states.isStreamStarted = true
             Log.d(TAG, "startStream [connected]")
+
         } else {
 
-            reply(replyTo, ResponseData(ServiceState.Disconnected,  applicationContext.getString(R.string.failed_to_connect)))
-
-            managerStream?.shutdown()
-            managerStream = null
+            reply(
+                replyTo,
+                ResponseData(
+                    ServiceState.Disconnected,
+                    applicationContext.getString(R.string.failed_to_connect)
+                )
+            )
+            stopStream(null)
+            stopAudio(null)
         }
     }
 
@@ -218,7 +252,13 @@ class ForegroundService : Service() {
         showMessage(applicationContext.getString(R.string.stop_streaming))
         states.isStreamStarted = false
 
-        reply(uiMessenger, ResponseData(ServiceState.Disconnected, applicationContext.getString(R.string.device_disconnected)))
+        reply(
+            uiMessenger,
+            ResponseData(
+                ServiceState.Disconnected,
+                applicationContext.getString(R.string.device_disconnected)
+            )
+        )
 
         if (!isBind) {
             stopService()
@@ -226,10 +266,10 @@ class ForegroundService : Service() {
     }
 
     private fun isConnected(): ServiceState {
-       return if (states.isStreamStarted) {
-           ServiceState.Connected
+        return if (states.isStreamStarted) {
+            ServiceState.Connected
         } else {
-           ServiceState.Disconnected
+            ServiceState.Disconnected
         }
     }
 

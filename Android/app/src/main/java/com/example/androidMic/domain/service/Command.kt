@@ -28,11 +28,12 @@ enum class Command {
     StartStream,
     StopStream,
     GetStatus,
+
     // called when the ui is bind
     BindCheck,
 }
 
-fun Bundle.getOrdinal(key: String) : Int? {
+fun Bundle.getOrdinal(key: String): Int? {
     val v = this.getInt(key, Int.MIN_VALUE);
 
     return if (v == Int.MIN_VALUE) {
@@ -60,7 +61,8 @@ data class CommandData(
                 ip = msg.data.getString(ID_IP),
                 port = msg.data.getInt(ID_PORT),
                 sampleRate = msg.data.getOrdinal(ID_SAMPLE_RATE)?.let { SampleRates.entries[it] },
-                channelCount = msg.data.getOrdinal(ID_CHANNEL_COUNT)?.let { ChannelCount.entries[it] },
+                channelCount = msg.data.getOrdinal(ID_CHANNEL_COUNT)
+                    ?.let { ChannelCount.entries[it] },
                 audioFormat = msg.data.getOrdinal(ID_AUDIO_FORMAT)?.let { AudioFormat.entries[it] },
             )
         }
@@ -102,12 +104,11 @@ enum class ServiceState {
     Disconnected,
 }
 
-data class ResponseData (
+data class ResponseData(
     val state: ServiceState? = null,
     val msg: String? = null,
     val kind: Response = Response.Standard,
 ) {
-
 
 
     companion object {
