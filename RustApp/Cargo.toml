@@ -66,7 +66,6 @@ libcosmic = { git = "https://github.com/pop-os/libcosmic", branch = "master", fe
 ] }
 byteorder = "1.5.0"
 nusb = "0.1.12"
-adb_client = "2.0.6"
 bytes = "1.9.0"
 serde_with = "3.12.0"
 strum = { version = "0.26.3", features = ["derive"] }
