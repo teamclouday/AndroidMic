@@ -1,7 +1,6 @@
-use std::process::Command;
-
 use anyhow::Result;
 use rtrb::Producer;
+use tokio::process::Command;
 
 use crate::streamer::tcp_streamer;
 
@@ -11,24 +10,21 @@ pub struct AdbStreamer {
     tcp_streamer: TcpStreamer,
 }
 
-fn remove_all_adb_reverse_proxy() -> Result<(), ConnectError> {
+async fn remove_all_adb_reverse_proxy() -> Result<(), ConnectError> {
     let mut cmd = Command::new("adb");
     cmd.arg("reverse").arg("--remove-all");
 
-    exec_cmd(cmd)?;
+    exec_cmd(cmd).await?;
 
     Ok(())
 }
 
-fn exec_cmd(mut cmd: Command) -> Result<(), ConnectError> {
-    #[cfg(target_os = "windows")]
-    use std::os::windows::process::CommandExt;
-
+async fn exec_cmd(mut cmd: Command) -> Result<(), ConnectError> {
     // https://learn.microsoft.com/en-us/windows/win32/procthread/process-creation-flags
     #[cfg(target_os = "windows")]
     cmd.creation_flags(0x08000000);
 
-    let status = cmd.output().map_err(ConnectError::CommandFailed)?;
+    let status = cmd.output().await.map_err(ConnectError::CommandFailed)?;
 
     if !status.status.success() {
         let stderr = String::from_utf8_lossy(&status.stderr).to_string();
@@ -44,14 +40,14 @@ fn exec_cmd(mut cmd: Command) -> Result<(), ConnectError> {
 pub async fn new(producer: Producer<u8>) -> Result<AdbStreamer, ConnectError> {
     let tcp_streamer = tcp_streamer::new(str::parse("127.0.0.1").unwrap(), producer).await?;
 
-    remove_all_adb_reverse_proxy()?;
+    remove_all_adb_reverse_proxy().await?;
 
     let mut cmd = Command::new("adb");
     cmd.arg("reverse")
         .arg(format!("tcp:{}", 6000))
         .arg(format!("tcp:{}", tcp_streamer.port));
 
-    exec_cmd(cmd)?;
+    exec_cmd(cmd).await?;
 
     let streamer = AdbStreamer { tcp_streamer };
     Ok(streamer)
@@ -73,8 +69,10 @@ impl StreamerTrait for AdbStreamer {
 
 impl Drop for AdbStreamer {
     fn drop(&mut self) {
-        if let Err(e) = remove_all_adb_reverse_proxy() {
-            error!("drop AdbStreamer: {e}");
-        }
+        tokio::task::spawn_blocking(|| async {
+            if let Err(e) = remove_all_adb_reverse_proxy().await {
+                error!("drop AdbStreamer: {e}");
+            }
+        });
     }
 }
