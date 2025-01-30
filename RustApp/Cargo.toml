@@ -27,7 +27,7 @@ unexpected_cfgs = { level = "warn", check-cfg = [
 to_string_trait_impl = "allow"
 
 [dependencies]
-clap = { version = "4.3", features = ["derive"] }
+clap = { version = "4", features = ["derive"] }
 # linux: alsa will probably be included as a fallback ?
 cpal = { version = "0.15", features = ["jack"] }
 rtrb = "0.3"
@@ -41,13 +41,13 @@ tokio = { version = "1", features = ["full"] }
 anyhow = { version = "1", features = ["backtrace"] }
 thiserror = "2"
 enum_dispatch = "0.3"
-futures = "0.3.31"
+futures = "0.3"
 cached = "0.54"
 constcat = "0.5"
 cargo-packager-resource-resolver = { version = "0.1", features = [
     "auto-detect-format",
 ] }
-either = "1.13.0"
+either = "1"
 i18n-embed = { version = "0.15", features = [
     "fluent-system",
     "desktop-requester",
@@ -55,29 +55,28 @@ i18n-embed = { version = "0.15", features = [
 rust-embed = "8"
 i18n-embed-fl = "0.9"
 directories = "6"
-prost = "0.13.3"
-tokio-util = { version = "0.7.13", features = ["codec", "net"] }
-chrono = "0.4.38"
+prost = "0.13"
+tokio-util = { version = "0.7", features = ["codec", "net"] }
+chrono = "0.4"
 libcosmic = { git = "https://github.com/pop-os/libcosmic", branch = "master", features = [
     "winit",
     "wgpu",
     "tokio",
     "multi-window",
 ] }
-byteorder = "1.5.0"
-nusb = "0.1.12"
-adb_client = "2.0.6"
-bytes = "1.9.0"
-serde_with = "3.12.0"
-strum = { version = "0.26.3", features = ["derive"] }
+byteorder = "1"
+nusb = "0.1"
+bytes = "1"
+serde_with = "3"
+strum = { version = "0.26", features = ["derive"] }
 
 
 [target.'cfg(target_os = "windows")'.dependencies]
-mslnk = "0.1.8"
+mslnk = "0.1"
 
 
 [build-dependencies]
-prost-build = "0.13.3"
+prost-build = "0.13"
 
 
 [target.'cfg(target_os = "windows")'.build-dependencies]

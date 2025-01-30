@@ -1,4 +1,3 @@
-use adb_client::RustADBError;
 use adb_streamer::AdbStreamer;
 use anyhow::Result;
 use byteorder::{ByteOrder, NativeEndian};
@@ -76,8 +75,6 @@ enum ConnectError {
     NoLocalAddress(io::Error),
     #[error("accept failed: {0}")]
     CantAccept(io::Error),
-    #[error("adb failed: {0}")]
-    AdbFailed(RustADBError),
     #[error(transparent)]
     WriteError(#[from] WriteError),
     #[error("no usb device found: {0}")]
@@ -92,6 +89,10 @@ enum ConnectError {
     Disconnected,
     #[error(transparent)]
     CantJoin(#[from] tokio::task::JoinError),
+    #[error("command failed: {code:?}:{stderr}")]
+    StatusCommand { code: Option<i32>, stderr: String },
+    #[error("command failed: {0}")]
+    CommandFailed(io::Error),
 }
 
 #[derive(Debug, Error)]
