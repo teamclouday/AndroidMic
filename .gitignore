@@ -1,3 +1,4 @@
 release/*
 *.zip
 .vscode
+.DS_Store

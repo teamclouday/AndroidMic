@@ -19,8 +19,6 @@ use super::{AudioPacketMessage, ConnectError, Status, StreamerTrait};
 
 const MAX_WAIT_TIME: Duration = Duration::from_millis(100);
 
-const VENDOR_NAME_LIST: [&str; 2] = ["samsung", "oneplus"];
-
 pub struct UsbStreamer {
     producer: Producer<u8>,
     state: UsbStreamerState,
@@ -32,117 +30,72 @@ pub enum UsbStreamerState {
     Streaming,
 }
 
+// switch a USB device to accessory mode
+pub fn switch_to_accessory(info: &nusb::DeviceInfo) -> Result<(), ConnectError> {
+    info!(
+        "Checking USB device at 0x{:X}: {}, {}, 0x{:X} 0x{:X}",
+        info.device_address(),
+        info.manufacturer_string().unwrap_or("unknown"),
+        info.product_string().unwrap_or("unknown"),
+        info.vendor_id(),
+        info.product_id()
+    );
+
+    let device = info.open().map_err(ConnectError::CantOpenUsbHandle)?;
+    let _configs = device
+        .active_configuration()
+        .map_err(|e| ConnectError::CantOpenUsbHandle(e.into()))?;
+
+    // claim the interface
+    let mut iface = device
+        .detach_and_claim_interface(0)
+        .map_err(ConnectError::CantOpenUsbHandle)?;
+
+    let strings = AccessoryStrings::new(
+        "AndroidMic",
+        "Android Mic USB Streamer",
+        "Accessory device for AndroidMic app",
+        "1.0",
+        "https://github.com/teamclouday/AndroidMic",
+        "34335e34-bccf-11eb-8529-0242ac130003",
+    )
+    .map_err(|_| {
+        ConnectError::CantOpenUsbHandle(nusb::Error::other("Invalid accessory settings"))
+    })?;
+
+    let protocol = iface
+        .start_accessory(&strings, Duration::from_secs(1))
+        .map_err(ConnectError::CantOpenUsbAccessory)?;
+
+    info!(
+        "USB device 0x{:X} switched to accessory mode with protocol 0x{:X}",
+        info.device_address(),
+        protocol
+    );
+
+    // close device
+    drop(device);
+
+    Ok(())
+}
+
 pub async fn new(producer: Producer<u8>) -> Result<UsbStreamer, ConnectError> {
-    let mut info_list = nusb::list_devices().map_err(ConnectError::NoUsbDevice)?;
+    // switch all usb devices to accessory mode and ignore errors
+    nusb::list_devices()
+        .map_err(ConnectError::NoUsbDevice)?
+        .for_each(|info| {
+            switch_to_accessory(&info).unwrap_or_default();
+        });
 
-    // find the first android phone device
-    let info = info_list
-        .find(|d| {
-            let manufacturer = d.manufacturer_string().unwrap_or("unknown");
-            let product = d.product_string().unwrap_or("unknown");
+    // wait for the app to open and connect
+    sleep(Duration::from_secs(1)).await;
 
-            info!(
-                "Checking USB device at 0x{:X}: {}, {}, 0x{:X} 0x{:X}",
-                d.device_address(),
-                manufacturer,
-                product,
-                d.vendor_id(),
-                d.product_id()
-            );
-
-            for vendor_name in VENDOR_NAME_LIST {
-                if manufacturer.to_lowercase().contains(vendor_name)
-                    || product.to_lowercase().contains(vendor_name)
-                {
-                    return true;
-                }
-            }
-
-            false
-        })
-        .ok_or(nusb::Error::other("No android phone found"))
-        .map_err(ConnectError::NoUsbDevice)?;
-
-    let (iface, endpoints) = if info.in_accessory_mode() {
-        info!("Opening USB device 0x{:X}", info.device_address());
-        let device = info.open().map_err(ConnectError::CantOpenUsbHandle)?;
-
-        let configs = device
-            .active_configuration()
-            .map_err(|e| ConnectError::CantOpenUsbHandle(e.into()))?;
-
-        let iface = device
-            .detach_and_claim_interface(0)
-            .map_err(ConnectError::CantOpenUsbHandle)?;
-
-        // find endpoints
-        let endpoints = configs
-            .find_endpoints()
-            .map_err(ConnectError::CantOpenUsbAccessoryEndpoint)?;
-
-        (iface, endpoints)
-    } else {
-        let device = info.open().map_err(ConnectError::CantOpenUsbHandle)?;
-        let _configs = device
-            .active_configuration()
-            .map_err(|e| ConnectError::CantOpenUsbHandle(e.into()))?;
-
-        // switch to accessory mode
-        info!(
-            "USB device 0x{:X} switching to accessory mode",
-            info.device_address()
-        );
-
-        // claim the interface
-        let mut iface = device
-            .detach_and_claim_interface(0)
-            .map_err(ConnectError::CantOpenUsbHandle)?;
-
-        let strings = AccessoryStrings::new(
-            "AndroidMic",
-            "Android Mic USB Streamer",
-            "Accessory device for AndroidMic app",
-            "1.0",
-            "https://github.com/teamclouday/AndroidMic",
-            "34335e34-bccf-11eb-8529-0242ac130003",
-        )
-        .map_err(|_| {
-            ConnectError::CantOpenUsbHandle(nusb::Error::other("Invalid accessory settings"))
-        })?;
-
-        let protocol = iface
-            .start_accessory(&strings, Duration::from_secs(1))
-            .map_err(ConnectError::CantOpenUsbAccessory)?;
-
-        sleep(Duration::from_secs(1)).await;
-
-        info!(
-            "USB device 0x{:X} switched to accessory mode with protocol 0x{:X}",
-            info.device_address(),
-            protocol
-        );
-
-        // close device and reopen
-        drop(device);
-
+    let (info, iface, endpoints) = {
         let info = nusb::list_devices()
             .map_err(ConnectError::NoUsbDevice)?
-            .inspect(|d| {
-                let manufacturer = d.manufacturer_string().unwrap_or("unknown");
-                let product = d.product_string().unwrap_or("unknown");
-
-                info!(
-                    "Checking2 USB device at 0x{:X}: {}, {}, 0x{:X} 0x{:X}",
-                    d.device_address(),
-                    manufacturer,
-                    product,
-                    d.vendor_id(),
-                    d.product_id()
-                );
-            })
             .find(|d| d.in_accessory_mode())
             .ok_or(nusb::Error::other(
-                "No android phone found after switching to accessory",
+                "No android phone found after switching to accessory. Make sure the phone is set to charging only mode.",
             ))
             .map_err(ConnectError::NoUsbDevice)?;
 
@@ -160,7 +113,7 @@ pub async fn new(producer: Producer<u8>) -> Result<UsbStreamer, ConnectError> {
             .find_endpoints()
             .map_err(ConnectError::CantOpenUsbAccessoryEndpoint)?;
 
-        (iface, endpoints)
+        (info, iface, endpoints)
     };
 
     let read_endpoint = endpoints.endpoint_in();
