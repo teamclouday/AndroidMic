@@ -4,6 +4,9 @@ pub use windows::start_at_login;
 #[cfg(target_os = "linux")]
 pub use linux::start_at_login;
 
+#[cfg(target_os = "macos")]
+pub use macos::start_at_login;
+
 #[cfg(target_os = "windows")]
 mod windows {
     use std::{env, fs, path::Path};
@@ -50,6 +53,16 @@ mod windows {
 
 #[cfg(target_os = "linux")]
 mod linux {
+    use crate::config::Config;
+    use zconf::ConfigManager;
+
+    pub fn start_at_login(_start_at_login: bool, _config: &mut ConfigManager<Config>) {
+        todo!()
+    }
+}
+
+#[cfg(target_os = "macos")]
+mod macos {
     use crate::config::Config;
     use zconf::ConfigManager;
 
