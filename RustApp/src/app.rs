@@ -309,8 +309,12 @@ impl Application for AppState {
                 }
                 None => {
                     let settings = window::Settings {
-                        size: Size::new(500.0, 700.0),
+                        size: Size::new(500.0, 500.0),
                         resizable: false,
+                        position: window::Position::Centered,
+                        decorations: false,
+                        transparent: true,
+                        level: window::Level::AlwaysOnTop,
                         ..Default::default()
                     };
 
