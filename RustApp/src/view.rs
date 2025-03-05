@@ -75,7 +75,12 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
                 ))
                 .push(icon_button!("refresh24").on_press(AppMsg::RefreshAudioDevices)),
         )
-        .push(button::text(fl!("advanced")).on_press(AppMsg::AdvancedOptions))
+        .push(
+            row()
+                .spacing(20)
+                .push(toggler(app.advanced_window.is_some()).on_toggle(|_| AppMsg::AdvancedOptions))
+                .push(text(fl!("advanced"))),
+        )
         .into()
 }
 
@@ -133,45 +138,51 @@ pub fn advanced_window<'a>(
 ) -> Element<'a, ConfigMsg> {
     let config = app.config.data();
 
-    column()
-        .push(settings::section().title(fl!("sample_rate")).add(pick_list(
-            SampleRate::VALUES,
-            Some(&config.sample_rate),
-            ConfigMsg::SampleRate,
-        )))
-        .push(
-            settings::section()
-                .title(fl!("channel_count"))
-                .add(pick_list(
-                    ChannelCount::VALUES,
-                    Some(&config.channel_count),
-                    ConfigMsg::ChannelCount,
-                )),
-        )
-        .push(
-            settings::section()
-                .title(fl!("audio_format"))
-                .add(pick_list(
-                    AudioFormat::VALUES,
-                    Some(&config.audio_format),
-                    ConfigMsg::AudioFormat,
-                )),
-        )
-        .push_maybe(if cfg!(target_os = "windows") {
-            Some(
+    container(
+        column()
+            .padding(50)
+            .push(settings::section().title(fl!("sample_rate")).add(pick_list(
+                SampleRate::VALUES,
+                Some(&config.sample_rate),
+                ConfigMsg::SampleRate,
+            )))
+            .push(
                 settings::section()
-                    .title(fl!("start_at_login"))
-                    .add(toggler(config.start_at_login).on_toggle(ConfigMsg::StartAtLogin)),
+                    .title(fl!("channel_count"))
+                    .add(pick_list(
+                        ChannelCount::VALUES,
+                        Some(&config.channel_count),
+                        ConfigMsg::ChannelCount,
+                    )),
             )
-        } else {
-            None
-        })
-        .push(
-            settings::section()
-                .title(fl!("auto_connect"))
-                .add(toggler(config.auto_connect).on_toggle(ConfigMsg::AutoConnect)),
-        )
-        .into()
+            .push(
+                settings::section()
+                    .title(fl!("audio_format"))
+                    .add(pick_list(
+                        AudioFormat::VALUES,
+                        Some(&config.audio_format),
+                        ConfigMsg::AudioFormat,
+                    )),
+            )
+            .push_maybe(if cfg!(target_os = "windows") {
+                Some(
+                    settings::section()
+                        .title(fl!("start_at_login"))
+                        .add(toggler(config.start_at_login).on_toggle(ConfigMsg::StartAtLogin)),
+                )
+            } else {
+                None
+            })
+            .push(
+                settings::section()
+                    .title(fl!("auto_connect"))
+                    .add(toggler(config.auto_connect).on_toggle(ConfigMsg::AutoConnect)),
+            ),
+    )
+    .class(cosmic::theme::Container::Background)
+    .center_x(Length::Fill)
+    .center_y(Length::Fill)
+    .into()
 }
 
 #[derive(Debug)]
