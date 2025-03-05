@@ -36,7 +36,17 @@ fn main() {
             .init()
     });
 
-    info!("hello");
+    // generated from https://patorjk.com/software/taag/#p=display&h=2&f=Doom&t=AndroidMic
+    println!(
+        r"
+   ___              _              _      _ ___  ___ _       
+  / _ \            | |            (_)    | ||  \/  |(_)      
+ / /_\ \ _ __    __| | _ __  ___   _   __| || .  . | _   ___ 
+ |  _  || '_ \  / _` || '__|/ _ \ | | / _` || |\/| || | / __|
+ | | | || | | || (_| || |  | (_) || || (_| || |  | || || (__ 
+ \_| |_/|_| |_| \__,_||_|   \___/ |_| \__,_|\_|  |_/|_| \___| 
+    "
+    );
 
     let project_dirs = ProjectDirs::from(QUALIFIER, ORG, APP).unwrap();
 
