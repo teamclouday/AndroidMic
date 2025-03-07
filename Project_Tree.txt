@@ -4,141 +4,18 @@ Project Root
 |   Project_Tree.txt
 |   README.md
 |   
++---.github
+|   \---workflows
+|           release.yml
+|           
 +---Android
 |   |   .gitignore
 |   |   build.gradle.kts
 |   |   gradle.properties
 |   |   gradlew
 |   |   gradlew.bat
-|   |   local.properties
 |   |   settings.gradle.kts
 |   |   
-|   +---.gradle
-|   |   |   config.properties
-|   |   |   file-system.probe
-|   |   |   
-|   |   +---8.10.2
-|   |   |   |   gc.properties
-|   |   |   |   
-|   |   |   +---checksums
-|   |   |   |       checksums.lock
-|   |   |   |       md5-checksums.bin
-|   |   |   |       sha1-checksums.bin
-|   |   |   |       
-|   |   |   +---dependencies-accessors
-|   |   |   |   |   gc.properties
-|   |   |   |   |   
-|   |   |   |   \---16470e2c74a9bdeb32952e81daa7fce3a9a172cd
-|   |   |   |       |   metadata.bin
-|   |   |   |       |   
-|   |   |   |       +---classes
-|   |   |   |       |   \---org
-|   |   |   |       |       \---gradle
-|   |   |   |       |           \---accessors
-|   |   |   |       |               \---dm
-|   |   |   |       |                       LibrariesForLibs$AccompanistLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibs$AndroidPluginAccessors.class
-|   |   |   |       |                       LibrariesForLibs$AndroidxLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibs$AndroidxUiLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibs$AndroidxViewmodelLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibs$BundleAccessors.class
-|   |   |   |       |                       LibrariesForLibs$ComposeLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibs$ComposeMaterialIconsLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibs$ComposeMaterialLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibs$ComposePluginAccessors.class
-|   |   |   |       |                       LibrariesForLibs$ComposeUiLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibs$DatastoreLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibs$GooglePluginAccessors.class
-|   |   |   |       |                       LibrariesForLibs$KotlinPluginAccessors.class
-|   |   |   |       |                       LibrariesForLibs$KotlinxCoroutinesLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibs$KotlinxLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibs$KtxVersionAccessors.class
-|   |   |   |       |                       LibrariesForLibs$PluginAccessors.class
-|   |   |   |       |                       LibrariesForLibs$ProtobufGradleLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibs$ProtobufJavaLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibs$ProtobufLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibs$ProtobufVersionAccessors.class
-|   |   |   |       |                       LibrariesForLibs$RuntimeLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibs$TestJunitLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibs$TestLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibs$VersionAccessors.class
-|   |   |   |       |                       LibrariesForLibs.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$AccompanistLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$AndroidPluginAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$AndroidxLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$AndroidxUiLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$AndroidxViewmodelLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$BundleAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$ComposeLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$ComposeMaterialIconsLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$ComposeMaterialLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$ComposePluginAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$ComposeUiLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$DatastoreLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$GooglePluginAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$KotlinPluginAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$KotlinxCoroutinesLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$KotlinxLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$KtxVersionAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$PluginAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$ProtobufGradleLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$ProtobufJavaLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$ProtobufLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$ProtobufVersionAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$RuntimeLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$TestJunitLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$TestLibraryAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock$VersionAccessors.class
-|   |   |   |       |                       LibrariesForLibsInPluginsBlock.class
-|   |   |   |       |                       
-|   |   |   |       \---sources
-|   |   |   |           \---org
-|   |   |   |               \---gradle
-|   |   |   |                   \---accessors
-|   |   |   |                       \---dm
-|   |   |   |                               LibrariesForLibs.java
-|   |   |   |                               LibrariesForLibsInPluginsBlock.java
-|   |   |   |                               
-|   |   |   +---executionHistory
-|   |   |   |       executionHistory.lock
-|   |   |   |       
-|   |   |   +---expanded
-|   |   |   +---fileChanges
-|   |   |   |       last-build.bin
-|   |   |   |       
-|   |   |   +---fileHashes
-|   |   |   |       fileHashes.bin
-|   |   |   |       fileHashes.lock
-|   |   |   |       resourceHashesCache.bin
-|   |   |   |       
-|   |   |   \---vcsMetadata
-|   |   +---buildOutputCleanup
-|   |   |       buildOutputCleanup.lock
-|   |   |       cache.properties
-|   |   |       
-|   |   \---vcs-1
-|   |           gc.properties
-|   |           
-|   +---.idea
-|   |   |   .gitignore
-|   |   |   .name
-|   |   |   compiler.xml
-|   |   |   deploymentTargetSelector.xml
-|   |   |   gradle.xml
-|   |   |   kotlinc.xml
-|   |   |   migrations.xml
-|   |   |   misc.xml
-|   |   |   runConfigurations.xml
-|   |   |   vcs.xml
-|   |   |   workspace.xml
-|   |   |   
-|   |   +---caches
-|   |   |       deviceStreaming.xml
-|   |   |       
-|   |   \---codeStyles
-|   |           codeStyleConfig.xml
-|   |           Project.xml
-|   |           
 |   +---app
 |   |   |   .gitignore
 |   |   |   build.gradle.kts
