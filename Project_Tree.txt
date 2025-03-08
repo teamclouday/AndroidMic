@@ -1,0 +1,237 @@
+Project Root 
+|   .gitignore
+|   LICENSE
+|   Project_Tree.txt
+|   README.md
+|   
++---.github
+|   \---workflows
+|           release.yml
+|           
++---Android
+|   |   .gitignore
+|   |   build.gradle.kts
+|   |   gradle.properties
+|   |   gradlew
+|   |   gradlew.bat
+|   |   settings.gradle.kts
+|   |   
+|   +---app
+|   |   |   .gitignore
+|   |   |   build.gradle.kts
+|   |   |   proguard-rules.pro
+|   |   |   
+|   |   \---src
+|   |       +---debug
+|   |       |   \---res
+|   |       |       \---values
+|   |       |               strings.xml
+|   |       |               
+|   |       +---main
+|   |       |   |   AndroidManifest.xml
+|   |       |   |   ic_launcher-playstore.png
+|   |       |   |   
+|   |       |   +---java
+|   |       |   |   \---com
+|   |       |   |       \---example
+|   |       |   |           \---androidMic
+|   |       |   |               |   AndroidMicApp.kt
+|   |       |   |               |   AppModule.kt
+|   |       |   |               |   Preferences.kt
+|   |       |   |               |   
+|   |       |   |               +---domain
+|   |       |   |               |   +---audio
+|   |       |   |               |   |       MicAudioManager.kt
+|   |       |   |               |   |       
+|   |       |   |               |   +---service
+|   |       |   |               |   |       Command.kt
+|   |       |   |               |   |       ForegroundService.kt
+|   |       |   |               |   |       Packets.kt
+|   |       |   |               |   |       ServiceUtil.kt
+|   |       |   |               |   |       
+|   |       |   |               |   \---streaming
+|   |       |   |               |           AdbStreamer.kt
+|   |       |   |               |           BluetoothStreamer.kt
+|   |       |   |               |           MicStreamManager.kt
+|   |       |   |               |           Streamer.kt
+|   |       |   |               |           UdpStreamer.kt
+|   |       |   |               |           UsbStreamer.kt
+|   |       |   |               |           WifiStreamer.kt
+|   |       |   |               |           
+|   |       |   |               +---ui
+|   |       |   |               |   |   MainActivity.kt
+|   |       |   |               |   |   MainViewModel.kt
+|   |       |   |               |   |   
+|   |       |   |               |   +---components
+|   |       |   |               |   |       Components.kt
+|   |       |   |               |   |       
+|   |       |   |               |   +---home
+|   |       |   |               |   |   |   AppBar.kt
+|   |       |   |               |   |   |   HomeScreen.kt
+|   |       |   |               |   |   |   NavigationDrawer.kt
+|   |       |   |               |   |   |   
+|   |       |   |               |   |   \---dialog
+|   |       |   |               |   |           audio.kt
+|   |       |   |               |   |           BaseDialog.kt
+|   |       |   |               |   |           ipPort.kt
+|   |       |   |               |   |           mode.kt
+|   |       |   |               |   |           theme.kt
+|   |       |   |               |   |           
+|   |       |   |               |   +---theme
+|   |       |   |               |   |       Color.kt
+|   |       |   |               |   |       Theme.kt
+|   |       |   |               |   |       Type.kt
+|   |       |   |               |   |       
+|   |       |   |               |   \---utils
+|   |       |   |               |           PermissionHelper.kt
+|   |       |   |               |           rememberWindowInfo.kt
+|   |       |   |               |           UiHelper.kt
+|   |       |   |               |           ViewModelFactoryHelper.kt
+|   |       |   |               |           
+|   |       |   |               \---utils
+|   |       |   |                       PreferencesManager.kt
+|   |       |   |                       Utils.kt
+|   |       |   |                       
+|   |       |   +---proto
+|   |       |   |       message.proto
+|   |       |   |       
+|   |       |   \---res
+|   |       |       +---drawable
+|   |       |       |       ic_launcher_foreground.xml
+|   |       |       |       ic_launcher_monochrome.xml
+|   |       |       |       
+|   |       |       +---drawable-v24
+|   |       |       |       ic_launcher_background.xml
+|   |       |       |       
+|   |       |       +---mipmap-anydpi-v26
+|   |       |       |       ic_launcher.xml
+|   |       |       |       ic_launcher_round.xml
+|   |       |       |       
+|   |       |       +---mipmap-hdpi
+|   |       |       |       ic_launcher.png
+|   |       |       |       ic_launcher_round.png
+|   |       |       |       
+|   |       |       +---mipmap-mdpi
+|   |       |       |       ic_launcher.png
+|   |       |       |       ic_launcher_round.png
+|   |       |       |       
+|   |       |       +---mipmap-xhdpi
+|   |       |       |       ic_launcher.png
+|   |       |       |       ic_launcher_round.png
+|   |       |       |       
+|   |       |       +---mipmap-xxhdpi
+|   |       |       |       ic_launcher.png
+|   |       |       |       ic_launcher_round.png
+|   |       |       |       
+|   |       |       +---mipmap-xxxhdpi
+|   |       |       |       ic_launcher.png
+|   |       |       |       ic_launcher_round.png
+|   |       |       |       
+|   |       |       +---values
+|   |       |       |       strings.xml
+|   |       |       |       themes.xml
+|   |       |       |       
+|   |       |       +---values-fr
+|   |       |       |       strings.xml
+|   |       |       |       
+|   |       |       \---xml
+|   |       |               accessory_filter.xml
+|   |       |               locales_config.xml
+|   |       |               
+|   |       +---releaseProto
+|   |       |   \---res
+|   |       |       \---values
+|   |       |               strings.xml
+|   |       |               
+|   |       \---releaseTesting
+|   |           \---res
+|   |               \---values
+|   |                       strings.xml
+|   |                       
+|   \---gradle
+|       |   libs.versions.toml
+|       |   
+|       \---wrapper
+|               gradle-wrapper.jar
+|               gradle-wrapper.properties
+|               
++---Assets
+|       icon.ico
+|       microphone-3404243_640.png
+|       p1.png
+|       p2.png
+|       p3.png
+|       p4.png
+|       p5.png
+|       README.md
+|       sound_config1.png
+|       sound_config2.png
+|       sound_config3.png
+|       sound_config4.png
+|       sound_config5.png
+|       sound_config6.png
+|       
+\---RustApp
+    |   .gitattributes
+    |   .gitignore
+    |   build.rs
+    |   Cargo.lock
+    |   Cargo.toml
+    |   i18n.toml
+    |   io.github.teamclouday.android-mic.json
+    |   justfile
+    |   README.md
+    |   rust-toolchain.toml
+    |   
+    +---.cargo
+    |       config.toml
+    |       
+    +---i18n
+    |   +---en
+    |   |       android_mic.ftl
+    |   |       
+    |   \---fr
+    |           android_mic.ftl
+    |           
+    +---res
+    |   +---icons
+    |   |       refresh24.svg
+    |   |       
+    |   +---linux
+    |   |       app_icon.svg
+    |   |       desktop_entry.desktop
+    |   |       metainfo.xml
+    |   |       
+    |   \---windows
+    |           app_icon.ico
+    |           
+    \---src
+        |   app.rs
+        |   audio.rs
+        |   config.rs
+        |   icon.rs
+        |   localize.rs
+        |   main.rs
+        |   map_bytes.rs
+        |   message.rs
+        |   start_at_login.rs
+        |   utils.rs
+        |   view.rs
+        |   
+        +---proto
+        |       message.proto
+        |       
+        +---streamer
+        |       adb_streamer.rs
+        |       message.rs
+        |       mod.rs
+        |       streamer_sub.rs
+        |       tcp_streamer.rs
+        |       udp_streamer.rs
+        |       usb_streamer.rs
+        |       
+        \---usb
+                aoa.rs
+                frame.rs
+                mod.rs
+                
