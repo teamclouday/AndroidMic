@@ -19,8 +19,16 @@ jobs:
         include:
           - os: ubuntu-22.04
             platform: linux
+            arch: x86_64
+          - os: ubuntu-22.04
+            platform: linux
+            arch: aarch64
           - os: windows-2022
             platform: windows
+            arch: x86_64
+          - os: windows-2022
+            platform: windows
+            arch: x86
           - os: macos-13
             platform: macos
             arch: x86_64
@@ -76,7 +84,7 @@ jobs:
         if: matrix.platform == 'linux'
         uses: actions/upload-artifact@v4
         with:
-          name: androidmic-linux
+          name: androidmic-linux-${{ matrix.arch }}
           path: ./RustApp/target/release/*.AppImage
           if-no-files-found: warn
           
@@ -85,7 +93,7 @@ jobs:
         if: matrix.platform == 'windows'
         uses: actions/upload-artifact@v4
         with:
-          name: androidmic-windows
+          name: androidmic-windows-${{ matrix.arch }}
           path: ./RustApp/target/release/*setup.exe
           if-no-files-found: warn
           
