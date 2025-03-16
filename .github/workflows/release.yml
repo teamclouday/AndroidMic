@@ -35,6 +35,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libasound2-dev libjack-jackd2-dev libxkbcommon-dev protobuf-compiler
+          sudo dpkg --add-architecture arm64
+          sudo apt-get update
           sudo apt-get install -y libasound2-dev:arm64 libjack-jackd2-dev:arm64 libxkbcommon-dev:arm64
           sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
