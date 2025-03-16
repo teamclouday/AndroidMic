@@ -35,10 +35,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libasound2-dev libjack-jackd2-dev libxkbcommon-dev protobuf-compiler
-          sudo dpkg --add-architecture arm64
-          sudo apt-get update
-          sudo apt-get install -y libasound2-dev:arm64 libjack-jackd2-dev:arm64 libxkbcommon-dev:arm64
-          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
       - name: Install dependencies (Windows)
         if: matrix.platform == 'windows'
@@ -50,8 +46,10 @@ jobs:
 
       - name: Install Rust toolchain
         run: |
+          rustup toolchain install stable --profile minimal
+
           if [[ "${{ matrix.platform }}" == "linux" ]]; then
-            rustup target add aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
+            rustup target add x86_64-unknown-linux-gnu
             rustup component add rust-src --toolchain stable
           elif [[ "${{ matrix.platform }}" == "windows" ]]; then
             rustup target add i686-pc-windows-msvc x86_64-pc-windows-msvc
@@ -72,8 +70,6 @@ jobs:
         if: matrix.platform == 'linux'
         working-directory: ./RustApp
         run: |
-          PKG_CONFIG_ALLOW_CROSS=1 PKG_CONFIG_SYSROOT_DIR=/ CC=aarch64-linux-gnu-gcc CXX=aarch64-linux-gnu-g++ cargo build --release --target aarch64-unknown-linux-gnu
-          cargo packager -r -f appimage --target aarch64-unknown-linux-gnu
           cargo build --release --target x86_64-unknown-linux-gnu
           cargo packager -r -f appimage --target x86_64-unknown-linux-gnu
         
@@ -101,9 +97,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: androidmic-linux
-          path: |
-            ./RustApp/target/x86_64-unknown-linux-gnu/release/*.AppImage
-            ./RustApp/target/aarch64-unknown-linux-gnu/release/*.AppImage
+          path: ./RustApp/target/x86_64-unknown-linux-gnu/release/*.AppImage
           if-no-files-found: warn
           
       # For Windows
