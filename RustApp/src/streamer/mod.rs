@@ -79,6 +79,8 @@ enum ConnectError {
     WriteError(#[from] WriteError),
     #[error("no usb device found: {0}")]
     NoUsbDevice(nusb::Error),
+    #[error("no adb device found")]
+    NoAdbDevice,
     #[error("can't open usb handle: {0}, make sure phone is set to charging only mode")]
     CantOpenUsbHandle(nusb::Error),
     #[error("can't open usb accessory: {0}")]
