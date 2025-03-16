@@ -47,12 +47,12 @@ jobs:
           rustup toolchain install stable --profile minimal
 
           if [[ "${{ matrix.platform }}" == "linux" ]]; then
-            rustup target add aarch64-unknown-linux-gnu
+            rustup target add aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
             rustup component add rust-src --toolchain stable
           elif [[ "${{ matrix.platform }}" == "windows" ]]; then
-            rustup target add i686-pc-windows-msvc
+            rustup target add i686-pc-windows-msvc x86_64-pc-windows-msvc
           elif [[ "${{ matrix.platform }}" == "macos" ]]; then
-            rustup target add aarch64-apple-darwin
+            rustup target add aarch64-apple-darwin x86_64-apple-darwin
           fi
         shell: bash
 
@@ -68,36 +68,35 @@ jobs:
         if: matrix.platform == 'linux'
         working-directory: ./RustApp
         run: |
-          PLATFORM=linux cargo packager -r -f appimage
-          PLATFORM=linux cargo packager -r -f appimage --target aarch64-unknown-linux-gnu
-          cp ./target/aarch64-unknown-linux-gnu/release/*.AppImage ./target/release/
+          TARGET=x86_64-unknown-linux-gnu cargo packager -r -f appimage --target x86_64-unknown-linux-gnu
+          TARGET=aarch64-unknown-linux-gnu cargo packager -r -f appimage --target aarch64-unknown-linux-gnu
         
       - name: Package (Windows)
         if: matrix.platform == 'windows'
         working-directory: ./RustApp
         run: |
-          $env:PLATFORM = "windows"
-          cargo packager -r -f nsis
-          $env:PLATFORM = "windows"
+          $env:TARGET = "x86_64-pc-windows-msvc"
+          cargo packager -r -f nsis --target x86_64-pc-windows-msvc
+          $env:TARGET = "i686-pc-windows-msvc"
           cargo packager -r -f nsis --target i686-pc-windows-msvc
-          Copy-Item -Path "./target/i686-pc-windows-msvc/release/*setup.exe" -Destination "./target/release/" -Force
         shell: powershell
 
       - name: Package (macOS)
         if: matrix.platform == 'macos'
         working-directory: ./RustApp
         run: |
-          PLATFORM=macos cargo packager -r -f dmg
-          PLATFORM=macos cargo packager -r -f dmg --target aarch64-apple-darwin
-          cp ./target/aarch64-apple-darwin/release/*.dmg ./target/release/
+          TARGET=x86_64-apple-darwin cargo packager -r -f dmg --target x86_64-apple-darwin
+          TARGET=aarch64-apple-darwin cargo packager -r -f dmg --target aarch64-apple-darwin
           
       # For Linux
       - name: Upload Linux binary
         if: matrix.platform == 'linux'
         uses: actions/upload-artifact@v4
         with:
-          name: androidmic-linux-${{ matrix.arch }}
-          path: ./RustApp/target/release/*.AppImage
+          name: androidmic-linux
+          path: |
+            ./RustApp/target/x86_64-unknown-linux-gnu/release/*.AppImage
+            ./RustApp/target/aarch64-unknown-linux-gnu/release/*.AppImage
           if-no-files-found: warn
           
       # For Windows
@@ -105,8 +104,10 @@ jobs:
         if: matrix.platform == 'windows'
         uses: actions/upload-artifact@v4
         with:
-          name: androidmic-windows-${{ matrix.arch }}
-          path: ./RustApp/target/release/*setup.exe
+          name: androidmic-windows
+          path: |
+            ./RustApp/target/x86_64-pc-windows-msvc/release/*setup.exe
+            ./RustApp/target/i686-pc-windows-msvc/release/*setup.exe
           if-no-files-found: warn
           
       # For macOS
@@ -114,8 +115,10 @@ jobs:
         if: matrix.platform == 'macos'
         uses: actions/upload-artifact@v4
         with:
-          name: androidmic-macos-${{ matrix.arch }}
-          path: ./RustApp/target/release/*.dmg
+          name: androidmic-macos
+          path: |
+            ./RustApp/target/x86_64-apple-darwin/release/*.dmg
+            ./RustApp/target/aarch64-apple-darwin/release/*.dmg
           if-no-files-found: warn
 
   build-android:
