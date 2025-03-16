@@ -48,13 +48,25 @@ jobs:
 
       - name: Install dependencies (Windows)
         if: matrix.platform == 'windows'
-        run: choco install protoc
+        run: choco install protoc -y
 
       - name: Install dependencies (macOS)
         if: matrix.platform == 'macos'
-        run: brew install protobuf
+        run: brew install protobuf --quiet
 
-      - run: rustup toolchain install stable --profile minimal
+      - name: Install Rust toolchain
+        run: |
+          if [[ "${{ matrix.platform }}" == "linux" && "${{ matrix.arch }}" == "aarch64" ]]; then
+            rustup toolchain install stable --profile minimal --target aarch64-unknown-linux-gnu
+            rustup component add rust-src --toolchain stable
+          elif [[ "${{ matrix.platform }}" == "windows" && "${{ matrix.arch }}" == "x86" ]]; then
+            rustup toolchain install stable --profile minimal --target i686-pc-windows-msvc
+          elif [[ "${{ matrix.platform }}" == "macos" && "${{ matrix.arch }}" == "aarch64" ]]; then
+            rustup toolchain install stable --profile minimal --target aarch64-apple-darwin
+          else
+            rustup toolchain install stable --profile minimal
+          fi
+        shell: bash
 
       - name: Set up Rust cache
         uses: Swatinem/rust-cache@v2
