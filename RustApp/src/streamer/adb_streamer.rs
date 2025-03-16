@@ -10,9 +10,9 @@ pub struct AdbStreamer {
     tcp_streamer: TcpStreamer,
 }
 
-async fn remove_all_adb_reverse_proxy() -> Result<(), ConnectError> {
+async fn remove_adb_reverse_proxy() -> Result<(), ConnectError> {
     let mut cmd = Command::new("adb");
-    cmd.arg("reverse").arg("--remove-all");
+    cmd.arg("reverse").arg("--remove").arg("tcp:6000");
 
     exec_cmd(cmd).await?;
 
@@ -40,7 +40,9 @@ async fn exec_cmd(mut cmd: Command) -> Result<(), ConnectError> {
 pub async fn new(producer: Producer<u8>) -> Result<AdbStreamer, ConnectError> {
     let tcp_streamer = tcp_streamer::new(str::parse("127.0.0.1").unwrap(), producer).await?;
 
-    remove_all_adb_reverse_proxy().await?;
+    if let Err(e) = remove_adb_reverse_proxy().await {
+        warn!("remove adb reverse proxy: {e}");
+    }
 
     let mut cmd = Command::new("adb");
     cmd.arg("reverse")
@@ -70,8 +72,8 @@ impl StreamerTrait for AdbStreamer {
 impl Drop for AdbStreamer {
     fn drop(&mut self) {
         tokio::task::spawn_blocking(|| async {
-            if let Err(e) = remove_all_adb_reverse_proxy().await {
-                error!("drop AdbStreamer: {e}");
+            if let Err(e) = remove_adb_reverse_proxy().await {
+                warn!("drop AdbStreamer: {e}");
             }
         });
     }

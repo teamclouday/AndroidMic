@@ -1,21 +1,35 @@
 [package]
 name = "android-mic"
-version = "0.1.0"
+version = "2.1.0"
 edition = "2021"
-authors = ["wiiznokes <wiiznokes2@gmail.com>"]
+authors = [
+    "wiiznokes <wiiznokes2@gmail.com>",
+    "teamclouday <teamclouday@gmail.com>",
+]
 license = "GPL-3.0-only"
 
 
 [package.metadata.packager]
 product_name = "AndroidMic"
-before-each-package-command = "cargo build --release"
+version = "2.1.0"
 identifier = "io.github.teamclouday.android-mic"
-icons = ["res/windows/app_icon.ico"]
-resources = ["res/windows/adb"]
+icons = ["../Assets/icon512.png"]
 category = "Utility"
+description = "Use your Android phone as a mic for your PC"
+long_description = "Use your Android phone as a mic for your PC"
+homepage = "https://github.com/teamclouday/AndroidMic"
 
 [package.metadata.packager.windows]
 allow_downgrades = true
+
+[package.metadata.packager.nsis]
+display_language_selector = true
+installer_icon = "res/windows/app_icon.ico"
+installer_mode = "both"
+
+[package.metadata.packager.macos]
+entitlements = "res/macos/entitlements.plist"
+info_plist_path = "res/macos/Info.plist"
 
 [lints.rust]
 dead_code = "allow"
@@ -25,6 +39,7 @@ unexpected_cfgs = { level = "warn", check-cfg = [
 
 [lints.clippy]
 to_string_trait_impl = "allow"
+
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
@@ -58,7 +73,7 @@ directories = "6"
 prost = "0.13"
 tokio-util = { version = "0.7", features = ["codec", "net"] }
 chrono = "0.4"
-libcosmic = { git = "https://github.com/pop-os/libcosmic", branch = "master", features = [
+libcosmic = { git = "https://github.com/pop-os/libcosmic", rev = "337b80d4ca02a63631668212bccbace22b8bb49f", features = [
     "winit",
     "wgpu",
     "tokio",
@@ -70,17 +85,12 @@ bytes = "1"
 serde_with = "3"
 strum = { version = "0.26", features = ["derive"] }
 
-
-[target.'cfg(target_os = "windows")'.dependencies]
-mslnk = "0.1"
-
-
 [build-dependencies]
 prost-build = "0.13"
 
 
+[target.'cfg(target_os = "windows")'.dependencies]
+mslnk = "0.1"
+
 [target.'cfg(target_os = "windows")'.build-dependencies]
 winres = "0.1"
-
-# [patch.crates-io]
-# zconf =  { path = "../../zconf" }
