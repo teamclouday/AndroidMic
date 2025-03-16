@@ -78,7 +78,7 @@ fn get_audio_devices(audio_host: &Host) -> Vec<AudioDevice> {
         .collect()
 }
 
-const SHARED_BUF_SIZE_S: f32 = 0.05; // 0.05s
+const SHARED_BUF_SIZE_S: f32 = 0.1; // 0.1s
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum State {
