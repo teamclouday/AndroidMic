@@ -19,22 +19,10 @@ jobs:
         include:
           - os: ubuntu-22.04
             platform: linux
-            arch: x86_64
-          - os: ubuntu-22.04
-            platform: linux
-            arch: aarch64
           - os: windows-2022
             platform: windows
-            arch: x86_64
-          - os: windows-2022
-            platform: windows
-            arch: x86
           - os: macos-13
             platform: macos
-            arch: x86_64
-          - os: macos-13
-            platform: macos
-            arch: aarch64
     
     steps:
       - name: Checkout code
@@ -56,15 +44,15 @@ jobs:
 
       - name: Install Rust toolchain
         run: |
-          if [[ "${{ matrix.platform }}" == "linux" && "${{ matrix.arch }}" == "aarch64" ]]; then
-            rustup toolchain install stable --profile minimal --target aarch64-unknown-linux-gnu
+          rustup toolchain install stable --profile minimal
+
+          if [[ "${{ matrix.platform }}" == "linux" ]]; then
+            rustup target add aarch64-unknown-linux-gnu
             rustup component add rust-src --toolchain stable
-          elif [[ "${{ matrix.platform }}" == "windows" && "${{ matrix.arch }}" == "x86" ]]; then
-            rustup toolchain install stable --profile minimal --target i686-pc-windows-msvc
-          elif [[ "${{ matrix.platform }}" == "macos" && "${{ matrix.arch }}" == "aarch64" ]]; then
-            rustup toolchain install stable --profile minimal --target aarch64-apple-darwin
-          else
-            rustup toolchain install stable --profile minimal
+          elif [[ "${{ matrix.platform }}" == "windows" ]]; then
+            rustup target add i686-pc-windows-msvc
+          elif [[ "${{ matrix.platform }}" == "macos" ]]; then
+            rustup target add aarch64-apple-darwin
           fi
         shell: bash
 
@@ -79,17 +67,29 @@ jobs:
       - name: Package (Linux)
         if: matrix.platform == 'linux'
         working-directory: ./RustApp
-        run: cargo packager -r -f appimage
+        run: |
+          PLATFORM=linux cargo packager -r -f appimage
+          PLATFORM=linux cargo packager -r -f appimage --target aarch64-unknown-linux-gnu
+          cp ./target/aarch64-unknown-linux-gnu/release/*.AppImage ./target/release/
         
       - name: Package (Windows)
         if: matrix.platform == 'windows'
         working-directory: ./RustApp
-        run: cargo packager -r -f nsis
+        run: |
+          $env:PLATFORM = "windows"
+          cargo packager -r -f nsis
+          $env:PLATFORM = "windows"
+          cargo packager -r -f nsis --target i686-pc-windows-msvc
+          Copy-Item -Path "./target/i686-pc-windows-msvc/release/*setup.exe" -Destination "./target/release/" -Force
+        shell: powershell
 
       - name: Package (macOS)
         if: matrix.platform == 'macos'
         working-directory: ./RustApp
-        run: cargo packager -r -f dmg
+        run: |
+          PLATFORM=macos cargo packager -r -f dmg
+          PLATFORM=macos cargo packager -r -f dmg --target aarch64-apple-darwin
+          cp ./target/aarch64-apple-darwin/release/*.dmg ./target/release/
           
       # For Linux
       - name: Upload Linux binary
