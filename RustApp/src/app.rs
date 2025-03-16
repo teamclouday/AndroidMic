@@ -320,7 +320,7 @@ impl Application for AppState {
 
                     let (new_id, command) = cosmic::iced::runtime::window::open(settings);
                     self.advanced_window = Some(AdvancedWindow { window_id: new_id });
-                    return command.map(|_| cosmic::app::Message::None);
+                    return command.map(|_| cosmic::action::Action::None);
                 }
             },
             AppMsg::Config(msg) => match msg {

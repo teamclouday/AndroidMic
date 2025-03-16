@@ -10,18 +10,18 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build-all:
-    name: Build All Platforms
+  build-app:
+    name: Build App For All Platforms
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: ubuntu-22.04
             platform: linux
-          - os: windows-latest
+          - os: windows-2022
             platform: windows
-          - os: macos-latest
+          - os: macos-13
             platform: macos
     
     steps:
@@ -42,33 +42,30 @@ jobs:
         if: matrix.platform == 'macos'
         run: brew install protobuf
 
+      - run: rustup toolchain install stable --profile minimal
+
       - name: Set up Rust cache
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: "./RustApp -> target"
           
       - name: Install cargo-packager
-        if: matrix.platform == 'windows' || matrix.platform == 'macos'
-        run: cargo install cargo-packager
+        run: cargo install cargo-packager --locked
         
       - name: Build (Linux)
         if: matrix.platform == 'linux'
         working-directory: ./RustApp
-        run: cargo build --release
+        run: cargo packager -r -f appimage
         
-      - name: Package (Windows/macOS)
-        if: matrix.platform == 'windows' || matrix.platform == 'macos'
+      - name: Package (Windows)
+        if: matrix.platform == 'windows'
         working-directory: ./RustApp
-        run: |
-          # Debug what cargo-packager is doing
-          echo "Running cargo packager with verbose output"
-          cargo packager --release -v
-        
-      - name: Debug output directory structure
-        shell: bash
-        run: |
-          echo "Listing target directory structure"
-          find ./RustApp/target -type f -not -path "*/deps/*" -not -path "*/examples/*" -not -path "*/incremental/*" | sort
+        run: cargo packager -r -f nsis
+
+      - name: Package (macOS)
+        if: matrix.platform == 'macos'
+        working-directory: ./RustApp
+        run: cargo packager -r -f app
           
       # For Linux
       - name: Upload Linux binary
@@ -76,7 +73,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: androidmic-linux
-          path: ./RustApp/target/release/android-mic
+          path: ./RustApp/target/release/android-mic*.AppImage
           if-no-files-found: warn
           
       # For Windows
@@ -85,9 +82,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: androidmic-windows
-          path: |
-            ./RustApp/target/release/android-mic.exe
-            ./RustApp/target/release/bundles/**/*
+          path: ./RustApp/target/release/android-mic*setup.exe
           if-no-files-found: warn
           
       # For macOS
@@ -96,9 +91,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: androidmic-macos
-          path: |
-            ./RustApp/target/release/android-mic
-            ./RustApp/target/release/bundles/**/*
+          path: ./RustApp/target/release/android-mic*.app
           if-no-files-found: warn
 
   build-android:
@@ -137,7 +130,7 @@ jobs:
 
   create-release:
     name: Create GitHub Release
-    needs: [build-all, build-android]
+    needs: [build-app, build-android]
     runs-on: ubuntu-latest
     
     steps:
@@ -170,5 +163,6 @@ jobs:
             
             ### Installation
             - For Android: Install the `.apk` file
-            - For Linux: Install the `android-mic` binary
-            - For Windows: Download and run the `.exe`
+            - For Linux: Download and run the `.AppImage` binary
+            - For Windows: Download and run the `.exe` installer
+            - For macOS: Download and run the `.app` file
