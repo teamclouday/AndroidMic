@@ -13,7 +13,6 @@ license = "GPL-3.0-only"
 product_name = "AndroidMic"
 version = "2.1.0"
 identifier = "io.github.teamclouday.android-mic"
-before_each_package_command = "cargo build --release --target $TARGET"
 icons = ["../Assets/icon512.png"]
 category = "Utility"
 description = "Use your Android phone as a mic for your PC"

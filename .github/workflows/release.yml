@@ -32,7 +32,10 @@ jobs:
 
       - name: Install dependencies (Linux)
         if: matrix.platform == 'linux'
-        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libjack-jackd2-dev libxkbcommon-dev protobuf-compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libjack-jackd2-dev libxkbcommon-dev protobuf-compiler
+          sudo apt-get install -y gcc-aarch64-linux-gnu g++-aarch64-linux-gnu
 
       - name: Install dependencies (Windows)
         if: matrix.platform == 'windows'
@@ -44,8 +47,6 @@ jobs:
 
       - name: Install Rust toolchain
         run: |
-          rustup toolchain install stable --profile minimal
-
           if [[ "${{ matrix.platform }}" == "linux" ]]; then
             rustup target add aarch64-unknown-linux-gnu x86_64-unknown-linux-gnu
             rustup component add rust-src --toolchain stable
@@ -68,25 +69,28 @@ jobs:
         if: matrix.platform == 'linux'
         working-directory: ./RustApp
         run: |
-          TARGET=x86_64-unknown-linux-gnu cargo packager -r -f appimage --target x86_64-unknown-linux-gnu
-          TARGET=aarch64-unknown-linux-gnu cargo packager -r -f appimage --target aarch64-unknown-linux-gnu
+          cargo build --release --target x86_64-unknown-linux-gnu
+          cargo packager -r -f appimage --target x86_64-unknown-linux-gnu
+          PKG_CONFIG_ALLOW_CROSS=1 PKG_CONFIG_SYSROOT_DIR=/ cargo build --release --target aarch64-unknown-linux-gnu
+          cargo packager -r -f appimage --target aarch64-unknown-linux-gnu
         
       - name: Package (Windows)
         if: matrix.platform == 'windows'
         working-directory: ./RustApp
         run: |
-          $env:TARGET = "x86_64-pc-windows-msvc"
+          cargo build --release --target x86_64-pc-windows-msvc
           cargo packager -r -f nsis --target x86_64-pc-windows-msvc
-          $env:TARGET = "i686-pc-windows-msvc"
+          cargo build --release --target i686-pc-windows-msvc
           cargo packager -r -f nsis --target i686-pc-windows-msvc
-        shell: powershell
 
       - name: Package (macOS)
         if: matrix.platform == 'macos'
         working-directory: ./RustApp
         run: |
-          TARGET=x86_64-apple-darwin cargo packager -r -f dmg --target x86_64-apple-darwin
-          TARGET=aarch64-apple-darwin cargo packager -r -f dmg --target aarch64-apple-darwin
+          cargo build --release --target x86_64-apple-darwin
+          cargo packager -r -f dmg --target x86_64-apple-darwin
+          cargo build --release --target aarch64-apple-darwin
+          cargo packager -r -f dmg --target aarch64-apple-darwin
           
       # For Linux
       - name: Upload Linux binary
