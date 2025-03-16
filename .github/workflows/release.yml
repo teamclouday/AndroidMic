@@ -48,7 +48,9 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: "./RustApp -> target"
-          
+          cache-directories: |
+            ~/.cargo/bin/cargo-packager
+
       - name: Install cargo-packager
         run: cargo install cargo-packager --locked
         
@@ -65,7 +67,7 @@ jobs:
       - name: Package (macOS)
         if: matrix.platform == 'macos'
         working-directory: ./RustApp
-        run: cargo packager -r -f app
+        run: cargo packager -r -f dmg
           
       # For Linux
       - name: Upload Linux binary
@@ -91,7 +93,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: androidmic-macos
-          path: ./RustApp/target/release/*.app
+          path: ./RustApp/target/release/*.dmg
           if-no-files-found: warn
 
   build-android:
@@ -145,17 +147,24 @@ jobs:
           
       - name: Display structure of downloaded files
         run: find all-artifacts -type f | sort
+
+      - name: Extract version from Cargo.toml
+        id: get_version
+        run: |
+          VERSION=$(grep '^version' ./RustApp/Cargo.toml | head -n 1 | awk -F '"' '{print $2}')
+          echo "VERSION=$VERSION" >> $GITHUB_ENV
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
         
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ github.ref_name }}
-          name: Release ${{ github.ref_name }}
+          tag_name: ${{ env.VERSION }}
+          name: Release v${{ env.VERSION }}
           draft: true
           generate_release_notes: true
           files: all-artifacts/**/*
           body: |
-            ## AndroidMic ${{ github.ref_name }}
+            ## AndroidMic v${{ env.VERSION }}
             
             ### What's Changed
             <!-- You can add manual notes here, they will be combined with automated notes -->
@@ -165,4 +174,4 @@ jobs:
             - For Android: Install the `.apk` file
             - For Linux: Download and run the `.AppImage` binary
             - For Windows: Download and run the `.exe` installer
-            - For macOS: Download and run the `.app` file
+            - For macOS: Download and run the `.dmg` file
