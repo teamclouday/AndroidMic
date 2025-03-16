@@ -11,7 +11,7 @@ env:
 
 jobs:
   build-app:
-    name: Build App For All Platforms
+    name: Build Rust App
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -52,7 +52,7 @@ jobs:
       - name: Install cargo-packager
         run: cargo install cargo-packager --locked
         
-      - name: Build (Linux)
+      - name: Package (Linux)
         if: matrix.platform == 'linux'
         working-directory: ./RustApp
         run: cargo packager -r -f appimage
@@ -73,7 +73,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: androidmic-linux
-          path: ./RustApp/target/release/android-mic*.AppImage
+          path: ./RustApp/target/release/*.AppImage
           if-no-files-found: warn
           
       # For Windows
@@ -82,7 +82,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: androidmic-windows
-          path: ./RustApp/target/release/android-mic*setup.exe
+          path: ./RustApp/target/release/*setup.exe
           if-no-files-found: warn
           
       # For macOS
@@ -91,11 +91,11 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: androidmic-macos
-          path: ./RustApp/target/release/android-mic*.app
+          path: ./RustApp/target/release/*.app
           if-no-files-found: warn
 
   build-android:
-    name: Build Android
+    name: Build Android App
     runs-on: ubuntu-latest
     
     steps:
