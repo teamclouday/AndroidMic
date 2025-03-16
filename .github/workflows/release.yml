@@ -23,6 +23,10 @@ jobs:
             platform: windows
           - os: macos-13
             platform: macos
+            arch: x86_64
+          - os: macos-13
+            platform: macos
+            arch: aarch64
     
     steps:
       - name: Checkout code
@@ -48,8 +52,6 @@ jobs:
         uses: Swatinem/rust-cache@v2
         with:
           workspaces: "./RustApp -> target"
-          cache-directories: |
-            ~/.cargo/bin/cargo-packager
 
       - name: Install cargo-packager
         run: cargo install cargo-packager --locked
@@ -92,7 +94,7 @@ jobs:
         if: matrix.platform == 'macos'
         uses: actions/upload-artifact@v4
         with:
-          name: androidmic-macos
+          name: androidmic-macos-${{ matrix.arch }}
           path: ./RustApp/target/release/*.dmg
           if-no-files-found: warn
 
