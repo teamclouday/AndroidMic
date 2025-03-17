@@ -84,6 +84,7 @@ nusb = "0.1"
 bytes = "1"
 serde_with = "3"
 strum = { version = "0.26", features = ["derive"] }
+resvg = "0.45.0"
 
 [build-dependencies]
 prost-build = "0.13"

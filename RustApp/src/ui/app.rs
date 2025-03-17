@@ -26,6 +26,7 @@ use crate::{
     fl,
     streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg},
     utils::APP_ID,
+    window_icon,
 };
 use zconf::ConfigManager;
 
@@ -239,6 +240,7 @@ impl Application for AppState {
             size: Size::new(800.0, 600.0),
             position: window::Position::Centered,
             exit_on_close_request: true,
+            icon: window_icon!("icon"),
             ..Default::default()
         };
 
@@ -333,6 +335,7 @@ impl Application for AppState {
                         size: Size::new(500.0, 600.0),
                         position: window::Position::Centered,
                         exit_on_close_request: true,
+                        icon: window_icon!("icon"),
                         ..Default::default()
                     };
 

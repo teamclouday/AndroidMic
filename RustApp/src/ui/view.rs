@@ -14,7 +14,7 @@ use super::{
 };
 use crate::{
     config::{AudioFormat, ChannelCount, ConnectionMode, SampleRate},
-    fl, icon_button,
+    fl, widget_icon_button,
 };
 
 pub fn main_window(app: &AppState) -> Element<'_, AppMsg> {
@@ -70,12 +70,18 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
         .push(text::title4(fl!("audio_device")))
         .push(
             row()
-                .push(pick_list(
-                    app.audio_devices.clone(),
-                    selected,
-                    AppMsg::Device,
-                ))
-                .push(icon_button!("refresh24").on_press(AppMsg::RefreshAudioDevices)),
+                .width(Length::Fill)
+                .spacing(5)
+                .push(
+                    pick_list(app.audio_devices.clone(), selected, AppMsg::Device)
+                        .width(Length::Fill),
+                )
+                .push(
+                    widget_icon_button!("refresh24")
+                        .on_press(AppMsg::RefreshAudioDevices)
+                        .class(cosmic::theme::Button::Text)
+                        .width(Length::Shrink),
+                ),
         )
         .push(button::text(fl!("advanced")).on_press(AppMsg::AdvancedOptions))
         .into()
