@@ -1,7 +1,7 @@
 use crate::{
-    app::AudioDevice,
     config::{AudioFormat, ChannelCount, ConnectionMode, SampleRate},
     streamer::StreamerMsg,
+    ui::app::AudioDevice,
 };
 
 #[derive(Debug, Clone)]

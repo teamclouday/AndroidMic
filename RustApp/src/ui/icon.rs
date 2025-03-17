@@ -1,7 +1,7 @@
 #[macro_export]
 macro_rules! icon_handle {
     ($name:literal) => {{
-        let bytes = include_bytes!(concat!("../res/icons/", $name, ".svg"));
+        let bytes = include_bytes!(concat!("../../res/icons/", $name, ".svg"));
         cosmic::widget::icon::from_svg_bytes(bytes).symbolic(true)
     }};
 }

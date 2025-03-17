@@ -9,7 +9,7 @@ use rtrb::{
     Consumer,
 };
 
-use crate::{app::AppState, config::AudioFormat, map_bytes::MapBytes};
+use crate::{config::AudioFormat, map_bytes::MapBytes, ui::app::AppState};
 
 impl AppState {
     pub fn start_audio_stream(&self, consumer: Consumer<u8>) -> anyhow::Result<cpal::Stream> {

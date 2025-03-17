@@ -6,13 +6,13 @@ use rtrb::Producer;
 use tokio::time::sleep;
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
+use crate::streamer::usb::{
+    aoa::{AccessoryConfigurations, AccessoryDeviceInfo, AccessoryInterface, AccessoryStrings},
+    frame::UsbStream,
+};
 use crate::{
     config::AudioFormat,
     streamer::{AudioWaveData, WriteError},
-    usb::{
-        aoa::{AccessoryConfigurations, AccessoryDeviceInfo, AccessoryInterface, AccessoryStrings},
-        frame::UsbStream,
-    },
 };
 
 use super::{AudioPacketMessage, ConnectError, Status, StreamerTrait};

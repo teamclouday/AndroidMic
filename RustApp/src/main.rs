@@ -3,27 +3,23 @@
 
 use std::path::Path;
 
-use app::run_ui;
 use clap::Parser;
 use config::{Args, Config};
 use directories::ProjectDirs;
+use ui::app::run_ui;
 use utils::{APP, ORG, QUALIFIER};
 use zconf::ConfigManager;
 
 #[macro_use]
 extern crate log;
 
-mod app;
 mod audio;
 mod config;
-mod icon;
 mod map_bytes;
-mod message;
 mod start_at_login;
 mod streamer;
-mod usb;
+mod ui;
 mod utils;
-mod view;
 
 #[macro_use]
 mod localize;

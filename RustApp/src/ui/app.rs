@@ -19,10 +19,10 @@ use cosmic::{
 use crate::{
     config::{AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
     fl,
-    message::{AppMsg, ConfigMsg},
     streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg},
+    ui::message::{AppMsg, ConfigMsg},
+    ui::view::{advanced_window, main_window, AudioWave},
     utils::APP_ID,
-    view::{advanced_window, main_window, AudioWave},
 };
 use zconf::ConfigManager;
 

@@ -12,10 +12,10 @@ use cosmic::{
 use cpal::traits::DeviceTrait;
 
 use crate::{
-    app::{AppState, State},
     config::{AudioFormat, ChannelCount, ConnectionMode, SampleRate},
     fl, icon_button,
-    message::{AppMsg, ConfigMsg},
+    ui::app::{AppState, State},
+    ui::message::{AppMsg, ConfigMsg},
 };
 
 pub fn main_window(app: &AppState) -> Element<'_, AppMsg> {
