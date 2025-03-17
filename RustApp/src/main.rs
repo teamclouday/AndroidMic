@@ -15,7 +15,6 @@ extern crate log;
 
 mod audio;
 mod config;
-mod map_bytes;
 mod start_at_login;
 mod streamer;
 mod ui;

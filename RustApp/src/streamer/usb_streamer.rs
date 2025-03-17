@@ -6,7 +6,7 @@ use rtrb::Producer;
 use tokio::time::sleep;
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
-use crate::streamer::usb::{
+use super::usb::{
     aoa::{AccessoryConfigurations, AccessoryDeviceInfo, AccessoryInterface, AccessoryStrings},
     frame::UsbStream,
 };

@@ -1,4 +1,5 @@
 pub mod app;
-pub mod icon;
-pub mod message;
-pub mod view;
+mod icon;
+mod message;
+mod view;
+mod wave;

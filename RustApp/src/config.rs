@@ -16,7 +16,6 @@ pub struct Config {
     // i'm not using an index because i'm not sure it will works well with
     // device that could be disconnected sometime.
     pub device_name: Option<String>,
-    pub usb_device_name: Option<String>,
     pub start_at_login: bool,
     pub auto_connect: bool,
 }

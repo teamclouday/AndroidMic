@@ -16,12 +16,15 @@ use cosmic::{
     Application, Element,
 };
 
+use super::{
+    message::{AppMsg, ConfigMsg},
+    view::{advanced_window, main_window},
+    wave::AudioWave,
+};
 use crate::{
     config::{AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
     fl,
     streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg},
-    ui::message::{AppMsg, ConfigMsg},
-    ui::view::{advanced_window, main_window, AudioWave},
     utils::APP_ID,
 };
 use zconf::ConfigManager;
