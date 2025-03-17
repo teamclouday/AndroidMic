@@ -1,5 +1,6 @@
 package com.example.androidMic.domain.streaming
 
+import Message
 import android.os.Messenger
 import android.util.Log
 import com.example.androidMic.domain.service.AudioPacket
@@ -31,7 +32,7 @@ class AdbStreamer(private val scope: CoroutineScope) : Streamer {
         // create socket
         socket = Socket()
         try {
-            socket?.connect(InetSocketAddress(address, 6000), MAX_WAIT_TIME)
+            socket?.connect(InetSocketAddress(address, 55555), MAX_WAIT_TIME)
         } catch (e: IOException) {
             Log.d(TAG, "connect [Socket]: ${e.message}")
             null

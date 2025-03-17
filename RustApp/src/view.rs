@@ -4,32 +4,36 @@ use cosmic::{
         Size,
     },
     widget::{
-        button, canvas, column, container, horizontal_space, radio, row, scrollable, settings,
-        text, toggler, vertical_space,
+        button, canvas, column, container, radio, row, scrollable, settings, text, toggler,
+        vertical_space,
     },
     Element,
 };
 use cpal::traits::DeviceTrait;
 
 use crate::{
-    app::{AdvancedWindow, AppState, State},
+    app::{AppState, State},
     config::{AudioFormat, ChannelCount, ConnectionMode, SampleRate},
     fl, icon_button,
     message::{AppMsg, ConfigMsg},
 };
 
-pub fn view_app(app: &AppState) -> Element<'_, AppMsg> {
+pub fn main_window(app: &AppState) -> Element<'_, AppMsg> {
     row()
         .padding(50)
+        .spacing(50)
         .push(
             column()
+                .width(Length::FillPortion(2))
+                .height(Length::Fill)
+                .spacing(50)
                 .push(logs(app))
-                .push(vertical_space())
                 .push(wave(app)),
         )
-        .push(horizontal_space())
         .push(
             column()
+                .width(Length::FillPortion(1))
+                .height(Length::Fill)
                 .align_x(Horizontal::Center)
                 .push(audio(app))
                 .push(vertical_space())
@@ -40,8 +44,8 @@ pub fn view_app(app: &AppState) -> Element<'_, AppMsg> {
 
 fn logs(app: &AppState) -> Element<'_, AppMsg> {
     container(scrollable(text(&app.logs).width(Length::Fill)))
-        .width(Length::FillPortion(2))
-        .height(Length::FillPortion(2))
+        .width(Length::Fill)
+        .height(Length::FillPortion(3))
         .padding(13)
         .class(cosmic::theme::Container::Card)
         .into()
@@ -49,9 +53,8 @@ fn logs(app: &AppState) -> Element<'_, AppMsg> {
 
 fn wave(app: &AppState) -> Element<'_, AppMsg> {
     container(canvas(&app.audio_wave).width(Length::Fill))
-        .width(Length::FillPortion(2))
+        .width(Length::Fill)
         .height(Length::FillPortion(1))
-        .padding(13)
         .into()
 }
 
@@ -75,12 +78,7 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
                 ))
                 .push(icon_button!("refresh24").on_press(AppMsg::RefreshAudioDevices)),
         )
-        .push(
-            row()
-                .spacing(20)
-                .push(toggler(app.advanced_window.is_some()).on_toggle(|_| AppMsg::AdvancedOptions))
-                .push(text(fl!("advanced"))),
-        )
+        .push(button::text(fl!("advanced")).on_press(AppMsg::AdvancedOptions))
         .into()
 }
 
@@ -132,15 +130,13 @@ fn connect_button(app: &AppState) -> Element<'_, AppMsg> {
     .into()
 }
 
-pub fn advanced_window<'a>(
-    app: &'a AppState,
-    _advanced_window: &'a AdvancedWindow,
-) -> Element<'a, ConfigMsg> {
+pub fn advanced_window(app: &AppState) -> Element<'_, ConfigMsg> {
     let config = app.config.data();
 
-    container(
+    scrollable(
         column()
             .padding(50)
+            .spacing(20)
             .push(settings::section().title(fl!("sample_rate")).add(pick_list(
                 SampleRate::VALUES,
                 Some(&config.sample_rate),
@@ -179,9 +175,6 @@ pub fn advanced_window<'a>(
                     .add(toggler(config.auto_connect).on_toggle(ConfigMsg::AutoConnect)),
             ),
     )
-    .class(cosmic::theme::Container::Background)
-    .center_x(Length::Fill)
-    .center_y(Length::Fill)
     .into()
 }
 

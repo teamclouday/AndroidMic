@@ -22,14 +22,15 @@ use crate::{
     message::{AppMsg, ConfigMsg},
     streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg},
     utils::APP_ID,
-    view::{advanced_window, view_app, AudioWave},
+    view::{advanced_window, main_window, AudioWave},
 };
 use zconf::ConfigManager;
 
 pub fn run_ui(config: ConfigManager<Config>) {
     let flags = Flags { config };
+    let settings = Settings::default().no_main_window(true);
 
-    cosmic::app::run::<AppState>(Settings::default(), flags).unwrap();
+    cosmic::app::run::<AppState>(settings, flags).unwrap();
 }
 
 #[derive(Clone)]
@@ -98,11 +99,12 @@ pub struct AppState {
     pub audio_stream: Option<cpal::Stream>,
     pub audio_wave: AudioWave,
     pub state: State,
-    pub advanced_window: Option<AdvancedWindow>,
+    pub main_window: Option<CustomWindow>,
+    pub advanced_window: Option<CustomWindow>,
     pub logs: String,
 }
 
-pub struct AdvancedWindow {
+pub struct CustomWindow {
     pub window_id: window::Id,
 }
 
@@ -196,6 +198,12 @@ impl Application for AppState {
         &self.core
     }
 
+    fn style(&self) -> Option<cosmic::iced_runtime::Appearance> {
+        Some(cosmic::style::iced::application::appearance(
+            &cosmic::theme::Theme::dark(),
+        ))
+    }
+
     fn core_mut(&mut self) -> &mut cosmic::app::Core {
         &mut self.core
     }
@@ -224,6 +232,15 @@ impl Application for AppState {
             None => audio_host.default_output_device(),
         };
 
+        let settings = window::Settings {
+            size: Size::new(800.0, 600.0),
+            position: window::Position::Centered,
+            exit_on_close_request: true,
+            ..Default::default()
+        };
+
+        let (new_id, command) = cosmic::iced::window::open(settings);
+
         let app = Self {
             core,
             audio_stream: None,
@@ -234,11 +251,12 @@ impl Application for AppState {
             audio_devices,
             audio_wave: AudioWave::new(),
             state: State::Default,
+            main_window: Some(CustomWindow { window_id: new_id }),
             advanced_window: None,
             logs: String::new(),
         };
 
-        (app, Task::none())
+        (app, command.map(|_| cosmic::action::Action::None))
     }
 
     fn update(&mut self, message: Self::Message) -> Task<Self::Message> {
@@ -309,17 +327,14 @@ impl Application for AppState {
                 }
                 None => {
                     let settings = window::Settings {
-                        size: Size::new(500.0, 500.0),
-                        resizable: false,
+                        size: Size::new(500.0, 600.0),
                         position: window::Position::Centered,
-                        decorations: false,
-                        transparent: true,
-                        level: window::Level::AlwaysOnTop,
+                        exit_on_close_request: true,
                         ..Default::default()
                     };
 
-                    let (new_id, command) = cosmic::iced::runtime::window::open(settings);
-                    self.advanced_window = Some(AdvancedWindow { window_id: new_id });
+                    let (new_id, command) = cosmic::iced::window::open(settings);
+                    self.advanced_window = Some(CustomWindow { window_id: new_id });
                     return command.map(|_| cosmic::action::Action::None);
                 }
             },
@@ -343,18 +358,27 @@ impl Application for AppState {
                     self.config.update(|s| s.auto_connect = auto_connect);
                 }
             },
+            AppMsg::Shutdown => {
+                return cosmic::iced_runtime::task::effect(Action::Exit);
+            }
         }
 
         Task::none()
     }
+
     fn view(&self) -> Element<Self::Message> {
-        view_app(self)
+        self.view_window(self.core.main_window_id().unwrap())
     }
 
     fn view_window(&self, id: window::Id) -> Element<Self::Message> {
         if let Some(window) = &self.advanced_window {
             if window.window_id == id {
-                return advanced_window(self, window).map(AppMsg::Config);
+                return advanced_window(self).map(AppMsg::Config);
+            }
+        }
+        if let Some(window) = &self.main_window {
+            if window.window_id == id {
+                return main_window(self);
             }
         }
 
@@ -363,5 +387,21 @@ impl Application for AppState {
 
     fn subscription(&self) -> cosmic::iced::Subscription<Self::Message> {
         Subscription::run(|| streamer::sub().map(AppMsg::Streamer))
+    }
+
+    fn on_close_requested(&self, id: window::Id) -> Option<Self::Message> {
+        if let Some(window) = &self.advanced_window {
+            if window.window_id == id {
+                return Some(AppMsg::AdvancedOptions);
+            }
+        }
+        if let Some(window) = &self.main_window {
+            if window.window_id == id {
+                // close the app
+                return Some(AppMsg::Shutdown);
+            }
+        }
+
+        None
     }
 }
