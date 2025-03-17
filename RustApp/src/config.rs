@@ -209,7 +209,7 @@ impl AudioFormat {
             cpal::SampleFormat::I16 => Some(AudioFormat::I16),
             cpal::SampleFormat::U16 => Some(AudioFormat::U16),
             cpal::SampleFormat::I32 => Some(AudioFormat::I32),
-            cpal::SampleFormat::F32 => Some(AudioFormat::F32),
+            cpal::SampleFormat::F32 => Some(AudioFormat::I24),
             cpal::SampleFormat::I64 => Some(AudioFormat::I64),
             cpal::SampleFormat::U64 => Some(AudioFormat::U64),
             _ => None,

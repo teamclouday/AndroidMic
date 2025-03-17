@@ -361,16 +361,14 @@ impl Application for AppState {
                     if let Some(device) = &self.audio_device {
                         if let Some(format) = device.default_output_config().ok() {
                             info!(
-                                "using recommended audio format: sample rate = {}, channels = {}, audio format = {}",
+                                "using recommended audio format: sample rate = {}, channels = 1, audio format = {}",
                                 format.sample_rate().0,
-                                format.channels(),
                                 format.sample_format()
                             );
                             self.config.update(|s| {
                                 s.sample_rate = SampleRate::from_number(format.sample_rate().0)
                                     .unwrap_or_default();
-                                s.channel_count = ChannelCount::from_number(format.channels())
-                                    .unwrap_or_default();
+                                s.channel_count = ChannelCount::from_number(1).unwrap_or_default();
                                 s.audio_format =
                                     AudioFormat::from_cpal_format(format.sample_format())
                                         .unwrap_or_default();

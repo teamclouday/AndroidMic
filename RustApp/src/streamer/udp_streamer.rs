@@ -73,7 +73,9 @@ impl StreamerTrait for UdpStreamer {
 
     fn status(&self) -> Option<Status> {
         match &self.state {
-            UdpStreamerState::Streaming { .. } => Some(Status::Connected),
+            UdpStreamerState::Streaming { .. } => Some(Status::Listening {
+                port: Some(self.port),
+            }),
         }
     }
 
