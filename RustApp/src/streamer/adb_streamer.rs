@@ -2,7 +2,7 @@ use anyhow::Result;
 use rtrb::Producer;
 use tokio::process::Command;
 
-use crate::streamer::tcp_streamer;
+use crate::{audio::AudioPacketFormat, streamer::tcp_streamer};
 
 use super::{tcp_streamer::TcpStreamer, ConnectError, Status, StreamerTrait};
 
@@ -60,8 +60,12 @@ async fn exec_cmd(mut cmd: Command) -> Result<String, ConnectError> {
     Ok(stdout)
 }
 
-pub async fn new(producer: Producer<u8>) -> Result<AdbStreamer, ConnectError> {
-    let tcp_streamer = tcp_streamer::new(str::parse("127.0.0.1").unwrap(), producer).await?;
+pub async fn new(
+    producer: Producer<u8>,
+    format: AudioPacketFormat,
+) -> Result<AdbStreamer, ConnectError> {
+    let tcp_streamer =
+        tcp_streamer::new(str::parse("127.0.0.1").unwrap(), producer, format).await?;
 
     let devices = get_connected_devices().await?;
     if devices.is_empty() {
@@ -91,8 +95,8 @@ impl StreamerTrait for AdbStreamer {
         self.tcp_streamer.next().await
     }
 
-    fn set_buff(&mut self, buff: Producer<u8>) {
-        self.tcp_streamer.set_buff(buff)
+    fn set_buff(&mut self, buff: Producer<u8>, format: AudioPacketFormat) {
+        self.tcp_streamer.set_buff(buff, format)
     }
 
     fn status(&self) -> Option<Status> {

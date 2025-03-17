@@ -22,6 +22,7 @@ use super::{
     wave::AudioWave,
 };
 use crate::{
+    audio::AudioPacketFormat,
     config::{AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
     fl,
     streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg},
@@ -83,7 +84,7 @@ fn get_audio_devices(audio_host: &Host) -> Vec<AudioDevice> {
         .collect()
 }
 
-const SHARED_BUF_SIZE_S: f32 = 0.1; // 0.1s
+const SHARED_BUF_SIZE_S: f32 = 0.5; // 0.5s
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum State {
@@ -101,6 +102,7 @@ pub struct AppState {
     pub audio_devices: Vec<AudioDevice>,
     pub audio_device: Option<cpal::Device>,
     pub audio_stream: Option<cpal::Stream>,
+    pub audio_config: Option<AudioPacketFormat>,
     pub audio_wave: AudioWave,
     pub state: State,
     pub main_window: Option<CustomWindow>,
@@ -123,15 +125,15 @@ impl AppState {
         }
         let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
 
-        match self.start_audio_stream(consumer) {
-            Ok(stream) => self.audio_stream = Some(stream),
-            Err(e) => {
-                error!("{e}");
-                self.add_log(&e.to_string());
-            }
-        }
+        self.start_audio_stream(consumer).unwrap_or_else(|e| {
+            self.add_log(&e.to_string());
+            error!("failed to start audio stream: {e}");
+        });
 
-        self.send_command(StreamerCommand::ChangeBuff(producer));
+        self.send_command(StreamerCommand::ChangeBuff(
+            producer,
+            self.audio_config.clone().unwrap(),
+        ));
     }
 
     fn add_log(&mut self, log: &str) {
@@ -154,9 +156,14 @@ impl AppState {
     }
 
     fn connect(&mut self) {
-        let config = &self.config.data();
+        let config = self.config.data().clone();
         self.state = State::WaitingOnStatus;
         let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
+
+        self.start_audio_stream(consumer).unwrap_or_else(|e| {
+            self.add_log(&e.to_string());
+            error!("failed to start audio stream: {e}");
+        });
 
         let connect_option = match config.connection_mode {
             ConnectionMode::Tcp => {
@@ -173,15 +180,11 @@ impl AppState {
             ConnectionMode::Usb => ConnectOption::Usb,
         };
 
-        self.send_command(StreamerCommand::Connect(connect_option, producer));
-
-        match self.start_audio_stream(consumer) {
-            Ok(stream) => self.audio_stream = Some(stream),
-            Err(e) => {
-                self.add_log(&e.to_string());
-                error!("{e}")
-            }
-        }
+        self.send_command(StreamerCommand::Connect(
+            connect_option,
+            producer,
+            self.audio_config.clone().unwrap(),
+        ));
     }
 }
 
@@ -249,6 +252,7 @@ impl Application for AppState {
         let app = Self {
             core,
             audio_stream: None,
+            audio_config: None,
             streamer: None,
             config: flags.config,
             audio_device,

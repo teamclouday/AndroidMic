@@ -21,7 +21,7 @@ mod usb_streamer;
 pub use message::{AudioPacketMessage, AudioPacketMessageOrdered};
 pub use streamer_sub::{sub, ConnectOption, StreamerCommand, StreamerMsg};
 
-use crate::config::AudioFormat;
+use crate::{audio::AudioPacketFormat, config::AudioFormat};
 use usb::aoa::{AccessoryError, EndpointError};
 
 /// Status reported from the streamer
@@ -52,7 +52,7 @@ trait StreamerTrait {
     /// A nice benefit of this pattern is that there is no usage of Atomic what so ever.
     async fn next(&mut self) -> Result<Option<Status>, ConnectError>;
 
-    fn set_buff(&mut self, buff: Producer<u8>);
+    fn set_buff(&mut self, buff: Producer<u8>, config: AudioPacketFormat);
 
     fn status(&self) -> Option<Status>;
 }
@@ -125,19 +125,15 @@ impl StreamerTrait for DummyStreamer {
         unreachable!()
     }
 
-    fn set_buff(&mut self, _buff: Producer<u8>) {}
+    fn set_buff(&mut self, _buff: Producer<u8>, _config: AudioPacketFormat) {}
 
     fn status(&self) -> Option<Status> {
         None
     }
 }
 
-trait AudioWaveData {
-    fn to_f32_vec(&self) -> Option<Vec<(f32, f32)>>;
-}
-
-impl AudioWaveData for AudioPacketMessage {
-    fn to_f32_vec(&self) -> Option<Vec<(f32, f32)>> {
+impl AudioPacketMessage {
+    fn to_wave_data(&self) -> Option<Vec<(f32, f32)>> {
         let channel_count = self.channel_count as usize;
         let audio_format = AudioFormat::from_android_format(self.audio_format).unwrap();
 
@@ -233,5 +229,23 @@ impl AudioWaveData for AudioPacketMessage {
             }
             _ => None,
         }
+    }
+
+    fn sub_packets(&self, samples: usize) -> Vec<Self> {
+        let mut packets = Vec::new();
+        let channel_count = self.channel_count as usize;
+        let audio_format = AudioFormat::from_android_format(self.audio_format).unwrap();
+
+        // calculate the size of each packet
+        let packet_size = audio_format.sample_size() * channel_count * samples;
+
+        // split the buffer into packets of the specified size
+        for chunk in self.buffer.chunks(packet_size) {
+            let mut packet = self.clone();
+            packet.buffer = chunk.to_vec();
+            packets.push(packet);
+        }
+
+        packets
     }
 }
