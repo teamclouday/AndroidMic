@@ -8,13 +8,20 @@ Use your Android phone as a microphone to PC
 
 ### PC Side
 
-__Start the app__: The installer will be released in the future. For now, make sure rust and cargo are installed on the system and run following command to build the app:
-```
-cd RustApp
-cargo run --release
-```
+__1. Start the app__: Download and install the latest release from [here](https://github.com/teamclouday/AndroidMic/releases). Then start the app.
 
-__Pick an output audio device__: You will see a list of audio player devices from the dropdown list. Here you want to choose a device that is wired to the virtual mic device on your system that you will be using.
+<details>
+<summary>
+More about installation
+</summary>
+
+On macOS, you will need to run the following command to allow the app to run. For more details, refer to this [link](https://discussions.apple.com/thread/253714860?sortBy=best):
+```sh
+xattr -c /Applications/AndroidMic.app
+```
+</details>
+
+__2. Pick an output audio device__: You will see a list of audio player devices from the dropdown list. Here you want to choose a device that is wired to the virtual mic device on your system that you will be using.
 
 <details>
 <summary>
@@ -24,9 +31,11 @@ More about output device
 The step is system independent.
 
 On Windows you can use [Virtual Audio Cable](https://vac.muzychenko.net/en/download.htm) or [VB Cable](https://vb-audio.com/Cable/). Both software will install virtual input and output audio devices on your system. After that map the output player device to the input mic device so any audio our app played to the device is transferred to the virtual mic device.
+
+On Linux you can use pulseaudio to create a virtual mic device.
 </details>
 
-__Choose a connection method__: This is how your phone will be connected to your PC and stream audio from the mic.
+__3. Choose a connection method__: This is how your phone will be connected to your PC and stream audio from the mic.
 
 For TCP & UDP, connect your phone and PC to the same internet.
 
@@ -48,15 +57,15 @@ On Linux, you will need to configure [udev](https://github.com/libusb/libusb/wik
 
 For USB adb, make sure the system has installed [adb](https://developer.android.com/tools/adb). The connect your phone to PC.
 
-__Configure advanced settings__: Click to open the advanced settings window, and pick an audio format the output audio device supports. Usually sample rate of 44.1k or 48k, mono channel, and i16 or i24 are supported.
+__4. Configure advanced settings__: Click to open the advanced settings window, and pick an audio format the output audio device supports. Usually sample rate of 44.1k or 48k, mono channel, and i16 or i24 are supported.
 
 ### Android Side
 
-__Start the app__: Similar to the PC side, the installer will be released in the future. For now, compile the app from Android studio and install on your phone.
+__1. Start the app__: Download and install the apk file from release page. Then open the app.
 
-__Configure the app__: Open the side drawer menu, configure the connection method according to the option on PC app. Then pick the same audio format as the one in PC app advanced settings.
+__2. Configure the app__: Open the side drawer menu, configure the connection method according to the option on PC app. Then pick the **same audio settings** as the ones in PC app advanced settings.
 
-__Connect__: First start recording and give sufficient permissions. Recording permission for accessing your phone's mic. Notification permission so the app can let you know if it is still recording in the background. Then connect to the PC app.
+__3. Connect__: First start recording and give sufficient permissions. Recording permission for accessing your phone's mic. Notification permission so the app can let you know if it is still recording in the background. Then connect to the PC app.
 
 <details>
 <summary>More about connection configurations</summary>
