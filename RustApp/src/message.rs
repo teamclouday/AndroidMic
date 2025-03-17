@@ -22,6 +22,7 @@ pub enum ConfigMsg {
     SampleRate(SampleRate),
     ChannelCount(ChannelCount),
     AudioFormat(AudioFormat),
+    UseRecommendedFormat,
     StartAtLogin(bool),
     AutoConnect(bool),
 }

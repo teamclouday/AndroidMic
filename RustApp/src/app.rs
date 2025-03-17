@@ -17,7 +17,7 @@ use cosmic::{
 };
 
 use crate::{
-    config::{Config, ConnectionMode},
+    config::{AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
     fl,
     message::{AppMsg, ConfigMsg},
     streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg},
@@ -356,6 +356,27 @@ impl Application for AppState {
                 }
                 ConfigMsg::AutoConnect(auto_connect) => {
                     self.config.update(|s| s.auto_connect = auto_connect);
+                }
+                ConfigMsg::UseRecommendedFormat => {
+                    if let Some(device) = &self.audio_device {
+                        if let Some(format) = device.default_output_config().ok() {
+                            info!(
+                                "using recommended audio format: sample rate = {}, channels = {}, audio format = {}",
+                                format.sample_rate().0,
+                                format.channels(),
+                                format.sample_format()
+                            );
+                            self.config.update(|s| {
+                                s.sample_rate = SampleRate::from_number(format.sample_rate().0)
+                                    .unwrap_or_default();
+                                s.channel_count = ChannelCount::from_number(format.channels())
+                                    .unwrap_or_default();
+                                s.audio_format =
+                                    AudioFormat::from_cpal_format(format.sample_format())
+                                        .unwrap_or_default();
+                            });
+                        }
+                    }
                 }
             },
             AppMsg::Shutdown => {
