@@ -17,7 +17,7 @@ pub fn convert_audio_stream(
         AudioFormat::I32 => convert_audio_stream_internal::<i32>(producer, packet, format),
         AudioFormat::U8 => convert_audio_stream_internal::<u8>(producer, packet, format),
         AudioFormat::U32 => convert_audio_stream_internal::<u32>(producer, packet, format),
-        _ => bail!("Unsupported audio format."),
+        _ => bail!("unsupported audio format."),
     }
 }
 
@@ -27,44 +27,49 @@ fn convert_audio_stream_internal<F>(
     format: &AudioPacketFormat,
 ) -> anyhow::Result<Vec<f32>>
 where
-    F: cpal::SizedSample + std::fmt::Debug + AudioBytes + 'static,
+    F: cpal::SizedSample + AudioBytes + std::fmt::Debug + 'static,
 {
     // first convert audio packet to f32 vector, mono channel
     let buffer = convert_packet_to_f32_mono(&packet)?;
 
     // next run resampler on the buffer
-    // let resampled_buffer = if format.sample_rate.to_number() == packet.sample_rate {
-    //     buffer
-    // } else {
-    //     resample_f32_mono_stream(&buffer, packet.sample_rate, format.sample_rate.to_number())?
-    // };
-
-    let resampled_buffer = buffer.clone();
+    let resampled_buffer = if format.sample_rate.to_number() == packet.sample_rate {
+        buffer.clone()
+    } else {
+        resample_f32_mono_stream(&buffer, packet.sample_rate, format.sample_rate.to_number())?
+    };
 
     // finally convert to output format
-    let total_samples = resampled_buffer.len();
+    let total_bytes = resampled_buffer.len()
+        * format.channel_count.to_number() as usize
+        * std::mem::size_of::<F>();
+    let num_bytes = std::cmp::min(producer.slots(), total_bytes);
 
-    let num_samples = std::cmp::min(
-        producer.slots() / (format.channel_count.to_number() as usize * std::mem::size_of::<F>()),
-        total_samples,
-    );
-
-    match producer.write_chunk_uninit(num_samples * format.channel_count.to_number() as usize) {
+    match producer.write_chunk_uninit(num_bytes) {
         Ok(chunk) => {
-            chunk.fill_from_iter(resampled_buffer.iter().take(num_samples).flat_map(|x| {
-                std::iter::repeat(F::from_f32(*x))
-                    .take(format.channel_count.to_number() as usize)
-                    .flat_map(|sample| sample.to_bytes())
-            }));
+            chunk.fill_from_iter(
+                resampled_buffer
+                    .iter()
+                    .take(
+                        num_bytes
+                            / (format.channel_count.to_number() as usize
+                                * std::mem::size_of::<F>()),
+                    )
+                    .flat_map(|x| {
+                        std::iter::repeat(F::from_f32(*x))
+                            .take(format.channel_count.to_number() as usize)
+                            .flat_map(|sample| sample.to_bytes())
+                    }),
+            );
         }
         Err(e) => {
-            warn!("Dropped audio samples {e}");
+            warn!("dropped audio samples {e}");
         }
     };
 
     // warn about dropped samples
-    if num_samples < total_samples {
-        warn!("Dropped {} audio samples", total_samples - num_samples);
+    if num_bytes < total_bytes {
+        warn!("dropped {} audio bytes", total_bytes - num_bytes);
     }
 
     Ok(buffer)
@@ -78,13 +83,13 @@ fn convert_packet_to_f32_mono(packet: &AudioPacketMessage) -> anyhow::Result<Vec
         AudioFormat::I24 => convert_packet_to_f32_mono_internal::<f32>(packet),
         AudioFormat::I32 => convert_packet_to_f32_mono_internal::<i32>(packet),
         AudioFormat::F32 => convert_packet_to_f32_mono_internal::<f32>(packet),
-        _ => bail!("Unsupported android audio format or sample rate."),
+        _ => bail!("unsupported android audio format or sample rate."),
     }
 }
 
 fn convert_packet_to_f32_mono_internal<F>(packet: &AudioPacketMessage) -> anyhow::Result<Vec<f32>>
 where
-    F: cpal::SizedSample + std::fmt::Debug + AudioBytes,
+    F: cpal::SizedSample + AudioBytes + std::fmt::Debug + 'static,
 {
     let audio_format: AudioFormat = AudioFormat::from_android_format(packet.audio_format).unwrap();
     let channel_count = packet.channel_count as usize;
@@ -125,7 +130,7 @@ fn resample_f32_mono_stream(
         output_sample_rate as f64 / input_sample_rate as f64,
         1.0,
         rubato::PolynomialDegree::Cubic,
-        1024,
+        data.len(),
         1,
     )
     .unwrap();

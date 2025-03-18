@@ -20,30 +20,26 @@ pub fn start_audio_stream(
 
     let mut supported = false;
     for supported_config in supported_configs {
-        if let Some(supported_audio_format) =
-            AudioFormat::from_cpal_format(supported_config.sample_format())
+        if audio_format == supported_config.sample_format()
+            && supported_config.max_sample_rate().0 >= sample_rate
+            && supported_config.min_sample_rate().0 <= sample_rate
         {
-            if supported_audio_format == audio_format
-                && supported_config.max_sample_rate().0 >= sample_rate
-                && supported_config.min_sample_rate().0 <= sample_rate
-            {
-                // use recommended channel count
-                if supported_config.channels() != channel_count {
-                    warn!(
-                        "Using channel count {} instead of {}",
-                        supported_config.channels(),
-                        channel_count
-                    );
-                    channel_count = supported_config.channels();
-                }
-                supported = true;
-                break;
+            // use recommended channel count
+            if supported_config.channels() != channel_count {
+                warn!(
+                    "Using channel count {} instead of {}",
+                    supported_config.channels(),
+                    channel_count
+                );
+                channel_count = supported_config.channels();
             }
+            supported = true;
+            break;
         }
     }
 
     if !supported {
-        bail!("Unsupported output audio format or sample rate.");
+        bail!("unsupported output audio format or sample rate.");
     }
 
     let config = cpal::StreamConfig {
@@ -60,7 +56,7 @@ pub fn start_audio_stream(
         AudioFormat::U8 => build_output_stream::<u8>(device, config.clone(), consumer),
         AudioFormat::U32 => build_output_stream::<u32>(device, config.clone(), consumer),
         AudioFormat::F32 => build_output_stream::<f32>(device, config.clone(), consumer),
-        _ => bail!("Unsupported audio format."),
+        _ => bail!("unsupported audio format."),
     }?;
 
     stream.play()?;
@@ -81,7 +77,7 @@ fn build_output_stream<F>(
     mut consumer: Consumer<u8>,
 ) -> anyhow::Result<cpal::Stream, cpal::BuildStreamError>
 where
-    F: cpal::SizedSample + std::fmt::Debug + AudioBytes + 'static,
+    F: cpal::SizedSample + AudioBytes + std::fmt::Debug + 'static,
 {
     device.build_output_stream(
         &config,
@@ -92,11 +88,11 @@ where
                 Ok(chunk) => {
                     let samples = chunk
                         .into_iter()
-                        .collect::<Vec<u8>>()
+                        .collect::<Vec<_>>()
                         .chunks_exact(std::mem::size_of::<F>())
                         .map(|chunk| F::from_bytes(chunk).unwrap())
-                        .collect::<Vec<F>>();
-                    let len = samples.len().min(data.len());
+                        .collect::<Vec<_>>();
+                    let len = data.len();
                     data[..len].copy_from_slice(&samples[..len]);
                 }
                 Err(ChunkError::TooFewSlots(slots)) => {
@@ -104,14 +100,15 @@ where
                         return;
                     }
 
-                    let data_size = slots - (slots % std::mem::size_of::<F>());
+                    let data_size =
+                        slots - (slots % (std::mem::size_of::<F>() * config.channels as usize));
                     let chunk = consumer.read_chunk(data_size).unwrap();
                     let samples = chunk
                         .into_iter()
-                        .collect::<Vec<u8>>()
+                        .collect::<Vec<_>>()
                         .chunks_exact(std::mem::size_of::<F>())
                         .map(|chunk| F::from_bytes(chunk).unwrap())
-                        .collect::<Vec<F>>();
+                        .collect::<Vec<_>>();
                     let len = samples.len().min(data.len());
                     data[..len].copy_from_slice(&samples[..len]);
                 }

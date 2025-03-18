@@ -216,6 +216,27 @@ impl AudioFormat {
     }
 }
 
+impl PartialEq<cpal::SampleFormat> for AudioFormat {
+    fn eq(&self, other: &cpal::SampleFormat) -> bool {
+        match self {
+            AudioFormat::I8 => *other == cpal::SampleFormat::I8,
+            AudioFormat::U8 => *other == cpal::SampleFormat::U8,
+            AudioFormat::I16 => *other == cpal::SampleFormat::I16,
+            AudioFormat::U16 => *other == cpal::SampleFormat::U16,
+            AudioFormat::I32 => *other == cpal::SampleFormat::I32,
+            AudioFormat::I24 => *other == cpal::SampleFormat::F32,
+            AudioFormat::I48 => *other == cpal::SampleFormat::I64,
+            AudioFormat::I64 => *other == cpal::SampleFormat::I64,
+            AudioFormat::U24 => *other == cpal::SampleFormat::F32,
+            AudioFormat::U32 => *other == cpal::SampleFormat::U32,
+            AudioFormat::U48 => *other == cpal::SampleFormat::U64,
+            AudioFormat::U64 => *other == cpal::SampleFormat::U64,
+            AudioFormat::F32 => *other == cpal::SampleFormat::F32,
+            AudioFormat::F64 => *other == cpal::SampleFormat::F64,
+        }
+    }
+}
+
 #[derive(
     Debug,
     Clone,

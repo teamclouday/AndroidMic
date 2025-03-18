@@ -1,4 +1,4 @@
-use byteorder::{ByteOrder, NativeEndian};
+use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use rtrb::Consumer;
 
 use crate::{
@@ -65,8 +65,8 @@ impl AudioBytes for i16 {
     }
 
     fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = vec![0; 2];
-        NativeEndian::write_i16(&mut bytes, *self);
+        let mut bytes = vec![];
+        bytes.write_i16::<NativeEndian>(*self).unwrap();
         bytes
     }
 
@@ -92,8 +92,8 @@ impl AudioBytes for i32 {
     }
 
     fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = vec![0; 4];
-        NativeEndian::write_i32(&mut bytes, *self);
+        let mut bytes = vec![];
+        bytes.write_i32::<NativeEndian>(*self).unwrap();
         bytes
     }
 
@@ -123,8 +123,8 @@ impl AudioBytes for f32 {
     }
 
     fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = vec![0; 4];
-        NativeEndian::write_f32(&mut bytes, *self);
+        let mut bytes = vec![];
+        bytes.write_f32::<NativeEndian>(*self).unwrap();
         bytes
     }
 
@@ -175,8 +175,8 @@ impl AudioBytes for u32 {
     }
 
     fn to_bytes(&self) -> Vec<u8> {
-        let mut bytes = vec![0; 4];
-        NativeEndian::write_u32(&mut bytes, *self);
+        let mut bytes = vec![];
+        bytes.write_u32::<NativeEndian>(*self).unwrap();
         bytes
     }
 

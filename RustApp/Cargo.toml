@@ -81,7 +81,6 @@ libcosmic = { git = "https://github.com/pop-os/libcosmic", rev = "337b80d4ca02a6
 ] }
 byteorder = "1"
 nusb = "0.1"
-bytes = "1"
 serde_with = "3"
 strum = { version = "0.26", features = ["derive"] }
 resvg = "0.45.0"
