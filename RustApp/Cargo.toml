@@ -1,6 +1,6 @@
 [package]
 name = "android-mic"
-version = "2.1.1"
+version = "2.1.2"
 edition = "2021"
 authors = [
     "wiiznokes <wiiznokes2@gmail.com>",
@@ -11,7 +11,7 @@ license = "GPL-3.0-only"
 
 [package.metadata.packager]
 product_name = "AndroidMic"
-version = "2.1.1"
+version = "2.1.2"
 identifier = "io.github.teamclouday.android-mic"
 icons = ["../Assets/icon512.png"]
 category = "Utility"
