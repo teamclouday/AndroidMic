@@ -50,6 +50,12 @@ pub trait AudioBytes {
     fn from_f32(value: f32) -> Self
     where
         Self: Sized;
+
+    fn to_f64(&self) -> f64;
+
+    fn from_f64(value: f64) -> Self
+    where
+        Self: Sized;
 }
 
 impl AudioBytes for i16 {
@@ -77,6 +83,14 @@ impl AudioBytes for i16 {
     fn from_f32(value: f32) -> Self {
         (value * i16::MAX as f32) as i16
     }
+
+    fn to_f64(&self) -> f64 {
+        *self as f64 / i16::MAX as f64
+    }
+
+    fn from_f64(value: f64) -> Self {
+        (value * i16::MAX as f64) as i16
+    }
 }
 
 impl AudioBytes for i32 {
@@ -103,6 +117,14 @@ impl AudioBytes for i32 {
 
     fn from_f32(value: f32) -> Self {
         (value * i32::MAX as f32) as i32
+    }
+
+    fn to_f64(&self) -> f64 {
+        *self as f64 / i32::MAX as f64
+    }
+
+    fn from_f64(value: f64) -> Self {
+        (value * i32::MAX as f64) as i32
     }
 }
 
@@ -135,6 +157,14 @@ impl AudioBytes for f32 {
     fn from_f32(value: f32) -> Self {
         value
     }
+
+    fn to_f64(&self) -> f64 {
+        *self as f64
+    }
+
+    fn from_f64(value: f64) -> Self {
+        value as f32
+    }
 }
 
 impl AudioBytes for u8 {
@@ -158,6 +188,14 @@ impl AudioBytes for u8 {
     }
 
     fn from_f32(value: f32) -> Self {
+        (value * 128.0 + 128.0) as u8
+    }
+
+    fn to_f64(&self) -> f64 {
+        (*self as f64 - 128.0) / 128.0
+    }
+
+    fn from_f64(value: f64) -> Self {
         (value * 128.0 + 128.0) as u8
     }
 }
@@ -186,6 +224,14 @@ impl AudioBytes for u32 {
 
     fn from_f32(value: f32) -> Self {
         (value * u32::MAX as f32) as u32
+    }
+
+    fn to_f64(&self) -> f64 {
+        *self as f64 / u32::MAX as f64
+    }
+
+    fn from_f64(value: f64) -> Self {
+        (value * u32::MAX as f64) as u32
     }
 }
 

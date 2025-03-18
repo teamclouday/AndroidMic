@@ -221,6 +221,7 @@ dependencies = [
  "log",
  "mslnk",
  "nusb",
+ "once_cell",
  "prost",
  "prost-build",
  "resvg 0.45.0",

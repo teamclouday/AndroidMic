@@ -118,19 +118,15 @@ impl StreamerTrait for TcpStreamer {
                             Ok(packet) => {
                                 let buffer_size = packet.buffer.len();
 
-                                match convert_audio_stream(&mut self.producer, packet, &self.format)
+                                if let Ok(buffer) =
+                                    convert_audio_stream(&mut self.producer, packet, &self.format)
                                 {
-                                    Ok(buffer) => {
-                                        // compute the audio wave from the buffer
-                                        res = Some(Status::UpdateAudioWave {
-                                            data: AudioPacketMessage::to_wave_data(&buffer),
-                                        });
+                                    // compute the audio wave from the buffer
+                                    res = Some(Status::UpdateAudioWave {
+                                        data: AudioPacketMessage::to_wave_data(&buffer),
+                                    });
 
-                                        debug!("received {} bytes", buffer_size);
-                                    }
-                                    Err(e) => {
-                                        warn!("dropped packet: {}", e);
-                                    }
+                                    debug!("received {} bytes", buffer_size);
                                 };
                             }
                             Err(e) => {

@@ -1,4 +1,7 @@
+use std::sync::Mutex;
+
 use anyhow::bail;
+use once_cell::sync::Lazy;
 use rtrb::Producer;
 use rubato::Resampler;
 
@@ -17,8 +20,13 @@ pub fn convert_audio_stream(
         AudioFormat::I32 => convert_audio_stream_internal::<i32>(producer, packet, format),
         AudioFormat::U8 => convert_audio_stream_internal::<u8>(producer, packet, format),
         AudioFormat::U32 => convert_audio_stream_internal::<u32>(producer, packet, format),
+        AudioFormat::F32 => convert_audio_stream_internal::<f32>(producer, packet, format),
         _ => bail!("unsupported audio format."),
     }
+    .map_err(|e| {
+        warn!("failed to convert audio stream: {e}");
+        e
+    })
 }
 
 fn convert_audio_stream_internal<F>(
@@ -36,7 +44,8 @@ where
     let resampled_buffer = if format.sample_rate.to_number() == packet.sample_rate {
         buffer.clone()
     } else {
-        resample_f32_mono_stream(&buffer, packet.sample_rate, format.sample_rate.to_number())?
+        bail!("resampling not supported yet! please make sure the sample rate is the same.");
+        // resample_f32_mono_stream(&buffer, packet.sample_rate, format.sample_rate.to_number())?
     };
 
     // finally convert to output format
@@ -45,31 +54,33 @@ where
         * std::mem::size_of::<F>();
     let num_bytes = std::cmp::min(producer.slots(), total_bytes);
 
-    match producer.write_chunk_uninit(num_bytes) {
-        Ok(chunk) => {
-            chunk.fill_from_iter(
-                resampled_buffer
-                    .iter()
-                    .take(
-                        num_bytes
-                            / (format.channel_count.to_number() as usize
-                                * std::mem::size_of::<F>()),
-                    )
-                    .flat_map(|x| {
-                        std::iter::repeat(F::from_f32(*x))
-                            .take(format.channel_count.to_number() as usize)
-                            .flat_map(|sample| sample.to_bytes())
-                    }),
-            );
-        }
-        Err(e) => {
-            warn!("dropped audio samples {e}");
-        }
-    };
+    if num_bytes > 0 {
+        match producer.write_chunk_uninit(num_bytes) {
+            Ok(chunk) => {
+                chunk.fill_from_iter(
+                    resampled_buffer
+                        .iter()
+                        .take(
+                            num_bytes
+                                / (format.channel_count.to_number() as usize
+                                    * std::mem::size_of::<F>()),
+                        )
+                        .flat_map(|x| {
+                            std::iter::repeat(F::from_f32(*x))
+                                .take(format.channel_count.to_number() as usize)
+                                .flat_map(|sample| sample.to_bytes())
+                        }),
+                );
+            }
+            Err(e) => {
+                warn!("dropped audio samples {e}");
+            }
+        };
 
-    // warn about dropped samples
-    if num_bytes < total_bytes {
-        warn!("dropped {} audio bytes", total_bytes - num_bytes);
+        // warn about dropped samples
+        if num_bytes < total_bytes {
+            warn!("dropped {} audio bytes", total_bytes - num_bytes);
+        }
     }
 
     Ok(buffer)
@@ -121,22 +132,51 @@ where
     Ok(result)
 }
 
+struct ResamplerCache {
+    input_rate: u32,
+    output_rate: u32,
+    resampler: rubato::FastFixedIn<f32>,
+}
+
+static RESAMPLER_CACHE: Lazy<Mutex<Option<ResamplerCache>>> = Lazy::new(|| Mutex::new(None));
+
 fn resample_f32_mono_stream(
     data: &[f32],
     input_sample_rate: u32,
     output_sample_rate: u32,
 ) -> anyhow::Result<Vec<f32>> {
-    let mut resampler = rubato::FastFixedIn::<f32>::new(
-        output_sample_rate as f64 / input_sample_rate as f64,
-        1.0,
-        rubato::PolynomialDegree::Cubic,
-        data.len(),
-        1,
-    )
-    .unwrap();
+    let resample_ratio = output_sample_rate as f64 / input_sample_rate as f64;
+    let mut resampler_cache = RESAMPLER_CACHE.lock().unwrap();
+
+    if resampler_cache.is_none()
+        || resampler_cache.as_ref().unwrap().input_rate != input_sample_rate
+        || resampler_cache.as_ref().unwrap().output_rate != output_sample_rate
+    {
+        let resampler = rubato::FastFixedIn::<f32>::new(
+            resample_ratio,
+            1.0,
+            rubato::PolynomialDegree::Cubic,
+            data.len().min(512),
+            1,
+        )?;
+
+        *resampler_cache = Some(ResamplerCache {
+            input_rate: input_sample_rate,
+            output_rate: output_sample_rate,
+            resampler,
+        });
+    }
+
+    let delay = resampler_cache.as_ref().unwrap().resampler.output_delay();
 
     let input = vec![data];
-    let mut output = resampler.process(&input, None)?;
+    let output = resampler_cache
+        .as_mut()
+        .unwrap()
+        .resampler
+        .process(&input, None)?
+        .pop()
+        .unwrap();
 
-    Ok(output.pop().unwrap())
+    Ok(output[delay..].to_vec())
 }
