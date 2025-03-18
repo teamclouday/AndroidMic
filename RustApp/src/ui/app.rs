@@ -16,13 +16,18 @@ use cosmic::{
     Application, Element,
 };
 
-use crate::{
-    config::{Config, ConnectionMode},
-    fl,
+use super::{
     message::{AppMsg, ConfigMsg},
+    view::{advanced_window, main_window},
+    wave::AudioWave,
+};
+use crate::{
+    audio::AudioPacketFormat,
+    config::{AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
+    fl,
     streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg},
     utils::APP_ID,
-    view::{advanced_window, main_window, AudioWave},
+    window_icon,
 };
 use zconf::ConfigManager;
 
@@ -79,7 +84,7 @@ fn get_audio_devices(audio_host: &Host) -> Vec<AudioDevice> {
         .collect()
 }
 
-const SHARED_BUF_SIZE_S: f32 = 0.1; // 0.1s
+const SHARED_BUF_SIZE_S: f32 = 0.15; // 0.15s
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum State {
@@ -97,6 +102,7 @@ pub struct AppState {
     pub audio_devices: Vec<AudioDevice>,
     pub audio_device: Option<cpal::Device>,
     pub audio_stream: Option<cpal::Stream>,
+    pub audio_config: Option<AudioPacketFormat>,
     pub audio_wave: AudioWave,
     pub state: State,
     pub main_window: Option<CustomWindow>,
@@ -119,15 +125,15 @@ impl AppState {
         }
         let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
 
-        match self.start_audio_stream(consumer) {
-            Ok(stream) => self.audio_stream = Some(stream),
-            Err(e) => {
-                error!("{e}");
-                self.add_log(&e.to_string());
-            }
-        }
+        self.start_audio_stream(consumer).unwrap_or_else(|e| {
+            self.add_log(&e.to_string());
+            error!("failed to start audio stream: {e}");
+        });
 
-        self.send_command(StreamerCommand::ChangeBuff(producer));
+        self.send_command(StreamerCommand::ChangeBuff(
+            producer,
+            self.audio_config.clone().unwrap(),
+        ));
     }
 
     fn add_log(&mut self, log: &str) {
@@ -150,9 +156,14 @@ impl AppState {
     }
 
     fn connect(&mut self) {
-        let config = &self.config.data();
+        let config = self.config.data().clone();
         self.state = State::WaitingOnStatus;
         let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
+
+        self.start_audio_stream(consumer).unwrap_or_else(|e| {
+            self.add_log(&e.to_string());
+            error!("failed to start audio stream: {e}");
+        });
 
         let connect_option = match config.connection_mode {
             ConnectionMode::Tcp => {
@@ -169,15 +180,11 @@ impl AppState {
             ConnectionMode::Usb => ConnectOption::Usb,
         };
 
-        self.send_command(StreamerCommand::Connect(connect_option, producer));
-
-        match self.start_audio_stream(consumer) {
-            Ok(stream) => self.audio_stream = Some(stream),
-            Err(e) => {
-                self.add_log(&e.to_string());
-                error!("{e}")
-            }
-        }
+        self.send_command(StreamerCommand::Connect(
+            connect_option,
+            producer,
+            self.audio_config.clone().unwrap(),
+        ));
     }
 }
 
@@ -236,6 +243,7 @@ impl Application for AppState {
             size: Size::new(800.0, 600.0),
             position: window::Position::Centered,
             exit_on_close_request: true,
+            icon: window_icon!("icon"),
             ..Default::default()
         };
 
@@ -244,6 +252,7 @@ impl Application for AppState {
         let app = Self {
             core,
             audio_stream: None,
+            audio_config: None,
             streamer: None,
             config: flags.config,
             audio_device,
@@ -330,6 +339,7 @@ impl Application for AppState {
                         size: Size::new(500.0, 600.0),
                         position: window::Position::Centered,
                         exit_on_close_request: true,
+                        icon: window_icon!("icon"),
                         ..Default::default()
                     };
 
@@ -356,6 +366,25 @@ impl Application for AppState {
                 }
                 ConfigMsg::AutoConnect(auto_connect) => {
                     self.config.update(|s| s.auto_connect = auto_connect);
+                }
+                ConfigMsg::UseRecommendedFormat => {
+                    if let Some(device) = &self.audio_device {
+                        if let Some(format) = device.default_output_config().ok() {
+                            info!(
+                                "using recommended audio format: sample rate = {}, channels = 1, audio format = {}",
+                                format.sample_rate().0,
+                                format.sample_format()
+                            );
+                            self.config.update(|s| {
+                                s.sample_rate = SampleRate::from_number(format.sample_rate().0)
+                                    .unwrap_or_default();
+                                s.channel_count = ChannelCount::from_number(1).unwrap_or_default();
+                                s.audio_format =
+                                    AudioFormat::from_cpal_format(format.sample_format())
+                                        .unwrap_or_default();
+                            });
+                        }
+                    }
                 }
             },
             AppMsg::Shutdown => {

@@ -163,9 +163,6 @@ class ForegroundService : Service() {
 
     // start streaming
     private fun startStream(msg: CommandData, replyTo: Messenger) {
-
-
-
         // check connection state
         if (states.isStreamStarted) {
             reply(

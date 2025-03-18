@@ -1,5 +1,5 @@
+use super::app::AudioDevice;
 use crate::{
-    app::AudioDevice,
     config::{AudioFormat, ChannelCount, ConnectionMode, SampleRate},
     streamer::StreamerMsg,
 };
@@ -22,6 +22,7 @@ pub enum ConfigMsg {
     SampleRate(SampleRate),
     ChannelCount(ChannelCount),
     AudioFormat(AudioFormat),
+    UseRecommendedFormat,
     StartAtLogin(bool),
     AutoConnect(bool),
 }

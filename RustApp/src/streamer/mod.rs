@@ -1,6 +1,5 @@
 use adb_streamer::AdbStreamer;
 use anyhow::Result;
-use byteorder::{ByteOrder, NativeEndian};
 use enum_dispatch::enum_dispatch;
 use prost::DecodeError;
 use rtrb::{chunks::ChunkError, Producer};
@@ -15,15 +14,14 @@ mod message;
 mod streamer_sub;
 mod tcp_streamer;
 mod udp_streamer;
+mod usb;
 mod usb_streamer;
 
 pub use message::{AudioPacketMessage, AudioPacketMessageOrdered};
 pub use streamer_sub::{sub, ConnectOption, StreamerCommand, StreamerMsg};
 
-use crate::{
-    config::AudioFormat,
-    usb::aoa::{AccessoryError, EndpointError},
-};
+use crate::{audio::AudioPacketFormat, config::AudioFormat};
+use usb::aoa::{AccessoryError, EndpointError};
 
 /// Status reported from the streamer
 #[derive(Clone, Debug)]
@@ -53,7 +51,7 @@ trait StreamerTrait {
     /// A nice benefit of this pattern is that there is no usage of Atomic what so ever.
     async fn next(&mut self) -> Result<Option<Status>, ConnectError>;
 
-    fn set_buff(&mut self, buff: Producer<u8>);
+    fn set_buff(&mut self, buff: Producer<u8>, config: AudioPacketFormat);
 
     fn status(&self) -> Option<Status>;
 }
@@ -126,113 +124,42 @@ impl StreamerTrait for DummyStreamer {
         unreachable!()
     }
 
-    fn set_buff(&mut self, _buff: Producer<u8>) {}
+    fn set_buff(&mut self, _buff: Producer<u8>, _config: AudioPacketFormat) {}
 
     fn status(&self) -> Option<Status> {
         None
     }
 }
 
-trait AudioWaveData {
-    fn to_f32_vec(&self) -> Option<Vec<(f32, f32)>>;
-}
+impl AudioPacketMessage {
+    fn to_wave_data(buffer: &Vec<f32>) -> Vec<(f32, f32)> {
+        let window_size = 50;
 
-impl AudioWaveData for AudioPacketMessage {
-    fn to_f32_vec(&self) -> Option<Vec<(f32, f32)>> {
+        buffer
+            .chunks_exact(window_size)
+            .map(|window| {
+                let max = window.iter().fold(f32::MIN, |acc, &x| acc.max(x));
+                let min = window.iter().fold(f32::MAX, |acc, &x| acc.min(x));
+                (max, min)
+            })
+            .collect()
+    }
+
+    fn sub_packets(&self, samples: usize) -> Vec<Self> {
+        let mut packets = Vec::new();
         let channel_count = self.channel_count as usize;
         let audio_format = AudioFormat::from_android_format(self.audio_format).unwrap();
 
-        let iter = self
-            .buffer
-            .chunks_exact(audio_format.sample_size() * channel_count);
-        let mut result =
-            Vec::with_capacity(self.buffer.len() / audio_format.sample_size() / channel_count);
+        // calculate the size of each packet
+        let packet_size = audio_format.sample_size() * channel_count * samples;
 
-        let window_size = 50;
-
-        match audio_format {
-            AudioFormat::U8 => {
-                for chunk in iter {
-                    result.push((chunk[0] as f32 - 128.0) / 128.0);
-                }
-
-                // iterate every window samples to find max and min in each window
-                Some(
-                    result
-                        .chunks_exact(window_size)
-                        .map(|window| {
-                            let max = window.iter().fold(f32::MIN, |acc, &x| acc.max(x));
-                            let min = window.iter().fold(f32::MAX, |acc, &x| acc.min(x));
-                            (max, min)
-                        })
-                        .collect(),
-                )
-            }
-            AudioFormat::I16 => {
-                for chunk in iter {
-                    let sample = NativeEndian::read_i16(chunk);
-                    result.push(sample as f32 / i16::MAX as f32);
-                }
-                Some(
-                    result
-                        .chunks_exact(window_size)
-                        .map(|window| {
-                            let max = window.iter().fold(f32::MIN, |acc, &x| acc.max(x));
-                            let min = window.iter().fold(f32::MAX, |acc, &x| acc.min(x));
-                            (max, min)
-                        })
-                        .collect(),
-                )
-            }
-            AudioFormat::I24 => {
-                for chunk in iter {
-                    let sample = NativeEndian::read_i24(chunk);
-                    result.push(sample as f32 / (1 << 23) as f32);
-                }
-                Some(
-                    result
-                        .chunks_exact(window_size)
-                        .map(|window| {
-                            let max = window.iter().fold(f32::MIN, |acc, &x| acc.max(x));
-                            let min = window.iter().fold(f32::MAX, |acc, &x| acc.min(x));
-                            (max, min)
-                        })
-                        .collect(),
-                )
-            }
-            AudioFormat::I32 => {
-                for chunk in iter {
-                    let sample = NativeEndian::read_i32(chunk);
-                    result.push(sample as f32 / i32::MAX as f32);
-                }
-                Some(
-                    result
-                        .chunks_exact(window_size)
-                        .map(|window| {
-                            let max = window.iter().fold(f32::MIN, |acc, &x| acc.max(x));
-                            let min = window.iter().fold(f32::MAX, |acc, &x| acc.min(x));
-                            (max, min)
-                        })
-                        .collect(),
-                )
-            }
-            AudioFormat::F32 => {
-                for chunk in iter {
-                    let sample = NativeEndian::read_f32(chunk);
-                    result.push(sample);
-                }
-                Some(
-                    result
-                        .chunks_exact(window_size)
-                        .map(|window| {
-                            let max = window.iter().fold(f32::MIN, |acc, &x| acc.max(x));
-                            let min = window.iter().fold(f32::MAX, |acc, &x| acc.min(x));
-                            (max, min)
-                        })
-                        .collect(),
-                )
-            }
-            _ => None,
+        // split the buffer into packets of the specified size
+        for chunk in self.buffer.chunks(packet_size) {
+            let mut packet = self.clone();
+            packet.buffer = chunk.to_vec();
+            packets.push(packet);
         }
+
+        packets
     }
 }

@@ -7,8 +7,8 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 use crate::{
-    config::AudioFormat,
-    streamer::{AudioWaveData, WriteError, DEFAULT_PC_PORT, MAX_PORT},
+    audio::{resampler::convert_audio_stream, AudioPacketFormat},
+    streamer::{WriteError, DEFAULT_PC_PORT, MAX_PORT},
 };
 
 use super::{AudioPacketMessage, ConnectError, Status, StreamerTrait};
@@ -21,6 +21,7 @@ pub struct TcpStreamer {
     ip: IpAddr,
     pub port: u16,
     producer: Producer<u8>,
+    format: AudioPacketFormat,
     state: TcpStreamerState,
 }
 
@@ -35,7 +36,11 @@ pub enum TcpStreamerState {
     },
 }
 
-pub async fn new(ip: IpAddr, producer: Producer<u8>) -> Result<TcpStreamer, ConnectError> {
+pub async fn new(
+    ip: IpAddr,
+    producer: Producer<u8>,
+    format: AudioPacketFormat,
+) -> Result<TcpStreamer, ConnectError> {
     let mut listener = None;
 
     // try to always bind the same port, to not change it everytime Android side
@@ -60,6 +65,7 @@ pub async fn new(ip: IpAddr, producer: Producer<u8>) -> Result<TcpStreamer, Conn
         ip,
         port: addr.port(),
         producer,
+        format,
         state: TcpStreamerState::Listening { listener },
     };
 
@@ -67,8 +73,9 @@ pub async fn new(ip: IpAddr, producer: Producer<u8>) -> Result<TcpStreamer, Conn
 }
 
 impl StreamerTrait for TcpStreamer {
-    fn set_buff(&mut self, producer: Producer<u8>) {
+    fn set_buff(&mut self, producer: Producer<u8>, format: AudioPacketFormat) {
         self.producer = producer;
+        self.format = format;
     }
 
     fn status(&self) -> Option<Status> {
@@ -110,37 +117,16 @@ impl StreamerTrait for TcpStreamer {
                         match AudioPacketMessage::decode(frame) {
                             Ok(packet) => {
                                 let buffer_size = packet.buffer.len();
-                                let chunk_size = std::cmp::min(buffer_size, self.producer.slots());
 
-                                // mapping from android AudioFormat to encoding size
-                                let audio_format =
-                                    AudioFormat::from_android_format(packet.audio_format).unwrap();
-                                let encoding_size =
-                                    audio_format.sample_size() * packet.channel_count as usize;
+                                if let Ok(buffer) =
+                                    convert_audio_stream(&mut self.producer, packet, &self.format)
+                                {
+                                    // compute the audio wave from the buffer
+                                    res = Some(Status::UpdateAudioWave {
+                                        data: AudioPacketMessage::to_wave_data(&buffer),
+                                    });
 
-                                // make sure chunk_size is a multiple of encoding_size
-                                let correction = chunk_size % encoding_size;
-
-                                match self.producer.write_chunk_uninit(chunk_size - correction) {
-                                    Ok(chunk) => {
-                                        // compute the audio wave from the buffer
-                                        if let Some(audio_wave_data) = packet.to_f32_vec() {
-                                            res = Some(Status::UpdateAudioWave {
-                                                data: audio_wave_data,
-                                            });
-                                        }
-
-                                        chunk.fill_from_iter(packet.buffer.into_iter());
-                                        debug!(
-                                            "received {} bytes, corrected {} bytes, lost {} bytes",
-                                            buffer_size,
-                                            correction,
-                                            buffer_size - chunk_size + correction
-                                        );
-                                    }
-                                    Err(e) => {
-                                        warn!("dropped packet: {}", e);
-                                    }
+                                    debug!("received {} bytes", buffer_size);
                                 };
                             }
                             Err(e) => {

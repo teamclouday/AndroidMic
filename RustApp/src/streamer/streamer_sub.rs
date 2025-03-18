@@ -9,6 +9,7 @@ use rtrb::Producer;
 use std::net::IpAddr;
 use tokio::sync::mpsc::{self, Sender};
 
+use crate::audio::AudioPacketFormat;
 use crate::streamer::{StreamerTrait, WriteError};
 
 use super::{
@@ -27,8 +28,8 @@ pub enum ConnectOption {
 /// App -> Streamer
 #[derive(Debug)]
 pub enum StreamerCommand {
-    Connect(ConnectOption, Producer<u8>),
-    ChangeBuff(Producer<u8>),
+    Connect(ConnectOption, Producer<u8>, AudioPacketFormat),
+    ChangeBuff(Producer<u8>, AudioPacketFormat),
     Stop,
 }
 
@@ -70,24 +71,28 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                 Either::Left(command) => {
                     if let Some(command) = command {
                         match command {
-                            StreamerCommand::Connect(connect_option, producer) => {
+                            StreamerCommand::Connect(connect_option, producer, stream_format) => {
                                 let new_streamer: Result<Streamer, ConnectError> =
                                     match connect_option {
                                         ConnectOption::Tcp { ip } => {
-                                            tcp_streamer::new(ip, producer)
+                                            tcp_streamer::new(ip, producer, stream_format)
                                                 .await
                                                 .map(Streamer::from)
                                         }
                                         ConnectOption::Adb => {
-                                            adb_streamer::new(producer).await.map(Streamer::from)
+                                            adb_streamer::new(producer, stream_format)
+                                                .await
+                                                .map(Streamer::from)
                                         }
                                         ConnectOption::Udp { ip } => {
-                                            udp_streamer::new(ip, producer)
+                                            udp_streamer::new(ip, producer, stream_format)
                                                 .await
                                                 .map(Streamer::from)
                                         }
                                         ConnectOption::Usb => {
-                                            usb_streamer::new(producer).await.map(Streamer::from)
+                                            usb_streamer::new(producer, stream_format)
+                                                .await
+                                                .map(Streamer::from)
                                         }
                                     };
 
@@ -110,8 +115,8 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                     }
                                 }
                             }
-                            StreamerCommand::ChangeBuff(producer) => {
-                                streamer.set_buff(producer);
+                            StreamerCommand::ChangeBuff(producer, stream_format) => {
+                                streamer.set_buff(producer, stream_format);
                             }
                             StreamerCommand::Stop => {
                                 streamer = DummyStreamer::new();

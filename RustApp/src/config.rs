@@ -16,7 +16,6 @@ pub struct Config {
     // i'm not using an index because i'm not sure it will works well with
     // device that could be disconnected sometime.
     pub device_name: Option<String>,
-    pub usb_device_name: Option<String>,
     pub start_at_login: bool,
     pub auto_connect: bool,
 }
@@ -116,6 +115,14 @@ impl ChannelCount {
             ChannelCount::Stereo => 2,
         }
     }
+
+    pub fn from_number(value: u16) -> Option<Self> {
+        match value {
+            1 => Some(ChannelCount::Mono),
+            2 => Some(ChannelCount::Stereo),
+            _ => None,
+        }
+    }
 }
 
 #[derive(
@@ -193,6 +200,41 @@ impl AudioFormat {
             _ => None,
         }
     }
+
+    pub fn from_cpal_format(format: cpal::SampleFormat) -> Option<Self> {
+        match format {
+            cpal::SampleFormat::I8 => Some(AudioFormat::I8),
+            cpal::SampleFormat::U8 => Some(AudioFormat::U8),
+            cpal::SampleFormat::I16 => Some(AudioFormat::I16),
+            cpal::SampleFormat::U16 => Some(AudioFormat::U16),
+            cpal::SampleFormat::I32 => Some(AudioFormat::I32),
+            cpal::SampleFormat::F32 => Some(AudioFormat::I24),
+            cpal::SampleFormat::I64 => Some(AudioFormat::I64),
+            cpal::SampleFormat::U64 => Some(AudioFormat::U64),
+            _ => None,
+        }
+    }
+}
+
+impl PartialEq<cpal::SampleFormat> for AudioFormat {
+    fn eq(&self, other: &cpal::SampleFormat) -> bool {
+        match self {
+            AudioFormat::I8 => *other == cpal::SampleFormat::I8,
+            AudioFormat::U8 => *other == cpal::SampleFormat::U8,
+            AudioFormat::I16 => *other == cpal::SampleFormat::I16,
+            AudioFormat::U16 => *other == cpal::SampleFormat::U16,
+            AudioFormat::I32 => *other == cpal::SampleFormat::I32,
+            AudioFormat::I24 => *other == cpal::SampleFormat::F32,
+            AudioFormat::I48 => *other == cpal::SampleFormat::I64,
+            AudioFormat::I64 => *other == cpal::SampleFormat::I64,
+            AudioFormat::U24 => *other == cpal::SampleFormat::F32,
+            AudioFormat::U32 => *other == cpal::SampleFormat::U32,
+            AudioFormat::U48 => *other == cpal::SampleFormat::U64,
+            AudioFormat::U64 => *other == cpal::SampleFormat::U64,
+            AudioFormat::F32 => *other == cpal::SampleFormat::F32,
+            AudioFormat::F64 => *other == cpal::SampleFormat::F64,
+        }
+    }
 }
 
 #[derive(
@@ -237,5 +279,23 @@ pub enum SampleRate {
 impl SampleRate {
     pub fn to_number(&self) -> u32 {
         self.to_string().parse().unwrap()
+    }
+
+    pub fn from_number(value: u32) -> Option<Self> {
+        match value {
+            8000 => Some(SampleRate::S8000),
+            11025 => Some(SampleRate::S11025),
+            16000 => Some(SampleRate::S16000),
+            22050 => Some(SampleRate::S22050),
+            44100 => Some(SampleRate::S44100),
+            48000 => Some(SampleRate::S48000),
+            88200 => Some(SampleRate::S88200),
+            96600 => Some(SampleRate::S96600),
+            176400 => Some(SampleRate::S176400),
+            192000 => Some(SampleRate::S192000),
+            352800 => Some(SampleRate::S352800),
+            384000 => Some(SampleRate::S384000),
+            _ => None,
+        }
     }
 }
