@@ -170,16 +170,15 @@ impl StreamerTrait for UsbStreamer {
                 match AudioPacketMessage::decode(frame) {
                     Ok(packet) => {
                         let buffer_size = packet.buffer.len();
-                        let audio_wave_data = packet.to_wave_data();
 
                         match convert_audio_stream(&mut self.producer, packet, &self.format) {
-                            Ok(_) => {
+                            Ok(buffer) => {
                                 // compute the audio wave from the buffer
-                                if let Some(data) = audio_wave_data {
-                                    res = Some(Status::UpdateAudioWave { data });
+                                res = Some(Status::UpdateAudioWave {
+                                    data: AudioPacketMessage::to_wave_data(&buffer),
+                                });
 
-                                    debug!("received {} bytes", buffer_size);
-                                }
+                                debug!("received {} bytes", buffer_size);
                             }
                             Err(e) => {
                                 warn!("dropped packet: {}", e);

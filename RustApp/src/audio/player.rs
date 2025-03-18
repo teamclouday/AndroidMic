@@ -43,13 +43,13 @@ pub fn start_audio_stream(
     }
 
     if !supported {
-        bail!("Unsupported audio format or sample rate.");
+        bail!("Unsupported output audio format or sample rate.");
     }
 
     let config = cpal::StreamConfig {
         channels: channel_count,
         sample_rate: cpal::SampleRate(sample_rate),
-        buffer_size: cpal::BufferSize::Fixed(2048),
+        buffer_size: cpal::BufferSize::Default,
     };
 
     // create stream config

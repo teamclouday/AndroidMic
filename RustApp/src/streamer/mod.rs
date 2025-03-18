@@ -1,6 +1,5 @@
 use adb_streamer::AdbStreamer;
 use anyhow::Result;
-use byteorder::{ByteOrder, NativeEndian};
 use enum_dispatch::enum_dispatch;
 use prost::DecodeError;
 use rtrb::{chunks::ChunkError, Producer};
@@ -133,102 +132,17 @@ impl StreamerTrait for DummyStreamer {
 }
 
 impl AudioPacketMessage {
-    fn to_wave_data(&self) -> Option<Vec<(f32, f32)>> {
-        let channel_count = self.channel_count as usize;
-        let audio_format = AudioFormat::from_android_format(self.audio_format).unwrap();
-
-        let iter = self
-            .buffer
-            .chunks_exact(audio_format.sample_size() * channel_count);
-        let mut result =
-            Vec::with_capacity(self.buffer.len() / audio_format.sample_size() / channel_count);
-
+    fn to_wave_data(buffer: &Vec<f32>) -> Vec<(f32, f32)> {
         let window_size = 50;
 
-        match audio_format {
-            AudioFormat::U8 => {
-                for chunk in iter {
-                    result.push((chunk[0] as f32 - 128.0) / 128.0);
-                }
-
-                // iterate every window samples to find max and min in each window
-                Some(
-                    result
-                        .chunks_exact(window_size)
-                        .map(|window| {
-                            let max = window.iter().fold(f32::MIN, |acc, &x| acc.max(x));
-                            let min = window.iter().fold(f32::MAX, |acc, &x| acc.min(x));
-                            (max, min)
-                        })
-                        .collect(),
-                )
-            }
-            AudioFormat::I16 => {
-                for chunk in iter {
-                    let sample = NativeEndian::read_i16(chunk);
-                    result.push(sample as f32 / i16::MAX as f32);
-                }
-                Some(
-                    result
-                        .chunks_exact(window_size)
-                        .map(|window| {
-                            let max = window.iter().fold(f32::MIN, |acc, &x| acc.max(x));
-                            let min = window.iter().fold(f32::MAX, |acc, &x| acc.min(x));
-                            (max, min)
-                        })
-                        .collect(),
-                )
-            }
-            AudioFormat::I24 => {
-                for chunk in iter {
-                    let sample = NativeEndian::read_i24(chunk);
-                    result.push(sample as f32 / (1 << 23) as f32);
-                }
-                Some(
-                    result
-                        .chunks_exact(window_size)
-                        .map(|window| {
-                            let max = window.iter().fold(f32::MIN, |acc, &x| acc.max(x));
-                            let min = window.iter().fold(f32::MAX, |acc, &x| acc.min(x));
-                            (max, min)
-                        })
-                        .collect(),
-                )
-            }
-            AudioFormat::I32 => {
-                for chunk in iter {
-                    let sample = NativeEndian::read_i32(chunk);
-                    result.push(sample as f32 / i32::MAX as f32);
-                }
-                Some(
-                    result
-                        .chunks_exact(window_size)
-                        .map(|window| {
-                            let max = window.iter().fold(f32::MIN, |acc, &x| acc.max(x));
-                            let min = window.iter().fold(f32::MAX, |acc, &x| acc.min(x));
-                            (max, min)
-                        })
-                        .collect(),
-                )
-            }
-            AudioFormat::F32 => {
-                for chunk in iter {
-                    let sample = NativeEndian::read_f32(chunk);
-                    result.push(sample);
-                }
-                Some(
-                    result
-                        .chunks_exact(window_size)
-                        .map(|window| {
-                            let max = window.iter().fold(f32::MIN, |acc, &x| acc.max(x));
-                            let min = window.iter().fold(f32::MAX, |acc, &x| acc.min(x));
-                            (max, min)
-                        })
-                        .collect(),
-                )
-            }
-            _ => None,
-        }
+        buffer
+            .chunks_exact(window_size)
+            .map(|window| {
+                let max = window.iter().fold(f32::MIN, |acc, &x| acc.max(x));
+                let min = window.iter().fold(f32::MAX, |acc, &x| acc.min(x));
+                (max, min)
+            })
+            .collect()
     }
 
     fn sub_packets(&self, samples: usize) -> Vec<Self> {

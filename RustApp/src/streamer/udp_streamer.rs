@@ -8,7 +8,7 @@ use tokio_util::{codec::LengthDelimitedCodec, udp::UdpFramed};
 
 use crate::{
     audio::{resampler::convert_audio_stream, AudioPacketFormat},
-    streamer::{WriteError, DEFAULT_PC_PORT, MAX_PORT},
+    streamer::{AudioPacketMessage, WriteError, DEFAULT_PC_PORT, MAX_PORT},
 };
 
 use super::{AudioPacketMessageOrdered, ConnectError, Status, StreamerTrait};
@@ -109,20 +109,16 @@ impl StreamerTrait for UdpStreamer {
 
                                 let packet = packet.audio_packet.unwrap();
                                 let buffer_size = packet.buffer.len();
-                                let audio_wave_data = packet.to_wave_data();
 
                                 match convert_audio_stream(&mut self.producer, packet, &self.format)
                                 {
-                                    Ok(_) => {
+                                    Ok(buffer) => {
                                         // compute the audio wave from the buffer
-                                        if let Some(data) = audio_wave_data {
-                                            res = Some(Status::UpdateAudioWave { data });
+                                        res = Some(Status::UpdateAudioWave {
+                                            data: AudioPacketMessage::to_wave_data(&buffer),
+                                        });
 
-                                            debug!(
-                                                "From {:?}, received {} bytes",
-                                                addr, buffer_size
-                                            );
-                                        }
+                                        debug!("From {:?}, received {} bytes", addr, buffer_size);
                                     }
                                     Err(e) => {
                                         warn!("dropped packet: {}", e);

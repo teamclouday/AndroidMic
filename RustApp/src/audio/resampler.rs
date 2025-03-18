@@ -10,7 +10,7 @@ pub fn convert_audio_stream(
     producer: &mut Producer<u8>,
     packet: AudioPacketMessage,
     format: &AudioPacketFormat,
-) -> anyhow::Result<()> {
+) -> anyhow::Result<Vec<f32>> {
     match format.audio_format {
         AudioFormat::I16 => convert_audio_stream_internal::<i16>(producer, packet, format),
         AudioFormat::I24 => convert_audio_stream_internal::<f32>(producer, packet, format),
@@ -25,7 +25,7 @@ fn convert_audio_stream_internal<F>(
     producer: &mut Producer<u8>,
     packet: AudioPacketMessage,
     format: &AudioPacketFormat,
-) -> anyhow::Result<()>
+) -> anyhow::Result<Vec<f32>>
 where
     F: cpal::SizedSample + std::fmt::Debug + AudioBytes + 'static,
 {
@@ -39,7 +39,7 @@ where
     //     resample_f32_mono_stream(&buffer, packet.sample_rate, format.sample_rate.to_number())?
     // };
 
-    let resampled_buffer = buffer;
+    let resampled_buffer = buffer.clone();
 
     // finally convert to output format
     let total_samples = resampled_buffer.len();
@@ -67,18 +67,18 @@ where
         warn!("Dropped {} audio samples", total_samples - num_samples);
     }
 
-    Ok(())
+    Ok(buffer)
 }
 
 fn convert_packet_to_f32_mono(packet: &AudioPacketMessage) -> anyhow::Result<Vec<f32>> {
     let audio_format = AudioFormat::from_android_format(packet.audio_format).unwrap();
     match audio_format {
+        AudioFormat::U8 => convert_packet_to_f32_mono_internal::<u8>(packet),
         AudioFormat::I16 => convert_packet_to_f32_mono_internal::<i16>(packet),
         AudioFormat::I24 => convert_packet_to_f32_mono_internal::<f32>(packet),
         AudioFormat::I32 => convert_packet_to_f32_mono_internal::<i32>(packet),
-        AudioFormat::U8 => convert_packet_to_f32_mono_internal::<u8>(packet),
-        AudioFormat::U32 => convert_packet_to_f32_mono_internal::<u32>(packet),
-        _ => bail!("Unsupported audio format or sample rate."),
+        AudioFormat::F32 => convert_packet_to_f32_mono_internal::<f32>(packet),
+        _ => bail!("Unsupported android audio format or sample rate."),
     }
 }
 
