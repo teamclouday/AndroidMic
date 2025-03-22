@@ -125,15 +125,19 @@ impl AppState {
         }
         let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
 
-        self.start_audio_stream(consumer).unwrap_or_else(|e| {
-            self.add_log(&e.to_string());
-            error!("failed to start audio stream: {e}");
-        });
-
-        self.send_command(StreamerCommand::ChangeBuff(
-            producer,
-            self.audio_config.clone().unwrap(),
-        ));
+        match self.start_audio_stream(consumer) {
+            Ok(()) => {
+                self.send_command(StreamerCommand::ChangeBuff(
+                    producer,
+                    self.audio_config.clone().unwrap(),
+                ));
+            }
+            Err(e) => {
+                self.add_log(&e.to_string());
+                error!("failed to start audio stream: {e}");
+                self.send_command(StreamerCommand::Stop);
+            }
+        }
     }
 
     fn add_log(&mut self, log: &str) {
@@ -157,13 +161,13 @@ impl AppState {
 
     fn connect(&mut self) {
         let config = self.config.data().clone();
-        self.state = State::WaitingOnStatus;
         let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
 
-        self.start_audio_stream(consumer).unwrap_or_else(|e| {
+        if let Err(e) = self.start_audio_stream(consumer) {
             self.add_log(&e.to_string());
             error!("failed to start audio stream: {e}");
-        });
+            return;
+        }
 
         let connect_option = match config.connection_mode {
             ConnectionMode::Tcp => {
@@ -179,6 +183,8 @@ impl AppState {
             ConnectionMode::Adb => ConnectOption::Adb,
             ConnectionMode::Usb => ConnectOption::Usb,
         };
+
+        self.state = State::WaitingOnStatus;
 
         self.send_command(StreamerCommand::Connect(
             connect_option,
