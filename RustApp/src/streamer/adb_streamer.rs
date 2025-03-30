@@ -4,7 +4,10 @@ use tokio::process::Command;
 
 use crate::{audio::AudioPacketFormat, streamer::tcp_streamer};
 
-use super::{tcp_streamer::TcpStreamer, ConnectError, Status, StreamerTrait};
+use super::{
+    tcp_streamer::{TcpStreamer, TcpStreamerState},
+    ConnectError, Status, StreamerTrait,
+};
 
 pub struct AdbStreamer {
     tcp_streamer: TcpStreamer,
@@ -100,7 +103,12 @@ impl StreamerTrait for AdbStreamer {
     }
 
     fn status(&self) -> Option<Status> {
-        self.tcp_streamer.status()
+        match &self.tcp_streamer.state {
+            TcpStreamerState::Listening { .. } => Some(Status::Listening {
+                port: Some(55555u16),
+            }),
+            TcpStreamerState::Streaming { .. } => Some(Status::Connected),
+        }
     }
 }
 

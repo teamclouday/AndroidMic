@@ -22,7 +22,7 @@ pub struct TcpStreamer {
     pub port: u16,
     producer: Producer<u8>,
     format: AudioPacketFormat,
-    state: TcpStreamerState,
+    pub state: TcpStreamerState,
 }
 
 #[allow(clippy::large_enum_variant)]
