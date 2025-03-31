@@ -1,7 +1,9 @@
 // to not launch a console on Windows, only in release because it blocks all logs
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use std::path::Path;
+use chrono::Local;
+use std::io::Write;
+use std::{fs::File, path::Path};
 
 use clap::Parser;
 use config::{Args, Config};
@@ -23,15 +25,54 @@ mod utils;
 #[macro_use]
 mod localize;
 
+struct DualWriter {
+    file: Box<File>,
+}
+
+impl Write for DualWriter {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let bytes_written = self.file.write(buf)?;
+        std::io::stdout().write_all(buf)?;
+        Ok(bytes_written)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.file.flush()?;
+        std::io::stdout().flush()
+    }
+}
+
 fn main() {
     let _ = fix_path_env::fix();
 
-    env_logger::try_init().unwrap_or_else(|_| {
-        env_logger::builder()
-            .filter_level(log::LevelFilter::Warn)
-            .filter_module("android_mic", log::LevelFilter::Debug)
-            .init()
-    });
+    let project_dirs = ProjectDirs::from(QUALIFIER, ORG, APP).unwrap();
+    let log_path = if cfg!(debug_assertions) {
+        Path::new("log")
+    } else {
+        project_dirs.cache_dir()
+    };
+    std::fs::create_dir_all(log_path).expect("Failed to create log directory");
+    let log_file_path = log_path.join(format!("{}.log", APP));
+
+    // setup log file
+    let target = Box::new(File::create(log_file_path.clone()).expect("Can't create log file"));
+    env_logger::Builder::new()
+        .format(|buf, record| {
+            writeln!(
+                buf,
+                "[{} {} {}] {}",
+                Local::now().format("%Y-%m-%dT%H:%M:%S"),
+                record.level(),
+                record.target(),
+                record.args()
+            )
+        })
+        .target(env_logger::Target::Pipe(Box::new(DualWriter {
+            file: target,
+        })))
+        .filter_level(log::LevelFilter::Warn)
+        .filter_module("android_mic", log::LevelFilter::Debug)
+        .init();
 
     // generated from https://patorjk.com/software/taag/#p=display&h=2&f=Doom&t=AndroidMic
     println!(
@@ -45,16 +86,15 @@ fn main() {
     "
     );
 
-    let project_dirs = ProjectDirs::from(QUALIFIER, ORG, APP).unwrap();
-
     let config_path = if cfg!(debug_assertions) {
         Path::new("config")
     } else {
         project_dirs.config_dir()
     };
+    std::fs::create_dir_all(config_path).expect("Failed to create config directory");
+    let config_file_path = config_path.join(format!("{APP}.toml"));
 
-    let mut config: ConfigManager<Config> =
-        ConfigManager::new(config_path.join(format!("{APP}.toml")));
+    let mut config: ConfigManager<Config> = ConfigManager::new(config_file_path.clone());
 
     let args = Args::parse();
 
@@ -84,5 +124,9 @@ fn main() {
     });
 
     localize::localize();
-    run_ui(config)
+    run_ui(
+        config,
+        config_file_path.to_string_lossy().to_string(),
+        log_file_path.to_string_lossy().to_string(),
+    )
 }

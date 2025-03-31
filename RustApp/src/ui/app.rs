@@ -31,8 +31,12 @@ use crate::{
 };
 use zconf::ConfigManager;
 
-pub fn run_ui(config: ConfigManager<Config>) {
-    let flags = Flags { config };
+pub fn run_ui(config: ConfigManager<Config>, config_path: String, log_path: String) {
+    let flags = Flags {
+        config,
+        config_path,
+        log_path,
+    };
     let settings = Settings::default().no_main_window(true);
 
     cosmic::app::run::<AppState>(settings, flags).unwrap();
@@ -196,6 +200,8 @@ impl AppState {
 
 pub struct Flags {
     config: ConfigManager<Config>,
+    config_path: String,
+    log_path: String,
 }
 
 impl Application for AppState {
@@ -255,7 +261,7 @@ impl Application for AppState {
 
         let (new_id, command) = cosmic::iced::window::open(settings);
 
-        let app = Self {
+        let mut app = Self {
             core,
             audio_stream: None,
             audio_config: None,
@@ -270,6 +276,11 @@ impl Application for AppState {
             advanced_window: None,
             logs: String::new(),
         };
+
+        app.add_log(format!("config path: {}", flags.config_path).as_str());
+        app.add_log(format!("log path: {}", flags.log_path).as_str());
+        info!("config path: {}", flags.config_path);
+        info!("log path: {}", flags.log_path);
 
         (app, command.map(|_| cosmic::action::Action::None))
     }
