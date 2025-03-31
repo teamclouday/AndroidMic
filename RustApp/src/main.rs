@@ -24,6 +24,8 @@ mod utils;
 mod localize;
 
 fn main() {
+    let _ = fix_path_env::fix();
+
     env_logger::try_init().unwrap_or_else(|_| {
         env_logger::builder()
             .filter_level(log::LevelFilter::Warn)
