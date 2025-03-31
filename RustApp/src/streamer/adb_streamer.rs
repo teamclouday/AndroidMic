@@ -54,7 +54,7 @@ async fn exec_cmd(mut cmd: Command) -> Result<String, ConnectError> {
     if !status.status.success() {
         let stderr = String::from_utf8_lossy(&status.stderr).to_string();
 
-        return Err(ConnectError::StatusCommand {
+        return Err(ConnectError::AdbStatusCommand {
             code: status.status.code(),
             stderr,
         });
