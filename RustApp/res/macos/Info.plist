@@ -16,5 +16,8 @@
     <true/>
     <key>LSApplicationCategoryType</key>
     <string>public.app-category.utilities</string>
+
+    <key>NSLocalNetworkUsageDescription</key>
+    <string>AndroidMic needs access to your local network to connect to your Android device.</string>
 </dict>
 </plist>

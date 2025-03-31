@@ -90,8 +90,8 @@ enum ConnectError {
     #[error(transparent)]
     CantJoin(#[from] tokio::task::JoinError),
     #[error("command failed: {code:?}:{stderr}")]
-    StatusCommand { code: Option<i32>, stderr: String },
-    #[error("command failed: {0}")]
+    AdbStatusCommand { code: Option<i32>, stderr: String },
+    #[error("command failed: {0} make sure adb is installed and in your PATH")]
     CommandFailed(io::Error),
 }
 
