@@ -67,31 +67,27 @@ where
 
     // finally convert to output format
     let num_channels = format.channel_count.to_number() as usize;
-    let total_bytes = resampled_buffer.len() * num_channels
-        * std::mem::size_of::<F>();
+    let total_bytes: usize = resampled_buffer[0].len() * num_channels * std::mem::size_of::<F>();
     let num_bytes = std::cmp::min(producer.slots(), total_bytes);
-    let num_frames = num_bytes
-        / (num_channels * std::mem::size_of::<F>());
+    let num_frames = num_bytes / (num_channels * std::mem::size_of::<F>());
 
     if num_bytes > 0 {
         match producer.write_chunk_uninit(num_bytes) {
             Ok(chunk) => {
                 let buffer_ref = &resampled_buffer;
 
-                chunk.fill_from_iter(
-                    (0..num_frames).flat_map(|frame_idx| {
-                        (0..num_channels).map(move |channel_idx| {
-                            // compute the channel index
-                            let channel = std::cmp::min(channel_idx, buffer_ref.len() - 1);
-                            let sample = if frame_idx < buffer_ref[channel].len() {
-                                buffer_ref[channel][frame_idx]
-                            } else {
-                                0.0 // fill with zero if out of bounds
-                            };
-                            F::from_f32(sample).to_bytes()
-                        }).flatten()
+                chunk.fill_from_iter((0..num_frames).flat_map(|frame_idx| {
+                    (0..num_channels).flat_map(move |channel_idx| {
+                        // compute the channel index
+                        let channel = std::cmp::min(channel_idx, buffer_ref.len() - 1);
+                        let sample = if frame_idx < buffer_ref[channel].len() {
+                            buffer_ref[channel][frame_idx]
+                        } else {
+                            0.0 // fill with zero if out of bounds
+                        };
+                        F::from_f32(sample).to_bytes()
                     })
-                );
+                }));
             }
             Err(e) => {
                 warn!("dropped audio samples {e}");
@@ -108,7 +104,7 @@ where
 }
 
 fn convert_packet_to_f32(packet: &AudioPacketMessage) -> anyhow::Result<Vec<Vec<f32>>> {
-let audio_format = AudioFormat::from_android_format(packet.audio_format).unwrap();
+    let audio_format = AudioFormat::from_android_format(packet.audio_format).unwrap();
     match audio_format {
         AudioFormat::U8 => convert_packet_to_f32_internal::<u8>(packet),
         AudioFormat::I16 => convert_packet_to_f32_internal::<i16>(packet),
@@ -139,9 +135,7 @@ where
         for channel in 0..channel_count {
             let start = channel * audio_format.sample_size();
             let end = start + audio_format.sample_size();
-            let sample = F::from_bytes(&buf[start..end])
-                .unwrap()
-                .to_f32();
+            let sample = F::from_bytes(&buf[start..end]).unwrap().to_f32();
             result[channel].push(sample);
         }
     }
