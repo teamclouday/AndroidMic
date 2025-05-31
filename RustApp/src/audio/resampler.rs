@@ -86,6 +86,48 @@ where
     Ok(buffer)
 }
 
+fn convert_packet_to_f32(packet: &AudioPacketMessage) -> anyhow::Result<Vec<Vec<f32>>> {
+let audio_format = AudioFormat::from_android_format(packet.audio_format).unwrap();
+    match audio_format {
+        AudioFormat::U8 => convert_packet_to_f32_internal::<u8>(packet),
+        AudioFormat::I16 => convert_packet_to_f32_internal::<i16>(packet),
+        AudioFormat::I24 => convert_packet_to_f32_internal::<f32>(packet),
+        AudioFormat::I32 => convert_packet_to_f32_internal::<i32>(packet),
+        AudioFormat::F32 => convert_packet_to_f32_internal::<f32>(packet),
+        _ => bail!("unsupported android audio format or sample rate."),
+    }
+}
+
+fn convert_packet_to_f32_internal<F>(packet: &AudioPacketMessage) -> anyhow::Result<Vec<Vec<f32>>>
+where
+    F: cpal::SizedSample + AudioBytes + std::fmt::Debug + 'static,
+{
+    let audio_format: AudioFormat = AudioFormat::from_android_format(packet.audio_format).unwrap();
+    let channel_count = packet.channel_count as usize;
+    let samples_per_channel = packet.buffer.len() / (audio_format.sample_size() * channel_count);
+
+    // Initialize a vector to hold the results for each channel
+    let mut result = (0..channel_count)
+        .map(|_| Vec::<f32>::with_capacity(samples_per_channel))
+        .collect::<Vec<_>>();
+
+    for buf in packet
+        .buffer
+        .chunks_exact(audio_format.sample_size() * channel_count)
+    {
+        for channel in 0..channel_count {
+            let start = channel * audio_format.sample_size();
+            let end = start + audio_format.sample_size();
+            let sample = F::from_bytes(&buf[start..end])
+                .unwrap()
+                .to_f32();
+            result[channel].push(sample);
+        }
+    }
+
+    Ok(result)
+}
+
 fn convert_packet_to_f32_mono(packet: &AudioPacketMessage) -> anyhow::Result<Vec<f32>> {
     let audio_format = AudioFormat::from_android_format(packet.audio_format).unwrap();
     match audio_format {
