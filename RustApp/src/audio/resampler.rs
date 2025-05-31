@@ -1,6 +1,5 @@
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
-use once_cell::sync::Lazy;
 use rubato::Resampler;
 
 struct ResamplerCache {
@@ -11,7 +10,8 @@ struct ResamplerCache {
     resampler: rubato::FastFixedIn<f32>,
 }
 
-static RESAMPLER_CACHE: Lazy<Mutex<Option<ResamplerCache>>> = Lazy::new(|| Mutex::new(None));
+static RESAMPLER_CACHE: LazyLock<Mutex<Option<ResamplerCache>>> =
+    LazyLock::new(|| Mutex::new(None));
 
 pub fn resample_f32_stream(
     data: &[Vec<f32>],
