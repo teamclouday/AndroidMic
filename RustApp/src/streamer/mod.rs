@@ -11,14 +11,14 @@ use usb_streamer::UsbStreamer;
 
 mod adb_streamer;
 mod message;
-mod streamer_sub;
+mod streamer_runner;
 mod tcp_streamer;
 mod udp_streamer;
 mod usb;
 mod usb_streamer;
 
 pub use message::{AudioPacketMessage, AudioPacketMessageOrdered};
-pub use streamer_sub::{sub, ConnectOption, StreamerCommand, StreamerMsg};
+pub use streamer_runner::{sub, ConnectOption, StreamerCommand, StreamerMsg};
 
 use crate::{audio::AudioPacketFormat, config::AudioFormat};
 use usb::aoa::{AccessoryError, EndpointError};
