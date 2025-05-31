@@ -9,6 +9,9 @@ use crate::{config::AudioFormat, streamer::AudioPacketMessage};
 
 use super::{AudioBytes, AudioPacketFormat};
 
+// This function converts an audio stream from packet into producer
+// apply any necessary conversions based on the audio format
+// and returns mono channel f32 vector for audio wave display
 pub fn convert_audio_stream(
     producer: &mut Producer<u8>,
     packet: AudioPacketMessage,
@@ -37,39 +40,57 @@ fn convert_audio_stream_internal<F>(
 where
     F: cpal::SizedSample + AudioBytes + std::fmt::Debug + 'static,
 {
-    // first convert audio packet to f32 vector, mono channel
-    let buffer = convert_packet_to_f32_mono(&packet)?;
+    // first convert audio packet to f32 vector
+    let buffer = convert_packet_to_f32(&packet)?;
+
+    // prepare mono channel buffer to return
+    let buffer_mono = if format.channel_count.to_number() == 1 {
+        buffer[0].clone()
+    } else {
+        // if not mono, average the channels
+        let mut mono_buffer = Vec::with_capacity(buffer[0].len());
+        for i in 0..buffer[0].len() {
+            let sample: f32 = buffer.iter().map(|ch| ch[i]).sum::<f32>()
+                / format.channel_count.to_number() as f32;
+            mono_buffer.push(sample);
+        }
+        mono_buffer
+    };
 
     // next run resampler on the buffer
     let resampled_buffer = if format.sample_rate.to_number() == packet.sample_rate {
-        buffer.clone()
+        buffer
     } else {
         bail!("resampling not supported yet! please make sure the sample rate is the same.");
         // resample_f32_mono_stream(&buffer, packet.sample_rate, format.sample_rate.to_number())?
     };
 
     // finally convert to output format
-    let total_bytes = resampled_buffer.len()
-        * format.channel_count.to_number() as usize
+    let num_channels = format.channel_count.to_number() as usize;
+    let total_bytes = resampled_buffer.len() * num_channels
         * std::mem::size_of::<F>();
     let num_bytes = std::cmp::min(producer.slots(), total_bytes);
+    let num_frames = num_bytes
+        / (num_channels * std::mem::size_of::<F>());
 
     if num_bytes > 0 {
         match producer.write_chunk_uninit(num_bytes) {
             Ok(chunk) => {
+                let buffer_ref = &resampled_buffer;
+
                 chunk.fill_from_iter(
-                    resampled_buffer
-                        .iter()
-                        .take(
-                            num_bytes
-                                / (format.channel_count.to_number() as usize
-                                    * std::mem::size_of::<F>()),
-                        )
-                        .flat_map(|x| {
-                            std::iter::repeat(F::from_f32(*x))
-                                .take(format.channel_count.to_number() as usize)
-                                .flat_map(|sample| sample.to_bytes())
-                        }),
+                    (0..num_frames).flat_map(|frame_idx| {
+                        (0..num_channels).map(move |channel_idx| {
+                            // compute the channel index
+                            let channel = std::cmp::min(channel_idx, buffer_ref.len() - 1);
+                            let sample = if frame_idx < buffer_ref[channel].len() {
+                                buffer_ref[channel][frame_idx]
+                            } else {
+                                0.0 // fill with zero if out of bounds
+                            };
+                            F::from_f32(sample).to_bytes()
+                        }).flatten()
+                    })
                 );
             }
             Err(e) => {
@@ -83,7 +104,7 @@ where
         }
     }
 
-    Ok(buffer)
+    Ok(buffer_mono)
 }
 
 fn convert_packet_to_f32(packet: &AudioPacketMessage) -> anyhow::Result<Vec<Vec<f32>>> {
