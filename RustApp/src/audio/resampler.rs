@@ -9,6 +9,9 @@ use crate::{config::AudioFormat, streamer::AudioPacketMessage};
 
 use super::{AudioBytes, AudioPacketFormat};
 
+// This function converts an audio stream from packet into producer
+// apply any necessary conversions based on the audio format
+// and returns mono channel f32 vector for audio wave display
 pub fn convert_audio_stream(
     producer: &mut Producer<u8>,
     packet: AudioPacketMessage,
@@ -37,40 +40,54 @@ fn convert_audio_stream_internal<F>(
 where
     F: cpal::SizedSample + AudioBytes + std::fmt::Debug + 'static,
 {
-    // first convert audio packet to f32 vector, mono channel
-    let buffer = convert_packet_to_f32_mono(&packet)?;
+    // first convert audio packet to f32 vector
+    let buffer = convert_packet_to_f32(&packet)?;
+
+    // prepare mono channel buffer to return
+    let buffer_mono = if format.channel_count.to_number() == 1 {
+        buffer[0].clone()
+    } else {
+        // if not mono, average the channels
+        let mut mono_buffer = Vec::with_capacity(buffer[0].len());
+        for i in 0..buffer[0].len() {
+            let sample: f32 = buffer.iter().map(|ch| ch[i]).sum::<f32>()
+                / format.channel_count.to_number() as f32;
+            mono_buffer.push(sample);
+        }
+        mono_buffer
+    };
 
     // next run resampler on the buffer
     let resampled_buffer = if format.sample_rate.to_number() == packet.sample_rate {
-        buffer.clone()
+        buffer
     } else {
-        bail!("resampling not supported yet! please make sure the sample rate is the same.");
-        // resample_f32_mono_stream(&buffer, packet.sample_rate, format.sample_rate.to_number())?
+        // bail!("resampling not supported yet! please make sure the sample rate is the same.");
+        resample_f32_stream(&buffer, packet.sample_rate, format.sample_rate.to_number())?
     };
 
     // finally convert to output format
-    let total_bytes = resampled_buffer.len()
-        * format.channel_count.to_number() as usize
-        * std::mem::size_of::<F>();
+    let num_channels = format.channel_count.to_number() as usize;
+    let total_bytes: usize = resampled_buffer[0].len() * num_channels * std::mem::size_of::<F>();
     let num_bytes = std::cmp::min(producer.slots(), total_bytes);
+    let num_frames = num_bytes / (num_channels * std::mem::size_of::<F>());
 
     if num_bytes > 0 {
         match producer.write_chunk_uninit(num_bytes) {
             Ok(chunk) => {
-                chunk.fill_from_iter(
-                    resampled_buffer
-                        .iter()
-                        .take(
-                            num_bytes
-                                / (format.channel_count.to_number() as usize
-                                    * std::mem::size_of::<F>()),
-                        )
-                        .flat_map(|x| {
-                            std::iter::repeat(F::from_f32(*x))
-                                .take(format.channel_count.to_number() as usize)
-                                .flat_map(|sample| sample.to_bytes())
-                        }),
-                );
+                let buffer_ref = &resampled_buffer;
+
+                chunk.fill_from_iter((0..num_frames).flat_map(|frame_idx| {
+                    (0..num_channels).flat_map(move |channel_idx| {
+                        // compute the channel index
+                        let channel = std::cmp::min(channel_idx, buffer_ref.len() - 1);
+                        let sample = if frame_idx < buffer_ref[channel].len() {
+                            buffer_ref[channel][frame_idx]
+                        } else {
+                            0.0 // fill with zero if out of bounds
+                        };
+                        F::from_f32(sample).to_bytes()
+                    })
+                }));
             }
             Err(e) => {
                 warn!("dropped audio samples {e}");
@@ -83,7 +100,47 @@ where
         }
     }
 
-    Ok(buffer)
+    Ok(buffer_mono)
+}
+
+fn convert_packet_to_f32(packet: &AudioPacketMessage) -> anyhow::Result<Vec<Vec<f32>>> {
+    let audio_format = AudioFormat::from_android_format(packet.audio_format).unwrap();
+    match audio_format {
+        AudioFormat::U8 => convert_packet_to_f32_internal::<u8>(packet),
+        AudioFormat::I16 => convert_packet_to_f32_internal::<i16>(packet),
+        AudioFormat::I24 => convert_packet_to_f32_internal::<f32>(packet),
+        AudioFormat::I32 => convert_packet_to_f32_internal::<i32>(packet),
+        AudioFormat::F32 => convert_packet_to_f32_internal::<f32>(packet),
+        _ => bail!("unsupported android audio format or sample rate."),
+    }
+}
+
+fn convert_packet_to_f32_internal<F>(packet: &AudioPacketMessage) -> anyhow::Result<Vec<Vec<f32>>>
+where
+    F: cpal::SizedSample + AudioBytes + std::fmt::Debug + 'static,
+{
+    let audio_format: AudioFormat = AudioFormat::from_android_format(packet.audio_format).unwrap();
+    let channel_count = packet.channel_count as usize;
+    let samples_per_channel = packet.buffer.len() / (audio_format.sample_size() * channel_count);
+
+    // Initialize a vector to hold the results for each channel
+    let mut result = (0..channel_count)
+        .map(|_| Vec::<f32>::with_capacity(samples_per_channel))
+        .collect::<Vec<_>>();
+
+    for buf in packet
+        .buffer
+        .chunks_exact(audio_format.sample_size() * channel_count)
+    {
+        for channel in 0..channel_count {
+            let start = channel * audio_format.sample_size();
+            let end = start + audio_format.sample_size();
+            let sample = F::from_bytes(&buf[start..end]).unwrap().to_f32();
+            result[channel].push(sample);
+        }
+    }
+
+    Ok(result)
 }
 
 fn convert_packet_to_f32_mono(packet: &AudioPacketMessage) -> anyhow::Result<Vec<f32>> {
@@ -135,48 +192,70 @@ where
 struct ResamplerCache {
     input_rate: u32,
     output_rate: u32,
+    num_channels: usize,
+    sample_buffer: Vec<Vec<f32>>,
     resampler: rubato::FastFixedIn<f32>,
 }
 
 static RESAMPLER_CACHE: Lazy<Mutex<Option<ResamplerCache>>> = Lazy::new(|| Mutex::new(None));
 
-fn resample_f32_mono_stream(
-    data: &[f32],
+fn resample_f32_stream(
+    data: &[Vec<f32>],
     input_sample_rate: u32,
     output_sample_rate: u32,
-) -> anyhow::Result<Vec<f32>> {
+) -> anyhow::Result<Vec<Vec<f32>>> {
+    let chunk_size = 1024;
     let resample_ratio = output_sample_rate as f64 / input_sample_rate as f64;
     let mut resampler_cache = RESAMPLER_CACHE.lock().unwrap();
 
     if resampler_cache.is_none()
         || resampler_cache.as_ref().unwrap().input_rate != input_sample_rate
         || resampler_cache.as_ref().unwrap().output_rate != output_sample_rate
+        || resampler_cache.as_ref().unwrap().num_channels != data.len()
     {
         let resampler = rubato::FastFixedIn::<f32>::new(
             resample_ratio,
             1.0,
             rubato::PolynomialDegree::Cubic,
-            data.len().min(512),
-            1,
+            chunk_size,
+            data.len(),
         )?;
 
         *resampler_cache = Some(ResamplerCache {
             input_rate: input_sample_rate,
             output_rate: output_sample_rate,
+            num_channels: data.len(),
+            sample_buffer: (0..data.len())
+                .map(|_| Vec::with_capacity(chunk_size))
+                .collect(),
             resampler,
         });
     }
 
-    let delay = resampler_cache.as_ref().unwrap().resampler.output_delay();
+    let cache = resampler_cache.as_mut().unwrap();
+    let mut output: Vec<Vec<f32>> = vec![Vec::new(); data.len()];
 
-    let input = vec![data];
-    let output = resampler_cache
-        .as_mut()
-        .unwrap()
-        .resampler
-        .process(&input, None)?
-        .pop()
-        .unwrap();
+    // Create append new data into the cache
+    for channel_idx in 0..data.len() {
+        cache.sample_buffer[channel_idx].extend_from_slice(&data[channel_idx]);
+    }
 
-    Ok(output[delay..].to_vec())
+    while cache.sample_buffer[0].len() >= chunk_size {
+        let chunk_output = cache.resampler.process(&cache.sample_buffer, None)?;
+
+        // Clear the sample buffer for the next round
+        for channel in &mut cache.sample_buffer {
+            channel.drain(0..chunk_size);
+        }
+
+        // Append the resampled data to the output
+        for (channel_idx, channel_data) in chunk_output.iter().enumerate() {
+            if channel_idx < output.len() {
+                output[channel_idx].extend_from_slice(channel_data);
+            }
+        }
+    }
+
+    // For each channel, skip the delay samples
+    Ok(output)
 }
