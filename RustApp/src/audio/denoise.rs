@@ -11,13 +11,12 @@ struct DenoiseCache {
 static DENOISE_CACHE: Lazy<Mutex<Option<DenoiseCache>>> = Lazy::new(|| Mutex::new(None));
 
 pub fn denoise_f32_stream(data: &[Vec<f32>]) -> anyhow::Result<Vec<Vec<f32>>> {
-    let chunk_size = 1024;
     let mut denoise_cache = DENOISE_CACHE.lock().unwrap();
 
     if denoise_cache.is_none() {
         *denoise_cache = Some(DenoiseCache {
             sample_buffer: (0..data.len())
-                .map(|_| Vec::with_capacity(chunk_size))
+                .map(|_| Vec::with_capacity(DenoiseState::FRAME_SIZE))
                 .collect(),
             denoiser: DenoiseState::new(),
         });
