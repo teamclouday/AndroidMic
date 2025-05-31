@@ -254,11 +254,11 @@ pub enum SampleRate {
     S8000,
     #[strum(serialize = "11025")]
     S11025,
-    #[default]
     #[strum(serialize = "16000")]
     S16000,
     #[strum(serialize = "22050")]
     S22050,
+    #[default]
     #[strum(serialize = "44100")]
     S44100,
     #[strum(serialize = "48000")]
