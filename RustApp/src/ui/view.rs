@@ -9,7 +9,7 @@ use cosmic::{
 use cpal::traits::DeviceTrait;
 
 use super::{
-    app::{AppState, State},
+    app::{AppState, ConnectionState},
     message::{AppMsg, ConfigMsg},
 };
 use crate::{
@@ -126,11 +126,11 @@ fn connection_type(app: &AppState) -> Element<'_, AppMsg> {
 }
 
 fn connect_button(app: &AppState) -> Element<'_, AppMsg> {
-    match app.state {
-        State::Default => button::text(fl!("connect")).on_press(AppMsg::Connect),
-        State::Listening => button::text(fl!("listening")).on_press(AppMsg::Stop),
-        State::Connected => button::destructive(fl!("disconnect")).on_press(AppMsg::Stop),
-        State::WaitingOnStatus => button::text(fl!("waiting")),
+    match app.connection_state {
+        ConnectionState::Default => button::text(fl!("connect")).on_press(AppMsg::Connect),
+        ConnectionState::Listening => button::text(fl!("listening")).on_press(AppMsg::Stop),
+        ConnectionState::Connected => button::destructive(fl!("disconnect")).on_press(AppMsg::Stop),
+        ConnectionState::WaitingOnStatus => button::text(fl!("waiting")),
     }
     .into()
 }

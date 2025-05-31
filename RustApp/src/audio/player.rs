@@ -83,7 +83,7 @@ where
         &config,
         move |data: &mut [F], _| {
             // read data from the consumer
-            let data_size = data.len() * std::mem::size_of::<F>();
+            let data_size = std::mem::size_of_val(data);
             match consumer.read_chunk(data_size) {
                 Ok(chunk) => {
                     let samples = chunk

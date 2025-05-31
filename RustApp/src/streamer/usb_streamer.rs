@@ -6,9 +6,12 @@ use rtrb::Producer;
 use tokio::time::sleep;
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
-use super::usb::{
-    aoa::{AccessoryConfigurations, AccessoryDeviceInfo, AccessoryInterface, AccessoryStrings},
-    frame::UsbStream,
+use super::{
+    usb::{
+        aoa::{AccessoryConfigurations, AccessoryDeviceInfo, AccessoryInterface, AccessoryStrings},
+        frame::UsbStream,
+    },
+    StreamConfig,
 };
 use crate::{
     audio::{process::convert_audio_stream, AudioPacketFormat},
@@ -80,10 +83,7 @@ pub fn switch_to_accessory(info: &nusb::DeviceInfo) -> Result<(), ConnectError> 
     Ok(())
 }
 
-pub async fn new(
-    producer: Producer<u8>,
-    format: AudioPacketFormat,
-) -> Result<UsbStreamer, ConnectError> {
+pub async fn new(stream_config: StreamConfig) -> Result<UsbStreamer, ConnectError> {
     // switch all usb devices to accessory mode and ignore errors
     nusb::list_devices()
         .map_err(ConnectError::NoUsbDevice)?
@@ -140,8 +140,8 @@ pub async fn new(
 
     let streamer = UsbStreamer {
         framed,
-        producer,
-        format,
+        producer: stream_config.buff,
+        format: stream_config.audio_config,
         state: UsbStreamerState::Listening,
     };
 
@@ -149,9 +149,9 @@ pub async fn new(
 }
 
 impl StreamerTrait for UsbStreamer {
-    fn set_buff(&mut self, producer: Producer<u8>, format: AudioPacketFormat) {
-        self.producer = producer;
-        self.format = format;
+    fn reconfigure_stream(&mut self, config: StreamConfig) {
+        self.producer = config.buff;
+        self.format = config.audio_config;
     }
 
     fn status(&self) -> Option<Status> {

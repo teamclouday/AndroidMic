@@ -11,7 +11,7 @@ use crate::{
     streamer::{AudioPacketMessage, WriteError, DEFAULT_PC_PORT, MAX_PORT},
 };
 
-use super::{AudioPacketMessageOrdered, ConnectError, Status, StreamerTrait};
+use super::{AudioPacketMessageOrdered, ConnectError, Status, StreamConfig, StreamerTrait};
 
 const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
 
@@ -33,11 +33,7 @@ pub enum UdpStreamerState {
     },
 }
 
-pub async fn new(
-    ip: IpAddr,
-    producer: Producer<u8>,
-    format: AudioPacketFormat,
-) -> Result<UdpStreamer, ConnectError> {
+pub async fn new(ip: IpAddr, stream_config: StreamConfig) -> Result<UdpStreamer, ConnectError> {
     let mut socket = None;
 
     // try to always bind the same port, to not change it everytime Android side
@@ -61,8 +57,8 @@ pub async fn new(
     let streamer = UdpStreamer {
         ip,
         port: addr.port(),
-        producer,
-        format,
+        producer: stream_config.buff,
+        format: stream_config.audio_config,
         state: UdpStreamerState::Streaming {
             framed: UdpFramed::new(socket, LengthDelimitedCodec::new()),
             tracked_sequence: 0,
@@ -73,9 +69,9 @@ pub async fn new(
 }
 
 impl StreamerTrait for UdpStreamer {
-    fn set_buff(&mut self, producer: Producer<u8>, format: AudioPacketFormat) {
-        self.producer = producer;
-        self.format = format;
+    fn reconfigure_stream(&mut self, config: StreamConfig) {
+        self.producer = config.buff;
+        self.format = config.audio_config;
     }
 
     fn status(&self) -> Option<Status> {

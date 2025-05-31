@@ -42,6 +42,12 @@ impl Status {
 const DEFAULT_PC_PORT: u16 = 55555;
 const MAX_PORT: u16 = 60000;
 
+#[derive(Debug)]
+pub struct StreamConfig {
+    pub buff: Producer<u8>,
+    pub audio_config: AudioPacketFormat,
+}
+
 #[enum_dispatch]
 trait StreamerTrait {
     /// I know it seems weird to have a next method like that, but it is actually the easiest way i found
@@ -51,7 +57,7 @@ trait StreamerTrait {
     /// A nice benefit of this pattern is that there is no usage of Atomic what so ever.
     async fn next(&mut self) -> Result<Option<Status>, ConnectError>;
 
-    fn set_buff(&mut self, buff: Producer<u8>, config: AudioPacketFormat);
+    fn reconfigure_stream(&mut self, config: StreamConfig);
 
     fn status(&self) -> Option<Status>;
 }
@@ -124,7 +130,7 @@ impl StreamerTrait for DummyStreamer {
         unreachable!()
     }
 
-    fn set_buff(&mut self, _buff: Producer<u8>, _config: AudioPacketFormat) {}
+    fn reconfigure_stream(&mut self, _config: StreamConfig) {}
 
     fn status(&self) -> Option<Status> {
         None

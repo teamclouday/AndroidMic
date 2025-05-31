@@ -78,12 +78,10 @@ where
                 format.sample_rate.to_number(),
             )?
         }
+    } else if format.sample_rate.to_number() == packet.sample_rate {
+        buffer
     } else {
-        if format.sample_rate.to_number() == packet.sample_rate {
-            buffer
-        } else {
-            resample_f32_stream(&buffer, packet.sample_rate, format.sample_rate.to_number())?
-        }
+        resample_f32_stream(&buffer, packet.sample_rate, format.sample_rate.to_number())?
     };
 
     // finally convert to output format
@@ -184,7 +182,7 @@ where
     let channel_count = packet.channel_count as usize;
 
     let mut result = Vec::<f32>::with_capacity(
-        (packet.buffer.len() / (audio_format.sample_size() * channel_count)) as usize,
+        packet.buffer.len() / (audio_format.sample_size() * channel_count),
     );
 
     for buf in packet

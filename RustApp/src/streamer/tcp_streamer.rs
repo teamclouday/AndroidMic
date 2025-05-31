@@ -11,7 +11,7 @@ use crate::{
     streamer::{WriteError, DEFAULT_PC_PORT, MAX_PORT},
 };
 
-use super::{AudioPacketMessage, ConnectError, Status, StreamerTrait};
+use super::{AudioPacketMessage, ConnectError, Status, StreamConfig, StreamerTrait};
 
 const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
 
@@ -36,11 +36,7 @@ pub enum TcpStreamerState {
     },
 }
 
-pub async fn new(
-    ip: IpAddr,
-    producer: Producer<u8>,
-    format: AudioPacketFormat,
-) -> Result<TcpStreamer, ConnectError> {
+pub async fn new(ip: IpAddr, stream_config: StreamConfig) -> Result<TcpStreamer, ConnectError> {
     let mut listener = None;
 
     // try to always bind the same port, to not change it everytime Android side
@@ -64,8 +60,8 @@ pub async fn new(
     let streamer = TcpStreamer {
         ip,
         port: addr.port(),
-        producer,
-        format,
+        producer: stream_config.buff,
+        format: stream_config.audio_config,
         state: TcpStreamerState::Listening { listener },
     };
 
@@ -73,9 +69,9 @@ pub async fn new(
 }
 
 impl StreamerTrait for TcpStreamer {
-    fn set_buff(&mut self, producer: Producer<u8>, format: AudioPacketFormat) {
-        self.producer = producer;
-        self.format = format;
+    fn reconfigure_stream(&mut self, config: StreamConfig) {
+        self.producer = config.buff;
+        self.format = config.audio_config;
     }
 
     fn status(&self) -> Option<Status> {

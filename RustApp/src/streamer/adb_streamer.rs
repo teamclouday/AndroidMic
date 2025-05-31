@@ -1,12 +1,11 @@
 use anyhow::Result;
-use rtrb::Producer;
 use tokio::process::Command;
 
-use crate::{audio::AudioPacketFormat, streamer::tcp_streamer};
+use crate::streamer::tcp_streamer;
 
 use super::{
     tcp_streamer::{TcpStreamer, TcpStreamerState},
-    ConnectError, Status, StreamerTrait,
+    ConnectError, Status, StreamConfig, StreamerTrait,
 };
 
 pub struct AdbStreamer {
@@ -22,7 +21,7 @@ async fn get_connected_devices() -> Result<Vec<String>, ConnectError> {
 
     // Skip the first line which is "List of devices attached"
     for line in output.lines().skip(1) {
-        let parts: Vec<&str> = line.trim().split_whitespace().collect();
+        let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() >= 2 {
             devices.push(parts[0].to_string());
         }
@@ -63,12 +62,8 @@ async fn exec_cmd(mut cmd: Command) -> Result<String, ConnectError> {
     Ok(stdout)
 }
 
-pub async fn new(
-    producer: Producer<u8>,
-    format: AudioPacketFormat,
-) -> Result<AdbStreamer, ConnectError> {
-    let tcp_streamer =
-        tcp_streamer::new(str::parse("127.0.0.1").unwrap(), producer, format).await?;
+pub async fn new(stream_config: StreamConfig) -> Result<AdbStreamer, ConnectError> {
+    let tcp_streamer = tcp_streamer::new(str::parse("127.0.0.1").unwrap(), stream_config).await?;
 
     let devices = get_connected_devices().await?;
     if devices.is_empty() {
@@ -98,8 +93,8 @@ impl StreamerTrait for AdbStreamer {
         self.tcp_streamer.next().await
     }
 
-    fn set_buff(&mut self, buff: Producer<u8>, format: AudioPacketFormat) {
-        self.tcp_streamer.set_buff(buff, format)
+    fn reconfigure_stream(&mut self, config: StreamConfig) {
+        self.tcp_streamer.reconfigure_stream(config)
     }
 
     fn status(&self) -> Option<Status> {
