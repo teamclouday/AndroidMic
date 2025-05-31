@@ -20,7 +20,10 @@ mod usb_streamer;
 pub use message::{AudioPacketMessage, AudioPacketMessageOrdered};
 pub use streamer_runner::{ConnectOption, StreamerCommand, StreamerMsg, sub};
 
-use crate::{audio::AudioPacketFormat, config::AudioFormat};
+use crate::{
+    audio::{AudioPacketFormat, process::AudioProcessParams},
+    config::AudioFormat,
+};
 use usb::aoa::{AccessoryError, EndpointError};
 
 /// Status reported from the streamer
@@ -46,6 +49,16 @@ const MAX_PORT: u16 = 60000;
 pub struct StreamConfig {
     pub buff: Producer<u8>,
     pub audio_config: AudioPacketFormat,
+    pub denoise: bool,
+}
+
+impl StreamConfig {
+    pub fn to_audio_params(&self) -> AudioProcessParams {
+        AudioProcessParams {
+            target_format: self.audio_config.clone(),
+            denoise: self.denoise,
+        }
+    }
 }
 
 #[enum_dispatch]
@@ -57,7 +70,7 @@ trait StreamerTrait {
     /// A nice benefit of this pattern is that there is no usage of Atomic what so ever.
     async fn next(&mut self) -> Result<Option<Status>, ConnectError>;
 
-    fn reconfigure_stream(&mut self, config: StreamConfig);
+    fn reconfigure_stream(&mut self, stream_config: StreamConfig);
 
     fn status(&self) -> Option<Status>;
 }

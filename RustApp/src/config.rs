@@ -18,6 +18,7 @@ pub struct Config {
     pub device_name: Option<String>,
     pub start_at_login: bool,
     pub auto_connect: bool,
+    pub denoise: bool,
 }
 
 #[derive(Parser, Debug)]

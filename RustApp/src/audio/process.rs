@@ -7,21 +7,27 @@ use super::{
     AudioBytes, AudioPacketFormat, denoise::denoise_f32_stream, resampler::resample_f32_stream,
 };
 
+/// audio processing parameters
+pub struct AudioProcessParams {
+    pub target_format: AudioPacketFormat,
+    pub denoise: bool,
+}
+
 // This function converts an audio stream from packet into producer
 // apply any necessary conversions based on the audio format
 // and returns mono channel f32 vector for audio wave display
 pub fn convert_audio_stream(
     producer: &mut Producer<u8>,
     packet: AudioPacketMessage,
-    format: &AudioPacketFormat,
+    params: AudioProcessParams,
 ) -> anyhow::Result<Vec<f32>> {
-    match format.audio_format {
-        AudioFormat::I16 => convert_audio_stream_internal::<i16>(producer, packet, format),
-        AudioFormat::I24 => convert_audio_stream_internal::<f32>(producer, packet, format),
-        AudioFormat::I32 => convert_audio_stream_internal::<i32>(producer, packet, format),
-        AudioFormat::U8 => convert_audio_stream_internal::<u8>(producer, packet, format),
-        AudioFormat::U32 => convert_audio_stream_internal::<u32>(producer, packet, format),
-        AudioFormat::F32 => convert_audio_stream_internal::<f32>(producer, packet, format),
+    match params.target_format.audio_format {
+        AudioFormat::I16 => convert_audio_stream_internal::<i16>(producer, packet, params),
+        AudioFormat::I24 => convert_audio_stream_internal::<f32>(producer, packet, params),
+        AudioFormat::I32 => convert_audio_stream_internal::<i32>(producer, packet, params),
+        AudioFormat::U8 => convert_audio_stream_internal::<u8>(producer, packet, params),
+        AudioFormat::U32 => convert_audio_stream_internal::<u32>(producer, packet, params),
+        AudioFormat::F32 => convert_audio_stream_internal::<f32>(producer, packet, params),
         _ => bail!("unsupported audio format."),
     }
     .map_err(|e| {
@@ -33,11 +39,13 @@ pub fn convert_audio_stream(
 fn convert_audio_stream_internal<F>(
     producer: &mut Producer<u8>,
     packet: AudioPacketMessage,
-    format: &AudioPacketFormat,
+    config: AudioProcessParams,
 ) -> anyhow::Result<Vec<f32>>
 where
     F: cpal::SizedSample + AudioBytes + std::fmt::Debug + 'static,
 {
+    let format = config.target_format;
+
     // first convert audio packet to f32 vector
     let buffer = convert_packet_to_f32(&packet)?;
 
@@ -55,11 +63,10 @@ where
         mono_buffer
     };
 
-    let enable_denoise = true;
     let denoise_sample_rate = 48000;
 
     // next run resampler and denoise on the buffer
-    let resampled_buffer = if enable_denoise {
+    let resampled_buffer = if config.denoise {
         let prepared_buffer = if packet.sample_rate == denoise_sample_rate {
             buffer
         } else {

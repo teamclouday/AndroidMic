@@ -165,6 +165,11 @@ pub fn advanced_window(app: &AppState) -> Element<'_, ConfigMsg> {
                         ConfigMsg::AudioFormat,
                     )),
             )
+            .push(
+                settings::section()
+                    .title(fl!("denoise"))
+                    .add(toggler(config.denoise).on_toggle(ConfigMsg::DeNoise)),
+            )
             .push(button::text("Use Recommended Format").on_press(ConfigMsg::UseRecommendedFormat))
             .push_maybe(if cfg!(target_os = "windows") {
                 Some(

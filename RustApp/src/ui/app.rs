@@ -139,6 +139,7 @@ impl AppState {
                 self.send_command(StreamerCommand::ReconfigureStream(StreamConfig {
                     buff: producer,
                     audio_config,
+                    denoise: self.config.data().denoise,
                 }));
             }
             Err(e) => {
@@ -203,6 +204,7 @@ impl AppState {
             StreamConfig {
                 buff: producer,
                 audio_config,
+                denoise: self.config.data().denoise,
             },
         ));
     }
@@ -411,8 +413,13 @@ impl Application for AppState {
                                     AudioFormat::from_cpal_format(format.sample_format())
                                         .unwrap_or_default();
                             });
+                            self.update_audio_stream();
                         }
                     }
+                }
+                ConfigMsg::DeNoise(denoise) => {
+                    self.config.update(|c| c.denoise = denoise);
+                    self.update_audio_stream();
                 }
             },
             AppMsg::Shutdown => {

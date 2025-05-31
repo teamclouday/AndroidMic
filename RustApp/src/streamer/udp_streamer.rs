@@ -2,12 +2,11 @@ use std::{io, net::IpAddr, time::Duration};
 
 use futures::StreamExt;
 use prost::Message;
-use rtrb::Producer;
 use tokio::net::UdpSocket;
 use tokio_util::{codec::LengthDelimitedCodec, udp::UdpFramed};
 
 use crate::{
-    audio::{AudioPacketFormat, process::convert_audio_stream},
+    audio::process::convert_audio_stream,
     streamer::{AudioPacketMessage, DEFAULT_PC_PORT, MAX_PORT, WriteError},
 };
 
@@ -20,8 +19,7 @@ const DISCONNECT_LOOP_DETECTER_MAX: u32 = 1000;
 pub struct UdpStreamer {
     ip: IpAddr,
     pub port: u16,
-    producer: Producer<u8>,
-    format: AudioPacketFormat,
+    stream_config: StreamConfig,
     state: UdpStreamerState,
 }
 
@@ -57,8 +55,7 @@ pub async fn new(ip: IpAddr, stream_config: StreamConfig) -> Result<UdpStreamer,
     let streamer = UdpStreamer {
         ip,
         port: addr.port(),
-        producer: stream_config.buff,
-        format: stream_config.audio_config,
+        stream_config,
         state: UdpStreamerState::Streaming {
             framed: UdpFramed::new(socket, LengthDelimitedCodec::new()),
             tracked_sequence: 0,
@@ -69,9 +66,8 @@ pub async fn new(ip: IpAddr, stream_config: StreamConfig) -> Result<UdpStreamer,
 }
 
 impl StreamerTrait for UdpStreamer {
-    fn reconfigure_stream(&mut self, config: StreamConfig) {
-        self.producer = config.buff;
-        self.format = config.audio_config;
+    fn reconfigure_stream(&mut self, stream_config: StreamConfig) {
+        self.stream_config = stream_config;
     }
 
     fn status(&self) -> Option<Status> {
@@ -106,9 +102,12 @@ impl StreamerTrait for UdpStreamer {
                                 let packet = packet.audio_packet.unwrap();
                                 let buffer_size = packet.buffer.len();
 
-                                if let Ok(buffer) =
-                                    convert_audio_stream(&mut self.producer, packet, &self.format)
-                                {
+                                let audio_params = self.stream_config.to_audio_params();
+                                if let Ok(buffer) = convert_audio_stream(
+                                    &mut self.stream_config.buff,
+                                    packet,
+                                    audio_params,
+                                ) {
                                     // compute the audio wave from the buffer
                                     res = Some(Status::UpdateAudioWave {
                                         data: AudioPacketMessage::to_wave_data(&buffer),
