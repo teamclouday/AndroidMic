@@ -11,7 +11,7 @@ use super::usb::{
     frame::UsbStream,
 };
 use crate::{
-    audio::{resampler::convert_audio_stream, AudioPacketFormat},
+    audio::{process::convert_audio_stream, AudioPacketFormat},
     streamer::WriteError,
 };
 

@@ -7,7 +7,7 @@ use tokio::net::UdpSocket;
 use tokio_util::{codec::LengthDelimitedCodec, udp::UdpFramed};
 
 use crate::{
-    audio::{resampler::convert_audio_stream, AudioPacketFormat},
+    audio::{process::convert_audio_stream, AudioPacketFormat},
     streamer::{AudioPacketMessage, WriteError, DEFAULT_PC_PORT, MAX_PORT},
 };
 
