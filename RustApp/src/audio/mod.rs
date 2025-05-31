@@ -6,8 +6,10 @@ use crate::{
     ui::app::AppState,
 };
 
+mod denoise;
 mod player;
-pub mod resampler;
+pub mod process;
+mod resampler;
 
 impl AppState {
     pub fn start_audio_stream(&mut self, consumer: Consumer<u8>) -> anyhow::Result<()> {
