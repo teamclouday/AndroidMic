@@ -1,5 +1,5 @@
 use cosmic::{
-    iced::{mouse, Color, Point, Rectangle, Renderer, Size},
+    iced::{Color, Point, Rectangle, Renderer, Size, mouse},
     widget::canvas,
 };
 

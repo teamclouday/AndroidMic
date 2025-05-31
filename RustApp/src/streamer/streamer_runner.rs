@@ -11,8 +11,8 @@ use tokio::sync::mpsc::{self, Sender};
 use crate::streamer::{StreamerTrait, WriteError};
 
 use super::{
-    adb_streamer, tcp_streamer, udp_streamer, usb_streamer, ConnectError, DummyStreamer, Status,
-    StreamConfig, Streamer,
+    ConnectError, DummyStreamer, Status, StreamConfig, Streamer, adb_streamer, tcp_streamer,
+    udp_streamer, usb_streamer,
 };
 
 #[derive(Debug)]

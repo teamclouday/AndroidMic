@@ -7,8 +7,8 @@ use tokio::net::{TcpListener, TcpStream};
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 use crate::{
-    audio::{process::convert_audio_stream, AudioPacketFormat},
-    streamer::{WriteError, DEFAULT_PC_PORT, MAX_PORT},
+    audio::{AudioPacketFormat, process::convert_audio_stream},
+    streamer::{DEFAULT_PC_PORT, MAX_PORT, WriteError},
 };
 
 use super::{AudioPacketMessage, ConnectError, Status, StreamConfig, StreamerTrait};

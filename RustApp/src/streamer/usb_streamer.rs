@@ -7,14 +7,14 @@ use tokio::time::sleep;
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 use super::{
+    StreamConfig,
     usb::{
         aoa::{AccessoryConfigurations, AccessoryDeviceInfo, AccessoryInterface, AccessoryStrings},
         frame::UsbStream,
     },
-    StreamConfig,
 };
 use crate::{
-    audio::{process::convert_audio_stream, AudioPacketFormat},
+    audio::{AudioPacketFormat, process::convert_audio_stream},
     streamer::WriteError,
 };
 

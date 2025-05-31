@@ -1,6 +1,6 @@
 use nusb::transfer::{Queue, RequestBuffer};
 use std::pin::Pin;
-use std::task::{ready, Context, Poll};
+use std::task::{Context, Poll, ready};
 use std::{io, vec};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 

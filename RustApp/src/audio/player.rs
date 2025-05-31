@@ -1,6 +1,6 @@
 use anyhow::bail;
 use cpal::traits::{DeviceTrait, StreamTrait};
-use rtrb::{chunks::ChunkError, Consumer};
+use rtrb::{Consumer, chunks::ChunkError};
 
 use crate::config::{AudioFormat, ChannelCount, SampleRate};
 

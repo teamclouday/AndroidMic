@@ -45,7 +45,5 @@ macro_rules! window_icon {
 
         cosmic::iced::window::icon::from_rgba(rgba, $width, $height).ok()
     }};
-    ($name:literal) => {{
-        window_icon!($name, 32, 32)
-    }};
+    ($name:literal) => {{ window_icon!($name, 32, 32) }};
 }

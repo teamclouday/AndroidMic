@@ -1,19 +1,19 @@
 use std::fmt::{Debug, Display};
 
 use cpal::{
-    traits::{DeviceTrait, HostTrait},
     Device, Host,
+    traits::{DeviceTrait, HostTrait},
 };
 use local_ip_address::local_ip;
 use rtrb::RingBuffer;
 use tokio::sync::mpsc::Sender;
 
 use cosmic::{
+    Application, Element,
     app::{Core, Settings, Task},
     executor,
-    iced::{futures::StreamExt, window, Size, Subscription},
+    iced::{Size, Subscription, futures::StreamExt, window},
     iced_runtime::Action,
-    Application, Element,
 };
 
 use super::{

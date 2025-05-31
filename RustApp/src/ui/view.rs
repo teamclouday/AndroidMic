@@ -1,10 +1,10 @@
 use cosmic::{
-    iced::{alignment::Horizontal, widget::pick_list, Length},
+    Element,
+    iced::{Length, alignment::Horizontal, widget::pick_list},
     widget::{
         button, canvas, column, container, radio, row, scrollable, settings, text, toggler,
         vertical_space,
     },
-    Element,
 };
 use cpal::traits::DeviceTrait;
 

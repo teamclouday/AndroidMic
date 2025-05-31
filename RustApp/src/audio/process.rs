@@ -4,7 +4,7 @@ use rtrb::Producer;
 use crate::{config::AudioFormat, streamer::AudioPacketMessage};
 
 use super::{
-    denoise::denoise_f32_stream, resampler::resample_f32_stream, AudioBytes, AudioPacketFormat,
+    AudioBytes, AudioPacketFormat, denoise::denoise_f32_stream, resampler::resample_f32_stream,
 };
 
 // This function converts an audio stream from packet into producer

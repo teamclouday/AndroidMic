@@ -4,8 +4,8 @@ use tokio::process::Command;
 use crate::streamer::tcp_streamer;
 
 use super::{
-    tcp_streamer::{TcpStreamer, TcpStreamerState},
     ConnectError, Status, StreamConfig, StreamerTrait,
+    tcp_streamer::{TcpStreamer, TcpStreamerState},
 };
 
 pub struct AdbStreamer {

@@ -2,7 +2,7 @@ use adb_streamer::AdbStreamer;
 use anyhow::Result;
 use enum_dispatch::enum_dispatch;
 use prost::DecodeError;
-use rtrb::{chunks::ChunkError, Producer};
+use rtrb::{Producer, chunks::ChunkError};
 use std::io;
 use tcp_streamer::TcpStreamer;
 use thiserror::Error;
@@ -18,7 +18,7 @@ mod usb;
 mod usb_streamer;
 
 pub use message::{AudioPacketMessage, AudioPacketMessageOrdered};
-pub use streamer_runner::{sub, ConnectOption, StreamerCommand, StreamerMsg};
+pub use streamer_runner::{ConnectOption, StreamerCommand, StreamerMsg, sub};
 
 use crate::{audio::AudioPacketFormat, config::AudioFormat};
 use usb::aoa::{AccessoryError, EndpointError};
