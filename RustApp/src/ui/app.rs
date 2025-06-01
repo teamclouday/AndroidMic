@@ -9,7 +9,7 @@ use rtrb::RingBuffer;
 use tokio::sync::mpsc::Sender;
 
 use cosmic::{
-    Application, Element,
+    Application, ApplicationExt, Element,
     app::{Core, Settings, Task},
     executor,
     iced::{Size, Subscription, futures::StreamExt, window},
@@ -293,7 +293,14 @@ impl Application for AppState {
         info!("config path: {}", flags.config_path);
         info!("log path: {}", flags.log_path);
 
-        (app, command.map(|_| cosmic::action::Action::None))
+        let set_window_title = app.set_window_title(fl!("main_window_title"), new_id);
+
+        (
+            app,
+            command
+                .map(|_| cosmic::action::Action::None)
+                .chain(set_window_title),
+        )
     }
 
     fn update(&mut self, message: Self::Message) -> Task<Self::Message> {
@@ -373,7 +380,11 @@ impl Application for AppState {
 
                     let (new_id, command) = cosmic::iced::window::open(settings);
                     self.advanced_window = Some(CustomWindow { window_id: new_id });
-                    return command.map(|_| cosmic::action::Action::None);
+                    let set_window_title =
+                        self.set_window_title(fl!("advanced_window_title"), new_id);
+                    return command
+                        .map(|_| cosmic::action::Action::None)
+                        .chain(set_window_title);
                 }
             },
             AppMsg::Config(msg) => match msg {

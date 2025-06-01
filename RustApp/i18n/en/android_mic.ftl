@@ -15,3 +15,6 @@ denoise = Use audio noise reduction
 
 start_at_login = Start at login
 auto_connect = Auto connect
+
+main_window_title = AndroidMic
+advanced_window_title = Advanced Settings
