@@ -53,6 +53,8 @@ On Windows, make sure the adb process is shutdown and android studio is closed.
 On MacOS, it should just work.
 
 On Linux, you will need to configure [udev](https://github.com/libusb/libusb/wiki/FAQ#can-i-run-libusb-applications-on-linux-without-root-privilege) so that the app has permission to use USB.
+
+Samsung phone users may need to use [zadig](https://zadig.akeo.ie/) to change the USB driver to WinUSB. This is because by default Samsung phones use its proprietary USB driver which is not compatible with the app.
 </details>
 
 For USB adb, make sure the system has installed [adb](https://developer.android.com/tools/adb). The connect your phone to PC.

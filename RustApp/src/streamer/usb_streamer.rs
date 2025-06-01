@@ -48,11 +48,23 @@ pub fn switch_to_accessory(info: &nusb::DeviceInfo) -> Result<(), ConnectError> 
     // claim the interface
     let mut iface = device
         .detach_and_claim_interface(0)
-        .map_err(ConnectError::CantClaimUsbInterface)?;
+        .map_err(|e| {
+            if e.to_string().contains("dg_ssudbus") {
+                ConnectError::CantClaimUsbInterface(nusb::Error::other(
+                    "Samsung device is using Samsung driver. Please use Zadig to replace with WinUSB driver."
+                ))
+            } else {
+                ConnectError::CantClaimUsbInterface(e)
+            }
+        })?;
 
     let strings = AccessoryStrings::new(
         "AndroidMic",
-        "Android Mic USB Streamer",
+        if cfg!(debug_assertions) {
+            "AndroidMicUSBStreamer-Dev"
+        } else {
+            "AndroidMicUSBStreamer"
+        },
         "Accessory device for AndroidMic app",
         "1.0",
         "https://github.com/teamclouday/AndroidMic",
@@ -72,34 +84,48 @@ pub fn switch_to_accessory(info: &nusb::DeviceInfo) -> Result<(), ConnectError> 
         protocol
     );
 
+    drop(device); // disconnect the device
     Ok(())
 }
 
 pub async fn new(stream_config: StreamConfig) -> Result<UsbStreamer, ConnectError> {
-    // switch all usb devices to accessory mode and ignore errors
-    nusb::list_devices()
-        .map_err(ConnectError::NoUsbDevice)?
-        .for_each(|info| {
-            if let Err(error) = switch_to_accessory(&info) {
-                warn!(
-                    "Cannot switch USB device 0x{:X} to accessory mode: {}",
-                    info.device_address(),
-                    error
-                )
-            }
-        });
-
-    // wait for the app to open and connect
-    sleep(Duration::from_secs(1)).await;
+    let mut retries = 0;
+    // switch all usb devices to accessory mode until one succeeds
+    for info in nusb::list_devices().map_err(ConnectError::NoUsbDevice)? {
+        if let Err(error) = switch_to_accessory(&info) {
+            warn!(
+                "Cannot switch USB device 0x{:X} to accessory mode: {}",
+                info.device_address(),
+                error
+            )
+        } else {
+            retries = 5;
+            break;
+        }
+    }
 
     let (info, iface, endpoints) = {
-        let info = nusb::list_devices()
-            .map_err(ConnectError::NoUsbDevice)?
-            .find(|d| d.in_accessory_mode())
-            .ok_or(nusb::Error::other(
-                "No android phone found after switching to accessory.",
-            ))
-            .map_err(ConnectError::NoUsbDevice)?;
+        let info = loop {
+            match nusb::list_devices()
+                .map_err(ConnectError::NoUsbDevice)?
+                .find(|d| d.in_accessory_mode())
+            {
+                Some(device) => break device,
+                None => {
+                    if retries == 0 {
+                        return Err(ConnectError::NoUsbDevice(nusb::Error::other(
+                            "No android phone found after switching to accessory. Check logs for details.",
+                        )));
+                    }
+                    retries -= 1;
+                    info!(
+                        "Waiting for device to appear in accessory mode... ({} retries left)",
+                        retries
+                    );
+                    sleep(Duration::from_secs(1)).await;
+                }
+            }
+        };
 
         let device = info.open().map_err(ConnectError::CantOpenUsbHandle)?;
         let configs = device
