@@ -2,5 +2,5 @@
 <resources>
     <usb-accessory
         manufacturer="AndroidMic"
-        model="AndroidMicUSBStreamer" />
+        model="AndroidMicUSBStreamer-Dev" />
 </resources>
