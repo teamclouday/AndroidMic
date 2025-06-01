@@ -2,16 +2,15 @@ use std::{io, net::IpAddr, time::Duration};
 
 use futures::StreamExt;
 use prost::Message;
-use rtrb::Producer;
 use tokio::net::UdpSocket;
 use tokio_util::{codec::LengthDelimitedCodec, udp::UdpFramed};
 
 use crate::{
-    audio::{process::convert_audio_stream, AudioPacketFormat},
-    streamer::{AudioPacketMessage, WriteError, DEFAULT_PC_PORT, MAX_PORT},
+    audio::process::convert_audio_stream,
+    streamer::{AudioPacketMessage, DEFAULT_PC_PORT, MAX_PORT, WriteError},
 };
 
-use super::{AudioPacketMessageOrdered, ConnectError, Status, StreamerTrait};
+use super::{AudioPacketMessageOrdered, ConnectError, Status, StreamConfig, StreamerTrait};
 
 const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
 
@@ -20,8 +19,7 @@ const DISCONNECT_LOOP_DETECTER_MAX: u32 = 1000;
 pub struct UdpStreamer {
     ip: IpAddr,
     pub port: u16,
-    producer: Producer<u8>,
-    format: AudioPacketFormat,
+    stream_config: StreamConfig,
     state: UdpStreamerState,
 }
 
@@ -33,11 +31,7 @@ pub enum UdpStreamerState {
     },
 }
 
-pub async fn new(
-    ip: IpAddr,
-    producer: Producer<u8>,
-    format: AudioPacketFormat,
-) -> Result<UdpStreamer, ConnectError> {
+pub async fn new(ip: IpAddr, stream_config: StreamConfig) -> Result<UdpStreamer, ConnectError> {
     let mut socket = None;
 
     // try to always bind the same port, to not change it everytime Android side
@@ -61,8 +55,7 @@ pub async fn new(
     let streamer = UdpStreamer {
         ip,
         port: addr.port(),
-        producer,
-        format,
+        stream_config,
         state: UdpStreamerState::Streaming {
             framed: UdpFramed::new(socket, LengthDelimitedCodec::new()),
             tracked_sequence: 0,
@@ -73,9 +66,8 @@ pub async fn new(
 }
 
 impl StreamerTrait for UdpStreamer {
-    fn set_buff(&mut self, producer: Producer<u8>, format: AudioPacketFormat) {
-        self.producer = producer;
-        self.format = format;
+    fn reconfigure_stream(&mut self, stream_config: StreamConfig) {
+        self.stream_config = stream_config;
     }
 
     fn status(&self) -> Option<Status> {
@@ -110,9 +102,12 @@ impl StreamerTrait for UdpStreamer {
                                 let packet = packet.audio_packet.unwrap();
                                 let buffer_size = packet.buffer.len();
 
-                                if let Ok(buffer) =
-                                    convert_audio_stream(&mut self.producer, packet, &self.format)
-                                {
+                                let audio_params = self.stream_config.to_audio_params();
+                                if let Ok(buffer) = convert_audio_stream(
+                                    &mut self.stream_config.buff,
+                                    packet,
+                                    audio_params,
+                                ) {
                                     // compute the audio wave from the buffer
                                     res = Some(Status::UpdateAudioWave {
                                         data: AudioPacketMessage::to_wave_data(&buffer),

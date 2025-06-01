@@ -2,16 +2,18 @@ use std::time::Duration;
 
 use futures::StreamExt;
 use prost::Message;
-use rtrb::Producer;
 use tokio::time::sleep;
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
-use super::usb::{
-    aoa::{AccessoryConfigurations, AccessoryDeviceInfo, AccessoryInterface, AccessoryStrings},
-    frame::UsbStream,
+use super::{
+    StreamConfig,
+    usb::{
+        aoa::{AccessoryConfigurations, AccessoryDeviceInfo, AccessoryInterface, AccessoryStrings},
+        frame::UsbStream,
+    },
 };
 use crate::{
-    audio::{process::convert_audio_stream, AudioPacketFormat},
+    audio::process::convert_audio_stream,
     streamer::WriteError,
 };
 
@@ -20,8 +22,7 @@ use super::{AudioPacketMessage, ConnectError, Status, StreamerTrait};
 const MAX_WAIT_TIME: Duration = Duration::from_millis(100);
 
 pub struct UsbStreamer {
-    producer: Producer<u8>,
-    format: AudioPacketFormat,
+    stream_config: StreamConfig,
     state: UsbStreamerState,
     framed: Framed<UsbStream, LengthDelimitedCodec>,
 }
@@ -80,10 +81,7 @@ pub fn switch_to_accessory(info: &nusb::DeviceInfo) -> Result<(), ConnectError> 
     Ok(())
 }
 
-pub async fn new(
-    producer: Producer<u8>,
-    format: AudioPacketFormat,
-) -> Result<UsbStreamer, ConnectError> {
+pub async fn new(stream_config: StreamConfig) -> Result<UsbStreamer, ConnectError> {
     // switch all usb devices to accessory mode and ignore errors
     nusb::list_devices()
         .map_err(ConnectError::NoUsbDevice)?
@@ -140,8 +138,7 @@ pub async fn new(
 
     let streamer = UsbStreamer {
         framed,
-        producer,
-        format,
+        stream_config,
         state: UsbStreamerState::Listening,
     };
 
@@ -149,9 +146,8 @@ pub async fn new(
 }
 
 impl StreamerTrait for UsbStreamer {
-    fn set_buff(&mut self, producer: Producer<u8>, format: AudioPacketFormat) {
-        self.producer = producer;
-        self.format = format;
+    fn reconfigure_stream(&mut self, stream_config: StreamConfig) {
+        self.stream_config = stream_config;
     }
 
     fn status(&self) -> Option<Status> {
@@ -171,8 +167,9 @@ impl StreamerTrait for UsbStreamer {
                     Ok(packet) => {
                         let buffer_size = packet.buffer.len();
 
+                        let audio_params = self.stream_config.to_audio_params();
                         if let Ok(buffer) =
-                            convert_audio_stream(&mut self.producer, packet, &self.format)
+                            convert_audio_stream(&mut self.stream_config.buff, packet, audio_params)
                         {
                             // compute the audio wave from the buffer
                             res = Some(Status::UpdateAudioWave {

@@ -1,19 +1,19 @@
 use std::fmt::{Debug, Display};
 
 use cpal::{
-    traits::{DeviceTrait, HostTrait},
     Device, Host,
+    traits::{DeviceTrait, HostTrait},
 };
 use local_ip_address::local_ip;
 use rtrb::RingBuffer;
 use tokio::sync::mpsc::Sender;
 
 use cosmic::{
+    Application, Element,
     app::{Core, Settings, Task},
     executor,
-    iced::{futures::StreamExt, window, Size, Subscription},
+    iced::{Size, Subscription, futures::StreamExt, window},
     iced_runtime::Action,
-    Application, Element,
 };
 
 use super::{
@@ -25,7 +25,7 @@ use crate::{
     audio::AudioPacketFormat,
     config::{AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
     fl,
-    streamer::{self, ConnectOption, Status, StreamerCommand, StreamerMsg},
+    streamer::{self, ConnectOption, Status, StreamConfig, StreamerCommand, StreamerMsg},
     utils::APP_ID,
     window_icon,
 };
@@ -91,11 +91,17 @@ fn get_audio_devices(audio_host: &Host) -> Vec<AudioDevice> {
 const SHARED_BUF_SIZE_S: f32 = 0.15; // 0.15s
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum State {
+pub enum ConnectionState {
     Default,
     WaitingOnStatus,
     Connected,
     Listening,
+}
+
+pub struct Stream {
+    pub stream: cpal::Stream,
+    /// Runtime audio PC side configuration
+    pub config: AudioPacketFormat,
 }
 
 pub struct AppState {
@@ -105,10 +111,9 @@ pub struct AppState {
     pub audio_host: Host,
     pub audio_devices: Vec<AudioDevice>,
     pub audio_device: Option<cpal::Device>,
-    pub audio_stream: Option<cpal::Stream>,
-    pub audio_config: Option<AudioPacketFormat>,
+    pub audio_stream: Option<Stream>,
     pub audio_wave: AudioWave,
-    pub state: State,
+    pub connection_state: ConnectionState,
     pub main_window: Option<CustomWindow>,
     pub advanced_window: Option<CustomWindow>,
     pub logs: String,
@@ -124,17 +129,18 @@ impl AppState {
     }
 
     fn update_audio_stream(&mut self) {
-        if self.state != State::Connected {
+        if self.connection_state != ConnectionState::Connected {
             return;
         }
         let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
 
         match self.start_audio_stream(consumer) {
-            Ok(()) => {
-                self.send_command(StreamerCommand::ChangeBuff(
-                    producer,
-                    self.audio_config.clone().unwrap(),
-                ));
+            Ok(audio_config) => {
+                self.send_command(StreamerCommand::ReconfigureStream(StreamConfig {
+                    buff: producer,
+                    audio_config,
+                    denoise: self.config.data().denoise,
+                }));
             }
             Err(e) => {
                 self.add_log(&e.to_string());
@@ -167,11 +173,14 @@ impl AppState {
         let config = self.config.data().clone();
         let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
 
-        if let Err(e) = self.start_audio_stream(consumer) {
-            self.add_log(&e.to_string());
-            error!("failed to start audio stream: {e}");
-            return;
-        }
+        let audio_config = match self.start_audio_stream(consumer) {
+            Ok(audio_config) => audio_config,
+            Err(e) => {
+                self.add_log(&e.to_string());
+                error!("failed to start audio stream: {e}");
+                return;
+            }
+        };
 
         let connect_option = match config.connection_mode {
             ConnectionMode::Tcp => {
@@ -188,12 +197,15 @@ impl AppState {
             ConnectionMode::Usb => ConnectOption::Usb,
         };
 
-        self.state = State::WaitingOnStatus;
+        self.connection_state = ConnectionState::WaitingOnStatus;
 
         self.send_command(StreamerCommand::Connect(
             connect_option,
-            producer,
-            self.audio_config.clone().unwrap(),
+            StreamConfig {
+                buff: producer,
+                audio_config,
+                denoise: self.config.data().denoise,
+            },
         ));
     }
 }
@@ -264,14 +276,13 @@ impl Application for AppState {
         let mut app = Self {
             core,
             audio_stream: None,
-            audio_config: None,
             streamer: None,
             config: flags.config,
             audio_device,
             audio_host,
             audio_devices,
             audio_wave: AudioWave::new(),
-            state: State::Default,
+            connection_state: ConnectionState::Default,
             main_window: Some(CustomWindow { window_id: new_id }),
             advanced_window: None,
             logs: String::new(),
@@ -302,20 +313,20 @@ impl Application for AppState {
                 StreamerMsg::Status(status) => match status {
                     Status::Error(e) => {
                         self.add_log(&e);
-                        self.state = State::Default;
+                        self.connection_state = ConnectionState::Default;
                         self.audio_stream = None;
                         self.audio_wave.clear();
                     }
                     Status::Listening { port } => {
-                        if self.state != State::Listening {
+                        if self.connection_state != ConnectionState::Listening {
                             let port = port.unwrap_or(0);
                             info!("listening: {port:?}");
                             self.add_log(format!("Listening on port {port:?}").as_str());
-                            self.state = State::Listening;
+                            self.connection_state = ConnectionState::Listening;
                         }
                     }
                     Status::Connected => {
-                        self.state = State::Connected;
+                        self.connection_state = ConnectionState::Connected;
                     }
                     Status::UpdateAudioWave { data } => {
                         self.audio_wave.write_chunk(&data);
@@ -339,7 +350,7 @@ impl Application for AppState {
             }
             AppMsg::Stop => {
                 self.send_command(StreamerCommand::Stop);
-                self.state = State::Default;
+                self.connection_state = ConnectionState::Default;
                 self.audio_stream = None;
                 self.audio_wave.clear();
             }
@@ -386,7 +397,7 @@ impl Application for AppState {
                 }
                 ConfigMsg::UseRecommendedFormat => {
                     if let Some(device) = &self.audio_device {
-                        if let Some(format) = device.default_output_config().ok() {
+                        if let Ok(format) = device.default_output_config() {
                             info!(
                                 "using recommended audio format: sample rate = {}, channels = {}, audio format = {}",
                                 format.sample_rate().0,
@@ -402,8 +413,13 @@ impl Application for AppState {
                                     AudioFormat::from_cpal_format(format.sample_format())
                                         .unwrap_or_default();
                             });
+                            self.update_audio_stream();
                         }
                     }
+                }
+                ConfigMsg::DeNoise(denoise) => {
+                    self.config.update(|c| c.denoise = denoise);
+                    self.update_audio_stream();
                 }
             },
             AppMsg::Shutdown => {

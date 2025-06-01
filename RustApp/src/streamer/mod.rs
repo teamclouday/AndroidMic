@@ -2,7 +2,7 @@ use adb_streamer::AdbStreamer;
 use anyhow::Result;
 use enum_dispatch::enum_dispatch;
 use prost::DecodeError;
-use rtrb::{chunks::ChunkError, Producer};
+use rtrb::{Producer, chunks::ChunkError};
 use std::io;
 use tcp_streamer::TcpStreamer;
 use thiserror::Error;
@@ -11,16 +11,19 @@ use usb_streamer::UsbStreamer;
 
 mod adb_streamer;
 mod message;
-mod streamer_sub;
+mod streamer_runner;
 mod tcp_streamer;
 mod udp_streamer;
 mod usb;
 mod usb_streamer;
 
 pub use message::{AudioPacketMessage, AudioPacketMessageOrdered};
-pub use streamer_sub::{sub, ConnectOption, StreamerCommand, StreamerMsg};
+pub use streamer_runner::{ConnectOption, StreamerCommand, StreamerMsg, sub};
 
-use crate::{audio::AudioPacketFormat, config::AudioFormat};
+use crate::{
+    audio::{AudioPacketFormat, process::AudioProcessParams},
+    config::AudioFormat,
+};
 use usb::aoa::{AccessoryError, EndpointError};
 
 /// Status reported from the streamer
@@ -42,6 +45,22 @@ impl Status {
 const DEFAULT_PC_PORT: u16 = 55555;
 const MAX_PORT: u16 = 60000;
 
+#[derive(Debug)]
+pub struct StreamConfig {
+    pub buff: Producer<u8>,
+    pub audio_config: AudioPacketFormat,
+    pub denoise: bool,
+}
+
+impl StreamConfig {
+    pub fn to_audio_params(&self) -> AudioProcessParams {
+        AudioProcessParams {
+            target_format: self.audio_config.clone(),
+            denoise: self.denoise,
+        }
+    }
+}
+
 #[enum_dispatch]
 trait StreamerTrait {
     /// I know it seems weird to have a next method like that, but it is actually the easiest way i found
@@ -51,7 +70,7 @@ trait StreamerTrait {
     /// A nice benefit of this pattern is that there is no usage of Atomic what so ever.
     async fn next(&mut self) -> Result<Option<Status>, ConnectError>;
 
-    fn set_buff(&mut self, buff: Producer<u8>, config: AudioPacketFormat);
+    fn reconfigure_stream(&mut self, stream_config: StreamConfig);
 
     fn status(&self) -> Option<Status>;
 }
@@ -124,7 +143,7 @@ impl StreamerTrait for DummyStreamer {
         unreachable!()
     }
 
-    fn set_buff(&mut self, _buff: Producer<u8>, _config: AudioPacketFormat) {}
+    fn reconfigure_stream(&mut self, _config: StreamConfig) {}
 
     fn status(&self) -> Option<Status> {
         None

@@ -29,7 +29,7 @@ class AppPreferences(
     val theme = enumPreference("theme", Themes.System)
     val dynamicColor = booleanPreference("dynamicColor", true)
 
-    val sampleRate = enumPreference("sampleRate", SampleRates.S16000)
+    val sampleRate = enumPreference("sampleRate", SampleRates.S44100)
     val channelCount = enumPreference("channelCount", ChannelCount.Mono)
     val audioFormat = enumPreference("audioFormat", AudioFormat.I16)
 

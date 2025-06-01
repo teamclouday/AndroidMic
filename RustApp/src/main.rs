@@ -71,7 +71,7 @@ fn main() {
             file: target,
         })))
         .filter_level(log::LevelFilter::Warn)
-        .filter_module("android_mic", log::LevelFilter::Debug)
+        .parse_default_env()
         .init();
 
     // generated from https://patorjk.com/software/taag/#p=display&h=2&f=Doom&t=AndroidMic

@@ -1,15 +1,15 @@
 use cosmic::{
-    iced::{alignment::Horizontal, widget::pick_list, Length},
+    Element,
+    iced::{Length, alignment::Horizontal, widget::pick_list},
     widget::{
         button, canvas, column, container, radio, row, scrollable, settings, text, toggler,
         vertical_space,
     },
-    Element,
 };
 use cpal::traits::DeviceTrait;
 
 use super::{
-    app::{AppState, State},
+    app::{AppState, ConnectionState},
     message::{AppMsg, ConfigMsg},
 };
 use crate::{
@@ -126,11 +126,11 @@ fn connection_type(app: &AppState) -> Element<'_, AppMsg> {
 }
 
 fn connect_button(app: &AppState) -> Element<'_, AppMsg> {
-    match app.state {
-        State::Default => button::text(fl!("connect")).on_press(AppMsg::Connect),
-        State::Listening => button::text(fl!("listening")).on_press(AppMsg::Stop),
-        State::Connected => button::destructive(fl!("disconnect")).on_press(AppMsg::Stop),
-        State::WaitingOnStatus => button::text(fl!("waiting")),
+    match app.connection_state {
+        ConnectionState::Default => button::text(fl!("connect")).on_press(AppMsg::Connect),
+        ConnectionState::Listening => button::text(fl!("listening")).on_press(AppMsg::Stop),
+        ConnectionState::Connected => button::destructive(fl!("disconnect")).on_press(AppMsg::Stop),
+        ConnectionState::WaitingOnStatus => button::text(fl!("waiting")),
     }
     .into()
 }
@@ -164,6 +164,11 @@ pub fn advanced_window(app: &AppState) -> Element<'_, ConfigMsg> {
                         Some(&config.audio_format),
                         ConfigMsg::AudioFormat,
                     )),
+            )
+            .push(
+                settings::section()
+                    .title(fl!("denoise"))
+                    .add(toggler(config.denoise).on_toggle(ConfigMsg::DeNoise)),
             )
             .push(button::text("Use Recommended Format").on_press(ConfigMsg::UseRecommendedFormat))
             .push_maybe(if cfg!(target_os = "windows") {

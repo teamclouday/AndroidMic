@@ -36,16 +36,6 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
 
-        create("releaseTesting") {
-            initWith(buildTypes["release"])
-            applicationIdSuffix = ".testing"
-        }
-
-        create("releaseProto") {
-            initWith(buildTypes["release"])
-            applicationIdSuffix = ".proto"
-        }
-
         debug {
             applicationIdSuffix = ".debug"
         }

@@ -5,16 +5,14 @@ use futures::{
     future::{self},
     pin_mut,
 };
-use rtrb::Producer;
 use std::net::IpAddr;
 use tokio::sync::mpsc::{self, Sender};
 
-use crate::audio::AudioPacketFormat;
 use crate::streamer::{StreamerTrait, WriteError};
 
 use super::{
-    adb_streamer, tcp_streamer, udp_streamer, usb_streamer, ConnectError, DummyStreamer, Status,
-    Streamer,
+    ConnectError, DummyStreamer, Status, StreamConfig, Streamer, adb_streamer, tcp_streamer,
+    udp_streamer, usb_streamer,
 };
 
 #[derive(Debug)]
@@ -28,8 +26,8 @@ pub enum ConnectOption {
 /// App -> Streamer
 #[derive(Debug)]
 pub enum StreamerCommand {
-    Connect(ConnectOption, Producer<u8>, AudioPacketFormat),
-    ChangeBuff(Producer<u8>, AudioPacketFormat),
+    Connect(ConnectOption, StreamConfig),
+    ReconfigureStream(StreamConfig),
     Stop,
 }
 
@@ -71,29 +69,25 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                 Either::Left(command) => {
                     if let Some(command) = command {
                         match command {
-                            StreamerCommand::Connect(connect_option, producer, stream_format) => {
+                            StreamerCommand::Connect(connect_option, stream_config) => {
                                 let new_streamer: Result<Streamer, ConnectError> =
                                     match connect_option {
                                         ConnectOption::Tcp { ip } => {
-                                            tcp_streamer::new(ip, producer, stream_format)
+                                            tcp_streamer::new(ip, stream_config)
                                                 .await
                                                 .map(Streamer::from)
                                         }
-                                        ConnectOption::Adb => {
-                                            adb_streamer::new(producer, stream_format)
-                                                .await
-                                                .map(Streamer::from)
-                                        }
+                                        ConnectOption::Adb => adb_streamer::new(stream_config)
+                                            .await
+                                            .map(Streamer::from),
                                         ConnectOption::Udp { ip } => {
-                                            udp_streamer::new(ip, producer, stream_format)
+                                            udp_streamer::new(ip, stream_config)
                                                 .await
                                                 .map(Streamer::from)
                                         }
-                                        ConnectOption::Usb => {
-                                            usb_streamer::new(producer, stream_format)
-                                                .await
-                                                .map(Streamer::from)
-                                        }
+                                        ConnectOption::Usb => usb_streamer::new(stream_config)
+                                            .await
+                                            .map(Streamer::from),
                                     };
 
                                 match new_streamer {
@@ -115,8 +109,8 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                     }
                                 }
                             }
-                            StreamerCommand::ChangeBuff(producer, stream_format) => {
-                                streamer.set_buff(producer, stream_format);
+                            StreamerCommand::ReconfigureStream(stream_config) => {
+                                streamer.reconfigure_stream(stream_config);
                             }
                             StreamerCommand::Stop => {
                                 streamer = DummyStreamer::new();

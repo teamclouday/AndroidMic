@@ -2,16 +2,15 @@ use std::{io, net::IpAddr, time::Duration};
 
 use futures::StreamExt;
 use prost::Message;
-use rtrb::Producer;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 use crate::{
-    audio::{process::convert_audio_stream, AudioPacketFormat},
-    streamer::{WriteError, DEFAULT_PC_PORT, MAX_PORT},
+    audio::process::convert_audio_stream,
+    streamer::{DEFAULT_PC_PORT, MAX_PORT, WriteError},
 };
 
-use super::{AudioPacketMessage, ConnectError, Status, StreamerTrait};
+use super::{AudioPacketMessage, ConnectError, Status, StreamConfig, StreamerTrait};
 
 const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
 
@@ -20,9 +19,8 @@ const DISCONNECT_LOOP_DETECTER_MAX: u32 = 1000;
 pub struct TcpStreamer {
     ip: IpAddr,
     pub port: u16,
-    producer: Producer<u8>,
-    format: AudioPacketFormat,
     pub state: TcpStreamerState,
+    stream_config: StreamConfig,
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -36,11 +34,7 @@ pub enum TcpStreamerState {
     },
 }
 
-pub async fn new(
-    ip: IpAddr,
-    producer: Producer<u8>,
-    format: AudioPacketFormat,
-) -> Result<TcpStreamer, ConnectError> {
+pub async fn new(ip: IpAddr, stream_config: StreamConfig) -> Result<TcpStreamer, ConnectError> {
     let mut listener = None;
 
     // try to always bind the same port, to not change it everytime Android side
@@ -64,8 +58,7 @@ pub async fn new(
     let streamer = TcpStreamer {
         ip,
         port: addr.port(),
-        producer,
-        format,
+        stream_config,
         state: TcpStreamerState::Listening { listener },
     };
 
@@ -73,9 +66,8 @@ pub async fn new(
 }
 
 impl StreamerTrait for TcpStreamer {
-    fn set_buff(&mut self, producer: Producer<u8>, format: AudioPacketFormat) {
-        self.producer = producer;
-        self.format = format;
+    fn reconfigure_stream(&mut self, stream_config: StreamConfig) {
+        self.stream_config = stream_config;
     }
 
     fn status(&self) -> Option<Status> {
@@ -118,9 +110,12 @@ impl StreamerTrait for TcpStreamer {
                             Ok(packet) => {
                                 let buffer_size = packet.buffer.len();
 
-                                if let Ok(buffer) =
-                                    convert_audio_stream(&mut self.producer, packet, &self.format)
-                                {
+                                let audio_params = self.stream_config.to_audio_params();
+                                if let Ok(buffer) = convert_audio_stream(
+                                    &mut self.stream_config.buff,
+                                    packet,
+                                    audio_params,
+                                ) {
                                     // compute the audio wave from the buffer
                                     res = Some(Status::UpdateAudioWave {
                                         data: AudioPacketMessage::to_wave_data(&buffer),

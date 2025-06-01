@@ -3,7 +3,7 @@ use rtrb::Consumer;
 
 use crate::{
     config::{AudioFormat, ChannelCount, SampleRate},
-    ui::app::AppState,
+    ui::app::{AppState, Stream},
 };
 
 mod denoise;
@@ -12,31 +12,33 @@ pub mod process;
 mod resampler;
 
 impl AppState {
-    pub fn start_audio_stream(&mut self, consumer: Consumer<u8>) -> anyhow::Result<()> {
+    pub fn start_audio_stream(
+        &mut self,
+        consumer: Consumer<u8>,
+    ) -> anyhow::Result<AudioPacketFormat> {
+        self.audio_stream = None;
+
         let device = self
             .audio_device
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("No audio device"))?;
         let config = self.config.data().clone();
-        let audio_config = AudioPacketFormat {
+
+        let wanted_audio_config = AudioPacketFormat {
             sample_rate: config.sample_rate,
             audio_format: config.audio_format,
             channel_count: config.channel_count,
         };
 
-        match player::start_audio_stream(device, audio_config, consumer) {
-            Ok((stream, stream_config)) => {
-                self.audio_stream = Some(stream);
-                self.audio_config = Some(stream_config);
-            }
-            Err(e) => {
-                self.audio_stream = None;
-                self.audio_config = None;
-                return Err(e);
-            }
-        }
+        let (stream, final_audio_config) =
+            player::start_audio_stream(device, wanted_audio_config, consumer)?;
 
-        Ok(())
+        self.audio_stream = Some(Stream {
+            stream,
+            config: final_audio_config.clone(),
+        });
+
+        Ok(final_audio_config)
     }
 }
 

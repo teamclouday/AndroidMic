@@ -246,7 +246,6 @@ class ForegroundService : Service() {
 
         managerStream?.shutdown()
         managerStream = null
-        showMessage(applicationContext.getString(R.string.stop_streaming))
         states.isStreamStarted = false
 
         reply(
@@ -303,7 +302,6 @@ class ForegroundService : Service() {
         // the type in manifest
         startForeground(3, messageui.getNotification())
 
-        showMessage(application.getString(R.string.start_recording))
         Log.d(TAG, "startAudio [recording]")
         states.isAudioStarted = true
 
@@ -320,7 +318,6 @@ class ForegroundService : Service() {
         }
         managerAudio?.shutdown()
         managerAudio = null
-        showMessage(application.getString(R.string.stop_recording))
         states.isAudioStarted = false
 
         reply(replyTo, ResponseData(msg = application.getString(R.string.recording_stopped)))

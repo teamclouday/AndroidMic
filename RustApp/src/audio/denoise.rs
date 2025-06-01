@@ -1,14 +1,13 @@
-use std::sync::Mutex;
+use std::sync::{LazyLock, Mutex};
 
 use nnnoiseless::DenoiseState;
-use once_cell::sync::Lazy;
 
 struct DenoiseCache {
     sample_buffer: Vec<Vec<f32>>,
     denoiser: Box<DenoiseState<'static>>,
 }
 
-static DENOISE_CACHE: Lazy<Mutex<Option<DenoiseCache>>> = Lazy::new(|| Mutex::new(None));
+static DENOISE_CACHE: LazyLock<Mutex<Option<DenoiseCache>>> = LazyLock::new(|| Mutex::new(None));
 
 pub fn denoise_f32_stream(data: &[Vec<f32>]) -> anyhow::Result<Vec<Vec<f32>>> {
     let mut denoise_cache = DENOISE_CACHE.lock().unwrap();

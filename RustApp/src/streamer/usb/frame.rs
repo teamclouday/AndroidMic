@@ -1,6 +1,6 @@
 use nusb::transfer::{Queue, RequestBuffer};
 use std::pin::Pin;
-use std::task::{ready, Context, Poll};
+use std::task::{Context, Poll, ready};
 use std::{io, vec};
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 
@@ -62,7 +62,7 @@ impl AsyncRead for UsbStream {
                         .submit(RequestBuffer::reuse(res.data, MAX_PACKET_SIZE));
                     Poll::Ready(Ok(()))
                 }
-                Err(e) => Poll::Ready(Err(io::Error::new(io::ErrorKind::Other, e))),
+                Err(e) => Poll::Ready(Err(io::Error::other(e))),
             }
         } else {
             let copy_from_buffer = {
@@ -125,7 +125,7 @@ impl AsyncWrite for UsbStream {
 
         match res.status {
             Ok(_) => Poll::Ready(Ok(res.data.actual_length())),
-            Err(e) => Poll::Ready(Err(io::Error::new(io::ErrorKind::Other, e))),
+            Err(e) => Poll::Ready(Err(io::Error::other(e))),
         }
     }
 

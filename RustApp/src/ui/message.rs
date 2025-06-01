@@ -25,4 +25,5 @@ pub enum ConfigMsg {
     UseRecommendedFormat,
     StartAtLogin(bool),
     AutoConnect(bool),
+    DeNoise(bool),
 }
