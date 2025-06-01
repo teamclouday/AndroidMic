@@ -39,9 +39,7 @@ pub fn resample_f32_stream(
             input_rate: input_sample_rate,
             output_rate: output_sample_rate,
             num_channels: data.len(),
-            sample_buffer: (0..data.len())
-                .map(|_| Vec::with_capacity(chunk_size))
-                .collect(),
+            sample_buffer: vec![Vec::with_capacity(chunk_size); data.len()],
             resampler,
         });
     }

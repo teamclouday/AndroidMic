@@ -4,7 +4,7 @@ use nnnoiseless::DenoiseState;
 
 struct DenoiseCache {
     sample_buffer: Vec<Vec<f32>>,
-    denoiser: Box<DenoiseState<'static>>,
+    denoisers: Vec<Box<DenoiseState<'static>>>,
 }
 
 static DENOISE_CACHE: LazyLock<Mutex<Option<DenoiseCache>>> = LazyLock::new(|| Mutex::new(None));
@@ -12,12 +12,10 @@ static DENOISE_CACHE: LazyLock<Mutex<Option<DenoiseCache>>> = LazyLock::new(|| M
 pub fn denoise_f32_stream(data: &[Vec<f32>]) -> anyhow::Result<Vec<Vec<f32>>> {
     let mut denoise_cache = DENOISE_CACHE.lock().unwrap();
 
-    if denoise_cache.is_none() {
+    if denoise_cache.is_none() || data.len() != denoise_cache.as_ref().unwrap().denoisers.len() {
         *denoise_cache = Some(DenoiseCache {
-            sample_buffer: (0..data.len())
-                .map(|_| Vec::with_capacity(DenoiseState::FRAME_SIZE))
-                .collect(),
-            denoiser: DenoiseState::new(),
+            sample_buffer: vec![Vec::with_capacity(DenoiseState::FRAME_SIZE); data.len()],
+            denoisers: vec![DenoiseState::new(); data.len()],
         });
     }
 
@@ -38,7 +36,7 @@ pub fn denoise_f32_stream(data: &[Vec<f32>]) -> anyhow::Result<Vec<Vec<f32>>> {
 
     while cache.sample_buffer[0].len() >= DenoiseState::FRAME_SIZE {
         for channel_idx in 0..data.len() {
-            cache.denoiser.process_frame(
+            cache.denoisers[channel_idx].process_frame(
                 &mut output_buffer_i16,
                 &cache.sample_buffer[channel_idx][0..DenoiseState::FRAME_SIZE],
             );

@@ -150,9 +150,7 @@ where
     let samples_per_channel = packet.buffer.len() / (audio_format.sample_size() * channel_count);
 
     // Initialize a vector to hold the results for each channel
-    let mut result = (0..channel_count)
-        .map(|_| Vec::<f32>::with_capacity(samples_per_channel))
-        .collect::<Vec<_>>();
+    let mut result = vec![Vec::with_capacity(samples_per_channel); channel_count];
 
     for buf in packet
         .buffer
