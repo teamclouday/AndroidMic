@@ -11,21 +11,19 @@
 
 ---
 
-## Pc side
-
 <p  style="text-align: center;">
-  <img src="./Assets/pc_screenshot_main_dark.png" width="40%"  alt="main window pc"/>
-  <img src="./Assets/pc_screenshot_settings_dark.png" width="20%"  alt="settings window pc"/>
-</p>
-
-## Android side
-
-<p  style="text-align: center;">
+  <img src="./Assets/pc_screenshot_main_dark.png" width="65%"  alt="main window pc"/>
   <img src="./Assets/android_screenshot_main_dark.png#gh-dark-mode-only" width="25%"  alt="main window android"/>
-  <img src="./Assets/android_screenshot_main_light.png#gh-light-mode-only" width="25%"  alt="main window android"/>
-  <img src="./Assets/android_screenshot_settings_dark.png#gh-dark-mode-only" width="25%"  alt="settings window android"/>
-  <img src="./Assets/android_screenshot_settings_light.png#gh-light-mode-only" width="25%"  alt="settings window android"/>
+  <img src="./Assets/android_screenshot_main_light.png#gh-light-mode-only" width="20%"  alt="main window android"/>
 </p>
+
+# Features
+
+- Multiplatform (Linux, Windows, MacOs)
+- Wifi and USB support
+- Noise Cancellation
+- Audio visualization
+- Advanced Audio Options
 
 # How to Use
 
