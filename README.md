@@ -1,89 +1,116 @@
-# Android Microphone
+<p align="center">
+  <img src="./assets/app_icon.svg" width="240" alt="Icon" style="vertical-align: middle;" />
+  <span style="font-size: 28px; vertical-align: middle; margin-left: 10px;"><strong>AndroidMic</strong></span>
+</p>
 
-Use your Android phone as a microphone to PC
+<h3 align="center">Use your Android phone as a microphone to PC</h3>
 
-------
+<a href="https://flathub.org/apps/io.github.teamclouday.android-mic"><img align=center height="50" src="https://flathub.org/assets/badges/flathub-badge-en.svg"  alt="Download on Flathub"/></a>
+<a href="https://f-droid.org/en/packages/io.github.teamclouday.android-mic/"><img align=center height="70" src="https://f-droid.org/badge/get-it-on.svg" alt="F-Droid Badge"></a>
+<a href="https://github.com/teamclouday/AndroidMic/releases/latest"><img align=center height="30" src="https://img.shields.io/github/release/teamclouday/AndroidMic.svg" alt="Download on Github release"/></a>
 
-## How to Use
+---
 
-### PC Side
+## Pc side
 
-__1. Start the app__: Download and install the latest release from [here](https://github.com/teamclouday/AndroidMic/releases). Then start the app.
+<p  style="text-align: center;">
+  <img src="./Assets/pc_screenshot_main_dark.png" width="40%"  alt="main window pc"/>
+  <img src="./Assets/pc_screenshot_settings_dark.png" width="20%"  alt="settings window pc"/>
+</p>
 
-<details>
-<summary>
-More about installation
-</summary>
+## Android side
 
-On macOS, you will need to run the following command to allow the app to run. For more details, refer to this [link](https://discussions.apple.com/thread/253714860?sortBy=best):
-```sh
-xattr -c /Applications/AndroidMic.app
-```
-</details>
+<p  style="text-align: center;">
+  <img src="./Assets/android_screenshot_main_dark.png#gh-dark-mode-only" width="25%"  alt="main window android"/>
+  <img src="./Assets/android_screenshot_main_light.png#gh-light-mode-only" width="25%"  alt="main window android"/>
+  <img src="./Assets/android_screenshot_settings_dark.png#gh-dark-mode-only" width="25%"  alt="settings window android"/>
+  <img src="./Assets/android_screenshot_settings_light.png#gh-light-mode-only" width="25%"  alt="settings window android"/>
+</p>
 
-__2. Pick an output audio device__: You will see a list of audio player devices from the dropdown list. Here you want to choose a device that is wired to the virtual mic device on your system that you will be using.
+# How to Use
 
-<details>
-<summary>
-More about output device
-</summary>
+## PC Side
 
-The step is system independent.
+- **1. Start the app**: Download and install the latest release. Then start the app.
+    <details>
+    <summary>
+    More about installation
+    </summary>
 
-On Windows you can use [Virtual Audio Cable](https://vac.muzychenko.net/en/download.htm) or [VB Cable](https://vb-audio.com/Cable/). Both software will install virtual input and output audio devices on your system. After that map the output player device to the input mic device so any audio our app played to the device is transferred to the virtual mic device.
+  On macOS, you will need to run the following command to allow the app to run. For more details, refer to this [link](https://discussions.apple.com/thread/253714860?sortBy=best):
 
-On Linux you can use pulseaudio to create a virtual mic device.
-</details>
+  ```sh
+  xattr -c /Applications/AndroidMic.app
+  ```
 
-__3. Choose a connection method__: This is how your phone will be connected to your PC and stream audio from the mic.
+    </details>
 
-For TCP & UDP, connect your phone and PC to the same internet.
+- **2. Pick an output audio device**: You will see a list of audio player devices from the dropdown list. Here you want to choose a device that is wired to the virtual mic device on your system that you will be using.
 
-For USB serial, connect your phone to PC with a cable.
+    <details>
+    <summary>
+    More about output device
+    </summary>
 
-<details>
-<summary>
-More about USB serial
-</summary>
+  The step is system independent.
 
-This option also requires configurations that are system independent.
+  On Windows you can use [Virtual Audio Cable](https://vac.muzychenko.net/en/download.htm) or [VB Cable](https://vb-audio.com/Cable/). Both software will install virtual input and output audio devices on your system. After that map the output player device to the input mic device so any audio our app played to the device is transferred to the virtual mic device.
 
-On Windows, make sure the adb process is shutdown and android studio is closed.
+  On Linux you can use pulseaudio to create a virtual mic device.
 
-On MacOS, it should just work.
+    </details>
 
-On Linux, you will need to configure [udev](https://github.com/libusb/libusb/wiki/FAQ#can-i-run-libusb-applications-on-linux-without-root-privilege) so that the app has permission to use USB.
+- **3. Choose a connection method**: This is how your phone will be connected to your PC and stream audio from the mic.
 
-Samsung phone users may need to use [zadig](https://zadig.akeo.ie/) to change the USB driver to WinUSB. This is because by default Samsung phones use its proprietary USB driver which is not compatible with the app.
-</details>
+  For TCP & UDP, connect your phone and PC to the same internet.
 
-For USB adb, make sure the system has installed [adb](https://developer.android.com/tools/adb). The connect your phone to PC.
+  For USB serial, connect your phone to PC with a cable.
 
-__4. Configure advanced settings__: Click to open the advanced settings window, and pick an audio format the output audio device supports. Usually sample rate of 44.1k or 48k, mono channel, and i16 or i24 are supported.
+    <details>
+    <summary>
+    More about USB serial
+    </summary>
 
-### Android Side
+  This option also requires configurations that are system independent.
 
-__1. Start the app__: Download and install the apk file from release page. Then open the app.
+  On Windows, make sure the adb process is shutdown and android studio is closed.
 
-__2. Configure the app__: Open the side drawer menu, configure the connection method according to the option on PC app. Then pick the **same audio settings** as the ones in PC app advanced settings.
+  On MacOS, it should just work.
 
-__3. Connect__: First start recording and give sufficient permissions. Recording permission for accessing your phone's mic. Notification permission so the app can let you know if it is still recording in the background. Then connect to the PC app.
+  On Linux, you will need to configure [udev](https://github.com/libusb/libusb/wiki/FAQ#can-i-run-libusb-applications-on-linux-without-root-privilege) so that the app has permission to use USB.
 
-<details>
-<summary>More about connection configurations</summary>
+  Samsung phone users may need to use [zadig](https://zadig.akeo.ie/) to change the USB driver to WinUSB. This is because by default Samsung phones use its proprietary USB driver which is not compatible with the app.
 
-For TCP/UDP, you will need to enter the PC address and port. You can find that information from the log area on PC app.
+    </details>
 
-For USB adb, set your phone to developer mode and enable USB debugging.
+  For USB adb, make sure the system has installed [adb](https://developer.android.com/tools/adb). The connect your phone to PC.
 
-For USB serial, make sure your phone's USB setting is charging only. With this option, the app will ask your permission to launch the app in accessory mode.
-</details>
+- **4. Configure advanced settings**: Click to open the advanced settings window, and pick an audio format the output audio device supports. Usually sample rate of 44.1k or 48k, mono channel, and i16 or i24 are supported.
 
---------
+## Android Side
 
-For more question / feature request / bug report, please submit issues to ask.
+- **1. Start the app**: Download and install the apk file from release page. Then open the app.
 
--------
+- **2. Configure the app**: Open the side drawer menu, configure the connection method according to the option on PC app. Then pick the **same audio settings** as the ones in PC app advanced settings.
+
+- **3. Connect**: First start recording and give sufficient permissions. Recording permission for accessing your phone's mic. Notification permission so the app can let you know if it is still recording in the background. Then connect to the PC app.
+
+    <details>
+    <summary>More about connection configurations</summary>
+
+  For TCP/UDP, you will need to enter the PC address and port. You can find that information from the log area on PC app.
+
+  For USB adb, set your phone to developer mode and enable USB debugging.
+
+  For USB serial, make sure your phone's USB setting is charging only. With this option, the app will ask your permission to launch the app in accessory mode.
+
+    </details>
+
+---
+
+For more question / feature request / bug report, please [submit an issues](https://github.com/teamclouday/AndroidMic/issues).
+
+---
 
 ## Some Notes
 
