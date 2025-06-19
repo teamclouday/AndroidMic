@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./assets/app_icon.svg" width="240" alt="Icon" style="vertical-align: middle;" />
+  <img src="./Assets/app_icon.svg" width="240" alt="Icon" style="vertical-align: middle;" />
   <span style="font-size: 28px; vertical-align: middle; margin-left: 10px;"><strong>AndroidMic</strong></span>
 </p>
 
