@@ -11,7 +11,7 @@ pub enum AppMsg {
     Device(AudioDevice),
     Connect,
     Stop,
-    AdvancedOptions,
+    ToggleSettingsWindow,
     Config(ConfigMsg),
     RefreshAudioDevices,
     Shutdown,

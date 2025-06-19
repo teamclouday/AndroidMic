@@ -1,5 +1,5 @@
 audio_device = Audio Device
-advanced = Advanced
+settings = Settings
 connection = Connection
 none = None
 
@@ -17,4 +17,4 @@ start_at_login = Start at login
 auto_connect = Auto connect
 
 main_window_title = AndroidMic
-advanced_window_title = Advanced Settings
+settings_window_title = Settings

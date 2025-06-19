@@ -18,7 +18,7 @@ use cosmic::{
 
 use super::{
     message::{AppMsg, ConfigMsg},
-    view::{advanced_window, main_window},
+    view::{settings_window, main_window},
     wave::AudioWave,
 };
 use crate::{
@@ -115,7 +115,7 @@ pub struct AppState {
     pub audio_wave: AudioWave,
     pub connection_state: ConnectionState,
     pub main_window: Option<CustomWindow>,
-    pub advanced_window: Option<CustomWindow>,
+    pub settings_window: Option<CustomWindow>,
     pub logs: String,
 }
 
@@ -284,7 +284,7 @@ impl Application for AppState {
             audio_wave: AudioWave::new(),
             connection_state: ConnectionState::Default,
             main_window: Some(CustomWindow { window_id: new_id }),
-            advanced_window: None,
+            settings_window: None,
             logs: String::new(),
         };
 
@@ -361,10 +361,10 @@ impl Application for AppState {
                 self.audio_stream = None;
                 self.audio_wave.clear();
             }
-            AppMsg::AdvancedOptions => match &self.advanced_window {
-                Some(advanced_window) => {
-                    let id = advanced_window.window_id;
-                    self.advanced_window = None;
+            AppMsg::ToggleSettingsWindow => match &self.settings_window {
+                Some(settings_window) => {
+                    let id = settings_window.window_id;
+                    self.settings_window = None;
                     return cosmic::iced::runtime::task::effect(Action::Window(
                         window::Action::Close(id),
                     ));
@@ -379,9 +379,9 @@ impl Application for AppState {
                     };
 
                     let (new_id, command) = cosmic::iced::window::open(settings);
-                    self.advanced_window = Some(CustomWindow { window_id: new_id });
+                    self.settings_window = Some(CustomWindow { window_id: new_id });
                     let set_window_title =
-                        self.set_window_title(fl!("advanced_window_title"), new_id);
+                        self.set_window_title(fl!("settings_window_title"), new_id);
                     return command
                         .map(|_| cosmic::action::Action::None)
                         .chain(set_window_title);
@@ -446,9 +446,9 @@ impl Application for AppState {
     }
 
     fn view_window(&self, id: window::Id) -> Element<Self::Message> {
-        if let Some(window) = &self.advanced_window {
+        if let Some(window) = &self.settings_window {
             if window.window_id == id {
-                return advanced_window(self).map(AppMsg::Config);
+                return settings_window(self).map(AppMsg::Config);
             }
         }
         if let Some(window) = &self.main_window {
@@ -465,9 +465,9 @@ impl Application for AppState {
     }
 
     fn on_close_requested(&self, id: window::Id) -> Option<Self::Message> {
-        if let Some(window) = &self.advanced_window {
+        if let Some(window) = &self.settings_window {
             if window.window_id == id {
-                return Some(AppMsg::AdvancedOptions);
+                return Some(AppMsg::ToggleSettingsWindow);
             }
         }
         if let Some(window) = &self.main_window {

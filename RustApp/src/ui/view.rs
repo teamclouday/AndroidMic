@@ -83,7 +83,7 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
                         .width(Length::Shrink),
                 ),
         )
-        .push(button::text(fl!("advanced")).on_press(AppMsg::AdvancedOptions))
+        .push(button::text(fl!("settings")).on_press(AppMsg::ToggleSettingsWindow))
         .into()
 }
 
@@ -135,7 +135,7 @@ fn connect_button(app: &AppState) -> Element<'_, AppMsg> {
     .into()
 }
 
-pub fn advanced_window(app: &AppState) -> Element<'_, ConfigMsg> {
+pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
     let config = app.config.data();
 
     scrollable(
