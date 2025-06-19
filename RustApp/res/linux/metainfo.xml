@@ -6,18 +6,18 @@
   <id>io.github.teamclouday.android-mic</id>
 
   <name>AndroidMic</name>
-  <summary>Use your Android phone as a mic for your PC</summary>
-  <summary xml:lang="fr">Utilisez votre téléphone Android comme micro pour votre PC</summary>
+  <summary>Use your Android phone as a microphone for your PC</summary>
+  <summary xml:lang="fr">Utilisez votre téléphone Android comme microphone pour votre PC</summary>
 
   <metadata_license>MIT</metadata_license>
   <project_license>GPL-3.0-only</project_license>
 
   <developer id="tld.vendor">
-    <name>wiiznokes</name>
+    <name>teamclouday</name>
   </developer>
 
   <icon type="remote" height="256" width="256">
-    https://raw.githubusercontent.com/teamclouday/AndroidMic/main/RustApp/res/linux/app_icon.svg</icon>
+    https://github.com/teamclouday/AndroidMic/main/Assets/app_icon.svg</icon>
 
   <url type="homepage">https://github.com/teamclouday/AndroidMic</url>
   <url type="bugtracker">https://github.com/teamclouday/AndroidMic/issues</url>
@@ -30,17 +30,13 @@
       supports multiple connection methods, including TCP, UDP, USB serial, and USB ADB. Stream
       audio directly from your phone's microphone to your PC with minimal setup and flexibility in
       choosing audio formats and output devices.</p>
-    <p>Key Features</p>
+    <p>Features</p>
     <ul>
       <li>Connect via TCP/UDP over the same network or USB cable</li>
-      <li>Supports advanced audio settings like sample rate, channels, and format</li>
+      <li>Noise Cancellation</li>
       <li>Audio wave to visualize the sound</li>
+      <li>Supports advanced audio options, like sample rate, channels, and format</li>
     </ul>
-    <p>How to Use</p>
-    <p>To get started, compile the Android app via Android Studio. Configure connection settings and
-      audio formats to match
-      between both applications. Detailed instructions for each platform are provided in the README
-      file on the app's repository.</p>
   </description>
 
   <launchable type="desktop-id">io.github.teamclouday.android-mic.desktop</launchable>
@@ -48,9 +44,7 @@
     <screenshot type="default">
       <caption>AndroidMic screenshot</caption>
       <image>
-        https://github.com/teamclouday/AndroidMic/blob/main/Assets/sound_config1.png</image>
-      <!-- <image>
-      https://media.githubusercontent.com/media/teamclouday/AndroidMic/main/res/screenshots/app.png</image> -->
+        https://github.com/teamclouday/AndroidMic/blob/packaging-change/Assets/pc_screenshot_main_dark.png</image>
     </screenshot>
   </screenshots>
 
@@ -60,7 +54,7 @@
   </provides>
 
   <releases>
-    <release version="2024.11" date="2024-11-10">
+    <release version="2.1.6" date="2025-06-12">
     </release>
   </releases>
 

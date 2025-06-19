@@ -3,7 +3,7 @@
   <span style="font-size: 28px; vertical-align: middle; margin-left: 10px;"><strong>AndroidMic</strong></span>
 </p>
 
-<h3 align="center">Use your Android phone as a microphone to PC</h3>
+<h3 align="center">Use your Android phone as a microphone for your PC</h3>
 
 <a href="https://flathub.org/apps/io.github.teamclouday.android-mic"><img align=center height="50" src="https://flathub.org/assets/badges/flathub-badge-en.svg"  alt="Download on Flathub"/></a>
 <a href="https://f-droid.org/en/packages/io.github.teamclouday.android-mic/"><img align=center height="70" src="https://f-droid.org/badge/get-it-on.svg" alt="F-Droid Badge"></a>
@@ -22,7 +22,7 @@
 - Multiplatform (Linux, Windows, MacOs)
 - Wifi and USB support
 - Noise Cancellation
-- Audio visualization
+- Audio wave visualization
 - Advanced Audio Options
 
 # How to Use
