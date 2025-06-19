@@ -5,16 +5,15 @@
 
 <h3 align="center">Use your Android phone as a microphone for your PC</h3>
 
-<a href="https://flathub.org/apps/io.github.teamclouday.android-mic"><img align=center height="50" src="https://flathub.org/assets/badges/flathub-badge-en.svg"  alt="Download on Flathub"/></a>
-<a href="https://f-droid.org/en/packages/io.github.teamclouday.android-mic/"><img align=center height="70" src="https://f-droid.org/badge/get-it-on.svg" alt="F-Droid Badge"></a>
+<a href="https://flathub.org/apps/io.github.teamclouday.android-mic"><img align=center height="40" src="https://flathub.org/assets/badges/flathub-badge-en.svg"  alt="Download on Flathub"/></a>
+<a href="https://f-droid.org/en/packages/io.github.teamclouday.android-mic/"><img align=center height="60" src="https://f-droid.org/badge/get-it-on.svg" alt="F-Droid Badge"></a>
 <a href="https://github.com/teamclouday/AndroidMic/releases/latest"><img align=center height="30" src="https://img.shields.io/github/release/teamclouday/AndroidMic.svg" alt="Download on Github release"/></a>
 
 ---
 
 <p  style="text-align: center;">
   <img src="./Assets/pc_screenshot_main_dark.png" width="65%"  alt="main window pc"/>
-  <img src="./Assets/android_screenshot_main_dark.png#gh-dark-mode-only" width="25%"  alt="main window android"/>
-  <img src="./Assets/android_screenshot_main_light.png#gh-light-mode-only" width="20%"  alt="main window android"/>
+  <img src="./Assets/android_screenshot_main_dark.png" width="25%"  alt="main window android"/>
 </p>
 
 # Features
