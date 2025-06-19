@@ -1,8 +1,10 @@
-use std::net::IpAddr;
+use std::{fmt::Display, net::IpAddr};
 
 use clap::Parser;
 use light_enum::Values;
 use serde::{Deserialize, Serialize};
+
+use crate::fl;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -19,6 +21,30 @@ pub struct Config {
     pub start_at_login: bool,
     pub auto_connect: bool,
     pub denoise: bool,
+    pub theme: AppTheme,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, Eq, PartialEq, Values)]
+pub enum AppTheme {
+    #[default]
+    System,
+    Light,
+    Dark,
+    HighContrastDark,
+    HighContrastLight,
+}
+
+impl Display for AppTheme {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            AppTheme::System => fl!("system_theme"),
+            AppTheme::Dark => fl!("dark_theme"),
+            AppTheme::Light => fl!("light_theme"),
+            AppTheme::HighContrastDark => fl!("hight_contrast_dark_theme"),
+            AppTheme::HighContrastLight => fl!("hight_contrast_light_theme"),
+        };
+        write!(f, "{}", str)
+    }
 }
 
 #[derive(Parser, Debug)]
@@ -75,18 +101,15 @@ pub struct Args {
     Eq,
     strum::Display,
     strum::EnumString,
-    serde_with::SerializeDisplay,
     serde_with::DeserializeFromStr,
+    Serialize,
 )]
+#[strum(ascii_case_insensitive)]
 pub enum ConnectionMode {
     #[default]
-    #[strum(serialize = "tcp", serialize = "TCP")]
     Tcp,
-    #[strum(serialize = "udp", serialize = "UDP")]
     Udp,
-    #[strum(serialize = "adb", serialize = "ADB")]
     Adb,
-    #[strum(serialize = "usb", serialize = "USB")]
     Usb,
 }
 
@@ -96,17 +119,27 @@ pub enum ConnectionMode {
     PartialEq,
     Default,
     Values,
-    strum::Display,
     strum::EnumString,
-    serde_with::SerializeDisplay,
     serde_with::DeserializeFromStr,
+    Serialize,
 )]
+#[strum(ascii_case_insensitive)]
 pub enum ChannelCount {
     #[default]
-    #[strum(serialize = "mono", serialize = "MONO", serialize = "1")]
+    #[strum(serialize = "Mono", serialize = "mono", serialize = "1")]
     Mono,
-    #[strum(serialize = "stereo", serialize = "STEREO", serialize = "2")]
+    #[strum(serialize = "Stereo", serialize = "stereo", serialize = "2")]
     Stereo,
+}
+
+impl Display for ChannelCount {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            ChannelCount::Mono => fl!("mono"),
+            ChannelCount::Stereo => fl!("stereo"),
+        };
+        write!(f, "{}", str)
+    }
 }
 
 impl ChannelCount {

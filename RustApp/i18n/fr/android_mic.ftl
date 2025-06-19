@@ -15,6 +15,10 @@ denoise = Activer la réduction du bruit audio
 
 start_at_login = Démarrer à la connexion  
 auto_connect = Connexion automatique
+theme = Thème
 
 main_window_title = AndroidMic  
 settings_window_title = Paramètres
+
+mono = Mono
+stereo = Stéréo

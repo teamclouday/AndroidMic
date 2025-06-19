@@ -14,16 +14,17 @@ use cosmic::{
     executor,
     iced::{Size, Subscription, futures::StreamExt, window},
     iced_runtime::Action,
+    theme,
 };
 
 use super::{
     message::{AppMsg, ConfigMsg},
-    view::{settings_window, main_window},
+    view::{main_window, settings_window},
     wave::AudioWave,
 };
 use crate::{
     audio::AudioPacketFormat,
-    config::{AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
+    config::{AppTheme, AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
     fl,
     streamer::{self, ConnectOption, Status, StreamConfig, StreamerCommand, StreamerMsg},
     utils::APP_ID,
@@ -32,12 +33,15 @@ use crate::{
 use zconf::ConfigManager;
 
 pub fn run_ui(config: ConfigManager<Config>, config_path: String, log_path: String) {
+    let settings = Settings::default()
+        .no_main_window(true)
+        .theme(to_cosmic_theme(&config.data().theme));
+
     let flags = Flags {
         config,
         config_path,
         log_path,
     };
-    let settings = Settings::default().no_main_window(true);
 
     cosmic::app::run::<AppState>(settings, flags).unwrap();
 }
@@ -432,6 +436,11 @@ impl Application for AppState {
                     self.config.update(|c| c.denoise = denoise);
                     self.update_audio_stream();
                 }
+                ConfigMsg::Theme(app_theme) => {
+                    let cmd = cosmic::command::set_theme(to_cosmic_theme(&app_theme));
+                    self.config.update(|s| s.theme = app_theme);
+                    return cmd;
+                }
             },
             AppMsg::Shutdown => {
                 return cosmic::iced_runtime::task::effect(Action::Exit);
@@ -478,5 +487,15 @@ impl Application for AppState {
         }
 
         None
+    }
+}
+
+fn to_cosmic_theme(theme: &AppTheme) -> theme::Theme {
+    match theme {
+        AppTheme::Dark => theme::Theme::dark(),
+        AppTheme::Light => theme::Theme::light(),
+        AppTheme::HighContrastDark => theme::Theme::dark_hc(),
+        AppTheme::HighContrastLight => theme::Theme::light_hc(),
+        AppTheme::System => theme::system_preference(),
     }
 }

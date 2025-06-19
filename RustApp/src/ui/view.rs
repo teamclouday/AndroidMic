@@ -13,7 +13,7 @@ use super::{
     message::{AppMsg, ConfigMsg},
 };
 use crate::{
-    config::{AudioFormat, ChannelCount, ConnectionMode, SampleRate},
+    config::{AppTheme, AudioFormat, ChannelCount, ConnectionMode, SampleRate},
     fl, widget_icon_button,
 };
 
@@ -184,7 +184,12 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                 settings::section()
                     .title(fl!("auto_connect"))
                     .add(toggler(config.auto_connect).on_toggle(ConfigMsg::AutoConnect)),
-            ),
+            )
+            .push(settings::section().title(fl!("theme")).add(pick_list(
+                AppTheme::VALUES,
+                Some(&config.theme),
+                ConfigMsg::Theme,
+            ))),
     )
     .into()
 }

@@ -1,4 +1,3 @@
-use anyhow::bail;
 use rtrb::Producer;
 
 use crate::{config::AudioFormat, streamer::AudioPacketMessage};
