@@ -1,8 +1,10 @@
-use std::net::IpAddr;
+use std::{fmt::Display, net::IpAddr};
 
 use clap::Parser;
 use light_enum::Values;
 use serde::{Deserialize, Serialize};
+
+use crate::fl;
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 #[serde(default)]
@@ -19,6 +21,30 @@ pub struct Config {
     pub start_at_login: bool,
     pub auto_connect: bool,
     pub denoise: bool,
+    pub theme: AppTheme,
+}
+
+#[derive(Debug, Clone, Default, Serialize, Deserialize, Eq, PartialEq, Values)]
+pub enum AppTheme {
+    #[default]
+    System,
+    Light,
+    Dark,
+    HighContrastDark,
+    HighContrastLight,
+}
+
+impl Display for AppTheme {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            AppTheme::System => fl!("system_theme"),
+            AppTheme::Dark => fl!("dark_theme"),
+            AppTheme::Light => fl!("light_theme"),
+            AppTheme::HighContrastDark => fl!("hight_contrast_dark_theme"),
+            AppTheme::HighContrastLight => fl!("hight_contrast_light_theme"),
+        };
+        write!(f, "{}", str)
+    }
 }
 
 #[derive(Parser, Debug)]
@@ -75,18 +101,15 @@ pub struct Args {
     Eq,
     strum::Display,
     strum::EnumString,
-    serde_with::SerializeDisplay,
     serde_with::DeserializeFromStr,
+    Serialize,
 )]
+#[strum(ascii_case_insensitive)]
 pub enum ConnectionMode {
     #[default]
-    #[strum(serialize = "tcp", serialize = "TCP")]
     Tcp,
-    #[strum(serialize = "udp", serialize = "UDP")]
     Udp,
-    #[strum(serialize = "adb", serialize = "ADB")]
     Adb,
-    #[strum(serialize = "usb", serialize = "USB")]
     Usb,
 }
 
@@ -96,17 +119,27 @@ pub enum ConnectionMode {
     PartialEq,
     Default,
     Values,
-    strum::Display,
     strum::EnumString,
-    serde_with::SerializeDisplay,
     serde_with::DeserializeFromStr,
+    Serialize,
 )]
+#[strum(ascii_case_insensitive)]
 pub enum ChannelCount {
     #[default]
-    #[strum(serialize = "mono", serialize = "MONO", serialize = "1")]
+    #[strum(serialize = "Mono", serialize = "mono", serialize = "1")]
     Mono,
-    #[strum(serialize = "stereo", serialize = "STEREO", serialize = "2")]
+    #[strum(serialize = "Stereo", serialize = "stereo", serialize = "2")]
     Stereo,
+}
+
+impl Display for ChannelCount {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            ChannelCount::Mono => fl!("mono"),
+            ChannelCount::Stereo => fl!("stereo"),
+        };
+        write!(f, "{}", str)
+    }
 }
 
 impl ChannelCount {
@@ -138,8 +171,8 @@ impl ChannelCount {
     serde_with::DeserializeFromStr,
 )]
 pub enum AudioFormat {
-    #[strum(serialize = "i8")]
-    I8,
+    #[strum(serialize = "u8")]
+    U8,
     #[default]
     #[strum(serialize = "i16")]
     I16,
@@ -147,47 +180,18 @@ pub enum AudioFormat {
     I24,
     #[strum(serialize = "i32")]
     I32,
-    #[strum(serialize = "i48")]
-    I48,
-    #[strum(serialize = "i64")]
-    I64,
-
-    #[strum(serialize = "u8")]
-    U8,
-    #[strum(serialize = "u16")]
-    U16,
-    #[strum(serialize = "u24")]
-    U24,
-    #[strum(serialize = "u32")]
-    U32,
-    #[strum(serialize = "u48")]
-    U48,
-    #[strum(serialize = "u64")]
-    U64,
-
     #[strum(serialize = "f32")]
     F32,
-    #[strum(serialize = "f64")]
-    F64,
 }
 
 impl AudioFormat {
     pub fn sample_size(&self) -> usize {
         match self {
-            AudioFormat::I8 => 1,
+            AudioFormat::U8 => 1,
             AudioFormat::I16 => 2,
             AudioFormat::I24 => 3,
             AudioFormat::I32 => 4,
-            AudioFormat::I48 => 6,
-            AudioFormat::I64 => 8,
-            AudioFormat::U8 => 1,
-            AudioFormat::U16 => 2,
-            AudioFormat::U24 => 3,
-            AudioFormat::U32 => 4,
-            AudioFormat::U48 => 6,
-            AudioFormat::U64 => 8,
             AudioFormat::F32 => 4,
-            AudioFormat::F64 => 8,
         }
     }
 
@@ -203,15 +207,12 @@ impl AudioFormat {
     }
 
     pub fn from_cpal_format(format: cpal::SampleFormat) -> Option<Self> {
+        // no i24 in cpal ?
         match format {
-            cpal::SampleFormat::I8 => Some(AudioFormat::I8),
             cpal::SampleFormat::U8 => Some(AudioFormat::U8),
             cpal::SampleFormat::I16 => Some(AudioFormat::I16),
-            cpal::SampleFormat::U16 => Some(AudioFormat::U16),
             cpal::SampleFormat::I32 => Some(AudioFormat::I32),
-            cpal::SampleFormat::F32 => Some(AudioFormat::I24),
-            cpal::SampleFormat::I64 => Some(AudioFormat::I64),
-            cpal::SampleFormat::U64 => Some(AudioFormat::U64),
+            cpal::SampleFormat::F32 => Some(AudioFormat::F32),
             _ => None,
         }
     }
@@ -220,20 +221,11 @@ impl AudioFormat {
 impl PartialEq<cpal::SampleFormat> for AudioFormat {
     fn eq(&self, other: &cpal::SampleFormat) -> bool {
         match self {
-            AudioFormat::I8 => *other == cpal::SampleFormat::I8,
             AudioFormat::U8 => *other == cpal::SampleFormat::U8,
             AudioFormat::I16 => *other == cpal::SampleFormat::I16,
-            AudioFormat::U16 => *other == cpal::SampleFormat::U16,
             AudioFormat::I32 => *other == cpal::SampleFormat::I32,
             AudioFormat::I24 => *other == cpal::SampleFormat::F32,
-            AudioFormat::I48 => *other == cpal::SampleFormat::I64,
-            AudioFormat::I64 => *other == cpal::SampleFormat::I64,
-            AudioFormat::U24 => *other == cpal::SampleFormat::F32,
-            AudioFormat::U32 => *other == cpal::SampleFormat::U32,
-            AudioFormat::U48 => *other == cpal::SampleFormat::U64,
-            AudioFormat::U64 => *other == cpal::SampleFormat::U64,
             AudioFormat::F32 => *other == cpal::SampleFormat::F32,
-            AudioFormat::F64 => *other == cpal::SampleFormat::F64,
         }
     }
 }

@@ -1,5 +1,5 @@
 audio_device = Audio Device
-advanced = Advanced
+settings = Settings
 connection = Connection
 none = None
 
@@ -15,6 +15,16 @@ denoise = Use audio noise reduction
 
 start_at_login = Start at login
 auto_connect = Auto connect
+theme = Theme
 
 main_window_title = AndroidMic
-advanced_window_title = Advanced Settings
+settings_window_title = Settings
+
+system_theme = System
+dark_theme = Dark
+light_theme = Light
+hight_contrast_dark_theme = HighContrastDark
+hight_contrast_light_theme = HighContrastLight
+
+mono = Mono
+stereo = Stereo

@@ -1,6 +1,6 @@
 use super::app::AudioDevice;
 use crate::{
-    config::{AudioFormat, ChannelCount, ConnectionMode, SampleRate},
+    config::{AppTheme, AudioFormat, ChannelCount, ConnectionMode, SampleRate},
     streamer::StreamerMsg,
 };
 
@@ -11,7 +11,7 @@ pub enum AppMsg {
     Device(AudioDevice),
     Connect,
     Stop,
-    AdvancedOptions,
+    ToggleSettingsWindow,
     Config(ConfigMsg),
     RefreshAudioDevices,
     Shutdown,
@@ -26,4 +26,5 @@ pub enum ConfigMsg {
     StartAtLogin(bool),
     AutoConnect(bool),
     DeNoise(bool),
+    Theme(AppTheme),
 }

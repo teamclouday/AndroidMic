@@ -1,0 +1,7 @@
+AndroidMic lets you use your Android device as a microphone for your PC. This tool supports multiple connection methods, including TCP, UDP, USB serial, and USB ADB. Stream audio directly from your phone's microphone to your PC with minimal setup and flexibility in choosing audio formats and output devices.
+
+* Multiplatform (Linux, Windows, MacOs)
+* Wifi and USB support
+* Noise Cancellation
+* Audio wave visualization
+* Advanced Audio Options
