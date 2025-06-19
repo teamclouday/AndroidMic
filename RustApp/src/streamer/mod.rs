@@ -155,7 +155,7 @@ impl StreamerTrait for DummyStreamer {
 }
 
 impl AudioPacketMessage {
-    fn to_wave_data(buffer: &Vec<f32>) -> Vec<(f32, f32)> {
+    fn to_wave_data(buffer: &[f32]) -> Vec<(f32, f32)> {
         let window_size = 50;
 
         buffer
