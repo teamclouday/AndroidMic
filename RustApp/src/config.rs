@@ -138,8 +138,8 @@ impl ChannelCount {
     serde_with::DeserializeFromStr,
 )]
 pub enum AudioFormat {
-    #[strum(serialize = "i8")]
-    I8,
+    #[strum(serialize = "u8")]
+    U8,
     #[default]
     #[strum(serialize = "i16")]
     I16,
@@ -147,47 +147,18 @@ pub enum AudioFormat {
     I24,
     #[strum(serialize = "i32")]
     I32,
-    #[strum(serialize = "i48")]
-    I48,
-    #[strum(serialize = "i64")]
-    I64,
-
-    #[strum(serialize = "u8")]
-    U8,
-    #[strum(serialize = "u16")]
-    U16,
-    #[strum(serialize = "u24")]
-    U24,
-    #[strum(serialize = "u32")]
-    U32,
-    #[strum(serialize = "u48")]
-    U48,
-    #[strum(serialize = "u64")]
-    U64,
-
     #[strum(serialize = "f32")]
     F32,
-    #[strum(serialize = "f64")]
-    F64,
 }
 
 impl AudioFormat {
     pub fn sample_size(&self) -> usize {
         match self {
-            AudioFormat::I8 => 1,
+            AudioFormat::U8 => 1,
             AudioFormat::I16 => 2,
             AudioFormat::I24 => 3,
             AudioFormat::I32 => 4,
-            AudioFormat::I48 => 6,
-            AudioFormat::I64 => 8,
-            AudioFormat::U8 => 1,
-            AudioFormat::U16 => 2,
-            AudioFormat::U24 => 3,
-            AudioFormat::U32 => 4,
-            AudioFormat::U48 => 6,
-            AudioFormat::U64 => 8,
             AudioFormat::F32 => 4,
-            AudioFormat::F64 => 8,
         }
     }
 
@@ -203,15 +174,12 @@ impl AudioFormat {
     }
 
     pub fn from_cpal_format(format: cpal::SampleFormat) -> Option<Self> {
+        // no i24 in cpal ?
         match format {
-            cpal::SampleFormat::I8 => Some(AudioFormat::I8),
             cpal::SampleFormat::U8 => Some(AudioFormat::U8),
             cpal::SampleFormat::I16 => Some(AudioFormat::I16),
-            cpal::SampleFormat::U16 => Some(AudioFormat::U16),
             cpal::SampleFormat::I32 => Some(AudioFormat::I32),
-            cpal::SampleFormat::F32 => Some(AudioFormat::I24),
-            cpal::SampleFormat::I64 => Some(AudioFormat::I64),
-            cpal::SampleFormat::U64 => Some(AudioFormat::U64),
+            cpal::SampleFormat::F32 => Some(AudioFormat::F32),
             _ => None,
         }
     }
@@ -220,20 +188,11 @@ impl AudioFormat {
 impl PartialEq<cpal::SampleFormat> for AudioFormat {
     fn eq(&self, other: &cpal::SampleFormat) -> bool {
         match self {
-            AudioFormat::I8 => *other == cpal::SampleFormat::I8,
             AudioFormat::U8 => *other == cpal::SampleFormat::U8,
             AudioFormat::I16 => *other == cpal::SampleFormat::I16,
-            AudioFormat::U16 => *other == cpal::SampleFormat::U16,
             AudioFormat::I32 => *other == cpal::SampleFormat::I32,
             AudioFormat::I24 => *other == cpal::SampleFormat::F32,
-            AudioFormat::I48 => *other == cpal::SampleFormat::I64,
-            AudioFormat::I64 => *other == cpal::SampleFormat::I64,
-            AudioFormat::U24 => *other == cpal::SampleFormat::F32,
-            AudioFormat::U32 => *other == cpal::SampleFormat::U32,
-            AudioFormat::U48 => *other == cpal::SampleFormat::U64,
-            AudioFormat::U64 => *other == cpal::SampleFormat::U64,
             AudioFormat::F32 => *other == cpal::SampleFormat::F32,
-            AudioFormat::F64 => *other == cpal::SampleFormat::F64,
         }
     }
 }

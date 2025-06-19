@@ -26,9 +26,7 @@ pub fn convert_audio_stream(
         AudioFormat::I24 => convert_audio_stream_internal::<f32>(producer, packet, params),
         AudioFormat::I32 => convert_audio_stream_internal::<i32>(producer, packet, params),
         AudioFormat::U8 => convert_audio_stream_internal::<u8>(producer, packet, params),
-        AudioFormat::U32 => convert_audio_stream_internal::<u32>(producer, packet, params),
         AudioFormat::F32 => convert_audio_stream_internal::<f32>(producer, packet, params),
-        _ => bail!("unsupported audio format."),
     }
     .map_err(|e| {
         warn!("failed to convert audio stream: {e}");
@@ -137,7 +135,6 @@ fn convert_packet_to_f32(packet: &AudioPacketMessage) -> anyhow::Result<Vec<Vec<
         AudioFormat::I24 => convert_packet_to_f32_internal::<f32>(packet),
         AudioFormat::I32 => convert_packet_to_f32_internal::<i32>(packet),
         AudioFormat::F32 => convert_packet_to_f32_internal::<f32>(packet),
-        _ => bail!("unsupported android audio format or sample rate."),
     }
 }
 
@@ -175,7 +172,6 @@ fn convert_packet_to_f32_mono(packet: &AudioPacketMessage) -> anyhow::Result<Vec
         AudioFormat::I24 => convert_packet_to_f32_mono_internal::<f32>(packet),
         AudioFormat::I32 => convert_packet_to_f32_mono_internal::<i32>(packet),
         AudioFormat::F32 => convert_packet_to_f32_mono_internal::<f32>(packet),
-        _ => bail!("unsupported android audio format or sample rate."),
     }
 }
 

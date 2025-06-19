@@ -54,9 +54,7 @@ pub fn start_audio_stream(
         AudioFormat::I24 => build_output_stream::<f32>(device, config.clone(), consumer),
         AudioFormat::I32 => build_output_stream::<i32>(device, config.clone(), consumer),
         AudioFormat::U8 => build_output_stream::<u8>(device, config.clone(), consumer),
-        AudioFormat::U32 => build_output_stream::<u32>(device, config.clone(), consumer),
         AudioFormat::F32 => build_output_stream::<f32>(device, config.clone(), consumer),
-        _ => bail!("unsupported audio format."),
     }?;
 
     stream.play()?;
