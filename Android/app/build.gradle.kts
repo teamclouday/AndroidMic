@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.androidMic"
+    namespace = "io.github.teamclouday.androidMic"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.androidMic"
+        applicationId = "io.github.teamclouday.androidMic"
         minSdk = 23
         targetSdk = 35
         versionCode = 9
