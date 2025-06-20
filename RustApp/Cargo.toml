@@ -83,7 +83,7 @@ serde_with = "3"
 strum = { version = "0.26", features = ["derive"] }
 resvg = "0.45.0"
 rubato = "0.16.1"
-fix-path-env = { git = "https://github.com/tauri-apps/fix-path-env-rs" }
+fix-path-env = { git = "https://github.com/wiiznokes/fix-path-env-rs" , rev = "8612a0d8590843dbe9c6326d26292963e6a97f2a" }
 env_logger = "0.11.7"
 nnnoiseless = "0.5.1"
 
