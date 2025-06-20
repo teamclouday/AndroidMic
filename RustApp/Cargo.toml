@@ -65,7 +65,7 @@ i18n-embed = { version = "0.15", features = [
     "fluent-system",
     "desktop-requester",
 ] }
-rust-embed = "8"
+rust-embed = { version = "8", features = ["debug-embed"] }
 i18n-embed-fl = "0.9"
 directories = "6"
 prost = "0.13"
@@ -83,7 +83,7 @@ serde_with = "3"
 strum = { version = "0.26", features = ["derive"] }
 resvg = "0.45.0"
 rubato = "0.16.1"
-fix-path-env = { git = "https://github.com/wiiznokes/fix-path-env-rs" , rev = "8612a0d8590843dbe9c6326d26292963e6a97f2a" }
+fix-path-env = { git = "https://github.com/wiiznokes/fix-path-env-rs", rev = "8612a0d8590843dbe9c6326d26292963e6a97f2a" }
 env_logger = "0.11.7"
 nnnoiseless = "0.5.1"
 
