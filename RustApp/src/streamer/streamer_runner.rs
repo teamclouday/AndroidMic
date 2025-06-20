@@ -12,14 +12,19 @@ use crate::streamer::{StreamerTrait, WriteError};
 
 use super::{
     ConnectError, DummyStreamer, Status, StreamConfig, Streamer, adb_streamer, tcp_streamer,
-    udp_streamer, usb_streamer,
+    udp_streamer,
 };
 
 #[derive(Debug)]
 pub enum ConnectOption {
-    Tcp { ip: IpAddr },
-    Udp { ip: IpAddr },
+    Tcp {
+        ip: IpAddr,
+    },
+    Udp {
+        ip: IpAddr,
+    },
     Adb,
+    #[cfg(feature = "usb")]
     Usb,
 }
 
@@ -85,7 +90,8 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                                 .await
                                                 .map(Streamer::from)
                                         }
-                                        ConnectOption::Usb => usb_streamer::new(stream_config)
+                                        #[cfg(feature = "usb")]
+                                        ConnectOption::Usb => crate::streamer::usb_streamer::new(stream_config)
                                             .await
                                             .map(Streamer::from),
                                     };

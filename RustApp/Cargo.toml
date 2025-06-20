@@ -39,6 +39,9 @@ unexpected_cfgs = { level = "warn", check-cfg = [
 [lints.clippy]
 to_string_trait_impl = "allow"
 
+[features]
+default = ["usb"]
+usb = ["nusb"]
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
@@ -78,7 +81,7 @@ libcosmic = { git = "https://github.com/pop-os/libcosmic", rev = "337b80d4ca02a6
     "multi-window",
 ] }
 byteorder = "1"
-nusb = "0.1"
+nusb = { version = "0.1", optional = true }
 serde_with = "3"
 strum = { version = "0.26", features = ["derive"] }
 resvg = "0.45.0"

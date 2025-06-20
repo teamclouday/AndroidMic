@@ -119,6 +119,7 @@ pub enum ConnectionMode {
     Tcp,
     Udp,
     Adb,
+    #[cfg(feature = "usb")]
     Usb,
 }
 

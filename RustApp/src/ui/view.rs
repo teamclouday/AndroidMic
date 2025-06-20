@@ -90,6 +90,17 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
 fn connection_type(app: &AppState) -> Element<'_, AppMsg> {
     let connection_mode = &app.config.data().connection_mode;
 
+    #[cfg(not(feature = "usb"))]
+    let usb: Option<Element<_>> = None;
+
+    #[cfg(feature = "usb")]
+    let usb = Some(radio(
+        "USB Serial",
+        &ConnectionMode::Usb,
+        Some(connection_mode),
+        |mode| AppMsg::ChangeConnectionMode(*mode),
+    ));
+
     column()
         .spacing(20)
         .align_x(Horizontal::Center)
@@ -108,12 +119,7 @@ fn connection_type(app: &AppState) -> Element<'_, AppMsg> {
                     Some(connection_mode),
                     |mode| AppMsg::ChangeConnectionMode(*mode),
                 ))
-                .push(radio(
-                    "USB Serial",
-                    &ConnectionMode::Usb,
-                    Some(connection_mode),
-                    |mode| AppMsg::ChangeConnectionMode(*mode),
-                ))
+                .push_maybe(usb)
                 .push(radio(
                     "USB Adb",
                     &ConnectionMode::Adb,

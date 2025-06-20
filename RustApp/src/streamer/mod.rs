@@ -7,15 +7,21 @@ use std::io;
 use tcp_streamer::TcpStreamer;
 use thiserror::Error;
 use udp_streamer::UdpStreamer;
-use usb_streamer::UsbStreamer;
 
 mod adb_streamer;
 mod message;
 mod streamer_runner;
 mod tcp_streamer;
 mod udp_streamer;
+
+#[cfg(feature = "usb")]
 mod usb;
+
+#[cfg(feature = "usb")]
 mod usb_streamer;
+
+#[cfg(feature = "usb")]
+use crate::streamer::usb_streamer::UsbStreamer;
 
 pub use message::{AudioPacketMessage, AudioPacketMessageOrdered};
 pub use streamer_runner::{ConnectOption, StreamerCommand, StreamerMsg, sub};
@@ -24,7 +30,6 @@ use crate::{
     audio::{AudioPacketFormat, process::AudioProcessParams},
     config::AudioFormat,
 };
-use usb::aoa::{AccessoryError, EndpointError};
 
 /// Status reported from the streamer
 #[derive(Clone, Debug)]
@@ -80,6 +85,7 @@ enum Streamer {
     TcpStreamer,
     AdbStreamer,
     UdpStreamer,
+    #[cfg(feature = "usb")]
     UsbStreamer,
     DummyStreamer,
 }
@@ -94,20 +100,28 @@ enum ConnectError {
     CantAccept(io::Error),
     #[error(transparent)]
     WriteError(#[from] WriteError),
+    #[cfg(feature = "usb")]
     #[error("no usb device found: {0}")]
     NoUsbDevice(nusb::Error),
     #[error("no adb device found")]
     NoAdbDevice,
+    #[cfg(feature = "usb")]
     #[error("can't open usb handle: {0}")]
     CantOpenUsbHandle(nusb::Error),
+    #[cfg(feature = "usb")]
     #[error("can't load usb device config: {0}")]
     CantLoadUsbConfig(nusb::Error),
+    #[cfg(feature = "usb")]
     #[error("can't claim usb device interface: {0}")]
     CantClaimUsbInterface(nusb::Error),
+
+    #[cfg(feature = "usb")]
     #[error("can't open usb accessory: {0}")]
-    CantOpenUsbAccessory(AccessoryError),
+    CantOpenUsbAccessory(usb::aoa::AccessoryError),
+
+    #[cfg(feature = "usb")]
     #[error("can't open usb accessory endpoint: {0}")]
-    CantOpenUsbAccessoryEndpoint(EndpointError),
+    CantOpenUsbAccessoryEndpoint(usb::aoa::EndpointError),
     #[error("device disconnected")]
     Disconnected,
     #[error(transparent)]

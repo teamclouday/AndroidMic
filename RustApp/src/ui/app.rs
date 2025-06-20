@@ -198,6 +198,7 @@ impl AppState {
                 ConnectOption::Udp { ip }
             }
             ConnectionMode::Adb => ConnectOption::Adb,
+            #[cfg(feature = "usb")]
             ConnectionMode::Usb => ConnectOption::Usb,
         };
 
