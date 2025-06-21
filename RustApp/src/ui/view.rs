@@ -120,21 +120,12 @@ fn connection_type(app: &AppState) -> Element<'_, AppMsg> {
                     |mode| AppMsg::ChangeConnectionMode(*mode),
                 ))
                 .push_maybe(usb)
-                .push_maybe(
-                    if cfg!(not(all(
-                        ANDROID_MIC_FORMAT = "flatpak",
-                        target_arch = "arm"
-                    ))) {
-                        Some(radio(
-                            "USB Adb",
-                            &ConnectionMode::Adb,
-                            Some(connection_mode),
-                            |mode| AppMsg::ChangeConnectionMode(*mode),
-                        ))
-                    } else {
-                        None
-                    },
-                ),
+                .push(radio(
+                    "USB Adb",
+                    &ConnectionMode::Adb,
+                    Some(connection_mode),
+                    |mode| AppMsg::ChangeConnectionMode(*mode),
+                )),
         )
         .push(connect_button(app))
         .into()
