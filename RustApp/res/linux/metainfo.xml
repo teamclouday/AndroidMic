@@ -3,7 +3,7 @@
 <!-- https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines -->
 
 <component type="desktop-application">
-  <id>io.github.teamclouday.android-mic</id>
+  <id>io.github.teamclouday.AndroidMic</id>
 
   <name>AndroidMic</name>
   <summary>Use your Android phone as a microphone for your PC</summary>
@@ -39,7 +39,7 @@
     </ul>
   </description>
 
-  <launchable type="desktop-id">io.github.teamclouday.android-mic.desktop</launchable>
+  <launchable type="desktop-id">io.github.teamclouday.AndroidMic.desktop</launchable>
   <screenshots>
     <screenshot type="default">
       <caption>AndroidMic screenshot</caption>

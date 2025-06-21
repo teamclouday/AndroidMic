@@ -11,7 +11,7 @@ license = "GPL-3.0-only"
 
 [package.metadata.packager]
 product_name = "AndroidMic"
-identifier = "io.github.teamclouday.android-mic"
+identifier = "io.github.teamclouday.AndroidMic"
 icons = ["../Assets/icon512.png"]
 category = "Utility"
 description = "Use your Android phone as a mic for your PC"
