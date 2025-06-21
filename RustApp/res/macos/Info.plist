@@ -7,7 +7,7 @@
     <key>CFBundleDisplayName</key>
     <string>AndroidMic</string>
     <key>CFBundleIdentifier</key>
-    <string>io.github.teamclouday.android-mic</string>
+    <string>io.github.teamclouday.AndroidMic</string>
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleExecutable</key>

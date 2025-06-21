@@ -2037,7 +2037,7 @@ dependencies = [
 [[package]]
 name = "fix-path-env"
 version = "0.0.0"
-source = "git+https://github.com/tauri-apps/fix-path-env-rs#0e479e2804edc1a7e5f15ece2b48ee30858c2838"
+source = "git+https://github.com/wiiznokes/fix-path-env-rs?rev=8612a0d8590843dbe9c6326d26292963e6a97f2a#8612a0d8590843dbe9c6326d26292963e6a97f2a"
 dependencies = [
  "home",
  "strip-ansi-escapes",

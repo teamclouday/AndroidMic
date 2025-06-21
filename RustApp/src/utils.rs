@@ -10,7 +10,7 @@ pub const APP_ID: &str = concat!(QUALIFIER, ".", ORG, ".", APP);
 
 pub const QUALIFIER: &str = "io.github";
 pub const ORG: &str = "teamclouday";
-pub const APP: &str = "android-mic";
+pub const APP: &str = "AndroidMic";
 
 #[cached]
 pub fn resource_dir(os_dependent: bool) -> PathBuf {
