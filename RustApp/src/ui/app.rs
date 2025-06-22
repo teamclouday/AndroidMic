@@ -92,7 +92,7 @@ fn get_audio_devices(audio_host: &Host) -> Vec<AudioDevice> {
         .collect()
 }
 
-const SHARED_BUF_SIZE_S: f32 = 0.15; // 0.15s
+const SHARED_BUF_SIZE_S: f32 = 1.; // 0.15s
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConnectionState {
