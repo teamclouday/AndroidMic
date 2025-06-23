@@ -26,6 +26,16 @@ android {
 
     }
 
+    signingConfigs {
+        // need this because debug key is machine dependent
+        create("nightly") {
+            keyAlias = "key0"
+            keyPassword = "123456"
+            storeFile = file("nightly-signing-key.jks")
+            storePassword = "123456"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -34,6 +44,12 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("debug")
+        }
+
+        create("nightly") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("nightly")
+            applicationIdSuffix = ".nightly"
         }
 
         debug {
