@@ -22,7 +22,7 @@ import io.github.teamclouday.AndroidMic.R
 @Composable
 fun AppBar(
     onNavigationIconClick: () -> Unit,
-    modifier: Modifier
+    modifier: Modifier = Modifier
 ) {
     CenterAlignedTopAppBar(
         modifier = modifier,

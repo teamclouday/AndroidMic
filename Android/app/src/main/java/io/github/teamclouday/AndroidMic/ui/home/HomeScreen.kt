@@ -7,12 +7,15 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -26,6 +29,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.constraintlayout.compose.ConstraintLayout
 import androidx.constraintlayout.compose.Dimension
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import io.github.teamclouday.AndroidMic.Dialogs
 import io.github.teamclouday.AndroidMic.Mode
 import io.github.teamclouday.AndroidMic.R
@@ -37,8 +42,6 @@ import io.github.teamclouday.AndroidMic.ui.utils.getBluetoothPermission
 import io.github.teamclouday.AndroidMic.ui.utils.getRecordAudioPermission
 import io.github.teamclouday.AndroidMic.ui.utils.getUsbPermission
 import io.github.teamclouday.AndroidMic.ui.utils.getWifiPermission
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import kotlinx.coroutines.launch
 
 @Composable
@@ -59,89 +62,83 @@ fun HomeScreen(vm: MainViewModel, currentWindowInfo: WindowInfo) {
             DrawerBody(vm)
         }
     ) {
-        ConstraintLayout(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(color = MaterialTheme.colorScheme.background)
-        ) {
-            val (appBar, interactionButton, log) = createRefs()
-
-            if (currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
-                AppBar(
-                    onNavigationIconClick = {
-                        scope.launch { drawerState.open() }
-                    },
-                    modifier = Modifier
-                        .constrainAs(appBar) {
-                            top.linkTo(parent.top)
-                            width = Dimension.matchParent
-                        }
-                )
-
-                Log(
-                    vm = vm,
-                    modifier = Modifier
-                        .constrainAs(log) {
-                            linkTo(top = appBar.bottom, bottom = interactionButton.top)
-                            width = Dimension.matchParent
-                            height = Dimension.fillToConstraints
-                        }
-                        .padding(horizontal = 15.dp)
-                        .padding(top = 15.dp)
-                )
-                InteractionButton(
-                    mainViewModel = vm,
-                    modifier = Modifier
-                        .constrainAs(interactionButton) {
-                            bottom.linkTo(parent.bottom)
-                            width = Dimension.matchParent
-                            height = Dimension.percent(0.15f)
-                        }
-                )
-
-            } else {
-                var appBarEnabled = false
-                if (currentWindowInfo.screenHeightInfo != WindowInfo.WindowType.Compact) {
-                    appBarEnabled = true
+        Scaffold(
+            contentWindowInsets = WindowInsets.systemBars,
+            topBar = {
+                if (currentWindowInfo.screenHeightInfo != WindowInfo.WindowType.Compact)
                     AppBar(
                         onNavigationIconClick = {
                             scope.launch { drawerState.open() }
                         },
+                    )
+            }
+        ) { padding ->
+
+            ConstraintLayout(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize()
+                    .background(color = MaterialTheme.colorScheme.background)
+            ) {
+                val (appBar, connectButton, log) = createRefs()
+
+                if (currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
+
+                    Log(
+                        vm = vm,
                         modifier = Modifier
-                            .constrainAs(appBar) {
-                                top.linkTo(parent.top)
+                            .constrainAs(log) {
+                                linkTo(top = appBar.bottom, bottom = connectButton.top)
                                 width = Dimension.matchParent
+                                height = Dimension.fillToConstraints
+                            }
+                            .padding(horizontal = 15.dp)
+                            .padding(top = 15.dp)
+                    )
+                    ConnectButton(
+                        vm = vm,
+                        modifier = Modifier
+                            .constrainAs(connectButton) {
+                                bottom.linkTo(parent.bottom)
+                                width = Dimension.matchParent
+                                height = Dimension.percent(0.15f)
+                            }
+                    )
+
+                } else {
+                    var appBarEnabled = false
+                    if (currentWindowInfo.screenHeightInfo != WindowInfo.WindowType.Compact) {
+                        appBarEnabled = true
+                    }
+
+                    Log(
+                        vm = vm,
+                        modifier = Modifier
+                            .constrainAs(log) {
+                                linkTo(start = parent.start, end = connectButton.start)
+                                linkTo(
+                                    top = if (appBarEnabled) appBar.bottom else parent.top,
+                                    bottom = parent.bottom
+                                )
+                                width = Dimension.fillToConstraints
+                                height = Dimension.fillToConstraints
+                            }
+                            .padding(vertical = 15.dp)
+                            .padding(start = 15.dp)
+                    )
+
+                    ConnectButton(
+                        vm = vm,
+                        modifier = Modifier
+                            .constrainAs(connectButton) {
+                                end.linkTo(parent.end)
+                                linkTo(
+                                    top = if (appBarEnabled) appBar.bottom else parent.top,
+                                    bottom = parent.bottom
+                                )
                             }
                     )
                 }
-
-                Log(
-                    vm = vm,
-                    modifier = Modifier
-                        .constrainAs(log) {
-                            linkTo(start = parent.start, end = interactionButton.start)
-                            linkTo(
-                                top = if (appBarEnabled) appBar.bottom else parent.top,
-                                bottom = parent.bottom
-                            )
-                            width = Dimension.fillToConstraints
-                            height = Dimension.fillToConstraints
-                        }
-                        .padding(vertical = 15.dp)
-                        .padding(start = 15.dp)
-                )
-
-                InteractionButton(
-                    mainViewModel = vm,
-                    modifier = Modifier
-                        .constrainAs(interactionButton) {
-                            end.linkTo(parent.end)
-                            linkTo(
-                                top = if (appBarEnabled) appBar.bottom else parent.top,
-                                bottom = parent.bottom
-                            )
-                        }
-                )
             }
         }
     }
@@ -176,27 +173,11 @@ private fun Log(
     }
 }
 
-@Composable
-private fun InteractionButton(
-    mainViewModel: MainViewModel,
-    modifier: Modifier
-) {
-    Column(
-        modifier = modifier
-            .padding(vertical = 15.dp, horizontal = 15.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        ButtonConnect(
-            vm = mainViewModel,
-        )
-    }
-}
-
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-private fun ButtonConnect(
+private fun ConnectButton(
     vm: MainViewModel,
+    modifier: Modifier
 ) {
     val wifiPermissionsState = rememberMultiplePermissionsState(
         permissions = getWifiPermission()
@@ -218,47 +199,54 @@ private fun ButtonConnect(
     }
     DialogIpPort(vm = vm, expanded = dialogIpPortExpanded)
 
-    ManagerButton(
-        onClick = {
-            when (vm.prefs.mode.getBlocking()) {
-                Mode.WIFI -> {
-                    if (!wifiPermissionsState.allPermissionsGranted)
-                        return@ManagerButton wifiPermissionsState.launchMultiplePermissionRequest()
-                }
+    Column(
+        modifier = modifier
+            .padding(vertical = 15.dp, horizontal = 15.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        ManagerButton(
+            onClick = {
+                when (vm.prefs.mode.getBlocking()) {
+                    Mode.WIFI -> {
+                        if (!wifiPermissionsState.allPermissionsGranted)
+                            return@ManagerButton wifiPermissionsState.launchMultiplePermissionRequest()
+                    }
 
 //                Modes.BLUETOOTH -> {
 //                    if (!bluetoothPermissionsState.allPermissionsGranted)
 //                        return@ManagerButton bluetoothPermissionsState.launchMultiplePermissionRequest()
 //                }
 
-                Mode.USB -> {
-                    if (!usbPermissionsState.allPermissionsGranted)
-                        return@ManagerButton usbPermissionsState.launchMultiplePermissionRequest()
+                    Mode.USB -> {
+                        if (!usbPermissionsState.allPermissionsGranted)
+                            return@ManagerButton usbPermissionsState.launchMultiplePermissionRequest()
+                    }
+
+                    else -> {}
                 }
 
-                else -> {}
-            }
 
+                if (!audioPermissionsState.allPermissionsGranted)
+                    return@ManagerButton audioPermissionsState.launchMultiplePermissionRequest()
 
-            if (!audioPermissionsState.allPermissionsGranted)
-                return@ManagerButton audioPermissionsState.launchMultiplePermissionRequest()
+                val dialog = vm.onConnectButton()
 
-            val dialog = vm.onConnectButton()
-
-            if (dialog != null) {
-                when (dialog) {
-                    Dialogs.IpPort -> {
-                        dialogIpPortExpanded.value = true
+                if (dialog != null) {
+                    when (dialog) {
+                        Dialogs.IpPort -> {
+                            dialogIpPortExpanded.value = true
+                        }
                     }
                 }
-            }
-        },
-        text =
-        if (vm.isStreamStarted.value)
-            stringResource(id = R.string.disconnect)
-        else
-            stringResource(id = R.string.connect),
-        enabled = vm.isButtonConnectClickable.value
-    )
+            },
+            text =
+                if (vm.isStreamStarted.value)
+                    stringResource(id = R.string.disconnect)
+                else
+                    stringResource(id = R.string.connect),
+            enabled = vm.isButtonConnectClickable.value
+        )
+    }
 }
 
