@@ -7,13 +7,17 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -27,8 +31,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import androidx.constraintlayout.compose.ConstraintLayout
-import androidx.constraintlayout.compose.Dimension
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import io.github.teamclouday.AndroidMic.Dialogs
@@ -59,7 +61,9 @@ fun HomeScreen(vm: MainViewModel, currentWindowInfo: WindowInfo) {
         gesturesEnabled = true,
 
         drawerContent = {
-            DrawerBody(vm)
+            ModalDrawerSheet {
+                DrawerBody(vm)
+            }
         }
     ) {
         Scaffold(
@@ -74,55 +78,43 @@ fun HomeScreen(vm: MainViewModel, currentWindowInfo: WindowInfo) {
             }
         ) { padding ->
 
-            ConstraintLayout(
-                modifier = Modifier
-                    .padding(padding)
-                    .fillMaxSize()
-                    .background(color = MaterialTheme.colorScheme.background)
-            ) {
-                val (appBar, connectButton, log) = createRefs()
+            if (currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
 
-                if (currentWindowInfo.screenWidthInfo == WindowInfo.WindowType.Compact) {
-
+                Column(
+                    modifier = Modifier
+                        .padding(padding)
+                        .fillMaxSize(),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
                     Log(
                         vm = vm,
                         modifier = Modifier
-                            .constrainAs(log) {
-                                linkTo(top = appBar.bottom, bottom = connectButton.top)
-                                width = Dimension.matchParent
-                                height = Dimension.fillToConstraints
-                            }
+                            .weight(1f)
+                            .fillMaxWidth()
                             .padding(horizontal = 15.dp)
                             .padding(top = 15.dp)
                     )
                     ConnectButton(
                         vm = vm,
                         modifier = Modifier
-                            .constrainAs(connectButton) {
-                                bottom.linkTo(parent.bottom)
-                                width = Dimension.matchParent
-                                height = Dimension.percent(0.15f)
-                            }
                     )
+                }
 
-                } else {
-                    var appBarEnabled = false
-                    if (currentWindowInfo.screenHeightInfo != WindowInfo.WindowType.Compact) {
-                        appBarEnabled = true
-                    }
+            } else {
+                Row(
+                    modifier = Modifier
+                        .padding(padding)
+                        .fillMaxSize(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
 
+                ) {
                     Log(
                         vm = vm,
                         modifier = Modifier
-                            .constrainAs(log) {
-                                linkTo(start = parent.start, end = connectButton.start)
-                                linkTo(
-                                    top = if (appBarEnabled) appBar.bottom else parent.top,
-                                    bottom = parent.bottom
-                                )
-                                width = Dimension.fillToConstraints
-                                height = Dimension.fillToConstraints
-                            }
+                            .weight(1f)
+                            .fillMaxHeight()
                             .padding(vertical = 15.dp)
                             .padding(start = 15.dp)
                     )
@@ -130,16 +122,10 @@ fun HomeScreen(vm: MainViewModel, currentWindowInfo: WindowInfo) {
                     ConnectButton(
                         vm = vm,
                         modifier = Modifier
-                            .constrainAs(connectButton) {
-                                end.linkTo(parent.end)
-                                linkTo(
-                                    top = if (appBarEnabled) appBar.bottom else parent.top,
-                                    bottom = parent.bottom
-                                )
-                            }
                     )
                 }
             }
+
         }
     }
 }

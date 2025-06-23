@@ -100,7 +100,6 @@ dependencies {
     implementation(libs.compose.material)
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons.extended)
-    implementation(libs.compose.constraintlayout)
 
     // compose permission
     implementation(libs.accompanist.permissions)
