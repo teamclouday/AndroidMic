@@ -7,6 +7,8 @@ import android.util.Log
 import io.github.teamclouday.AndroidMic.domain.service.AudioPacket
 import io.github.teamclouday.AndroidMic.utils.toBigEndianU32
 import com.google.protobuf.ByteString
+import io.github.teamclouday.AndroidMic.domain.service.Command
+import io.github.teamclouday.AndroidMic.domain.service.CommandData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -91,6 +93,7 @@ class WifiStreamer(
                     Log.d(TAG, "${e.message}")
                     delay(5)
                     disconnect()
+                    tx.send(CommandData(Command.StopStream).toCommandMsg())
                 } catch (e: Exception) {
                     Log.d(TAG, "${e.message}")
                 }
