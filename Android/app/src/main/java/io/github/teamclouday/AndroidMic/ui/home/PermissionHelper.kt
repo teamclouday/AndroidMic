@@ -68,7 +68,7 @@ fun PermissionDialog(
     vm: MainViewModel,
     expanded: MutableState<Boolean>,
     onRequestPermissionAgain: () -> Unit,
-    onOpenPermissionSetting: () -> Unit
+    openAppSettings: () -> Unit
 ) {
 
     BaseDialog(
@@ -88,7 +88,7 @@ fun PermissionDialog(
         ManagerButton(
             text = "Allow permissions manually",
             onClick = {
-                onOpenPermissionSetting()
+                openAppSettings()
                 expanded.value = false
             }
         )

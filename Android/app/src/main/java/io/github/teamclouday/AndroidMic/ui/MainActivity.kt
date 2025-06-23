@@ -34,7 +34,7 @@ class MainActivity : ComponentActivity() {
                 // get windowInfo for rotation change
                 val windowInfo = rememberWindowInfo()
 
-                HomeScreen(vm, windowInfo, onOpenPermissionSetting = ::openAppSettings)
+                HomeScreen(vm, windowInfo, openAppSettings = ::openAppSettings)
             }
         }
     }

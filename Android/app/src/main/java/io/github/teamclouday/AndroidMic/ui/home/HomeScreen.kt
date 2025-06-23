@@ -17,7 +17,7 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DrawerValue
@@ -46,13 +46,13 @@ import io.github.teamclouday.AndroidMic.ui.utils.WindowInfo
 import kotlinx.coroutines.launch
 
 
-private val TAG = "HomeScreen"
+private const val TAG = "HomeScreen"
 
 @Composable
 fun HomeScreen(
     vm: MainViewModel,
     currentWindowInfo: WindowInfo,
-    onOpenPermissionSetting: () -> Unit
+    openAppSettings: () -> Unit
 ) {
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
@@ -68,7 +68,7 @@ fun HomeScreen(
 
         drawerContent = {
             ModalDrawerSheet(
-                windowInsets = WindowInsets.systemBars,
+                windowInsets = WindowInsets.safeDrawing,
                 modifier = Modifier.scrollable(rememberScrollState(), Orientation.Vertical)
             ) {
                 DrawerBody(vm)
@@ -76,7 +76,7 @@ fun HomeScreen(
         }
     ) {
         Scaffold(
-            contentWindowInsets = WindowInsets.systemBars,
+            contentWindowInsets = WindowInsets.safeDrawing,
             topBar = {
                 if (currentWindowInfo.screenHeightInfo != WindowInfo.WindowType.Compact)
                     AppBar(
@@ -101,13 +101,13 @@ fun HomeScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth()
-                            .padding(horizontal = 15.dp)
-                            .padding(top = 15.dp)
+                            .padding(all = 15.dp)
                     )
                     ConnectButton(
                         vm = vm,
-                        modifier = Modifier,
-                        onOpenPermissionSetting = onOpenPermissionSetting
+                        modifier = Modifier
+                            .padding(vertical = 40.dp),
+                        openAppSettings = openAppSettings
                     )
                 }
 
@@ -125,14 +125,14 @@ fun HomeScreen(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxHeight()
-                            .padding(vertical = 15.dp)
-                            .padding(start = 15.dp)
+                            .padding(all = 15.dp)
                     )
 
                     ConnectButton(
                         vm = vm,
-                        modifier = Modifier,
-                        onOpenPermissionSetting = onOpenPermissionSetting
+                        modifier = Modifier
+                            .padding(all = 15.dp),
+                        openAppSettings = openAppSettings
                     )
                 }
             }
@@ -174,7 +174,7 @@ private fun Log(
 private fun ConnectButton(
     vm: MainViewModel,
     modifier: Modifier,
-    onOpenPermissionSetting: () -> Unit
+    openAppSettings: () -> Unit
 ) {
 
     val dialogIpPortExpanded = rememberSaveable {
@@ -219,17 +219,15 @@ private fun ConnectButton(
         onRequestPermissionAgain = {
             permissionResultLauncher.launch(vm.perms.toTypedArray())
         },
-        onOpenPermissionSetting = onOpenPermissionSetting
+        openAppSettings = openAppSettings
     )
 
 
     Column(
-        modifier = modifier
-            .padding(vertical = 15.dp, horizontal = 15.dp),
+        modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-
 
         ManagerButton(
             onClick = {
