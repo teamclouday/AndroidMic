@@ -3,7 +3,9 @@ package io.github.teamclouday.AndroidMic.ui.home
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.systemBars
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.MaterialTheme
@@ -61,7 +64,10 @@ fun HomeScreen(vm: MainViewModel, currentWindowInfo: WindowInfo) {
         gesturesEnabled = true,
 
         drawerContent = {
-            ModalDrawerSheet {
+            ModalDrawerSheet(
+                windowInsets = WindowInsets.systemBars,
+                modifier = Modifier.scrollable(rememberScrollState(), Orientation.Vertical)
+            ) {
                 DrawerBody(vm)
             }
         }

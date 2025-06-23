@@ -1,12 +1,10 @@
 package io.github.teamclouday.AndroidMic.ui.home
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -39,21 +37,12 @@ import io.github.teamclouday.AndroidMic.ui.home.dialog.DialogMode
 import io.github.teamclouday.AndroidMic.ui.home.dialog.DialogSampleRate
 import io.github.teamclouday.AndroidMic.ui.home.dialog.DialogTheme
 
-data class MenuItem(
-    val title: String,
-    val subTitle: String,
-    val contentDescription: String,
-    val icon: ImageVector? = null
-)
 
 @Composable
 fun DrawerBody(vm: MainViewModel) {
 
     Column(
         modifier = Modifier
-            .fillMaxHeight()
-            .width(355.dp)
-            .background(color = MaterialTheme.colorScheme.background)
             .verticalScroll(rememberScrollState())
     ) {
         // setting title
@@ -195,10 +184,10 @@ private fun SettingsItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp)
             .clickable {
                 expanded.value = true
-            },
+            }
+            .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (icon != null) {
