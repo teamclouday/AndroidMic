@@ -12,7 +12,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-
+const val STOP_STREAM_ACTION = "STOP_STREAM_ACTION"
 const val CHANNEL_ID = "Service"
 
 class MessageUi(private val ctx: ForegroundService) {
@@ -34,6 +34,13 @@ class MessageUi(private val ctx: ForegroundService) {
             PendingIntent.getActivity(ctx, 0, launchIntent, PendingIntent.FLAG_IMMUTABLE)
 
 
+        val stopStreamingIntent: Intent = Intent(ctx, ForegroundService::class.java)
+            .setAction(STOP_STREAM_ACTION)
+
+        val pStopStreamingIntent = PendingIntent.getService(
+            ctx, 0, stopStreamingIntent, PendingIntent.FLAG_IMMUTABLE
+        )
+
         val builder = NotificationCompat.Builder(ctx, CHANNEL_ID)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setContentTitle(ctx.getString(R.string.app_name))
@@ -41,6 +48,13 @@ class MessageUi(private val ctx: ForegroundService) {
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
             .setContentIntent(pLaunchIntent)
             .setOngoing(true)
+            .addAction(
+                NotificationCompat.Action(
+                    R.drawable.ic_launcher_foreground,
+                    ctx.getString(R.string.stop_streaming),
+                    pStopStreamingIntent
+                )
+            );
 
         return builder.build()
     }

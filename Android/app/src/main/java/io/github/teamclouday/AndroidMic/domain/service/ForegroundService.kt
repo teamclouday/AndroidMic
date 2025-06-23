@@ -108,8 +108,17 @@ class ForegroundService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         Log.d(TAG, "onStartCommand")
-        serviceShouldStop = false
-        return START_NOT_STICKY
+        when (intent?.action) {
+            STOP_STREAM_ACTION -> {
+                Log.d(TAG, "STOP_STREAM_ACTION")
+                stopStream(null)
+            }
+
+            else -> {
+                serviceShouldStop = false
+            }
+        }
+        return START_STICKY
     }
 
     override fun onUnbind(intent: Intent?): Boolean {
