@@ -1,5 +1,6 @@
 package io.github.teamclouday.AndroidMic.domain.streaming
 
+import Message
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothClass
@@ -15,11 +16,11 @@ import android.os.Build
 import android.os.Messenger
 import android.util.Log
 import androidx.core.content.ContextCompat
+import com.google.protobuf.ByteString
 import io.github.teamclouday.AndroidMic.domain.service.AudioPacket
 import io.github.teamclouday.AndroidMic.utils.chunked
 import io.github.teamclouday.AndroidMic.utils.ignore
 import io.github.teamclouday.AndroidMic.utils.toBigEndianU32
-import com.google.protobuf.ByteString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay

@@ -13,9 +13,9 @@ import android.os.Messenger
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import androidx.core.os.BundleCompat
+import com.google.protobuf.ByteString
 import io.github.teamclouday.AndroidMic.domain.service.AudioPacket
 import io.github.teamclouday.AndroidMic.utils.toBigEndianU32
-import com.google.protobuf.ByteString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
