@@ -39,12 +39,12 @@ class MicStreamManager(
         const val STREAM_DELAY = 1L
     }
 
-    fun start(audioStream: Flow<AudioPacket>, tx: Messenger): Boolean {
-        val connected = streamer.connect()
-        if (connected) {
-            streamer.start(audioStream, tx)
-        }
-        return connected
+    fun connect(): Boolean {
+        return streamer.connect()
+    }
+
+    fun start(audioStream: Flow<AudioPacket>, tx: Messenger) {
+        streamer.start(audioStream, tx)
     }
 
     fun stop() {

@@ -3,7 +3,6 @@ package io.github.teamclouday.AndroidMic.domain.service
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Handler
@@ -31,17 +30,16 @@ data class ServiceStates(
     var mode: Mode = Mode.WIFI
 )
 
+private const val TAG = "MicService"
+private const val WAIT_PERIOD = 500L
 
 class ForegroundService : Service() {
-    private val TAG = "MicService"
     private val scope = CoroutineScope(Dispatchers.Default)
-    private val WAIT_PERIOD = 500L
-
 
     private inner class ServiceHandler(looper: Looper) : Handler(looper) {
         override fun handleMessage(msg: Message) {
 
-            val commandData = CommandData.fromMessage(msg);
+            val commandData = CommandData.fromMessage(msg)
 
             when (Command.entries[msg.what]) {
                 Command.StartStream -> startStream(commandData, msg.replyTo)
@@ -93,7 +91,7 @@ class ForegroundService : Service() {
             val channel = NotificationChannel(CHANNEL_ID, name, importance)
             // Register the channel with the system
             val notificationManager: NotificationManager =
-                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
         }
         messageui = MessageUi(this)
@@ -174,13 +172,11 @@ class ForegroundService : Service() {
             )
             return
         }
+        shutdownStream()
+        shutdownAudio()
 
         Log.d(TAG, "startStream [start]")
 
-        managerStream?.shutdown()
-        managerAudio?.shutdown()
-
-        // try to start streaming
         try {
             managerStream =
                 MicStreamManager(applicationContext, scope, msg.mode!!, msg.ip, msg.port)
@@ -197,34 +193,8 @@ class ForegroundService : Service() {
             return
         }
 
-        if (!states.isAudioStarted) {
-            if (!startAudio(msg, replyTo)) {
-                managerStream?.shutdown()
-                managerStream = null
-                managerAudio?.shutdown()
-                managerAudio = null
-                return
-            }
-        }
-
-        if (managerStream?.start(
-                managerAudio!!.audioStream(),
-                serviceMessenger
-            ) == true && managerStream?.isConnected() == true
+        if (managerStream?.connect() != true || managerStream?.isConnected() != true
         ) {
-
-            reply(
-                replyTo,
-                ResponseData(
-                    ServiceState.Connected,
-                    applicationContext.getString(R.string.connected_device) + managerStream?.getInfo()
-                )
-            )
-
-            states.isStreamStarted = true
-            Log.d(TAG, "startStream [connected]")
-
-        } else {
 
             reply(
                 replyTo,
@@ -233,9 +203,33 @@ class ForegroundService : Service() {
                     applicationContext.getString(R.string.failed_to_connect)
                 )
             )
-            stopStream(null)
-            stopAudio(null)
+            shutdownStream()
+            return
         }
+
+
+        if (!startAudio(msg, replyTo)) {
+            shutdownStream()
+            shutdownAudio()
+            return
+        }
+
+        managerStream?.start(
+            managerAudio!!.audioStream(),
+            serviceMessenger
+        )
+
+        states.isStreamStarted = true
+        Log.d(TAG, "startStream [connected]")
+
+        reply(
+            replyTo,
+            ResponseData(
+                ServiceState.Connected,
+                applicationContext.getString(R.string.connected_device) + managerStream?.getInfo()
+            )
+        )
+
     }
 
     // stop streaming
@@ -244,9 +238,7 @@ class ForegroundService : Service() {
 
         stopAudio(replyTo)
 
-        managerStream?.shutdown()
-        managerStream = null
-        states.isStreamStarted = false
+        shutdownStream()
 
         reply(
             uiMessenger,
@@ -259,6 +251,12 @@ class ForegroundService : Service() {
         if (!isBind) {
             stopService()
         }
+    }
+
+    private fun shutdownStream() {
+        managerStream?.shutdown()
+        managerStream = null
+        states.isStreamStarted = false
     }
 
     private fun isConnected(): ServiceState {
@@ -316,11 +314,15 @@ class ForegroundService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         }
+        shutdownAudio()
+        reply(replyTo, ResponseData(msg = application.getString(R.string.recording_stopped)))
+    }
+
+
+    private fun shutdownAudio() {
         managerAudio?.shutdown()
         managerAudio = null
         states.isAudioStarted = false
-
-        reply(replyTo, ResponseData(msg = application.getString(R.string.recording_stopped)))
     }
 
 
