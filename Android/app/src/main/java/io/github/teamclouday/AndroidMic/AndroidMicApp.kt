@@ -2,12 +2,12 @@ package io.github.teamclouday.AndroidMic
 
 import android.app.Application
 import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.IBinder
 import android.os.Messenger
 import android.util.Log
+import io.github.teamclouday.AndroidMic.domain.service.BIND_SERVICE_ACTION
 import io.github.teamclouday.AndroidMic.domain.service.ForegroundService
 import io.github.teamclouday.AndroidMic.ui.MainActivity
 import kotlinx.coroutines.MainScope
@@ -58,9 +58,11 @@ class AndroidMicApp : Application() {
 
     // start and bind to service
     fun bindService() {
-        val intent = Intent(this, ForegroundService::class.java)
+        val intent = Intent(this, ForegroundService::class.java).apply {
+            action = BIND_SERVICE_ACTION
+        }
         startService(intent)
-        bindService(intent, mConnection, Context.BIND_AUTO_CREATE)
+        bindService(intent, mConnection, BIND_AUTO_CREATE)
     }
 
     fun unBindService() {

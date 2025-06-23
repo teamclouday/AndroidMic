@@ -30,8 +30,12 @@ data class ServiceStates(
     var mode: Mode = Mode.WIFI
 )
 
-private const val TAG = "MicService"
+private const val TAG = "ForegroundService"
 private const val WAIT_PERIOD = 500L
+
+
+const val BIND_SERVICE_ACTION = "BIND_SERVICE_ACTION"
+const val STOP_STREAM_ACTION = "STOP_STREAM_ACTION"
 
 class ForegroundService : Service() {
     private val scope = CoroutineScope(Dispatchers.Default)
@@ -97,6 +101,8 @@ class ForegroundService : Service() {
         messageui = MessageUi(this)
     }
 
+    // note that onBind is only called on the first call of bind()
+    // that's why we set isBind = true in onStartCommand
     override fun onBind(intent: Intent?): IBinder? {
         Log.d(TAG, "onBind")
         isBind = true
@@ -114,8 +120,13 @@ class ForegroundService : Service() {
                 stopStream(null)
             }
 
-            else -> {
+            BIND_SERVICE_ACTION -> {
+                isBind = true
                 serviceShouldStop = false
+            }
+
+            else -> {
+                Log.w(TAG, "unknown action for onStartCommand")
             }
         }
         return START_STICKY

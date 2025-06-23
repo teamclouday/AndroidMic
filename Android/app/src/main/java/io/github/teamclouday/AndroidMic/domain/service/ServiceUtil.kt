@@ -12,7 +12,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-const val STOP_STREAM_ACTION = "STOP_STREAM_ACTION"
 const val CHANNEL_ID = "Service"
 
 class MessageUi(private val ctx: ForegroundService) {
