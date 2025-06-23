@@ -205,4 +205,9 @@ class MainViewModel : ViewModel() {
     private fun addLogMessage(message: String) {
         textLog.value = textLog.value + message + "\n"
     }
+
+    var perms: List<String> = listOf()
+    fun showPermissionDialog(perms: List<String>) {
+        this.perms = perms
+    }
 }

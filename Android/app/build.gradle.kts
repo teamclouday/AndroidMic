@@ -101,9 +101,6 @@ dependencies {
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons.extended)
 
-    // compose permission
-    implementation(libs.accompanist.permissions)
-
     // Compose Debug
     implementation(libs.compose.ui.preview)
     debugImplementation(libs.androidx.ui.tooling)

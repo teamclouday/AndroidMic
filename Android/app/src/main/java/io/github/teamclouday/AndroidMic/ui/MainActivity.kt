@@ -8,6 +8,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import io.github.teamclouday.AndroidMic.AndroidMicApp
 import io.github.teamclouday.AndroidMic.ui.home.HomeScreen
+import io.github.teamclouday.AndroidMic.ui.home.openAppSettings
 import io.github.teamclouday.AndroidMic.ui.theme.AndroidMicTheme
 import io.github.teamclouday.AndroidMic.ui.utils.rememberWindowInfo
 import io.github.teamclouday.AndroidMic.utils.ignore
@@ -33,7 +34,7 @@ class MainActivity : ComponentActivity() {
                 // get windowInfo for rotation change
                 val windowInfo = rememberWindowInfo()
 
-                HomeScreen(vm, windowInfo)
+                HomeScreen(vm, windowInfo, onOpenPermissionSetting = ::openAppSettings)
             }
         }
     }

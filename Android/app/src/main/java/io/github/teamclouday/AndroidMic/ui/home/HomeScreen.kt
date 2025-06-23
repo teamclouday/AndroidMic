@@ -1,6 +1,8 @@
 package io.github.teamclouday.AndroidMic.ui.home
 
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.Orientation
@@ -34,8 +36,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import com.google.accompanist.permissions.ExperimentalPermissionsApi
-import com.google.accompanist.permissions.rememberMultiplePermissionsState
 import io.github.teamclouday.AndroidMic.Dialogs
 import io.github.teamclouday.AndroidMic.Mode
 import io.github.teamclouday.AndroidMic.R
@@ -43,14 +43,17 @@ import io.github.teamclouday.AndroidMic.ui.MainViewModel
 import io.github.teamclouday.AndroidMic.ui.components.ManagerButton
 import io.github.teamclouday.AndroidMic.ui.home.dialog.DialogIpPort
 import io.github.teamclouday.AndroidMic.ui.utils.WindowInfo
-import io.github.teamclouday.AndroidMic.ui.utils.getBluetoothPermission
-import io.github.teamclouday.AndroidMic.ui.utils.getRecordAudioPermission
-import io.github.teamclouday.AndroidMic.ui.utils.getUsbPermission
-import io.github.teamclouday.AndroidMic.ui.utils.getWifiPermission
 import kotlinx.coroutines.launch
 
+
+private val TAG = "HomeScreen"
+
 @Composable
-fun HomeScreen(vm: MainViewModel, currentWindowInfo: WindowInfo) {
+fun HomeScreen(
+    vm: MainViewModel,
+    currentWindowInfo: WindowInfo,
+    onOpenPermissionSetting: () -> Unit
+) {
 
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
@@ -103,7 +106,8 @@ fun HomeScreen(vm: MainViewModel, currentWindowInfo: WindowInfo) {
                     )
                     ConnectButton(
                         vm = vm,
-                        modifier = Modifier
+                        modifier = Modifier,
+                        onOpenPermissionSetting = onOpenPermissionSetting
                     )
                 }
 
@@ -127,7 +131,8 @@ fun HomeScreen(vm: MainViewModel, currentWindowInfo: WindowInfo) {
 
                     ConnectButton(
                         vm = vm,
-                        modifier = Modifier
+                        modifier = Modifier,
+                        onOpenPermissionSetting = onOpenPermissionSetting
                     )
                 }
             }
@@ -165,31 +170,58 @@ private fun Log(
     }
 }
 
-@OptIn(ExperimentalPermissionsApi::class)
 @Composable
 private fun ConnectButton(
     vm: MainViewModel,
-    modifier: Modifier
+    modifier: Modifier,
+    onOpenPermissionSetting: () -> Unit
 ) {
-    val wifiPermissionsState = rememberMultiplePermissionsState(
-        permissions = getWifiPermission()
-    )
-    val bluetoothPermissionsState = rememberMultiplePermissionsState(
-        permissions = getBluetoothPermission()
-    )
-    val usbPermissionsState = rememberMultiplePermissionsState(
-        permissions = getUsbPermission()
-    )
-
-    val audioPermissionsState = rememberMultiplePermissionsState(
-        permissions = getRecordAudioPermission()
-    )
-
 
     val dialogIpPortExpanded = rememberSaveable {
         mutableStateOf(false)
     }
+    val dialogPermissionRationalExpanded = rememberSaveable {
+        mutableStateOf(false)
+    }
+
+    val permissionResultLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { perms ->
+
+        val permsDeclined = perms.filter { !it.value }.map { it.key }.toList()
+
+        if (permsDeclined.isNotEmpty()) {
+            dialogPermissionRationalExpanded.value = true
+            vm.showPermissionDialog(permsDeclined)
+            return@rememberLauncherForActivityResult
+        } else {
+            dialogPermissionRationalExpanded.value = false
+        }
+
+        val dialog = vm.onConnectButton()
+
+        if (dialog != null) {
+            when (dialog) {
+                Dialogs.IpPort -> {
+                    dialogIpPortExpanded.value = true
+                }
+            }
+        }
+    }
+
     DialogIpPort(vm = vm, expanded = dialogIpPortExpanded)
+
+
+
+    PermissionDialog(
+        vm = vm,
+        expanded = dialogPermissionRationalExpanded,
+        onRequestPermissionAgain = {
+            permissionResultLauncher.launch(vm.perms.toTypedArray())
+        },
+        onOpenPermissionSetting = onOpenPermissionSetting
+    )
+
 
     Column(
         modifier = modifier
@@ -197,38 +229,26 @@ private fun ConnectButton(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
+
+
         ManagerButton(
             onClick = {
+
+                val perms = getRecordAudioPermission()
+
                 when (vm.prefs.mode.getBlocking()) {
                     Mode.WIFI -> {
-                        if (!wifiPermissionsState.allPermissionsGranted)
-                            return@ManagerButton wifiPermissionsState.launchMultiplePermissionRequest()
+                        perms.addAll(getWifiPermission())
+                        permissionResultLauncher.launch(perms.toTypedArray())
                     }
-
-//                Modes.BLUETOOTH -> {
-//                    if (!bluetoothPermissionsState.allPermissionsGranted)
-//                        return@ManagerButton bluetoothPermissionsState.launchMultiplePermissionRequest()
-//                }
 
                     Mode.USB -> {
-                        if (!usbPermissionsState.allPermissionsGranted)
-                            return@ManagerButton usbPermissionsState.launchMultiplePermissionRequest()
+                        perms.addAll(getUsbPermission())
+                        permissionResultLauncher.launch(perms.toTypedArray())
                     }
 
-                    else -> {}
-                }
-
-
-                if (!audioPermissionsState.allPermissionsGranted)
-                    return@ManagerButton audioPermissionsState.launchMultiplePermissionRequest()
-
-                val dialog = vm.onConnectButton()
-
-                if (dialog != null) {
-                    when (dialog) {
-                        Dialogs.IpPort -> {
-                            dialogIpPortExpanded.value = true
-                        }
+                    else -> {
+                        permissionResultLauncher.launch(perms.toTypedArray())
                     }
                 }
             },
