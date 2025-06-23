@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.ref }}-${{ github.workflow }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build-rust-app:
+    name: Build Rust App on  ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            platform: linux
+          - os: windows-2022
+            platform: windows
+          - os: macos-13
+            platform: macos
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies (Linux)
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libjack-jackd2-dev libxkbcommon-dev protobuf-compiler
+
+      - name: Install dependencies (Windows)
+        if: matrix.platform == 'windows'
+        run: choco install protoc -y
+
+      - name: Install dependencies (macOS)
+        if: matrix.platform == 'macos'
+        run: brew install protobuf --quiet
+
+      - name: Install Rust toolchain
+        run: rustup update
+
+      - name: Set up Rust cache
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: "./RustApp -> target"
+
+      - name: Build
+        working-directory: ./RustApp
+        run: cargo build
+
+  build-android-app:
+    name: Build Android App
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+          cache: gradle
+
+      - name: Build APK
+        working-directory: ./Android
+        run: ./gradlew assembleDebug
