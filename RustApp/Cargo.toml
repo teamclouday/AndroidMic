@@ -46,7 +46,7 @@ usb = ["nusb"]
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 # linux: alsa will probably be included as a fallback ?
-cpal = { version = "0.15", features = ["jack"] }
+cpal = { version = "0.16", features = ["jack"] }
 rtrb = "0.3"
 local-ip-address = "0.6"
 log = "0.4"
@@ -58,8 +58,8 @@ anyhow = { version = "1", features = ["backtrace"] }
 thiserror = "2"
 enum_dispatch = "0.3"
 futures = "0.3"
-cached = "0.54"
-constcat = "0.5"
+cached = "0.55"
+constcat = "0.6"
 cargo-packager-resource-resolver = { version = "0.1", features = [
     "auto-detect-format",
 ] }
@@ -71,10 +71,10 @@ i18n-embed = { version = "0.15", features = [
 rust-embed = { version = "8", features = ["debug-embed"] }
 i18n-embed-fl = "0.9"
 directories = "6"
-prost = "0.13"
+prost = "0.14"
 tokio-util = { version = "0.7", features = ["codec", "net"] }
 chrono = "0.4"
-libcosmic = { git = "https://github.com/pop-os/libcosmic", rev = "337b80d4ca02a63631668212bccbace22b8bb49f", features = [
+libcosmic = { git = "https://github.com/pop-os/libcosmic.git", rev = "a85b3693994ef2b8275eca6a9eccc86a2d7e9f86", features = [
     "winit",
     "wgpu",
     "tokio",
@@ -83,15 +83,15 @@ libcosmic = { git = "https://github.com/pop-os/libcosmic", rev = "337b80d4ca02a6
 byteorder = "1"
 nusb = { version = "0.1", optional = true }
 serde_with = "3"
-strum = { version = "0.26", features = ["derive"] }
-resvg = "0.45.0"
-rubato = "0.16.1"
+strum = { version = "0.27", features = ["derive"] }
+resvg = "0.45"
+rubato = "0.16"
 fix-path-env = { git = "https://github.com/wiiznokes/fix-path-env-rs", rev = "8612a0d8590843dbe9c6326d26292963e6a97f2a" }
-env_logger = "0.11.7"
-nnnoiseless = "0.5.1"
+env_logger = "0.11"
+nnnoiseless = "0.5"
 
 [build-dependencies]
-prost-build = "0.13"
+prost-build = "0.14"
 
 
 [target.'cfg(target_os = "windows")'.dependencies]

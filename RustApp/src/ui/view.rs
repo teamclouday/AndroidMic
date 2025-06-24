@@ -49,7 +49,7 @@ pub fn main_window(app: &AppState) -> Element<'_, AppMsg> {
 
 fn logs(app: &AppState) -> Element<'_, AppMsg> {
     context_menu(
-        container(scrollable(text(&app.logs).width(Length::Fill)).id(SCROLLABLE_ID.clone()))
+        container(scrollable(text(app.logs.clone()).width(Length::Fill)).id(SCROLLABLE_ID.clone()))
             .width(Length::Fill)
             .height(Length::FillPortion(3))
             .padding(13)
