@@ -79,6 +79,9 @@ libcosmic = { git = "https://github.com/pop-os/libcosmic.git", rev = "a85b369399
     "wgpu",
     "tokio",
     "multi-window",
+    "markdown",
+    # todo: remove this
+    "highlighter",
 ] }
 byteorder = "1"
 nusb = { version = "0.1", optional = true }
@@ -89,6 +92,7 @@ rubato = "0.16"
 fix-path-env = { git = "https://github.com/wiiznokes/fix-path-env-rs", rev = "8612a0d8590843dbe9c6326d26292963e6a97f2a" }
 env_logger = "0.11"
 nnnoiseless = "0.5"
+open = "5"
 
 [build-dependencies]
 prost-build = "0.14"
@@ -99,3 +103,6 @@ mslnk = "0.1"
 
 [target.'cfg(target_os = "windows")'.build-dependencies]
 winres = "0.1"
+
+# [patch."https://github.com/pop-os/libcosmic.git"]
+# libcosmic = { path = "../../libcosmic" }

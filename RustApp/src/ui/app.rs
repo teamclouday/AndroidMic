@@ -16,6 +16,7 @@ use cosmic::{
     iced_runtime::Action,
     iced_widget::scrollable::{self, AbsoluteOffset},
     theme,
+    widget::markdown,
 };
 
 use super::{
@@ -122,7 +123,8 @@ pub struct AppState {
     pub connection_state: ConnectionState,
     pub main_window: Option<CustomWindow>,
     pub settings_window: Option<CustomWindow>,
-    pub logs: String,
+    pub logs: Vec<markdown::Item>,
+    log_path: String,
 }
 
 pub struct CustomWindow {
@@ -158,11 +160,7 @@ impl AppState {
     }
 
     fn add_log(&mut self, log: &str) -> Task<AppMsg> {
-        if !self.logs.is_empty() {
-            self.logs.push('\n');
-        }
-        self.logs.push_str(log);
-
+        self.logs.extend(markdown::parse(log));
         scrollable::scroll_to(SCROLLABLE_ID.clone(), AbsoluteOffset { x: 0., y: f32::MAX })
     }
 
@@ -194,14 +192,14 @@ impl AppState {
                 let ip = config.ip.unwrap_or(local_ip().unwrap());
                 (
                     ConnectOption::Tcp { ip },
-                    Some(format!("Listening on ip {ip:?}")),
+                    Some(format!("Listening on ip `{ip:?}`")),
                 )
             }
             ConnectionMode::Udp => {
                 let ip = config.ip.unwrap_or(local_ip().unwrap());
                 (
                     ConnectOption::Udp { ip },
-                    Some(format!("Listening on ip {ip:?}")),
+                    Some(format!("Listening on ip `{ip:?}`")),
                 )
             }
             ConnectionMode::Adb => (ConnectOption::Adb, None),
@@ -232,6 +230,12 @@ pub struct Flags {
     config_path: String,
     log_path: String,
 }
+
+// used because the markdown parsing only detect https links
+const HTTPS_PREFIX_WORKAROUND: &str = "https://-file-";
+
+const LOG_PATH_WORKAROUND: &str = constcat::concat!(HTTPS_PREFIX_WORKAROUND, "log");
+const CONFIG_PATH_WORKAROUND: &str = constcat::concat!(HTTPS_PREFIX_WORKAROUND, "config");
 
 impl Application for AppState {
     type Executor = executor::Default;
@@ -306,11 +310,22 @@ impl Application for AppState {
             connection_state: ConnectionState::Default,
             main_window: Some(CustomWindow { window_id: new_id }),
             settings_window: None,
-            logs: String::new(),
+            logs: Vec::new(),
+            log_path: flags.log_path.clone(),
         };
 
-        commands.push(app.add_log(format!("config path: {}", flags.config_path).as_str()));
-        commands.push(app.add_log(format!("log path: {}", flags.log_path).as_str()));
+        commands.push(
+            app.add_log(
+                format!(
+                    "config path: [{}]({CONFIG_PATH_WORKAROUND})",
+                    flags.config_path
+                )
+                .as_str(),
+            ),
+        );
+        commands.push(
+            app.add_log(format!("log path: [{}]({LOG_PATH_WORKAROUND})", flags.log_path).as_str()),
+        );
         info!("config path: {}", flags.config_path);
         info!("log path: {}", flags.log_path);
 
@@ -345,7 +360,7 @@ impl Application for AppState {
                             let port = port.unwrap_or(0);
                             info!("listening: {port:?}");
                             self.connection_state = ConnectionState::Listening;
-                            return self.add_log(format!("Listening on port {port:?}").as_str());
+                            return self.add_log(format!("Listening on port `{port:?}`").as_str());
                         }
                     }
                     Status::Connected => {
@@ -460,6 +475,23 @@ impl Application for AppState {
             AppMsg::Menu(menu_msg) => match menu_msg {
                 super::message::MenuMsg::ClearLogs => self.logs.clear(),
             },
+            AppMsg::LinkClicked(url) => {
+                let mut url = url.to_string();
+
+                if url.starts_with(CONFIG_PATH_WORKAROUND) {
+                    url = self.config.path().to_str().unwrap_or_default().to_string();
+                }
+
+                if url.starts_with(LOG_PATH_WORKAROUND) {
+                    url = self.log_path.clone();
+                }
+
+                info!("open: {url}");
+
+                if let Err(e) = open::that(url) {
+                    error!("{e}");
+                }
+            }
         }
 
         Task::none()

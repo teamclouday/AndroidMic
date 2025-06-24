@@ -4,8 +4,8 @@ use cosmic::{
     Element,
     iced::{Length, alignment::Horizontal, widget::pick_list},
     widget::{
-        button, canvas, column, container, context_menu, menu, radio, row, scrollable, settings,
-        text, toggler, vertical_space,
+        button, canvas, column, container, context_menu, markdown, menu, radio, row, scrollable,
+        settings, text, toggler, vertical_space,
     },
 };
 use cpal::traits::DeviceTrait;
@@ -49,11 +49,26 @@ pub fn main_window(app: &AppState) -> Element<'_, AppMsg> {
 
 fn logs(app: &AppState) -> Element<'_, AppMsg> {
     context_menu(
-        container(scrollable(text(app.logs.clone()).width(Length::Fill)).id(SCROLLABLE_ID.clone()))
-            .width(Length::Fill)
-            .height(Length::FillPortion(3))
-            .padding(13)
-            .class(cosmic::theme::Container::Card),
+        container(
+            scrollable(
+                container(
+                    markdown::view(
+                        &app.logs,
+                        markdown::Settings::with_text_size(12),
+                        markdown::Style::from_palette(
+                            cosmic::iced::Theme::TokyoNightStorm.palette(),
+                        ),
+                    )
+                    .map(AppMsg::LinkClicked),
+                )
+                .width(Length::Fill),
+            )
+            .id(SCROLLABLE_ID.clone()),
+        )
+        .width(Length::Fill)
+        .height(Length::FillPortion(3))
+        .padding(13)
+        .class(cosmic::theme::Container::Card),
         Some(menu::items(
             &HashMap::new(),
             vec![menu::Item::Button(

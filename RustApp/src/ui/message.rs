@@ -16,6 +16,7 @@ pub enum AppMsg {
     RefreshAudioDevices,
     Shutdown,
     Menu(MenuMsg),
+    LinkClicked(markdown::Url),
 }
 
 #[derive(Debug, Clone)]
@@ -35,7 +36,7 @@ pub enum MenuMsg {
     ClearLogs,
 }
 
-use cosmic::widget::menu::action::MenuAction;
+use cosmic::widget::{markdown, menu::action::MenuAction};
 
 impl MenuAction for MenuMsg {
     type Message = AppMsg;
