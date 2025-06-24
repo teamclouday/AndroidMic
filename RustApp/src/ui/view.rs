@@ -1,11 +1,11 @@
-use std::sync::LazyLock;
+use std::{collections::HashMap, sync::LazyLock};
 
 use cosmic::{
     Element,
     iced::{Length, alignment::Horizontal, widget::pick_list},
     widget::{
-        button, canvas, column, container, radio, row, scrollable, settings, text, toggler,
-        vertical_space,
+        button, canvas, column, container, context_menu, menu, radio, row, scrollable, settings,
+        text, toggler, vertical_space,
     },
 };
 use cpal::traits::DeviceTrait;
@@ -16,7 +16,9 @@ use super::{
 };
 use crate::{
     config::{AppTheme, AudioFormat, ChannelCount, ConnectionMode, SampleRate},
-    fl, widget_icon_button,
+    fl,
+    ui::message::MenuMsg,
+    widget_icon_button,
 };
 
 pub static SCROLLABLE_ID: LazyLock<cosmic::widget::Id> = LazyLock::new(cosmic::widget::Id::unique);
@@ -46,12 +48,18 @@ pub fn main_window(app: &AppState) -> Element<'_, AppMsg> {
 }
 
 fn logs(app: &AppState) -> Element<'_, AppMsg> {
-    container(scrollable(text(&app.logs).width(Length::Fill)).id(SCROLLABLE_ID.clone()))
-        .width(Length::Fill)
-        .height(Length::FillPortion(3))
-        .padding(13)
-        .class(cosmic::theme::Container::Card)
-        .into()
+    context_menu(
+        container(scrollable(text(&app.logs).width(Length::Fill)).id(SCROLLABLE_ID.clone()))
+            .width(Length::Fill)
+            .height(Length::FillPortion(3))
+            .padding(13)
+            .class(cosmic::theme::Container::Card),
+        Some(menu::items(
+            &HashMap::new(),
+            vec![menu::Item::Button(fl!("clear_logs"), None, MenuMsg::ClearLogs)],
+        )),
+    )
+    .into()
 }
 
 fn wave(app: &AppState) -> Element<'_, AppMsg> {

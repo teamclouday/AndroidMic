@@ -457,6 +457,9 @@ impl Application for AppState {
             AppMsg::Shutdown => {
                 return cosmic::iced_runtime::task::effect(Action::Exit);
             }
+            AppMsg::Menu(menu_msg) => match menu_msg {
+                super::message::MenuMsg::ClearLogs => self.logs.clear(),
+            },
         }
 
         Task::none()
