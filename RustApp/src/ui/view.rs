@@ -56,7 +56,11 @@ fn logs(app: &AppState) -> Element<'_, AppMsg> {
             .class(cosmic::theme::Container::Card),
         Some(menu::items(
             &HashMap::new(),
-            vec![menu::Item::Button(fl!("clear_logs"), None, MenuMsg::ClearLogs)],
+            vec![menu::Item::Button(
+                fl!("clear_logs"),
+                None,
+                MenuMsg::ClearLogs,
+            )],
         )),
     )
     .into()
