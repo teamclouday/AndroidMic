@@ -91,9 +91,11 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                                 .map(Streamer::from)
                                         }
                                         #[cfg(feature = "usb")]
-                                        ConnectOption::Usb => crate::streamer::usb_streamer::new(stream_config)
-                                            .await
-                                            .map(Streamer::from),
+                                        ConnectOption::Usb => {
+                                            crate::streamer::usb_streamer::new(stream_config)
+                                                .await
+                                                .map(Streamer::from)
+                                        }
                                     };
 
                                 match new_streamer {

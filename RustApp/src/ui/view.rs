@@ -1,3 +1,5 @@
+use std::sync::LazyLock;
+
 use cosmic::{
     Element,
     iced::{Length, alignment::Horizontal, widget::pick_list},
@@ -16,6 +18,8 @@ use crate::{
     config::{AppTheme, AudioFormat, ChannelCount, ConnectionMode, SampleRate},
     fl, widget_icon_button,
 };
+
+pub static SCROLLABLE_ID: LazyLock<cosmic::widget::Id> = LazyLock::new(cosmic::widget::Id::unique);
 
 pub fn main_window(app: &AppState) -> Element<'_, AppMsg> {
     row()
@@ -42,7 +46,7 @@ pub fn main_window(app: &AppState) -> Element<'_, AppMsg> {
 }
 
 fn logs(app: &AppState) -> Element<'_, AppMsg> {
-    container(scrollable(text(&app.logs).width(Length::Fill)))
+    container(scrollable(text(&app.logs).width(Length::Fill)).id(SCROLLABLE_ID.clone()))
         .width(Length::Fill)
         .height(Length::FillPortion(3))
         .padding(13)

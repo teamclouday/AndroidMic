@@ -14,6 +14,7 @@ use cosmic::{
     executor,
     iced::{Size, Subscription, futures::StreamExt, window},
     iced_runtime::Action,
+    iced_widget::scrollable::{self, AbsoluteOffset},
     theme,
 };
 
@@ -27,6 +28,7 @@ use crate::{
     config::{AppTheme, AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
     fl,
     streamer::{self, ConnectOption, Status, StreamConfig, StreamerCommand, StreamerMsg},
+    ui::view::SCROLLABLE_ID,
     utils::APP_ID,
     window_icon,
 };
@@ -132,9 +134,9 @@ impl AppState {
         self.streamer.as_ref().unwrap().blocking_send(cmd).unwrap();
     }
 
-    fn update_audio_stream(&mut self) {
+    fn update_audio_stream(&mut self) -> Task<AppMsg> {
         if self.connection_state != ConnectionState::Connected {
-            return;
+            return Task::none();
         }
         let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
 
@@ -145,21 +147,23 @@ impl AppState {
                     audio_config,
                     denoise: self.config.data().denoise,
                 }));
+                Task::none()
             }
             Err(e) => {
-                self.add_log(&e.to_string());
                 error!("failed to start audio stream: {e}");
                 self.send_command(StreamerCommand::Stop);
+                self.add_log(&e.to_string())
             }
         }
     }
 
-    fn add_log(&mut self, log: &str) {
+    fn add_log(&mut self, log: &str) -> Task<AppMsg> {
         if !self.logs.is_empty() {
             self.logs.push('\n');
         }
         self.logs.push_str(log);
-        // todo: scroll to bottom
+
+        scrollable::scroll_to(SCROLLABLE_ID.clone(), AbsoluteOffset { x: 0., y: f32::MAX })
     }
 
     fn get_shared_buf_size(&self) -> usize {
@@ -173,33 +177,36 @@ impl AppState {
         size
     }
 
-    fn connect(&mut self) {
+    fn connect(&mut self) -> Task<AppMsg> {
         let config = self.config.data().clone();
         let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
 
         let audio_config = match self.start_audio_stream(consumer) {
             Ok(audio_config) => audio_config,
             Err(e) => {
-                self.add_log(&e.to_string());
                 error!("failed to start audio stream: {e}");
-                return;
+                return self.add_log(&e.to_string());
             }
         };
 
-        let connect_option = match config.connection_mode {
+        let (connect_option, log) = match config.connection_mode {
             ConnectionMode::Tcp => {
                 let ip = config.ip.unwrap_or(local_ip().unwrap());
-                self.add_log(format!("Listening on ip {ip:?}").as_str());
-                ConnectOption::Tcp { ip }
+                (
+                    ConnectOption::Tcp { ip },
+                    Some(format!("Listening on ip {ip:?}")),
+                )
             }
             ConnectionMode::Udp => {
                 let ip = config.ip.unwrap_or(local_ip().unwrap());
-                self.add_log(format!("Listening on ip {ip:?}").as_str());
-                ConnectOption::Udp { ip }
+                (
+                    ConnectOption::Udp { ip },
+                    Some(format!("Listening on ip {ip:?}")),
+                )
             }
-            ConnectionMode::Adb => ConnectOption::Adb,
+            ConnectionMode::Adb => (ConnectOption::Adb, None),
             #[cfg(feature = "usb")]
-            ConnectionMode::Usb => ConnectOption::Usb,
+            ConnectionMode::Usb => (ConnectOption::Usb, None),
         };
 
         self.connection_state = ConnectionState::WaitingOnStatus;
@@ -212,6 +219,11 @@ impl AppState {
                 denoise: self.config.data().denoise,
             },
         ));
+
+        match &log {
+            Some(log) => self.add_log(log),
+            None => Task::none(),
+        }
     }
 }
 
@@ -276,7 +288,11 @@ impl Application for AppState {
             ..Default::default()
         };
 
+        let mut commands = Vec::new();
+
         let (new_id, command) = cosmic::iced::window::open(settings);
+
+        commands.push(command.map(|_| cosmic::action::Action::None));
 
         let mut app = Self {
             core,
@@ -293,19 +309,14 @@ impl Application for AppState {
             logs: String::new(),
         };
 
-        app.add_log(format!("config path: {}", flags.config_path).as_str());
-        app.add_log(format!("log path: {}", flags.log_path).as_str());
+        commands.push(app.add_log(format!("config path: {}", flags.config_path).as_str()));
+        commands.push(app.add_log(format!("log path: {}", flags.log_path).as_str()));
         info!("config path: {}", flags.config_path);
         info!("log path: {}", flags.log_path);
 
-        let set_window_title = app.set_window_title(fl!("main_window_title"), new_id);
+        commands.push(app.set_window_title(fl!("main_window_title"), new_id));
 
-        (
-            app,
-            command
-                .map(|_| cosmic::action::Action::None)
-                .chain(set_window_title),
-        )
+        (app, Task::batch(commands))
     }
 
     fn update(&mut self, message: Self::Message) -> Task<Self::Message> {
@@ -324,17 +335,17 @@ impl Application for AppState {
             AppMsg::Streamer(streamer_msg) => match streamer_msg {
                 StreamerMsg::Status(status) => match status {
                     Status::Error(e) => {
-                        self.add_log(&e);
                         self.connection_state = ConnectionState::Default;
                         self.audio_stream = None;
                         self.audio_wave.clear();
+                        return self.add_log(&e);
                     }
                     Status::Listening { port } => {
                         if self.connection_state != ConnectionState::Listening {
                             let port = port.unwrap_or(0);
                             info!("listening: {port:?}");
-                            self.add_log(format!("Listening on port {port:?}").as_str());
                             self.connection_state = ConnectionState::Listening;
+                            return self.add_log(format!("Listening on port {port:?}").as_str());
                         }
                     }
                     Status::Connected => {
@@ -347,7 +358,7 @@ impl Application for AppState {
                 StreamerMsg::Ready(sender) => {
                     self.streamer = Some(sender);
                     if config.auto_connect {
-                        self.connect();
+                        return self.connect();
                     }
                 }
             },
@@ -355,10 +366,10 @@ impl Application for AppState {
                 self.audio_device = Some(audio_device.device.clone());
                 self.config
                     .update(|c| c.device_name = Some(audio_device.name.clone()));
-                self.update_audio_stream();
+                return self.update_audio_stream();
             }
             AppMsg::Connect => {
-                self.connect();
+                return self.connect();
             }
             AppMsg::Stop => {
                 self.send_command(StreamerCommand::Stop);
@@ -395,15 +406,15 @@ impl Application for AppState {
             AppMsg::Config(msg) => match msg {
                 ConfigMsg::SampleRate(sample_rate) => {
                     self.config.update(|s| s.sample_rate = sample_rate);
-                    self.update_audio_stream();
+                    return self.update_audio_stream();
                 }
                 ConfigMsg::ChannelCount(channel_count) => {
                     self.config.update(|s| s.channel_count = channel_count);
-                    self.update_audio_stream();
+                    return self.update_audio_stream();
                 }
                 ConfigMsg::AudioFormat(audio_format) => {
                     self.config.update(|s| s.audio_format = audio_format);
-                    self.update_audio_stream();
+                    return self.update_audio_stream();
                 }
                 ConfigMsg::StartAtLogin(start_at_login) => {
                     crate::start_at_login::start_at_login(start_at_login, &mut self.config);
@@ -429,13 +440,13 @@ impl Application for AppState {
                                     AudioFormat::from_cpal_format(format.sample_format())
                                         .unwrap_or_default();
                             });
-                            self.update_audio_stream();
+                            return self.update_audio_stream();
                         }
                     }
                 }
                 ConfigMsg::DeNoise(denoise) => {
                     self.config.update(|c| c.denoise = denoise);
-                    self.update_audio_stream();
+                    return self.update_audio_stream();
                 }
                 ConfigMsg::Theme(app_theme) => {
                     let cmd = cosmic::command::set_theme(to_cosmic_theme(&app_theme));
