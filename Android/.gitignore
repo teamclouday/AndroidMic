@@ -30,3 +30,4 @@ google-services.json
 *.hprof
 
 .kotlin
+!/app/nightly-signing-key.jks

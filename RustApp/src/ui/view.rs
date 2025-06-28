@@ -1,9 +1,11 @@
+use std::{collections::HashMap, sync::LazyLock};
+
 use cosmic::{
     Element,
     iced::{Length, alignment::Horizontal, widget::pick_list},
     widget::{
-        button, canvas, column, container, radio, row, scrollable, settings, text, toggler,
-        vertical_space,
+        button, canvas, column, container, context_menu, markdown, menu, radio, row, scrollable,
+        settings, text, toggler, vertical_space,
     },
 };
 use cpal::traits::DeviceTrait;
@@ -14,8 +16,12 @@ use super::{
 };
 use crate::{
     config::{AppTheme, AudioFormat, ChannelCount, ConnectionMode, SampleRate},
-    fl, widget_icon_button,
+    fl,
+    ui::message::MenuMsg,
+    widget_icon_button,
 };
+
+pub static SCROLLABLE_ID: LazyLock<cosmic::widget::Id> = LazyLock::new(cosmic::widget::Id::unique);
 
 pub fn main_window(app: &AppState) -> Element<'_, AppMsg> {
     row()
@@ -42,12 +48,37 @@ pub fn main_window(app: &AppState) -> Element<'_, AppMsg> {
 }
 
 fn logs(app: &AppState) -> Element<'_, AppMsg> {
-    container(scrollable(text(&app.logs).width(Length::Fill)))
+    context_menu(
+        container(
+            scrollable(
+                container(
+                    markdown::view(
+                        &app.logs,
+                        markdown::Settings::with_text_size(12),
+                        markdown::Style::from_palette(
+                            cosmic::iced::Theme::TokyoNightStorm.palette(),
+                        ),
+                    )
+                    .map(AppMsg::LinkClicked),
+                )
+                .width(Length::Fill),
+            )
+            .id(SCROLLABLE_ID.clone()),
+        )
         .width(Length::Fill)
         .height(Length::FillPortion(3))
         .padding(13)
-        .class(cosmic::theme::Container::Card)
-        .into()
+        .class(cosmic::theme::Container::Card),
+        Some(menu::items(
+            &HashMap::new(),
+            vec![menu::Item::Button(
+                fl!("clear_logs"),
+                None,
+                MenuMsg::ClearLogs,
+            )],
+        )),
+    )
+    .into()
 }
 
 fn wave(app: &AppState) -> Element<'_, AppMsg> {
@@ -90,6 +121,17 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
 fn connection_type(app: &AppState) -> Element<'_, AppMsg> {
     let connection_mode = &app.config.data().connection_mode;
 
+    #[cfg(not(feature = "usb"))]
+    let usb: Option<Element<_>> = None;
+
+    #[cfg(feature = "usb")]
+    let usb = Some(radio(
+        "USB Serial",
+        &ConnectionMode::Usb,
+        Some(connection_mode),
+        |mode| AppMsg::ChangeConnectionMode(*mode),
+    ));
+
     column()
         .spacing(20)
         .align_x(Horizontal::Center)
@@ -108,12 +150,7 @@ fn connection_type(app: &AppState) -> Element<'_, AppMsg> {
                     Some(connection_mode),
                     |mode| AppMsg::ChangeConnectionMode(*mode),
                 ))
-                .push(radio(
-                    "USB Serial",
-                    &ConnectionMode::Usb,
-                    Some(connection_mode),
-                    |mode| AppMsg::ChangeConnectionMode(*mode),
-                ))
+                .push_maybe(usb)
                 .push(radio(
                     "USB Adb",
                     &ConnectionMode::Adb,

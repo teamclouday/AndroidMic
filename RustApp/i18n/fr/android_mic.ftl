@@ -22,3 +22,5 @@ settings_window_title = Paramètres
 
 mono = Mono
 stereo = Stéréo
+
+clear_logs = Supprimer les logs

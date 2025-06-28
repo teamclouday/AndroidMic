@@ -24,14 +24,23 @@ pub struct Config {
     pub theme: AppTheme,
 }
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize, Eq, PartialEq, Values)]
+#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Values)]
 pub enum AppTheme {
-    #[default]
     System,
     Light,
     Dark,
     HighContrastDark,
     HighContrastLight,
+}
+
+impl Default for AppTheme {
+    fn default() -> Self {
+        if cfg!(target_os = "linux") {
+            AppTheme::Dark
+        } else {
+            AppTheme::System
+        }
+    }
 }
 
 impl Display for AppTheme {
@@ -110,6 +119,7 @@ pub enum ConnectionMode {
     Tcp,
     Udp,
     Adb,
+    #[cfg(feature = "usb")]
     Usb,
 }
 
