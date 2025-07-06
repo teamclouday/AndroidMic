@@ -28,3 +28,5 @@ hight_contrast_light_theme = HighContrastLight
 
 mono = Mono
 stereo = Stereo
+
+clear_logs = Clear logs

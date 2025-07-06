@@ -5,7 +5,7 @@ prefix := ''
 debug := '0'
 
 name := 'android-mic'
-appid := 'io.github.teamclouday.' + name
+appid := 'io.github.teamclouday.AndroidMic'
 
 cargo-target-dir := env('CARGO_TARGET_DIR', 'target')
 bin-src := cargo-target-dir / if debug == '1' { 'debug' / name } else { 'release' / name }

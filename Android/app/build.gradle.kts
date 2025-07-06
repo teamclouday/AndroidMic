@@ -1,4 +1,4 @@
-import com.google.protobuf.gradle.*
+import com.google.protobuf.gradle.id
 
 plugins {
     alias(libs.plugins.android.application)
@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.androidMic"
+    namespace = "io.github.teamclouday.AndroidMic"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.example.androidMic"
+        applicationId = "io.github.teamclouday.AndroidMic"
         minSdk = 23
         targetSdk = 35
         versionCode = 10
@@ -26,6 +26,16 @@ android {
 
     }
 
+    signingConfigs {
+        // need this because debug key is machine dependent
+        create("nightly") {
+            keyAlias = "key0"
+            keyPassword = "123456"
+            storeFile = file("nightly-signing-key.jks")
+            storePassword = "123456"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
@@ -34,6 +44,12 @@ android {
                 "proguard-rules.pro"
             )
             signingConfig = signingConfigs.getByName("debug")
+        }
+
+        create("nightly") {
+            initWith(getByName("release"))
+            signingConfig = signingConfigs.getByName("nightly")
+            applicationIdSuffix = ".nightly"
         }
 
         debug {
@@ -100,10 +116,6 @@ dependencies {
     implementation(libs.compose.material)
     implementation(libs.compose.material3)
     implementation(libs.compose.material.icons.extended)
-    implementation(libs.compose.constraintlayout)
-
-    // compose permission
-    implementation(libs.accompanist.permissions)
 
     // Compose Debug
     implementation(libs.compose.ui.preview)
