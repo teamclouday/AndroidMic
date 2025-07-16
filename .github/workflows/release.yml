@@ -187,7 +187,7 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ env.VERSION }}
+          tag_name: v${{ env.VERSION }}
           name: Release v${{ env.VERSION }}
           draft: true
           generate_release_notes: true
