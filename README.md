@@ -6,8 +6,8 @@
 <h3 align="center">Use your Android phone as a microphone for your PC</h3>
 
 <!-- <a href="https://flathub.org/apps/io.github.teamclouday.AndroidMic"><img align=center height="40" src="https://flathub.org/assets/badges/flathub-badge-en.svg"  alt="Download on Flathub"/></a> -->
-<a href="https://f-droid.org/en/packages/io.github.teamclouday.AndroidMic/"><img align=center height="60" src="https://f-droid.org/badge/get-it-on.svg" alt="F-Droid Badge"></a>
-<a href="https://github.com/teamclouday/AndroidMic/releases/latest"><img align=center height="30" src="https://img.shields.io/github/release/teamclouday/AndroidMic.svg" alt="Download on Github release"/></a>
+[![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/teamclouday/AndroidMic.svg?logo=github&label=GitHub&cacheSeconds=3600)](https://github.com/teamclouday/AndroidMic/releases/latest)
+[![F-Droid](https://img.shields.io/f-droid/v/io.github.teamclouday.AndroidMic?logo=f-droid&label=F-Droid&cacheSeconds=3600)](https://f-droid.org/packages/io.github.teamclouday.AndroidMic)
 
 ---
 
