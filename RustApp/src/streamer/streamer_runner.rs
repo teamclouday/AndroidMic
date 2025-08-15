@@ -11,8 +11,7 @@ use tokio::sync::mpsc::{self, Sender};
 use crate::streamer::{StreamerTrait, WriteError};
 
 use super::{
-    ConnectError, DummyStreamer, Status, StreamConfig, Streamer, adb_streamer, tcp_streamer,
-    udp_streamer,
+    ConnectError, DummyStreamer, StreamConfig, Streamer, adb_streamer, tcp_streamer, udp_streamer,
 };
 
 #[derive(Debug)]
@@ -39,8 +38,25 @@ pub enum StreamerCommand {
 /// Streamer -> App
 #[derive(Debug, Clone)]
 pub enum StreamerMsg {
-    Status(Status),
+    UpdateAudioWave {
+        data: Vec<(f32, f32)>,
+    },
+    Error(String),
+    Listening {
+        ip: Option<IpAddr>,
+        port: Option<u16>,
+    },
+    Connected {
+        ip: Option<IpAddr>,
+        port: Option<u16>,
+    },
     Ready(Sender<StreamerCommand>),
+}
+
+impl StreamerMsg {
+    fn is_error(&self) -> bool {
+        matches!(self, StreamerMsg::Error(..))
+    }
 }
 
 async fn send(sender: &mut futures::channel::mpsc::Sender<StreamerMsg>, msg: StreamerMsg) {
@@ -73,6 +89,7 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
             match either {
                 Either::Left(command) => {
                     if let Some(command) = command {
+                        info!("received command {command:?}");
                         match command {
                             StreamerCommand::Connect(connect_option, stream_config) => {
                                 let new_streamer: Result<Streamer, ConnectError> =
@@ -100,20 +117,12 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
 
                                 match new_streamer {
                                     Ok(new_streamer) => {
-                                        send(
-                                            &mut sender,
-                                            StreamerMsg::Status(new_streamer.status().unwrap()),
-                                        )
-                                        .await;
+                                        send(&mut sender, new_streamer.status()).await;
                                         streamer = new_streamer;
                                     }
                                     Err(e) => {
                                         error!("{e}");
-                                        send(
-                                            &mut sender,
-                                            StreamerMsg::Status(Status::Error(e.to_string())),
-                                        )
-                                        .await;
+                                        send(&mut sender, StreamerMsg::Error(e.to_string())).await;
                                     }
                                 }
                             }
@@ -129,7 +138,7 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                 Either::Right(res) => match res {
                     Ok(status) => {
                         if let Some(status) = status {
-                            send(&mut sender, StreamerMsg::Status(status)).await;
+                            send(&mut sender, status).await;
                         }
                     }
                     Err(connect_error) => {
@@ -139,11 +148,7 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                             connect_error,
                             ConnectError::WriteError(WriteError::BufferOverfilled(..))
                         ) {
-                            send(
-                                &mut sender,
-                                StreamerMsg::Status(Status::Error(connect_error.to_string())),
-                            )
-                            .await;
+                            send(&mut sender, StreamerMsg::Error(connect_error.to_string())).await;
                             streamer = DummyStreamer::new();
                         }
                     }

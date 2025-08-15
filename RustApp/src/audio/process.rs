@@ -60,25 +60,25 @@ where
         mono_buffer
     };
 
-    let denoise_sample_rate = 48000;
+    const DENOISE_SAMPLE_RATE: u32 = 48000;
 
     // next run resampler and denoise on the buffer
     let resampled_buffer = if config.denoise {
-        let prepared_buffer = if packet.sample_rate == denoise_sample_rate {
+        let prepared_buffer = if packet.sample_rate == DENOISE_SAMPLE_RATE {
             buffer
         } else {
-            resample_f32_stream(&buffer, packet.sample_rate, denoise_sample_rate)?
+            resample_f32_stream(&buffer, packet.sample_rate, DENOISE_SAMPLE_RATE)?
         };
 
         // denoise the audio stream
         let denoised_buffer = denoise_f32_stream(&prepared_buffer)?;
 
-        if format.sample_rate.to_number() == denoise_sample_rate {
+        if format.sample_rate.to_number() == DENOISE_SAMPLE_RATE {
             denoised_buffer
         } else {
             resample_f32_stream(
                 &denoised_buffer,
-                denoise_sample_rate,
+                DENOISE_SAMPLE_RATE,
                 format.sample_rate.to_number(),
             )?
         }

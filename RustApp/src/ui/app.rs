@@ -28,8 +28,8 @@ use crate::{
     audio::AudioPacketFormat,
     config::{AppTheme, AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
     fl,
-    streamer::{self, ConnectOption, Status, StreamConfig, StreamerCommand, StreamerMsg},
-    ui::view::SCROLLABLE_ID,
+    streamer::{self, ConnectOption, StreamConfig, StreamerCommand, StreamerMsg},
+    ui::view::{SCROLLABLE_ID, about_window},
     utils::APP_ID,
     window_icon,
 };
@@ -123,6 +123,7 @@ pub struct AppState {
     pub connection_state: ConnectionState,
     pub main_window: Option<CustomWindow>,
     pub settings_window: Option<CustomWindow>,
+    pub about_window: Option<CustomWindow>,
     pub logs: Vec<markdown::Item>,
     log_path: String,
 }
@@ -187,24 +188,18 @@ impl AppState {
             }
         };
 
-        let (connect_option, log) = match config.connection_mode {
+        let connect_option = match config.connection_mode {
             ConnectionMode::Tcp => {
                 let ip = config.ip.unwrap_or(local_ip().unwrap());
-                (
-                    ConnectOption::Tcp { ip },
-                    Some(format!("Listening on ip `{ip:?}`")),
-                )
+                ConnectOption::Tcp { ip }
             }
             ConnectionMode::Udp => {
                 let ip = config.ip.unwrap_or(local_ip().unwrap());
-                (
-                    ConnectOption::Udp { ip },
-                    Some(format!("Listening on ip `{ip:?}`")),
-                )
+                ConnectOption::Udp { ip }
             }
-            ConnectionMode::Adb => (ConnectOption::Adb, None),
+            ConnectionMode::Adb => ConnectOption::Adb,
             #[cfg(feature = "usb")]
-            ConnectionMode::Usb => (ConnectOption::Usb, None),
+            ConnectionMode::Usb => ConnectOption::Usb,
         };
 
         self.connection_state = ConnectionState::WaitingOnStatus;
@@ -218,10 +213,7 @@ impl AppState {
             },
         ));
 
-        match &log {
-            Some(log) => self.add_log(log),
-            None => Task::none(),
-        }
+        Task::none()
     }
 }
 
@@ -310,6 +302,7 @@ impl Application for AppState {
             connection_state: ConnectionState::Default,
             main_window: Some(CustomWindow { window_id: new_id }),
             settings_window: None,
+            about_window: None,
             logs: Vec::new(),
             log_path: flags.log_path.clone(),
         };
@@ -348,28 +341,29 @@ impl Application for AppState {
                 self.audio_devices = get_audio_devices(&audio_host);
             }
             AppMsg::Streamer(streamer_msg) => match streamer_msg {
-                StreamerMsg::Status(status) => match status {
-                    Status::Error(e) => {
-                        self.connection_state = ConnectionState::Default;
-                        self.audio_stream = None;
-                        self.audio_wave.clear();
-                        return self.add_log(&e);
+                StreamerMsg::Error(e) => {
+                    self.connection_state = ConnectionState::Default;
+                    self.audio_stream = None;
+                    self.audio_wave.clear();
+                    return self.add_log(&e);
+                }
+                StreamerMsg::Listening { ip, port } => {
+                    self.connection_state = ConnectionState::Listening;
+                    if let (Some(ip), Some(port)) = (ip, port) {
+                        info!("listening on {ip}:{port}");
+                        return self.add_log(format!("Listening on `{ip}:{port}`").as_str());
                     }
-                    Status::Listening { port } => {
-                        if self.connection_state != ConnectionState::Listening {
-                            let port = port.unwrap_or(0);
-                            info!("listening: {port:?}");
-                            self.connection_state = ConnectionState::Listening;
-                            return self.add_log(format!("Listening on port `{port:?}`").as_str());
-                        }
+                }
+                StreamerMsg::Connected { ip, port } => {
+                    self.connection_state = ConnectionState::Connected;
+                    if let (Some(ip), Some(port)) = (ip, port) {
+                        info!("connected on {ip}:{port}");
+                        return self.add_log(format!("Connected on `{ip}:{port}`").as_str());
                     }
-                    Status::Connected => {
-                        self.connection_state = ConnectionState::Connected;
-                    }
-                    Status::UpdateAudioWave { data } => {
-                        self.audio_wave.write_chunk(&data);
-                    }
-                },
+                }
+                StreamerMsg::UpdateAudioWave { data } => {
+                    self.audio_wave.write_chunk(&data);
+                }
                 StreamerMsg::Ready(sender) => {
                     self.streamer = Some(sender);
                     if config.auto_connect {
@@ -418,6 +412,7 @@ impl Application for AppState {
                         .chain(set_window_title);
                 }
             },
+
             AppMsg::Config(msg) => match msg {
                 ConfigMsg::SampleRate(sample_rate) => {
                     self.config.update(|s| s.sample_rate = sample_rate);
@@ -438,29 +433,29 @@ impl Application for AppState {
                     self.config.update(|s| s.auto_connect = auto_connect);
                 }
                 ConfigMsg::UseRecommendedFormat => {
-                    if let Some(device) = &self.audio_device {
-                        if let Ok(format) = device.default_output_config() {
-                            info!(
-                                "using recommended audio format: sample rate = {}, channels = {}, audio format = {}",
-                                format.sample_rate().0,
-                                format.channels(),
-                                format.sample_format()
-                            );
-                            self.config.update(|s| {
-                                s.sample_rate = SampleRate::from_number(format.sample_rate().0)
-                                    .unwrap_or_default();
-                                s.channel_count = ChannelCount::from_number(format.channels())
-                                    .unwrap_or_default();
-                                s.audio_format =
-                                    AudioFormat::from_cpal_format(format.sample_format())
-                                        .unwrap_or_default();
-                            });
-                            return self.update_audio_stream();
-                        }
+                    if let Some(device) = &self.audio_device
+                        && let Ok(format) = device.default_output_config()
+                    {
+                        info!(
+                            "using recommended audio format: sample rate = {}, channels = {}, audio format = {}",
+                            format.sample_rate().0,
+                            format.channels(),
+                            format.sample_format()
+                        );
+                        self.config.update(|s| {
+                            s.sample_rate =
+                                SampleRate::from_number(format.sample_rate().0).unwrap_or_default();
+                            s.channel_count =
+                                ChannelCount::from_number(format.channels()).unwrap_or_default();
+                            s.audio_format = AudioFormat::from_cpal_format(format.sample_format())
+                                .unwrap_or_default();
+                        });
+                        return self.update_audio_stream();
                     }
                 }
                 ConfigMsg::DeNoise(denoise) => {
                     self.config.update(|c| c.denoise = denoise);
+                    info!("set denoise: {denoise}");
                     return self.update_audio_stream();
                 }
                 ConfigMsg::Theme(app_theme) => {
@@ -468,6 +463,31 @@ impl Application for AppState {
                     self.config.update(|s| s.theme = app_theme);
                     return cmd;
                 }
+                ConfigMsg::ToggleAboutWindow => match &self.about_window {
+                    Some(about_window) => {
+                        let id = about_window.window_id;
+                        self.about_window = None;
+                        return cosmic::iced::runtime::task::effect(Action::Window(
+                            window::Action::Close(id),
+                        ));
+                    }
+                    None => {
+                        let settings = window::Settings {
+                            size: Size::new(500.0, 600.0),
+                            position: window::Position::Centered,
+                            exit_on_close_request: true,
+                            icon: window_icon!("icon"),
+                            ..Default::default()
+                        };
+
+                        let (new_id, command) = cosmic::iced::window::open(settings);
+                        self.about_window = Some(CustomWindow { window_id: new_id });
+                        let set_window_title = self.set_window_title(fl!("about"), new_id);
+                        return command
+                            .map(|_| cosmic::action::Action::None)
+                            .chain(set_window_title);
+                    }
+                },
             },
             AppMsg::Shutdown => {
                 return cosmic::iced_runtime::task::effect(Action::Exit);
@@ -475,9 +495,7 @@ impl Application for AppState {
             AppMsg::Menu(menu_msg) => match menu_msg {
                 super::message::MenuMsg::ClearLogs => self.logs.clear(),
             },
-            AppMsg::LinkClicked(url) => {
-                let mut url = url.to_string();
-
+            AppMsg::LinkClicked(mut url) => {
                 if url.starts_with(CONFIG_PATH_WORKAROUND) {
                     url = self.config.path().to_str().unwrap_or_default().to_string();
                 }
@@ -497,20 +515,26 @@ impl Application for AppState {
         Task::none()
     }
 
-    fn view(&self) -> Element<Self::Message> {
+    fn view(&self) -> Element<'_, Self::Message> {
         self.view_window(self.core.main_window_id().unwrap())
     }
 
-    fn view_window(&self, id: window::Id) -> Element<Self::Message> {
-        if let Some(window) = &self.settings_window {
-            if window.window_id == id {
-                return settings_window(self).map(AppMsg::Config);
-            }
+    fn view_window(&self, id: window::Id) -> Element<'_, Self::Message> {
+        if let Some(window) = &self.settings_window
+            && window.window_id == id
+        {
+            return settings_window(self).map(AppMsg::Config);
         }
-        if let Some(window) = &self.main_window {
-            if window.window_id == id {
-                return main_window(self);
-            }
+        if let Some(window) = &self.main_window
+            && window.window_id == id
+        {
+            return main_window(self);
+        }
+
+        if let Some(window) = &self.about_window
+            && window.window_id == id
+        {
+            return about_window();
         }
 
         cosmic::widget::text(format!("no view for window {id:?}")).into()
@@ -521,16 +545,21 @@ impl Application for AppState {
     }
 
     fn on_close_requested(&self, id: window::Id) -> Option<Self::Message> {
-        if let Some(window) = &self.settings_window {
-            if window.window_id == id {
-                return Some(AppMsg::ToggleSettingsWindow);
-            }
+        if let Some(window) = &self.settings_window
+            && window.window_id == id
+        {
+            return Some(AppMsg::ToggleSettingsWindow);
         }
-        if let Some(window) = &self.main_window {
-            if window.window_id == id {
-                // close the app
-                return Some(AppMsg::Shutdown);
-            }
+        if let Some(window) = &self.about_window
+            && window.window_id == id
+        {
+            return Some(AppMsg::Config(ConfigMsg::ToggleAboutWindow));
+        }
+        if let Some(window) = &self.main_window
+            && window.window_id == id
+        {
+            // close the app
+            return Some(AppMsg::Shutdown);
         }
 
         None

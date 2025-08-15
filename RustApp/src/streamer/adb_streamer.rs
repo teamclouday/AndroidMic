@@ -1,16 +1,18 @@
 use anyhow::Result;
 use tokio::process::Command;
 
-use crate::streamer::tcp_streamer;
+use crate::streamer::{StreamerMsg, tcp_streamer};
 
 use super::{
-    ConnectError, Status, StreamConfig, StreamerTrait,
+    ConnectError, StreamConfig, StreamerTrait,
     tcp_streamer::{TcpStreamer, TcpStreamerState},
 };
 
 pub struct AdbStreamer {
     tcp_streamer: TcpStreamer,
 }
+
+const ANDROID_REMOTE_PORT: u16 = 55555;
 
 async fn get_connected_devices() -> Result<Vec<String>, ConnectError> {
     let mut cmd = Command::new("adb");
@@ -36,7 +38,7 @@ async fn remove_adb_reverse_proxy(device_id: &str) -> Result<(), ConnectError> {
         .arg(device_id)
         .arg("reverse")
         .arg("--remove")
-        .arg("tcp:55555");
+        .arg(format!("tcp:{ANDROID_REMOTE_PORT}"));
 
     exec_cmd(cmd).await?;
 
@@ -79,7 +81,7 @@ pub async fn new(stream_config: StreamConfig) -> Result<AdbStreamer, ConnectErro
         cmd.arg("-s")
             .arg(device_id)
             .arg("reverse")
-            .arg("tcp:55555")
+            .arg(format!("tcp:{ANDROID_REMOTE_PORT}"))
             .arg(format!("tcp:{}", tcp_streamer.port));
         exec_cmd(cmd).await?;
     }
@@ -89,7 +91,7 @@ pub async fn new(stream_config: StreamConfig) -> Result<AdbStreamer, ConnectErro
 }
 
 impl StreamerTrait for AdbStreamer {
-    async fn next(&mut self) -> Result<Option<Status>, ConnectError> {
+    async fn next(&mut self) -> Result<Option<StreamerMsg>, ConnectError> {
         self.tcp_streamer.next().await
     }
 
@@ -97,12 +99,16 @@ impl StreamerTrait for AdbStreamer {
         self.tcp_streamer.reconfigure_stream(config)
     }
 
-    fn status(&self) -> Option<Status> {
+    fn status(&self) -> StreamerMsg {
         match &self.tcp_streamer.state {
-            TcpStreamerState::Listening { .. } => Some(Status::Listening {
-                port: Some(55555u16),
-            }),
-            TcpStreamerState::Streaming { .. } => Some(Status::Connected),
+            TcpStreamerState::Listening { .. } => StreamerMsg::Listening {
+                ip: None,
+                port: None,
+            },
+            TcpStreamerState::Streaming { .. } => StreamerMsg::Connected {
+                ip: None,
+                port: None,
+            },
         }
     }
 }
