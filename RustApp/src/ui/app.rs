@@ -28,7 +28,7 @@ use crate::{
     audio::AudioPacketFormat,
     config::{AppTheme, AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
     fl,
-    streamer::{self, ConnectOption, Status, StreamConfig, StreamerCommand, StreamerMsg},
+    streamer::{self, ConnectOption, StreamConfig, StreamerCommand, StreamerMsg},
     ui::view::SCROLLABLE_ID,
     utils::APP_ID,
     window_icon,
@@ -339,31 +339,29 @@ impl Application for AppState {
                 self.audio_devices = get_audio_devices(&audio_host);
             }
             AppMsg::Streamer(streamer_msg) => match streamer_msg {
-                StreamerMsg::Status(status) => match status {
-                    Status::Error(e) => {
-                        self.connection_state = ConnectionState::Default;
-                        self.audio_stream = None;
-                        self.audio_wave.clear();
-                        return self.add_log(&e);
+                StreamerMsg::Error(e) => {
+                    self.connection_state = ConnectionState::Default;
+                    self.audio_stream = None;
+                    self.audio_wave.clear();
+                    return self.add_log(&e);
+                }
+                StreamerMsg::Listening { ip, port } => {
+                    self.connection_state = ConnectionState::Listening;
+                    if let (Some(ip), Some(port)) = (ip, port) {
+                        info!("listening on {ip}:{port}");
+                        return self.add_log(format!("Listening on `{ip}:{port}`").as_str());
                     }
-                    Status::Listening { ip, port } => {
-                        self.connection_state = ConnectionState::Listening;
-                        if let (Some(ip), Some(port)) = (ip, port) {
-                            info!("listening on {ip}:{port}");
-                            return self.add_log(format!("Listening on `{ip}:{port}`").as_str());
-                        }
+                }
+                StreamerMsg::Connected { ip, port } => {
+                    self.connection_state = ConnectionState::Connected;
+                    if let (Some(ip), Some(port)) = (ip, port) {
+                        info!("connected on {ip}:{port}");
+                        return self.add_log(format!("Connected on `{ip}:{port}`").as_str());
                     }
-                    Status::Connected { ip, port } => {
-                        self.connection_state = ConnectionState::Connected;
-                        if let (Some(ip), Some(port)) = (ip, port) {
-                            info!("connected on {ip}:{port}");
-                            return self.add_log(format!("Connected on `{ip}:{port}`").as_str());
-                        }
-                    }
-                    Status::UpdateAudioWave { data } => {
-                        self.audio_wave.write_chunk(&data);
-                    }
-                },
+                }
+                StreamerMsg::UpdateAudioWave { data } => {
+                    self.audio_wave.write_chunk(&data);
+                }
                 StreamerMsg::Ready(sender) => {
                     self.streamer = Some(sender);
                     if config.auto_connect {

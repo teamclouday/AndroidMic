@@ -14,7 +14,7 @@ use super::{
 };
 use crate::{audio::process::convert_audio_stream, streamer::WriteError};
 
-use super::{AudioPacketMessage, ConnectError, Status, StreamerTrait};
+use super::{AudioPacketMessage, ConnectError, StreamerMsg, StreamerTrait};
 
 const MAX_WAIT_TIME: Duration = Duration::from_millis(100);
 
@@ -176,20 +176,20 @@ impl StreamerTrait for UsbStreamer {
         self.stream_config = stream_config;
     }
 
-    fn status(&self) -> Status {
+    fn status(&self) -> StreamerMsg {
         match &self.state {
-            UsbStreamerState::Listening => Status::Listening {
+            UsbStreamerState::Listening => StreamerMsg::Listening {
                 ip: None,
                 port: None,
             },
-            UsbStreamerState::Streaming => Status::Connected {
+            UsbStreamerState::Streaming => StreamerMsg::Connected {
                 ip: None,
                 port: None,
             },
         }
     }
 
-    async fn next(&mut self) -> Result<Option<Status>, ConnectError> {
+    async fn next(&mut self) -> Result<Option<StreamerMsg>, ConnectError> {
         match self.framed.next().await {
             Some(Ok(frame)) => {
                 self.state = UsbStreamerState::Streaming;
@@ -204,7 +204,7 @@ impl StreamerTrait for UsbStreamer {
                             convert_audio_stream(&mut self.stream_config.buff, packet, audio_params)
                         {
                             // compute the audio wave from the buffer
-                            res = Some(Status::UpdateAudioWave {
+                            res = Some(StreamerMsg::UpdateAudioWave {
                                 data: AudioPacketMessage::to_wave_data(&buffer),
                             });
 

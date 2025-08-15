@@ -10,7 +10,7 @@ use crate::{
     streamer::{AudioPacketMessage, DEFAULT_PC_PORT, MAX_PORT, WriteError},
 };
 
-use super::{AudioPacketMessageOrdered, ConnectError, Status, StreamConfig, StreamerTrait};
+use super::{AudioPacketMessageOrdered, ConnectError, StreamConfig, StreamerMsg, StreamerTrait};
 
 const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
 
@@ -61,14 +61,14 @@ impl StreamerTrait for UdpStreamer {
         self.stream_config = stream_config;
     }
 
-    fn status(&self) -> Status {
-        Status::Connected {
+    fn status(&self) -> StreamerMsg {
+        StreamerMsg::Connected {
             ip: Some(self.ip),
             port: Some(self.port),
         }
     }
 
-    async fn next(&mut self) -> Result<Option<Status>, ConnectError> {
+    async fn next(&mut self) -> Result<Option<StreamerMsg>, ConnectError> {
         match self.framed.next().await {
             Some(Ok((frame, addr))) => {
                 let mut res = None;
@@ -92,7 +92,7 @@ impl StreamerTrait for UdpStreamer {
                             convert_audio_stream(&mut self.stream_config.buff, packet, audio_params)
                         {
                             // compute the audio wave from the buffer
-                            res = Some(Status::UpdateAudioWave {
+                            res = Some(StreamerMsg::UpdateAudioWave {
                                 data: AudioPacketMessage::to_wave_data(&buffer),
                             });
 

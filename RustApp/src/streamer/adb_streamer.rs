@@ -1,10 +1,10 @@
 use anyhow::Result;
 use tokio::process::Command;
 
-use crate::streamer::tcp_streamer;
+use crate::streamer::{StreamerMsg, tcp_streamer};
 
 use super::{
-    ConnectError, Status, StreamConfig, StreamerTrait,
+    ConnectError, StreamConfig, StreamerTrait,
     tcp_streamer::{TcpStreamer, TcpStreamerState},
 };
 
@@ -91,7 +91,7 @@ pub async fn new(stream_config: StreamConfig) -> Result<AdbStreamer, ConnectErro
 }
 
 impl StreamerTrait for AdbStreamer {
-    async fn next(&mut self) -> Result<Option<Status>, ConnectError> {
+    async fn next(&mut self) -> Result<Option<StreamerMsg>, ConnectError> {
         self.tcp_streamer.next().await
     }
 
@@ -99,13 +99,13 @@ impl StreamerTrait for AdbStreamer {
         self.tcp_streamer.reconfigure_stream(config)
     }
 
-    fn status(&self) -> Status {
+    fn status(&self) -> StreamerMsg {
         match &self.tcp_streamer.state {
-            TcpStreamerState::Listening { .. } => Status::Listening {
+            TcpStreamerState::Listening { .. } => StreamerMsg::Listening {
                 ip: None,
                 port: None,
             },
-            TcpStreamerState::Streaming { .. } => Status::Connected {
+            TcpStreamerState::Streaming { .. } => StreamerMsg::Connected {
                 ip: None,
                 port: None,
             },

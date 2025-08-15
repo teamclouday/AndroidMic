@@ -7,10 +7,10 @@ use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 use crate::{
     audio::process::convert_audio_stream,
-    streamer::{DEFAULT_PC_PORT, MAX_PORT, WriteError},
+    streamer::{DEFAULT_PC_PORT, MAX_PORT, StreamerMsg, WriteError},
 };
 
-use super::{AudioPacketMessage, ConnectError, Status, StreamConfig, StreamerTrait};
+use super::{AudioPacketMessage, ConnectError, StreamConfig, StreamerTrait};
 
 const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
 
@@ -70,20 +70,20 @@ impl StreamerTrait for TcpStreamer {
         self.stream_config = stream_config;
     }
 
-    fn status(&self) -> Status {
+    fn status(&self) -> StreamerMsg {
         match &self.state {
-            TcpStreamerState::Listening { .. } => Status::Listening {
+            TcpStreamerState::Listening { .. } => StreamerMsg::Listening {
                 ip: Some(self.ip),
                 port: Some(self.port),
             },
-            TcpStreamerState::Streaming { .. } => Status::Connected {
+            TcpStreamerState::Streaming { .. } => StreamerMsg::Connected {
                 ip: Some(self.ip),
                 port: Some(self.port),
             },
         }
     }
 
-    async fn next(&mut self) -> Result<Option<Status>, ConnectError> {
+    async fn next(&mut self) -> Result<Option<StreamerMsg>, ConnectError> {
         match &mut self.state {
             TcpStreamerState::Listening { listener } => {
                 let addr =
@@ -100,7 +100,7 @@ impl StreamerTrait for TcpStreamer {
                     disconnect_loop_detecter: 0,
                 };
 
-                Ok(Some(Status::Connected {
+                Ok(Some(StreamerMsg::Connected {
                     ip: Some(self.ip),
                     port: Some(self.port),
                 }))
@@ -124,7 +124,7 @@ impl StreamerTrait for TcpStreamer {
                                     audio_params,
                                 ) {
                                     // compute the audio wave from the buffer
-                                    res = Some(Status::UpdateAudioWave {
+                                    res = Some(StreamerMsg::UpdateAudioWave {
                                         data: AudioPacketMessage::to_wave_data(&buffer),
                                     });
 

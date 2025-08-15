@@ -3,7 +3,7 @@ use anyhow::Result;
 use enum_dispatch::enum_dispatch;
 use prost::DecodeError;
 use rtrb::{Producer, chunks::ChunkError};
-use std::{fmt::Debug, io, net::IpAddr};
+use std::{fmt::Debug, io};
 use tcp_streamer::TcpStreamer;
 use thiserror::Error;
 use udp_streamer::UdpStreamer;
@@ -30,29 +30,6 @@ use crate::{
     audio::{AudioPacketFormat, process::AudioProcessParams},
     config::AudioFormat,
 };
-
-/// Status reported from the streamer
-#[derive(Clone, Debug)]
-pub enum Status {
-    UpdateAudioWave {
-        data: Vec<(f32, f32)>,
-    },
-    Error(String),
-    Listening {
-        ip: Option<IpAddr>,
-        port: Option<u16>,
-    },
-    Connected {
-        ip: Option<IpAddr>,
-        port: Option<u16>,
-    },
-}
-
-impl Status {
-    fn is_error(&self) -> bool {
-        matches!(self, Status::Error(..))
-    }
-}
 
 /// Default port on the PC
 const DEFAULT_PC_PORT: u16 = 55555;
@@ -89,11 +66,11 @@ trait StreamerTrait {
     /// This method make them behave like a state machine, always reaching the next state. (init -> accepted -> read data -> read data ...).
     ///
     /// A nice benefit of this pattern is that there is no usage of Atomic what so ever.
-    async fn next(&mut self) -> Result<Option<Status>, ConnectError>;
+    async fn next(&mut self) -> Result<Option<StreamerMsg>, ConnectError>;
 
     fn reconfigure_stream(&mut self, stream_config: StreamConfig);
 
-    fn status(&self) -> Status;
+    fn status(&self) -> StreamerMsg;
 }
 #[allow(clippy::enum_variant_names)]
 #[enum_dispatch(StreamerTrait)]
@@ -172,14 +149,14 @@ impl DummyStreamer {
 }
 
 impl StreamerTrait for DummyStreamer {
-    async fn next(&mut self) -> Result<Option<Status>, ConnectError> {
+    async fn next(&mut self) -> Result<Option<StreamerMsg>, ConnectError> {
         std::future::pending::<()>().await;
         unreachable!()
     }
 
     fn reconfigure_stream(&mut self, _config: StreamConfig) {}
 
-    fn status(&self) -> Status {
+    fn status(&self) -> StreamerMsg {
         unreachable!()
     }
 }
