@@ -93,7 +93,7 @@ trait StreamerTrait {
 
     fn reconfigure_stream(&mut self, stream_config: StreamConfig);
 
-    fn status(&self) -> Option<Status>;
+    fn status(&self) -> Status;
 }
 #[allow(clippy::enum_variant_names)]
 #[enum_dispatch(StreamerTrait)]
@@ -179,8 +179,8 @@ impl StreamerTrait for DummyStreamer {
 
     fn reconfigure_stream(&mut self, _config: StreamConfig) {}
 
-    fn status(&self) -> Option<Status> {
-        None
+    fn status(&self) -> Status {
+        unreachable!()
     }
 }
 

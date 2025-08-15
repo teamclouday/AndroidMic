@@ -70,16 +70,16 @@ impl StreamerTrait for TcpStreamer {
         self.stream_config = stream_config;
     }
 
-    fn status(&self) -> Option<Status> {
+    fn status(&self) -> Status {
         match &self.state {
-            TcpStreamerState::Listening { .. } => Some(Status::Listening {
+            TcpStreamerState::Listening { .. } => Status::Listening {
                 ip: Some(self.ip),
                 port: Some(self.port),
-            }),
-            TcpStreamerState::Streaming { .. } => Some(Status::Connected {
+            },
+            TcpStreamerState::Streaming { .. } => Status::Connected {
                 ip: Some(self.ip),
                 port: Some(self.port),
-            }),
+            },
         }
     }
 

@@ -61,11 +61,11 @@ impl StreamerTrait for UdpStreamer {
         self.stream_config = stream_config;
     }
 
-    fn status(&self) -> Option<Status> {
-        Some(Status::Connected {
+    fn status(&self) -> Status {
+        Status::Connected {
             ip: Some(self.ip),
             port: Some(self.port),
-        })
+        }
     }
 
     async fn next(&mut self) -> Result<Option<Status>, ConnectError> {

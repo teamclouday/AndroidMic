@@ -176,16 +176,16 @@ impl StreamerTrait for UsbStreamer {
         self.stream_config = stream_config;
     }
 
-    fn status(&self) -> Option<Status> {
+    fn status(&self) -> Status {
         match &self.state {
-            UsbStreamerState::Listening => Some(Status::Listening {
+            UsbStreamerState::Listening => Status::Listening {
                 ip: None,
                 port: None,
-            }),
-            UsbStreamerState::Streaming => Some(Status::Connected {
+            },
+            UsbStreamerState::Streaming => Status::Connected {
                 ip: None,
                 port: None,
-            }),
+            },
         }
     }
 

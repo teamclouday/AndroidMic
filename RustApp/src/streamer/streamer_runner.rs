@@ -103,7 +103,7 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                     Ok(new_streamer) => {
                                         send(
                                             &mut sender,
-                                            StreamerMsg::Status(new_streamer.status().unwrap()),
+                                            StreamerMsg::Status(new_streamer.status()),
                                         )
                                         .await;
                                         streamer = new_streamer;

@@ -99,16 +99,16 @@ impl StreamerTrait for AdbStreamer {
         self.tcp_streamer.reconfigure_stream(config)
     }
 
-    fn status(&self) -> Option<Status> {
+    fn status(&self) -> Status {
         match &self.tcp_streamer.state {
-            TcpStreamerState::Listening { .. } => Some(Status::Listening {
+            TcpStreamerState::Listening { .. } => Status::Listening {
                 ip: None,
                 port: None,
-            }),
-            TcpStreamerState::Streaming { .. } => Some(Status::Connected {
+            },
+            TcpStreamerState::Streaming { .. } => Status::Connected {
                 ip: None,
                 port: None,
-            }),
+            },
         }
     }
 }
