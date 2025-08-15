@@ -12,6 +12,8 @@ pub struct AdbStreamer {
     tcp_streamer: TcpStreamer,
 }
 
+const ANDROID_REMOTE_PORT: u16 = 55555;
+
 async fn get_connected_devices() -> Result<Vec<String>, ConnectError> {
     let mut cmd = Command::new("adb");
     cmd.arg("devices");
@@ -36,7 +38,7 @@ async fn remove_adb_reverse_proxy(device_id: &str) -> Result<(), ConnectError> {
         .arg(device_id)
         .arg("reverse")
         .arg("--remove")
-        .arg("tcp:55555");
+        .arg(format!("tcp:{ANDROID_REMOTE_PORT}"));
 
     exec_cmd(cmd).await?;
 
@@ -79,7 +81,7 @@ pub async fn new(stream_config: StreamConfig) -> Result<AdbStreamer, ConnectErro
         cmd.arg("-s")
             .arg(device_id)
             .arg("reverse")
-            .arg("tcp:55555")
+            .arg(format!("tcp:{ANDROID_REMOTE_PORT}"))
             .arg(format!("tcp:{}", tcp_streamer.port));
         exec_cmd(cmd).await?;
     }
@@ -100,9 +102,13 @@ impl StreamerTrait for AdbStreamer {
     fn status(&self) -> Option<Status> {
         match &self.tcp_streamer.state {
             TcpStreamerState::Listening { .. } => Some(Status::Listening {
-                port: Some(55555u16),
+                ip: None,
+                port: None,
             }),
-            TcpStreamerState::Streaming { .. } => Some(Status::Connected),
+            TcpStreamerState::Streaming { .. } => Some(Status::Connected {
+                ip: None,
+                port: None,
+            }),
         }
     }
 }

@@ -3,7 +3,7 @@ use anyhow::Result;
 use enum_dispatch::enum_dispatch;
 use prost::DecodeError;
 use rtrb::{Producer, chunks::ChunkError};
-use std::io;
+use std::{fmt::Debug, io, net::IpAddr};
 use tcp_streamer::TcpStreamer;
 use thiserror::Error;
 use udp_streamer::UdpStreamer;
@@ -34,10 +34,18 @@ use crate::{
 /// Status reported from the streamer
 #[derive(Clone, Debug)]
 pub enum Status {
-    UpdateAudioWave { data: Vec<(f32, f32)> },
+    UpdateAudioWave {
+        data: Vec<(f32, f32)>,
+    },
     Error(String),
-    Listening { port: Option<u16> },
-    Connected,
+    Listening {
+        ip: Option<IpAddr>,
+        port: Option<u16>,
+    },
+    Connected {
+        ip: Option<IpAddr>,
+        port: Option<u16>,
+    },
 }
 
 impl Status {
@@ -50,11 +58,19 @@ impl Status {
 const DEFAULT_PC_PORT: u16 = 55555;
 const MAX_PORT: u16 = 60000;
 
-#[derive(Debug)]
 pub struct StreamConfig {
     pub buff: Producer<u8>,
     pub audio_config: AudioPacketFormat,
     pub denoise: bool,
+}
+
+impl Debug for StreamConfig {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StreamConfig")
+            .field("audio_config", &self.audio_config)
+            .field("denoise", &self.denoise)
+            .finish()
+    }
 }
 
 impl StreamConfig {

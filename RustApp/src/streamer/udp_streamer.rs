@@ -20,15 +20,8 @@ pub struct UdpStreamer {
     ip: IpAddr,
     pub port: u16,
     stream_config: StreamConfig,
-    state: UdpStreamerState,
-}
-
-#[allow(clippy::large_enum_variant)]
-pub enum UdpStreamerState {
-    Streaming {
-        framed: UdpFramed<LengthDelimitedCodec>,
-        tracked_sequence: u32,
-    },
+    framed: UdpFramed<LengthDelimitedCodec>,
+    tracked_sequence: u32,
 }
 
 pub async fn new(ip: IpAddr, stream_config: StreamConfig) -> Result<UdpStreamer, ConnectError> {
@@ -56,10 +49,8 @@ pub async fn new(ip: IpAddr, stream_config: StreamConfig) -> Result<UdpStreamer,
         ip,
         port: addr.port(),
         stream_config,
-        state: UdpStreamerState::Streaming {
-            framed: UdpFramed::new(socket, LengthDelimitedCodec::new()),
-            tracked_sequence: 0,
-        },
+        framed: UdpFramed::new(socket, LengthDelimitedCodec::new()),
+        tracked_sequence: 0,
     };
 
     Ok(streamer)
@@ -71,70 +62,60 @@ impl StreamerTrait for UdpStreamer {
     }
 
     fn status(&self) -> Option<Status> {
-        match &self.state {
-            UdpStreamerState::Streaming { .. } => Some(Status::Listening {
-                port: Some(self.port),
-            }),
-        }
+        Some(Status::Connected {
+            ip: Some(self.ip),
+            port: Some(self.port),
+        })
     }
 
     async fn next(&mut self) -> Result<Option<Status>, ConnectError> {
-        match &mut self.state {
-            UdpStreamerState::Streaming {
-                framed,
-                tracked_sequence,
-            } => {
-                match framed.next().await {
-                    Some(Ok((frame, addr))) => {
-                        let mut res = None;
+        match self.framed.next().await {
+            Some(Ok((frame, addr))) => {
+                let mut res = None;
 
-                        match AudioPacketMessageOrdered::decode(frame) {
-                            Ok(packet) => {
-                                if packet.sequence_number < *tracked_sequence {
-                                    // drop packet
-                                    info!(
-                                        "dropped packet: old sequence number {} < {}",
-                                        packet.sequence_number, tracked_sequence
-                                    );
-                                }
-                                *tracked_sequence = packet.sequence_number;
-
-                                let packet = packet.audio_packet.unwrap();
-                                let buffer_size = packet.buffer.len();
-
-                                let audio_params = self.stream_config.to_audio_params();
-                                if let Ok(buffer) = convert_audio_stream(
-                                    &mut self.stream_config.buff,
-                                    packet,
-                                    audio_params,
-                                ) {
-                                    // compute the audio wave from the buffer
-                                    res = Some(Status::UpdateAudioWave {
-                                        data: AudioPacketMessage::to_wave_data(&buffer),
-                                    });
-
-                                    debug!("From {:?}, received {} bytes", addr, buffer_size);
-                                }
-                            }
-                            Err(e) => {
-                                return Err(ConnectError::WriteError(WriteError::Deserializer(e)));
-                            }
+                match AudioPacketMessageOrdered::decode(frame) {
+                    Ok(packet) => {
+                        if packet.sequence_number < self.tracked_sequence {
+                            // drop packet
+                            info!(
+                                "dropped packet: old sequence number {} < {}",
+                                packet.sequence_number, self.tracked_sequence
+                            );
                         }
+                        self.tracked_sequence = packet.sequence_number;
 
-                        Ok(res)
-                    }
+                        let packet = packet.audio_packet.unwrap();
+                        let buffer_size = packet.buffer.len();
 
-                    Some(Err(e)) => {
-                        match e.kind() {
-                            io::ErrorKind::TimedOut => Ok(None), // timeout use to check for input on stdin
-                            io::ErrorKind::WouldBlock => Ok(None), // trigger on Linux when there is no stream input
-                            _ => Err(WriteError::Io(e))?,
+                        let audio_params = self.stream_config.to_audio_params();
+                        if let Ok(buffer) =
+                            convert_audio_stream(&mut self.stream_config.buff, packet, audio_params)
+                        {
+                            // compute the audio wave from the buffer
+                            res = Some(Status::UpdateAudioWave {
+                                data: AudioPacketMessage::to_wave_data(&buffer),
+                            });
+
+                            debug!("From {:?}, received {} bytes", addr, buffer_size);
                         }
                     }
-                    None => {
-                        todo!()
+                    Err(e) => {
+                        return Err(ConnectError::WriteError(WriteError::Deserializer(e)));
                     }
                 }
+
+                Ok(res)
+            }
+
+            Some(Err(e)) => {
+                match e.kind() {
+                    io::ErrorKind::TimedOut => Ok(None), // timeout use to check for input on stdin
+                    io::ErrorKind::WouldBlock => Ok(None), // trigger on Linux when there is no stream input
+                    _ => Err(WriteError::Io(e))?,
+                }
+            }
+            None => {
+                todo!()
             }
         }
     }

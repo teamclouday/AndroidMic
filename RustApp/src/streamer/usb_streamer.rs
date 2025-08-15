@@ -178,8 +178,14 @@ impl StreamerTrait for UsbStreamer {
 
     fn status(&self) -> Option<Status> {
         match &self.state {
-            UsbStreamerState::Listening => Some(Status::Listening { port: None }),
-            UsbStreamerState::Streaming => Some(Status::Connected),
+            UsbStreamerState::Listening => Some(Status::Listening {
+                ip: None,
+                port: None,
+            }),
+            UsbStreamerState::Streaming => Some(Status::Connected {
+                ip: None,
+                port: None,
+            }),
         }
     }
 

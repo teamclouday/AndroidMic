@@ -73,6 +73,7 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
             match either {
                 Either::Left(command) => {
                     if let Some(command) = command {
+                        info!("received command {command:?}");
                         match command {
                             StreamerCommand::Connect(connect_option, stream_config) => {
                                 let new_streamer: Result<Streamer, ConnectError> =

@@ -187,24 +187,18 @@ impl AppState {
             }
         };
 
-        let (connect_option, log) = match config.connection_mode {
+        let connect_option = match config.connection_mode {
             ConnectionMode::Tcp => {
                 let ip = config.ip.unwrap_or(local_ip().unwrap());
-                (
-                    ConnectOption::Tcp { ip },
-                    Some(format!("Listening on ip `{ip:?}`")),
-                )
+                ConnectOption::Tcp { ip }
             }
             ConnectionMode::Udp => {
                 let ip = config.ip.unwrap_or(local_ip().unwrap());
-                (
-                    ConnectOption::Udp { ip },
-                    Some(format!("Listening on ip `{ip:?}`")),
-                )
+                ConnectOption::Udp { ip }
             }
-            ConnectionMode::Adb => (ConnectOption::Adb, None),
+            ConnectionMode::Adb => ConnectOption::Adb,
             #[cfg(feature = "usb")]
-            ConnectionMode::Usb => (ConnectOption::Usb, None),
+            ConnectionMode::Usb => ConnectOption::Usb,
         };
 
         self.connection_state = ConnectionState::WaitingOnStatus;
@@ -218,10 +212,7 @@ impl AppState {
             },
         ));
 
-        match &log {
-            Some(log) => self.add_log(log),
-            None => Task::none(),
-        }
+        Task::none()
     }
 }
 
@@ -355,16 +346,19 @@ impl Application for AppState {
                         self.audio_wave.clear();
                         return self.add_log(&e);
                     }
-                    Status::Listening { port } => {
-                        if self.connection_state != ConnectionState::Listening {
-                            let port = port.unwrap_or(0);
-                            info!("listening: {port:?}");
-                            self.connection_state = ConnectionState::Listening;
-                            return self.add_log(format!("Listening on port `{port:?}`").as_str());
+                    Status::Listening { ip, port } => {
+                        self.connection_state = ConnectionState::Listening;
+                        if let (Some(ip), Some(port)) = (ip, port) {
+                            info!("listening on {ip}:{port}");
+                            return self.add_log(format!("Listening on `{ip}:{port}`").as_str());
                         }
                     }
-                    Status::Connected => {
+                    Status::Connected { ip, port } => {
                         self.connection_state = ConnectionState::Connected;
+                        if let (Some(ip), Some(port)) = (ip, port) {
+                            info!("connected on {ip}:{port}");
+                            return self.add_log(format!("Connected on `{ip}:{port}`").as_str());
+                        }
                     }
                     Status::UpdateAudioWave { data } => {
                         self.audio_wave.write_chunk(&data);
@@ -460,6 +454,7 @@ impl Application for AppState {
                 }
                 ConfigMsg::DeNoise(denoise) => {
                     self.config.update(|c| c.denoise = denoise);
+                    info!("set denoise: {denoise}");
                     return self.update_audio_stream();
                 }
                 ConfigMsg::Theme(app_theme) => {

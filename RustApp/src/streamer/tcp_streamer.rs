@@ -73,9 +73,13 @@ impl StreamerTrait for TcpStreamer {
     fn status(&self) -> Option<Status> {
         match &self.state {
             TcpStreamerState::Listening { .. } => Some(Status::Listening {
+                ip: Some(self.ip),
                 port: Some(self.port),
             }),
-            TcpStreamerState::Streaming { .. } => Some(Status::Connected),
+            TcpStreamerState::Streaming { .. } => Some(Status::Connected {
+                ip: Some(self.ip),
+                port: Some(self.port),
+            }),
         }
     }
 
@@ -96,7 +100,10 @@ impl StreamerTrait for TcpStreamer {
                     disconnect_loop_detecter: 0,
                 };
 
-                Ok(Some(Status::Connected))
+                Ok(Some(Status::Connected {
+                    ip: Some(self.ip),
+                    port: Some(self.port),
+                }))
             }
             TcpStreamerState::Streaming {
                 framed,
