@@ -29,7 +29,7 @@ use crate::{
     config::{AppTheme, AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
     fl,
     streamer::{self, ConnectOption, StreamConfig, StreamerCommand, StreamerMsg},
-    ui::view::SCROLLABLE_ID,
+    ui::view::{SCROLLABLE_ID, about_window},
     utils::APP_ID,
     window_icon,
 };
@@ -123,6 +123,7 @@ pub struct AppState {
     pub connection_state: ConnectionState,
     pub main_window: Option<CustomWindow>,
     pub settings_window: Option<CustomWindow>,
+    pub about_window: Option<CustomWindow>,
     pub logs: Vec<markdown::Item>,
     log_path: String,
 }
@@ -301,6 +302,7 @@ impl Application for AppState {
             connection_state: ConnectionState::Default,
             main_window: Some(CustomWindow { window_id: new_id }),
             settings_window: None,
+            about_window: None,
             logs: Vec::new(),
             log_path: flags.log_path.clone(),
         };
@@ -410,6 +412,7 @@ impl Application for AppState {
                         .chain(set_window_title);
                 }
             },
+
             AppMsg::Config(msg) => match msg {
                 ConfigMsg::SampleRate(sample_rate) => {
                     self.config.update(|s| s.sample_rate = sample_rate);
@@ -460,6 +463,31 @@ impl Application for AppState {
                     self.config.update(|s| s.theme = app_theme);
                     return cmd;
                 }
+                ConfigMsg::ToggleAboutWindow => match &self.about_window {
+                    Some(about_window) => {
+                        let id = about_window.window_id;
+                        self.about_window = None;
+                        return cosmic::iced::runtime::task::effect(Action::Window(
+                            window::Action::Close(id),
+                        ));
+                    }
+                    None => {
+                        let settings = window::Settings {
+                            size: Size::new(500.0, 600.0),
+                            position: window::Position::Centered,
+                            exit_on_close_request: true,
+                            icon: window_icon!("icon"),
+                            ..Default::default()
+                        };
+
+                        let (new_id, command) = cosmic::iced::window::open(settings);
+                        self.about_window = Some(CustomWindow { window_id: new_id });
+                        let set_window_title = self.set_window_title(fl!("about"), new_id);
+                        return command
+                            .map(|_| cosmic::action::Action::None)
+                            .chain(set_window_title);
+                    }
+                },
             },
             AppMsg::Shutdown => {
                 return cosmic::iced_runtime::task::effect(Action::Exit);
@@ -467,9 +495,7 @@ impl Application for AppState {
             AppMsg::Menu(menu_msg) => match menu_msg {
                 super::message::MenuMsg::ClearLogs => self.logs.clear(),
             },
-            AppMsg::LinkClicked(url) => {
-                let mut url = url.to_string();
-
+            AppMsg::LinkClicked(mut url) => {
                 if url.starts_with(CONFIG_PATH_WORKAROUND) {
                     url = self.config.path().to_str().unwrap_or_default().to_string();
                 }
@@ -505,6 +531,12 @@ impl Application for AppState {
             return main_window(self);
         }
 
+        if let Some(window) = &self.about_window
+            && window.window_id == id
+        {
+            return about_window();
+        }
+
         cosmic::widget::text(format!("no view for window {id:?}")).into()
     }
 
@@ -517,6 +549,11 @@ impl Application for AppState {
             && window.window_id == id
         {
             return Some(AppMsg::ToggleSettingsWindow);
+        }
+        if let Some(window) = &self.about_window
+            && window.window_id == id
+        {
+            return Some(AppMsg::Config(ConfigMsg::ToggleAboutWindow));
         }
         if let Some(window) = &self.main_window
             && window.window_id == id

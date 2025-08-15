@@ -18,6 +18,7 @@ fn main() -> io::Result<()> {
     }
 
     set_env("ANDROID_MIC_FORMAT");
+    set_env("ANDROID_MIC_COMMIT");
 
     // build protobuf
     prost_build::Config::new()

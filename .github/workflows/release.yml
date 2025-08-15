@@ -30,6 +30,8 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: taiki-e/install-action@just
+
       - name: Install dependencies (Linux)
         if: matrix.platform == 'linux'
         run: |
@@ -70,25 +72,25 @@ jobs:
         if: matrix.platform == 'linux'
         working-directory: ./RustApp
         run: |
-          cargo build --release --target x86_64-unknown-linux-gnu
+          just build-release --target x86_64-unknown-linux-gnu
           cargo packager -r -f appimage --target x86_64-unknown-linux-gnu
 
       - name: Package (Windows)
         if: matrix.platform == 'windows'
         working-directory: ./RustApp
         run: |
-          cargo build --release --target x86_64-pc-windows-msvc
+          just build-release --target x86_64-pc-windows-msvc
           cargo packager -r -f nsis --target x86_64-pc-windows-msvc
-          cargo build --release --target i686-pc-windows-msvc
+          just build-release --target i686-pc-windows-msvc
           cargo packager -r -f nsis --target i686-pc-windows-msvc
 
       - name: Package (macOS)
         if: matrix.platform == 'macos'
         working-directory: ./RustApp
         run: |
-          cargo build --release --target x86_64-apple-darwin
+          just build-release --target x86_64-apple-darwin
           cargo packager -r -f dmg --target x86_64-apple-darwin
-          cargo build --release --target aarch64-apple-darwin
+          just build-release --target aarch64-apple-darwin
           cargo packager -r -f dmg --target aarch64-apple-darwin
 
       # For Linux

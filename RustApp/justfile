@@ -1,5 +1,6 @@
 set windows-powershell := true
 
+export ANDROID_MIC_COMMIT := `git rev-parse --short HEAD`
 rootdir := ''
 prefix := ''
 debug := '0'
@@ -42,7 +43,7 @@ nsis:
 test:
     cargo test --workspace --all-features
 
-fix: fmt
+fix: fmt fmt-just
     cargo clippy --workspace --all-features --fix --allow-dirty --allow-staged
 
 fmt:

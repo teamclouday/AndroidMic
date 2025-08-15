@@ -4,8 +4,8 @@ use cosmic::{
     Element,
     iced::{Length, alignment::Horizontal, widget::pick_list},
     widget::{
-        button, canvas, column, container, context_menu, markdown, menu, radio, row, scrollable,
-        settings, text, toggler, vertical_space,
+        self, about::About, button, canvas, column, container, context_menu, markdown, menu, radio,
+        row, scrollable, settings, text, toggler, vertical_space,
     },
 };
 use cpal::traits::DeviceTrait;
@@ -18,7 +18,8 @@ use crate::{
     config::{AppTheme, AudioFormat, ChannelCount, ConnectionMode, SampleRate},
     fl,
     ui::message::MenuMsg,
-    widget_icon_button,
+    utils::APP,
+    widget_icon_button, widget_icon_handle,
 };
 
 pub static SCROLLABLE_ID: LazyLock<cosmic::widget::Id> = LazyLock::new(cosmic::widget::Id::unique);
@@ -59,7 +60,7 @@ fn logs(app: &AppState) -> Element<'_, AppMsg> {
                             cosmic::iced::Theme::TokyoNightStorm.palette(),
                         ),
                     )
-                    .map(AppMsg::LinkClicked),
+                    .map(|url| AppMsg::LinkClicked(url.to_string())),
                 )
                 .width(Length::Fill),
             )
@@ -226,7 +227,43 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                 AppTheme::VALUES,
                 Some(&config.theme),
                 ConfigMsg::Theme,
-            ))),
+            )))
+            .push(
+                settings::section().title(fl!("about")).add(
+                    widget::settings::item::builder(fl!("about"))
+                        .control(button::text("open").on_press(ConfigMsg::ToggleAboutWindow)),
+                ),
+            ),
     )
     .into()
+}
+
+static ABOUT: LazyLock<About> = LazyLock::new(|| {
+    About::default()
+        .name(APP)
+        .icon(widget_icon_handle!("icon"))
+        .license("GPL-3.0-only")
+        .links([
+            (
+                fl!("repository"),
+                "https://github.com/teamclouday/AndroidMic",
+            ),
+            (
+                fl!("issues_tracker"),
+                "https://github.com/teamclouday/AndroidMic/issues",
+            ),
+        ])
+        .developers([
+            ("wiiznokes", "wiiznokes2@gmail.com"),
+            ("teamclouday", "teamclouday@gmail.com"),
+        ])
+        .version(format!(
+            "{}-{}",
+            env!("CARGO_PKG_VERSION"),
+            env!("ANDROID_MIC_COMMIT")
+        ))
+});
+
+pub fn about_window() -> Element<'static, AppMsg> {
+    widget::about(&ABOUT, AppMsg::LinkClicked)
 }

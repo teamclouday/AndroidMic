@@ -33,6 +33,8 @@ jobs:
         with:
           fetch-depth: 0
 
+      - uses: taiki-e/install-action@just
+
       - name: Install dependencies (Linux)
         if: matrix.platform == 'linux'
         run: |
@@ -57,7 +59,7 @@ jobs:
 
       - name: Build
         working-directory: ./RustApp
-        run: cargo build
+        run: just build-debug
 
   build-android-app:
     name: Build Android App

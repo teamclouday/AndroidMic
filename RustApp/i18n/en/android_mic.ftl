@@ -17,6 +17,10 @@ start_at_login = Start at login
 auto_connect = Auto connect
 theme = Theme
 
+about = About
+repository = Repository
+issues_tracker = Report an Issue
+
 main_window_title = AndroidMic
 settings_window_title = Settings
 
