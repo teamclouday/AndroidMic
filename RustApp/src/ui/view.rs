@@ -5,7 +5,7 @@ use cosmic::{
     iced::{Length, alignment::Horizontal, widget::pick_list},
     widget::{
         self, about::About, button, canvas, column, container, context_menu, markdown, menu, radio,
-        row, scrollable, settings, text, toggler, vertical_space,
+        row, scrollable, settings, text, text_input, toggler, vertical_space,
     },
 };
 use cpal::traits::DeviceTrait;
@@ -207,6 +207,24 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                 settings::section()
                     .title(fl!("denoise"))
                     .add(toggler(config.denoise).on_toggle(ConfigMsg::DeNoise)),
+            )
+            .push(
+                settings::section()
+                    .title(fl!("amplify"))
+                    .add(toggler(config.amplify).on_toggle(ConfigMsg::Amplify))
+                    .add({
+                        let mut text = text_input("", &app.config_cache.amplify_value);
+
+                        if config.amplify {
+                            text = text.on_input(ConfigMsg::AmplifyValue)
+                        }
+
+                        if app.config_cache.parse_amplify_value().is_none() {
+                            text = text.error("")
+                        }
+
+                        text
+                    }),
             )
             .push(button::text("Use Recommended Format").on_press(ConfigMsg::UseRecommendedFormat))
             .push_maybe(if cfg!(target_os = "windows") {

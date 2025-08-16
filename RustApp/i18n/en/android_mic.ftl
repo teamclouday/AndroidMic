@@ -16,6 +16,7 @@ denoise = Use audio noise reduction
 start_at_login = Start at login
 auto_connect = Auto connect
 theme = Theme
+amplify = Amplify
 
 about = About
 repository = Repository
