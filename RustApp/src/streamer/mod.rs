@@ -39,6 +39,7 @@ pub struct StreamConfig {
     pub buff: Producer<u8>,
     pub audio_config: AudioPacketFormat,
     pub denoise: bool,
+    pub amplify: Option<f32>,
 }
 
 impl Debug for StreamConfig {
@@ -55,6 +56,7 @@ impl StreamConfig {
         AudioProcessParams {
             target_format: self.audio_config.clone(),
             denoise: self.denoise,
+            amplify: self.amplify,
         }
     }
 }

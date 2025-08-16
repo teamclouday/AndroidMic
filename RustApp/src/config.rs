@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::fl;
 
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct Config {
     pub connection_mode: ConnectionMode,
@@ -22,6 +22,43 @@ pub struct Config {
     pub auto_connect: bool,
     pub denoise: bool,
     pub theme: AppTheme,
+    pub amplify: bool,
+    pub amplify_value: f32,
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        Self {
+            connection_mode: Default::default(),
+            ip: Default::default(),
+            audio_format: Default::default(),
+            channel_count: Default::default(),
+            sample_rate: Default::default(),
+            device_name: Default::default(),
+            start_at_login: Default::default(),
+            auto_connect: Default::default(),
+            denoise: Default::default(),
+            theme: Default::default(),
+            amplify: Default::default(),
+            amplify_value: 2.0,
+        }
+    }
+}
+
+pub struct ConfigCache {
+    pub amplify_value: String,
+}
+
+impl ConfigCache {
+    pub fn new(config: &Config) -> Self {
+        Self {
+            amplify_value: config.amplify_value.to_string(),
+        }
+    }
+
+    pub fn parse_amplify_value(&self) -> Option<f32> {
+        self.amplify_value.replace(',', ".").parse().ok()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Values)]

@@ -29,6 +29,8 @@ pub enum ConfigMsg {
     AutoConnect(bool),
     DeNoise(bool),
     Theme(AppTheme),
+    Amplify(bool),
+    AmplifyValue(String),
     ToggleAboutWindow,
 }
 

@@ -10,6 +10,7 @@ use super::{
 pub struct AudioProcessParams {
     pub target_format: AudioPacketFormat,
     pub denoise: bool,
+    pub amplify: Option<f32>,
 }
 
 // This function converts an audio stream from packet into producer
@@ -63,7 +64,7 @@ where
     const DENOISE_SAMPLE_RATE: u32 = 48000;
 
     // next run resampler and denoise on the buffer
-    let resampled_buffer = if config.denoise {
+    let mut resampled_buffer = if config.denoise {
         let prepared_buffer = if packet.sample_rate == DENOISE_SAMPLE_RATE {
             buffer
         } else {
@@ -87,6 +88,14 @@ where
     } else {
         resample_f32_stream(&buffer, packet.sample_rate, format.sample_rate.to_number())?
     };
+
+    if let Some(amplify) = config.amplify {
+        for channel in &mut resampled_buffer {
+            for v in channel {
+                *v *= amplify;
+            }
+        }
+    }
 
     // finally convert to output format
     let num_channels = format.channel_count.to_number() as usize;
