@@ -26,7 +26,9 @@ use super::{
 };
 use crate::{
     audio::AudioPacketFormat,
-    config::{AppTheme, AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
+    config::{
+        AppTheme, AudioFormat, ChannelCount, Config, ConfigCache, ConnectionMode, SampleRate,
+    },
     fl,
     streamer::{self, ConnectOption, StreamConfig, StreamerCommand, StreamerMsg},
     ui::view::{SCROLLABLE_ID, about_window},
@@ -115,6 +117,7 @@ pub struct AppState {
     core: Core,
     pub streamer: Option<Sender<StreamerCommand>>,
     pub config: ConfigManager<Config>,
+    pub config_cache: ConfigCache,
     pub audio_host: Host,
     pub audio_devices: Vec<AudioDevice>,
     pub audio_device: Option<cpal::Device>,
@@ -142,13 +145,15 @@ impl AppState {
             return Task::none();
         }
         let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
+        let config = self.config.data().clone();
 
         match self.start_audio_stream(consumer) {
             Ok(audio_config) => {
                 self.send_command(StreamerCommand::ReconfigureStream(StreamConfig {
                     buff: producer,
                     audio_config,
-                    denoise: self.config.data().denoise,
+                    denoise: config.denoise,
+                    amplify: config.amplify.then_some(config.amplify_value),
                 }));
                 Task::none()
             }
@@ -209,7 +214,8 @@ impl AppState {
             StreamConfig {
                 buff: producer,
                 audio_config,
-                denoise: self.config.data().denoise,
+                denoise: config.denoise,
+                amplify: config.amplify.then_some(config.amplify_value),
             },
         ));
 
@@ -294,6 +300,7 @@ impl Application for AppState {
             core,
             audio_stream: None,
             streamer: None,
+            config_cache: ConfigCache::new(flags.config.data()),
             config: flags.config,
             audio_device,
             audio_host,
@@ -455,7 +462,6 @@ impl Application for AppState {
                 }
                 ConfigMsg::DeNoise(denoise) => {
                     self.config.update(|c| c.denoise = denoise);
-                    info!("set denoise: {denoise}");
                     return self.update_audio_stream();
                 }
                 ConfigMsg::Theme(app_theme) => {
@@ -488,6 +494,18 @@ impl Application for AppState {
                             .chain(set_window_title);
                     }
                 },
+                ConfigMsg::Amplify(amplify) => {
+                    self.config.update(|c| c.amplify = amplify);
+                    return self.update_audio_stream();
+                }
+                ConfigMsg::AmplifyValue(amplify_value) => {
+                    self.config_cache.amplify_value = amplify_value;
+
+                    if let Some(value) = self.config_cache.parse_amplify_value() {
+                        self.config.update(|c| c.amplify_value = value);
+                        return self.update_audio_stream();
+                    }
+                }
             },
             AppMsg::Shutdown => {
                 return cosmic::iced_runtime::task::effect(Action::Exit);
