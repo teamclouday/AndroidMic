@@ -1,3 +1,5 @@
+use std::borrow::Cow;
+
 use crate::{
     audio::denoise_speex::{DENOISE_SPEEX_SAMPLE_RATE, denoise_speex_f32_stream},
     config::AudioFormat,
@@ -53,11 +55,11 @@ impl AudioStream {
             const DENOISE_SAMPLE_RATE: u32 = 48000;
 
             let prepared_buffer = if current_sample_rate == DENOISE_SAMPLE_RATE {
-                buffer.clone()
+                Cow::Borrowed(&buffer)
             } else {
                 let tmp = resample_f32_stream(&buffer, current_sample_rate, DENOISE_SAMPLE_RATE)?;
                 current_sample_rate = DENOISE_SAMPLE_RATE;
-                tmp
+                Cow::Owned(tmp)
             };
 
             // denoise the audio stream
@@ -66,17 +68,17 @@ impl AudioStream {
 
         if config.speex_denoise {
             let prepared_buffer = if current_sample_rate == DENOISE_SPEEX_SAMPLE_RATE {
-                buffer.clone()
+                Cow::Borrowed(&buffer)
             } else {
                 let tmp =
                     resample_f32_stream(&buffer, current_sample_rate, DENOISE_SPEEX_SAMPLE_RATE)?;
                 current_sample_rate = DENOISE_SPEEX_SAMPLE_RATE;
-                tmp
+                Cow::Owned(tmp)
             };
 
             let mut prepared_buffer: Vec<Vec<i16>> = prepared_buffer
-                .into_iter()
-                .map(|v| v.into_iter().map(AudioBytes::from_f32).collect())
+                .iter()
+                .map(|v| v.into_iter().map(|v| AudioBytes::from_f32(*v)).collect())
                 .collect();
 
             denoise_speex_f32_stream(&mut prepared_buffer, &mut self.denoise_speex_cache)?;
