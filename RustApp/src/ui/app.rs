@@ -153,9 +153,8 @@ impl AppState {
                     buff: producer,
                     audio_params: AudioProcessParams {
                         target_format: audio_config,
-                        denoise: config.denoise,
+                        denoise: config.denoise.then_some(config.denoise_kind),
                         amplify: config.amplify.then_some(config.amplify_value),
-                        speex_denoise: config.speex_denoise,
                     },
                 });
 
@@ -218,9 +217,8 @@ impl AppState {
             buff: producer,
             audio_params: AudioProcessParams {
                 target_format: audio_config,
-                denoise: config.denoise,
+                denoise: config.denoise.then_some(config.denoise_kind),
                 amplify: config.amplify.then_some(config.amplify_value),
-                speex_denoise: config.speex_denoise,
             },
         });
 
@@ -511,8 +509,8 @@ impl Application for AppState {
                         return self.update_audio_stream();
                     }
                 }
-                ConfigMsg::DeNoiseSpeex(speex_denoise) => {
-                    self.config.update(|c| c.speex_denoise = speex_denoise);
+                ConfigMsg::DeNoiseKind(denoise_kind) => {
+                    self.config.update(|c| c.denoise_kind = denoise_kind);
                     return self.update_audio_stream();
                 }
             },

@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::{
     audio::denoise_speex::{DENOISE_SPEEX_SAMPLE_RATE, denoise_speex_f32_stream},
-    config::AudioFormat,
+    config::{AudioFormat, DenoiseKind},
     streamer::{AudioPacketMessage, AudioStream},
 };
 
@@ -14,9 +14,8 @@ use super::{
 #[derive(Clone, Debug)]
 pub struct AudioProcessParams {
     pub target_format: AudioPacketFormat,
-    pub denoise: bool,
+    pub denoise: Option<DenoiseKind>,
     pub amplify: Option<f32>,
-    pub speex_denoise: bool,
 }
 
 impl AudioStream {
@@ -51,42 +50,49 @@ impl AudioStream {
         let mut buffer = convert_packet_to_f32(&packet)?;
 
         // next run resampler and denoise on the buffer
-        if config.denoise {
-            const DENOISE_SAMPLE_RATE: u32 = 48000;
+        if let Some(denoise) = &config.denoise {
+            match denoise {
+                DenoiseKind::Rnnoise => {
+                    const DENOISE_SAMPLE_RATE: u32 = 48000;
 
-            let prepared_buffer = if current_sample_rate == DENOISE_SAMPLE_RATE {
-                Cow::Borrowed(&buffer)
-            } else {
-                let tmp = resample_f32_stream(&buffer, current_sample_rate, DENOISE_SAMPLE_RATE)?;
-                current_sample_rate = DENOISE_SAMPLE_RATE;
-                Cow::Owned(tmp)
-            };
+                    let prepared_buffer = if current_sample_rate == DENOISE_SAMPLE_RATE {
+                        Cow::Borrowed(&buffer)
+                    } else {
+                        let tmp =
+                            resample_f32_stream(&buffer, current_sample_rate, DENOISE_SAMPLE_RATE)?;
+                        current_sample_rate = DENOISE_SAMPLE_RATE;
+                        Cow::Owned(tmp)
+                    };
 
-            // denoise the audio stream
-            buffer = denoise_f32_stream(&prepared_buffer)?;
-        };
+                    // denoise the audio stream
+                    buffer = denoise_f32_stream(&prepared_buffer)?;
+                }
+                DenoiseKind::Speexdsp => {
+                    let prepared_buffer = if current_sample_rate == DENOISE_SPEEX_SAMPLE_RATE {
+                        Cow::Borrowed(&buffer)
+                    } else {
+                        let tmp = resample_f32_stream(
+                            &buffer,
+                            current_sample_rate,
+                            DENOISE_SPEEX_SAMPLE_RATE,
+                        )?;
+                        current_sample_rate = DENOISE_SPEEX_SAMPLE_RATE;
+                        Cow::Owned(tmp)
+                    };
 
-        if config.speex_denoise {
-            let prepared_buffer = if current_sample_rate == DENOISE_SPEEX_SAMPLE_RATE {
-                Cow::Borrowed(&buffer)
-            } else {
-                let tmp =
-                    resample_f32_stream(&buffer, current_sample_rate, DENOISE_SPEEX_SAMPLE_RATE)?;
-                current_sample_rate = DENOISE_SPEEX_SAMPLE_RATE;
-                Cow::Owned(tmp)
-            };
+                    let mut prepared_buffer: Vec<Vec<i16>> = prepared_buffer
+                        .iter()
+                        .map(|v| v.iter().map(|v| AudioBytes::from_f32(*v)).collect())
+                        .collect();
 
-            let mut prepared_buffer: Vec<Vec<i16>> = prepared_buffer
-                .iter()
-                .map(|v| v.into_iter().map(|v| AudioBytes::from_f32(*v)).collect())
-                .collect();
+                    denoise_speex_f32_stream(&mut prepared_buffer, &mut self.denoise_speex_cache)?;
 
-            denoise_speex_f32_stream(&mut prepared_buffer, &mut self.denoise_speex_cache)?;
-
-            buffer = prepared_buffer
-                .into_iter()
-                .map(|v| v.into_iter().map(|v| AudioBytes::to_f32(&v)).collect())
-                .collect();
+                    buffer = prepared_buffer
+                        .into_iter()
+                        .map(|v| v.into_iter().map(|v| AudioBytes::to_f32(&v)).collect())
+                        .collect();
+                }
+            }
         }
 
         if let Some(amplify) = config.amplify {

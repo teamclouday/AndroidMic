@@ -2,10 +2,15 @@ use std::{collections::HashMap, sync::LazyLock};
 
 use cosmic::{
     Element,
-    iced::{Length, alignment::Horizontal, widget::pick_list},
+    iced::{
+        Length,
+        alignment::{Horizontal, Vertical},
+        widget::pick_list,
+    },
     widget::{
-        self, about::About, button, canvas, column, container, context_menu, markdown, menu, radio,
-        row, scrollable, settings, text, text_input, toggler, vertical_space,
+        self, about::About, button, canvas, column, container, context_menu, horizontal_space,
+        markdown, menu, radio, row, scrollable, settings, text, text_input, toggler,
+        vertical_space,
     },
 };
 use cpal::traits::DeviceTrait;
@@ -15,7 +20,7 @@ use super::{
     message::{AppMsg, ConfigMsg},
 };
 use crate::{
-    config::{AppTheme, AudioFormat, ChannelCount, ConnectionMode, SampleRate},
+    config::{AppTheme, AudioFormat, ChannelCount, ConnectionMode, DenoiseKind, SampleRate},
     fl,
     ui::message::MenuMsg,
     utils::APP,
@@ -204,32 +209,38 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                     )),
             )
             .push(
-                settings::section()
-                    .title(fl!("denoise"))
-                    .add(toggler(config.denoise).on_toggle(ConfigMsg::DeNoise)),
+                settings::section().title(fl!("denoise")).add(
+                    row()
+                        .align_y(Vertical::Center)
+                        .push(toggler(config.denoise).on_toggle(ConfigMsg::DeNoise))
+                        .push(horizontal_space())
+                        .push(pick_list(
+                            DenoiseKind::VALUES,
+                            Some(&config.denoise_kind),
+                            ConfigMsg::DeNoiseKind,
+                        )),
+                ),
             )
             .push(
-                settings::section()
-                    .title(fl!("denoise_speex"))
-                    .add(toggler(config.speex_denoise).on_toggle(ConfigMsg::DeNoiseSpeex)),
-            )
-            .push(
-                settings::section()
-                    .title(fl!("amplify"))
-                    .add(toggler(config.amplify).on_toggle(ConfigMsg::Amplify))
-                    .add({
-                        let mut text = text_input("", &app.config_cache.amplify_value);
+                settings::section().title(fl!("amplify")).add(
+                    row()
+                        .align_y(Vertical::Center)
+                        .push(toggler(config.amplify).on_toggle(ConfigMsg::Amplify))
+                        .push(horizontal_space())
+                        .push({
+                            let mut text = text_input("", &app.config_cache.amplify_value);
 
-                        if config.amplify {
-                            text = text.on_input(ConfigMsg::AmplifyValue)
-                        }
+                            if config.amplify {
+                                text = text.on_input(ConfigMsg::AmplifyValue)
+                            }
 
-                        if app.config_cache.parse_amplify_value().is_none() {
-                            text = text.error("")
-                        }
+                            if app.config_cache.parse_amplify_value().is_none() {
+                                text = text.error("")
+                            }
 
-                        text
-                    }),
+                            text
+                        }),
+                ),
             )
             .push(button::text("Use Recommended Format").on_press(ConfigMsg::UseRecommendedFormat))
             .push_maybe(if cfg!(target_os = "windows") {

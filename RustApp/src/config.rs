@@ -21,10 +21,28 @@ pub struct Config {
     pub start_at_login: bool,
     pub auto_connect: bool,
     pub denoise: bool,
+    pub denoise_kind: DenoiseKind,
     pub theme: AppTheme,
     pub amplify: bool,
     pub amplify_value: f32,
-    pub speex_denoise: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, Values, PartialEq)]
+pub enum DenoiseKind {
+    #[default]
+    Rnnoise,
+    Speexdsp,
+}
+
+impl Display for DenoiseKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            DenoiseKind::Rnnoise => "Nrnoise",
+            DenoiseKind::Speexdsp => "Speexdsp",
+        };
+
+        write!(f, "{}", str)
+    }
 }
 
 impl Default for Config {
@@ -39,10 +57,10 @@ impl Default for Config {
             start_at_login: false,
             auto_connect: false,
             denoise: false,
+            denoise_kind: Default::default(),
             theme: Default::default(),
             amplify: false,
             amplify_value: 2.0,
-            speex_denoise: false,
         }
     }
 }

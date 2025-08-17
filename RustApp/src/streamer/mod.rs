@@ -3,10 +3,7 @@ use anyhow::Result;
 use enum_dispatch::enum_dispatch;
 use prost::DecodeError;
 use rtrb::{Producer, chunks::ChunkError};
-use std::{
-    fmt::Debug,
-    io,
-};
+use std::{fmt::Debug, io};
 use tcp_streamer::TcpStreamer;
 use thiserror::Error;
 use udp_streamer::UdpStreamer;
