@@ -5811,7 +5811,7 @@ dependencies = [
 [[package]]
 name = "speexdsp"
 version = "0.1.1"
-source = "git+https://github.com/wiiznokes/speexdsp-rs-fork?rev=28f1d784a92ed0bd2929caebeae02ecdbc3e0ad4#28f1d784a92ed0bd2929caebeae02ecdbc3e0ad4"
+source = "git+https://github.com/wiiznokes/speexdsp-rs-fork?rev=367a12d11ac2fea30ef712c779b7e5f5707d33fe#367a12d11ac2fea30ef712c779b7e5f5707d33fe"
 dependencies = [
  "speexdsp-resampler",
  "speexdsp-sys",
@@ -5820,7 +5820,7 @@ dependencies = [
 [[package]]
 name = "speexdsp-resampler"
 version = "0.1.0"
-source = "git+https://github.com/wiiznokes/speexdsp-rs-fork?rev=28f1d784a92ed0bd2929caebeae02ecdbc3e0ad4#28f1d784a92ed0bd2929caebeae02ecdbc3e0ad4"
+source = "git+https://github.com/wiiznokes/speexdsp-rs-fork?rev=367a12d11ac2fea30ef712c779b7e5f5707d33fe#367a12d11ac2fea30ef712c779b7e5f5707d33fe"
 dependencies = [
  "cfg-if",
 ]
@@ -5828,7 +5828,7 @@ dependencies = [
 [[package]]
 name = "speexdsp-sys"
 version = "0.1.2"
-source = "git+https://github.com/wiiznokes/speexdsp-rs-fork?rev=28f1d784a92ed0bd2929caebeae02ecdbc3e0ad4#28f1d784a92ed0bd2929caebeae02ecdbc3e0ad4"
+source = "git+https://github.com/wiiznokes/speexdsp-rs-fork?rev=367a12d11ac2fea30ef712c779b7e5f5707d33fe#367a12d11ac2fea30ef712c779b7e5f5707d33fe"
 dependencies = [
  "autotools",
  "bindgen",
