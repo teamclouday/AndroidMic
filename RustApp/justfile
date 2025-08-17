@@ -62,4 +62,3 @@ metainfo-check:
 
 install_nsis: build-release nsis
     Start-Process (Get-ChildItem .\target\release\android-mic_*_x64-setup.exe | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
-

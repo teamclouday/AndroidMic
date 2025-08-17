@@ -26,38 +26,22 @@ use crate::streamer::usb_streamer::UsbStreamer;
 pub use message::{AudioPacketMessage, AudioPacketMessageOrdered};
 pub use streamer_runner::{ConnectOption, StreamerCommand, StreamerMsg, sub};
 
-use crate::{
-    audio::{AudioPacketFormat, process::AudioProcessParams},
-    config::AudioFormat,
-};
+use crate::{audio::process::AudioProcessParams, config::AudioFormat};
 
 /// Default port on the PC
 const DEFAULT_PC_PORT: u16 = 55555;
 const MAX_PORT: u16 = 60000;
 
-pub struct StreamConfig {
+pub struct AudioStream {
     pub buff: Producer<u8>,
-    pub audio_config: AudioPacketFormat,
-    pub denoise: bool,
-    pub amplify: Option<f32>,
+    pub audio_params: AudioProcessParams,
 }
 
-impl Debug for StreamConfig {
+impl Debug for AudioStream {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("StreamConfig")
-            .field("audio_config", &self.audio_config)
-            .field("denoise", &self.denoise)
+        f.debug_struct("AudioStream")
+            .field("audio_params", &self.audio_params)
             .finish()
-    }
-}
-
-impl StreamConfig {
-    pub fn to_audio_params(&self) -> AudioProcessParams {
-        AudioProcessParams {
-            target_format: self.audio_config.clone(),
-            denoise: self.denoise,
-            amplify: self.amplify,
-        }
     }
 }
 
@@ -70,7 +54,7 @@ trait StreamerTrait {
     /// A nice benefit of this pattern is that there is no usage of Atomic what so ever.
     async fn next(&mut self) -> Result<Option<StreamerMsg>, ConnectError>;
 
-    fn reconfigure_stream(&mut self, stream_config: StreamConfig);
+    fn reconfigure_stream(&mut self, stream_config: AudioStream);
 
     fn status(&self) -> StreamerMsg;
 }
@@ -156,7 +140,7 @@ impl StreamerTrait for DummyStreamer {
         unreachable!()
     }
 
-    fn reconfigure_stream(&mut self, _config: StreamConfig) {}
+    fn reconfigure_stream(&mut self, _config: AudioStream) {}
 
     fn status(&self) -> StreamerMsg {
         unreachable!()

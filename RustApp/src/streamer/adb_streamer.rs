@@ -4,7 +4,7 @@ use tokio::process::Command;
 use crate::streamer::{StreamerMsg, tcp_streamer};
 
 use super::{
-    ConnectError, StreamConfig, StreamerTrait,
+    AudioStream, ConnectError, StreamerTrait,
     tcp_streamer::{TcpStreamer, TcpStreamerState},
 };
 
@@ -64,7 +64,7 @@ async fn exec_cmd(mut cmd: Command) -> Result<String, ConnectError> {
     Ok(stdout)
 }
 
-pub async fn new(stream_config: StreamConfig) -> Result<AdbStreamer, ConnectError> {
+pub async fn new(stream_config: AudioStream) -> Result<AdbStreamer, ConnectError> {
     let tcp_streamer = tcp_streamer::new(str::parse("127.0.0.1").unwrap(), stream_config).await?;
 
     let devices = get_connected_devices().await?;
@@ -95,7 +95,7 @@ impl StreamerTrait for AdbStreamer {
         self.tcp_streamer.next().await
     }
 
-    fn reconfigure_stream(&mut self, config: StreamConfig) {
+    fn reconfigure_stream(&mut self, config: AudioStream) {
         self.tcp_streamer.reconfigure_stream(config)
     }
 

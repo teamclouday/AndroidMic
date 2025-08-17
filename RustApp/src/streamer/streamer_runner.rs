@@ -1,6 +1,7 @@
-use cosmic::iced::futures::{SinkExt, Stream};
+use cosmic::iced::futures::SinkExt;
 use cosmic::iced::stream;
 use either::Either;
+use futures::Stream;
 use futures::{
     future::{self},
     pin_mut,
@@ -11,7 +12,7 @@ use tokio::sync::mpsc::{self, Sender};
 use crate::streamer::{StreamerTrait, WriteError};
 
 use super::{
-    ConnectError, DummyStreamer, StreamConfig, Streamer, adb_streamer, tcp_streamer, udp_streamer,
+    AudioStream, ConnectError, DummyStreamer, Streamer, adb_streamer, tcp_streamer, udp_streamer,
 };
 
 #[derive(Debug)]
@@ -30,8 +31,8 @@ pub enum ConnectOption {
 /// App -> Streamer
 #[derive(Debug)]
 pub enum StreamerCommand {
-    Connect(ConnectOption, StreamConfig),
-    ReconfigureStream(StreamConfig),
+    Connect(ConnectOption, AudioStream),
+    ReconfigureStream(AudioStream),
     Stop,
 }
 

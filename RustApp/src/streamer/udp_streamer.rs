@@ -5,12 +5,9 @@ use prost::Message;
 use tokio::net::UdpSocket;
 use tokio_util::{codec::LengthDelimitedCodec, udp::UdpFramed};
 
-use crate::{
-    audio::process::convert_audio_stream,
-    streamer::{AudioPacketMessage, DEFAULT_PC_PORT, MAX_PORT, WriteError},
-};
+use crate::streamer::{AudioPacketMessage, DEFAULT_PC_PORT, MAX_PORT, WriteError};
 
-use super::{AudioPacketMessageOrdered, ConnectError, StreamConfig, StreamerMsg, StreamerTrait};
+use super::{AudioPacketMessageOrdered, AudioStream, ConnectError, StreamerMsg, StreamerTrait};
 
 const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
 
@@ -19,12 +16,12 @@ const DISCONNECT_LOOP_DETECTER_MAX: u32 = 1000;
 pub struct UdpStreamer {
     ip: IpAddr,
     pub port: u16,
-    stream_config: StreamConfig,
+    stream_config: AudioStream,
     framed: UdpFramed<LengthDelimitedCodec>,
     tracked_sequence: u32,
 }
 
-pub async fn new(ip: IpAddr, stream_config: StreamConfig) -> Result<UdpStreamer, ConnectError> {
+pub async fn new(ip: IpAddr, stream_config: AudioStream) -> Result<UdpStreamer, ConnectError> {
     let mut socket = None;
 
     // try to always bind the same port, to not change it everytime Android side
@@ -57,7 +54,7 @@ pub async fn new(ip: IpAddr, stream_config: StreamConfig) -> Result<UdpStreamer,
 }
 
 impl StreamerTrait for UdpStreamer {
-    fn reconfigure_stream(&mut self, stream_config: StreamConfig) {
+    fn reconfigure_stream(&mut self, stream_config: AudioStream) {
         self.stream_config = stream_config;
     }
 
@@ -87,10 +84,7 @@ impl StreamerTrait for UdpStreamer {
                         let packet = packet.audio_packet.unwrap();
                         let buffer_size = packet.buffer.len();
 
-                        let audio_params = self.stream_config.to_audio_params();
-                        if let Ok(buffer) =
-                            convert_audio_stream(&mut self.stream_config.buff, packet, audio_params)
-                        {
+                        if let Ok(buffer) = self.stream_config.process_audio_packet(packet) {
                             // compute the audio wave from the buffer
                             res = Some(StreamerMsg::UpdateAudioWave {
                                 data: AudioPacketMessage::to_wave_data(&buffer),

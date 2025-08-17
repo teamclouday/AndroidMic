@@ -24,23 +24,25 @@ pub struct Config {
     pub theme: AppTheme,
     pub amplify: bool,
     pub amplify_value: f32,
+    pub speex_denoise: bool,
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             connection_mode: Default::default(),
-            ip: Default::default(),
+            ip: None,
             audio_format: Default::default(),
             channel_count: Default::default(),
             sample_rate: Default::default(),
-            device_name: Default::default(),
-            start_at_login: Default::default(),
-            auto_connect: Default::default(),
-            denoise: Default::default(),
+            device_name: None,
+            start_at_login: false,
+            auto_connect: false,
+            denoise: false,
             theme: Default::default(),
-            amplify: Default::default(),
+            amplify: false,
             amplify_value: 2.0,
+            speex_denoise: false,
         }
     }
 }

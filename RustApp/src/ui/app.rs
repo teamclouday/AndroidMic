@@ -25,12 +25,12 @@ use super::{
     wave::AudioWave,
 };
 use crate::{
-    audio::AudioPacketFormat,
+    audio::{AudioPacketFormat, process::AudioProcessParams},
     config::{
         AppTheme, AudioFormat, ChannelCount, Config, ConfigCache, ConnectionMode, SampleRate,
     },
     fl,
-    streamer::{self, ConnectOption, StreamConfig, StreamerCommand, StreamerMsg},
+    streamer::{self, AudioStream, ConnectOption, StreamerCommand, StreamerMsg},
     ui::view::{SCROLLABLE_ID, about_window},
     utils::APP_ID,
     window_icon,
@@ -149,11 +149,14 @@ impl AppState {
 
         match self.start_audio_stream(consumer) {
             Ok(audio_config) => {
-                self.send_command(StreamerCommand::ReconfigureStream(StreamConfig {
+                self.send_command(StreamerCommand::ReconfigureStream(AudioStream {
                     buff: producer,
-                    audio_config,
-                    denoise: config.denoise,
-                    amplify: config.amplify.then_some(config.amplify_value),
+                    audio_params: AudioProcessParams {
+                        target_format: audio_config,
+                        denoise: config.denoise,
+                        amplify: config.amplify.then_some(config.amplify_value),
+                        speex_denoise: config.speex_denoise,
+                    },
                 }));
                 Task::none()
             }
@@ -211,11 +214,14 @@ impl AppState {
 
         self.send_command(StreamerCommand::Connect(
             connect_option,
-            StreamConfig {
+            AudioStream {
                 buff: producer,
-                audio_config,
-                denoise: config.denoise,
-                amplify: config.amplify.then_some(config.amplify_value),
+                audio_params: AudioProcessParams {
+                    target_format: audio_config,
+                    denoise: config.denoise,
+                    amplify: config.amplify.then_some(config.amplify_value),
+                    speex_denoise: config.speex_denoise,
+                },
             },
         ));
 

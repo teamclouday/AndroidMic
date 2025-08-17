@@ -6,20 +6,20 @@ use tokio::time::sleep;
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 use super::{
-    StreamConfig,
+    AudioStream,
     usb::{
         aoa::{AccessoryConfigurations, AccessoryDeviceInfo, AccessoryInterface, AccessoryStrings},
         frame::UsbStream,
     },
 };
-use crate::{audio::process::convert_audio_stream, streamer::WriteError};
+use crate::streamer::WriteError;
 
 use super::{AudioPacketMessage, ConnectError, StreamerMsg, StreamerTrait};
 
 const MAX_WAIT_TIME: Duration = Duration::from_millis(100);
 
 pub struct UsbStreamer {
-    stream_config: StreamConfig,
+    stream_config: AudioStream,
     state: UsbStreamerState,
     framed: Framed<UsbStream, LengthDelimitedCodec>,
 }
@@ -88,7 +88,7 @@ pub fn switch_to_accessory(info: &nusb::DeviceInfo) -> Result<(), ConnectError> 
     Ok(())
 }
 
-pub async fn new(stream_config: StreamConfig) -> Result<UsbStreamer, ConnectError> {
+pub async fn new(stream_config: AudioStream) -> Result<UsbStreamer, ConnectError> {
     let mut retries = 0;
     // switch all usb devices to accessory mode until one succeeds
     for info in nusb::list_devices().map_err(ConnectError::NoUsbDevice)? {
@@ -172,7 +172,7 @@ pub async fn new(stream_config: StreamConfig) -> Result<UsbStreamer, ConnectErro
 }
 
 impl StreamerTrait for UsbStreamer {
-    fn reconfigure_stream(&mut self, stream_config: StreamConfig) {
+    fn reconfigure_stream(&mut self, stream_config: AudioStream) {
         self.stream_config = stream_config;
     }
 
@@ -199,10 +199,7 @@ impl StreamerTrait for UsbStreamer {
                     Ok(packet) => {
                         let buffer_size = packet.buffer.len();
 
-                        let audio_params = self.stream_config.to_audio_params();
-                        if let Ok(buffer) =
-                            convert_audio_stream(&mut self.stream_config.buff, packet, audio_params)
-                        {
+                        if let Ok(buffer) = self.stream_config.process_audio_packet(packet) {
                             // compute the audio wave from the buffer
                             res = Some(StreamerMsg::UpdateAudioWave {
                                 data: AudioPacketMessage::to_wave_data(&buffer),
