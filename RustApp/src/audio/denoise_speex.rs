@@ -1,5 +1,8 @@
 use speexdsp::preprocess::*;
 
+// xxx: do we really need to change the sample rate ?
+// apparently, speexdsp is optimized for low sample rate (8000, 16000), according to chatgpt,
+// but 16000 just doesn't work on my end
 pub const DENOISE_SPEEX_SAMPLE_RATE: u32 = 48000;
 
 pub struct DenoiseSpeexCache {
