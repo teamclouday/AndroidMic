@@ -7,6 +7,7 @@ use futures::{
     pin_mut,
 };
 use rtrb::Producer;
+use std::fmt::Debug;
 use std::net::IpAddr;
 use tokio::sync::mpsc::{self, Sender};
 
@@ -31,7 +32,6 @@ pub enum ConnectOption {
 }
 
 /// App -> Streamer
-#[derive(Debug)]
 pub enum StreamerCommand {
     Connect {
         connect_options: ConnectOption,
@@ -43,6 +43,30 @@ pub enum StreamerCommand {
         audio_params: AudioProcessParams,
     },
     Stop,
+}
+
+impl Debug for StreamerCommand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Connect {
+                connect_options,
+                buff: _,
+                audio_params,
+            } => f
+                .debug_struct("Connect")
+                .field("connect_options", connect_options)
+                .field("audio_params", audio_params)
+                .finish(),
+            Self::ReconfigureStream {
+                buff: _,
+                audio_params,
+            } => f
+                .debug_struct("ReconfigureStream")
+                .field("audio_params", audio_params)
+                .finish(),
+            Self::Stop => write!(f, "Stop"),
+        }
+    }
 }
 
 /// Streamer -> App

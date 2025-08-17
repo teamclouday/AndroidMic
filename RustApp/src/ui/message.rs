@@ -29,6 +29,7 @@ pub enum ConfigMsg {
     AutoConnect(bool),
     DeNoise(bool),
     DeNoiseKind(DenoiseKind),
+    SpeexNoiseSuppress(String),
     Theme(AppTheme),
     Amplify(bool),
     AmplifyValue(String),

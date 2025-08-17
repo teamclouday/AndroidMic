@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use crate::{
     audio::denoise_speex::{DENOISE_SPEEX_SAMPLE_RATE, denoise_speex_f32_stream},
-    config::{AudioFormat, DenoiseKind},
+    config::{AudioFormat, Config, DenoiseKind},
     streamer::{AudioPacketMessage, AudioStream},
 };
 
@@ -16,6 +16,18 @@ pub struct AudioProcessParams {
     pub target_format: AudioPacketFormat,
     pub denoise: Option<DenoiseKind>,
     pub amplify: Option<f32>,
+    pub speex_noise_suppress: i32,
+}
+
+impl AudioProcessParams {
+    pub fn new(target_format: AudioPacketFormat, config: Config) -> Self {
+        Self {
+            target_format,
+            denoise: config.denoise.then_some(config.denoise_kind),
+            amplify: config.amplify.then_some(config.amplify_value),
+            speex_noise_suppress: config.speex_noise_suppress,
+        }
+    }
 }
 
 impl AudioStream {
@@ -85,7 +97,11 @@ impl AudioStream {
                         .map(|v| v.iter().map(|v| AudioBytes::from_f32(*v)).collect())
                         .collect();
 
-                    denoise_speex_f32_stream(&mut prepared_buffer, &mut self.denoise_speex_cache)?;
+                    denoise_speex_f32_stream(
+                        &mut prepared_buffer,
+                        &mut self.denoise_speex_cache,
+                        config.speex_noise_suppress,
+                    )?;
 
                     buffer = prepared_buffer
                         .into_iter()

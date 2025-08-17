@@ -6,12 +6,13 @@ pub struct DenoiseSpeexCache {
     denoisers: Vec<SpeexPreprocess>,
 }
 
-// safe because ?
+// safe because packets are processed in order, and not concurrently
 unsafe impl Send for DenoiseSpeexCache {}
 
 pub fn denoise_speex_f32_stream(
     data: &mut [Vec<i16>],
     cache: &mut Option<DenoiseSpeexCache>,
+    noise_suppress: i32,
 ) -> anyhow::Result<()> {
     const FRAME_SIZE: usize = (DENOISE_SPEEX_SAMPLE_RATE as f32 * 0.02) as usize; // 20 ms frame
 
@@ -24,7 +25,7 @@ pub fn denoise_speex_f32_stream(
                         SpeexPreprocess::new(FRAME_SIZE, DENOISE_SPEEX_SAMPLE_RATE as usize)
                             .unwrap();
                     st.set_denoise(true);
-                    st.set_noise_suppress(-30);
+                    st.set_noise_suppress(noise_suppress);
                     st
                 })
                 .collect(),

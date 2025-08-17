@@ -151,11 +151,7 @@ impl AppState {
             Ok(audio_config) => {
                 self.send_command(StreamerCommand::ReconfigureStream {
                     buff: producer,
-                    audio_params: AudioProcessParams {
-                        target_format: audio_config,
-                        denoise: config.denoise.then_some(config.denoise_kind),
-                        amplify: config.amplify.then_some(config.amplify_value),
-                    },
+                    audio_params: AudioProcessParams::new(audio_config, config),
                 });
 
                 Task::none()
@@ -215,11 +211,7 @@ impl AppState {
         self.send_command(StreamerCommand::Connect {
             connect_options,
             buff: producer,
-            audio_params: AudioProcessParams {
-                target_format: audio_config,
-                denoise: config.denoise.then_some(config.denoise_kind),
-                amplify: config.amplify.then_some(config.amplify_value),
-            },
+            audio_params: AudioProcessParams::new(audio_config, config),
         });
 
         Task::none()
@@ -512,6 +504,14 @@ impl Application for AppState {
                 ConfigMsg::DeNoiseKind(denoise_kind) => {
                     self.config.update(|c| c.denoise_kind = denoise_kind);
                     return self.update_audio_stream();
+                }
+                ConfigMsg::SpeexNoiseSuppress(speex_noise_suppress) => {
+                    self.config_cache.speex_noise_suppress = speex_noise_suppress;
+
+                    if let Some(value) = self.config_cache.parse_speex_noise_suppress() {
+                        self.config.update(|c| c.speex_noise_suppress = value);
+                        return self.update_audio_stream();
+                    }
                 }
             },
             AppMsg::Shutdown => {
