@@ -38,7 +38,7 @@ pub enum DenoiseKind {
 impl Display for DenoiseKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
-            DenoiseKind::Rnnoise => "Nrnoise",
+            DenoiseKind::Rnnoise => "RNNoise",
             DenoiseKind::Speexdsp => "Speexdsp",
         };
 
