@@ -11,7 +11,8 @@ waiting = Waiting...
 sample_rate = Sample rate
 channel_count = Channel count
 audio_format = Audio format
-denoise = Use audio noise reduction
+denoise = Use audio noise reduction (rnoise)
+denoise_speex = Use audio noise reduction (speex)
 
 start_at_login = Start at login
 auto_connect = Auto connect

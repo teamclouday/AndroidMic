@@ -210,6 +210,11 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
             )
             .push(
                 settings::section()
+                    .title(fl!("denoise_speex"))
+                    .add(toggler(config.speex_denoise).on_toggle(ConfigMsg::DeNoiseSpeex)),
+            )
+            .push(
+                settings::section()
                     .title(fl!("amplify"))
                     .add(toggler(config.amplify).on_toggle(ConfigMsg::Amplify))
                     .add({

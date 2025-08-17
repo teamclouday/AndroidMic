@@ -8,6 +8,7 @@ use crate::{
 };
 
 mod denoise;
+mod denoise_speex;
 mod player;
 pub mod process;
 mod resampler;

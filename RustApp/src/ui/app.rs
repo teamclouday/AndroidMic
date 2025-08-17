@@ -512,6 +512,10 @@ impl Application for AppState {
                         return self.update_audio_stream();
                     }
                 }
+                ConfigMsg::DeNoiseSpeex(speex_denoise) => {
+                    self.config.update(|c| c.speex_denoise = speex_denoise);
+                    return self.update_audio_stream();
+                }
             },
             AppMsg::Shutdown => {
                 return cosmic::iced_runtime::task::effect(Action::Exit);

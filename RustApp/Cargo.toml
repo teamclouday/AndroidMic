@@ -94,6 +94,10 @@ fix-path-env = { git = "https://github.com/wiiznokes/fix-path-env-rs", rev = "86
 env_logger = "0.11"
 nnnoiseless = "0.5"
 open = "5"
+speexdsp = { path = "../../speexdsp-rs-fork", features = [
+    "sys",
+    "vendored-sys",
+] }
 
 [build-dependencies]
 prost-build = "0.14"

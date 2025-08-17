@@ -28,6 +28,7 @@ pub enum ConfigMsg {
     StartAtLogin(bool),
     AutoConnect(bool),
     DeNoise(bool),
+    DeNoiseSpeex(bool),
     Theme(AppTheme),
     Amplify(bool),
     AmplifyValue(String),
