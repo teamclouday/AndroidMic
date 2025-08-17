@@ -30,7 +30,7 @@ use crate::{
         AppTheme, AudioFormat, ChannelCount, Config, ConfigCache, ConnectionMode, SampleRate,
     },
     fl,
-    streamer::{self, AudioStream, ConnectOption, StreamerCommand, StreamerMsg},
+    streamer::{self, ConnectOption, StreamerCommand, StreamerMsg},
     ui::view::{SCROLLABLE_ID, about_window},
     utils::APP_ID,
     window_icon,
@@ -149,7 +149,7 @@ impl AppState {
 
         match self.start_audio_stream(consumer) {
             Ok(audio_config) => {
-                self.send_command(StreamerCommand::ReconfigureStream(AudioStream {
+                self.send_command(StreamerCommand::ReconfigureStream {
                     buff: producer,
                     audio_params: AudioProcessParams {
                         target_format: audio_config,
@@ -157,7 +157,8 @@ impl AppState {
                         amplify: config.amplify.then_some(config.amplify_value),
                         speex_denoise: config.speex_denoise,
                     },
-                }));
+                });
+
                 Task::none()
             }
             Err(e) => {
@@ -196,7 +197,7 @@ impl AppState {
             }
         };
 
-        let connect_option = match config.connection_mode {
+        let connect_options = match config.connection_mode {
             ConnectionMode::Tcp => {
                 let ip = config.ip.unwrap_or(local_ip().unwrap());
                 ConnectOption::Tcp { ip }
@@ -212,18 +213,16 @@ impl AppState {
 
         self.connection_state = ConnectionState::WaitingOnStatus;
 
-        self.send_command(StreamerCommand::Connect(
-            connect_option,
-            AudioStream {
-                buff: producer,
-                audio_params: AudioProcessParams {
-                    target_format: audio_config,
-                    denoise: config.denoise,
-                    amplify: config.amplify.then_some(config.amplify_value),
-                    speex_denoise: config.speex_denoise,
-                },
+        self.send_command(StreamerCommand::Connect {
+            connect_options,
+            buff: producer,
+            audio_params: AudioProcessParams {
+                target_format: audio_config,
+                denoise: config.denoise,
+                amplify: config.amplify.then_some(config.amplify_value),
+                speex_denoise: config.speex_denoise,
             },
-        ));
+        });
 
         Task::none()
     }

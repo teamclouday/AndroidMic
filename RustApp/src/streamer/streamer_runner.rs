@@ -6,9 +6,11 @@ use futures::{
     future::{self},
     pin_mut,
 };
+use rtrb::Producer;
 use std::net::IpAddr;
 use tokio::sync::mpsc::{self, Sender};
 
+use crate::audio::process::AudioProcessParams;
 use crate::streamer::{StreamerTrait, WriteError};
 
 use super::{
@@ -31,8 +33,15 @@ pub enum ConnectOption {
 /// App -> Streamer
 #[derive(Debug)]
 pub enum StreamerCommand {
-    Connect(ConnectOption, AudioStream),
-    ReconfigureStream(AudioStream),
+    Connect {
+        connect_options: ConnectOption,
+        buff: Producer<u8>,
+        audio_params: AudioProcessParams,
+    },
+    ReconfigureStream {
+        buff: Producer<u8>,
+        audio_params: AudioProcessParams,
+    },
     Stop,
 }
 
@@ -92,9 +101,14 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                     if let Some(command) = command {
                         info!("received command {command:?}");
                         match command {
-                            StreamerCommand::Connect(connect_option, stream_config) => {
+                            StreamerCommand::Connect {
+                                connect_options,
+                                buff,
+                                audio_params,
+                            } => {
+                                let stream_config = AudioStream::new(buff, audio_params);
                                 let new_streamer: Result<Streamer, ConnectError> =
-                                    match connect_option {
+                                    match connect_options {
                                         ConnectOption::Tcp { ip } => {
                                             tcp_streamer::new(ip, stream_config)
                                                 .await
@@ -127,7 +141,9 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                     }
                                 }
                             }
-                            StreamerCommand::ReconfigureStream(stream_config) => {
+                            StreamerCommand::ReconfigureStream { buff, audio_params } => {
+                                let stream_config = AudioStream::new(buff, audio_params);
+
                                 streamer.reconfigure_stream(stream_config);
                             }
                             StreamerCommand::Stop => {

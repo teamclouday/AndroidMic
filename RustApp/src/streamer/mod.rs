@@ -3,7 +3,10 @@ use anyhow::Result;
 use enum_dispatch::enum_dispatch;
 use prost::DecodeError;
 use rtrb::{Producer, chunks::ChunkError};
-use std::{fmt::Debug, io};
+use std::{
+    fmt::Debug,
+    io,
+};
 use tcp_streamer::TcpStreamer;
 use thiserror::Error;
 use udp_streamer::UdpStreamer;
@@ -26,7 +29,10 @@ use crate::streamer::usb_streamer::UsbStreamer;
 pub use message::{AudioPacketMessage, AudioPacketMessageOrdered};
 pub use streamer_runner::{ConnectOption, StreamerCommand, StreamerMsg, sub};
 
-use crate::{audio::process::AudioProcessParams, config::AudioFormat};
+use crate::{
+    audio::{DenoiseSpeexCache, process::AudioProcessParams},
+    config::AudioFormat,
+};
 
 /// Default port on the PC
 const DEFAULT_PC_PORT: u16 = 55555;
@@ -35,6 +41,17 @@ const MAX_PORT: u16 = 60000;
 pub struct AudioStream {
     pub buff: Producer<u8>,
     pub audio_params: AudioProcessParams,
+    pub denoise_speex_cache: Option<DenoiseSpeexCache>,
+}
+
+impl AudioStream {
+    pub fn new(buff: Producer<u8>, audio_params: AudioProcessParams) -> Self {
+        Self {
+            buff,
+            audio_params,
+            denoise_speex_cache: None,
+        }
+    }
 }
 
 impl Debug for AudioStream {

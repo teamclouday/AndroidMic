@@ -1,4 +1,5 @@
 use crate::{
+    audio::denoise_speex::{DENOISE_SPEEX_SAMPLE_RATE, denoise_speex_f32_stream},
     config::AudioFormat,
     streamer::{AudioPacketMessage, AudioStream},
 };
@@ -42,77 +43,78 @@ impl AudioStream {
         F: cpal::SizedSample + AudioBytes + std::fmt::Debug + 'static,
     {
         let config = &self.audio_params;
-
-        let format = &config.target_format;
+        let mut current_sample_rate = packet.sample_rate;
 
         // first convert audio packet to f32 vector
-        let buffer = convert_packet_to_f32(&packet)?;
-
-        // prepare mono channel buffer to return
-        let buffer_mono = if format.channel_count.to_number() == 1 {
-            buffer[0].clone()
-        } else {
-            // if not mono, average the channels
-            let mut mono_buffer = Vec::with_capacity(buffer[0].len());
-            for i in 0..buffer[0].len() {
-                let sample: f32 = buffer.iter().map(|ch| ch[i]).sum::<f32>()
-                    / format.channel_count.to_number() as f32;
-                mono_buffer.push(sample);
-            }
-            mono_buffer
-        };
-
-        const DENOISE_SAMPLE_RATE: u32 = 48000;
+        let mut buffer = convert_packet_to_f32(&packet)?;
 
         // next run resampler and denoise on the buffer
-        let mut resampled_buffer = if config.denoise {
-            let prepared_buffer = if packet.sample_rate == DENOISE_SAMPLE_RATE {
-                buffer
+        if config.denoise {
+            const DENOISE_SAMPLE_RATE: u32 = 48000;
+
+            let prepared_buffer = if current_sample_rate == DENOISE_SAMPLE_RATE {
+                buffer.clone()
             } else {
-                resample_f32_stream(&buffer, packet.sample_rate, DENOISE_SAMPLE_RATE)?
+                let tmp = resample_f32_stream(&buffer, current_sample_rate, DENOISE_SAMPLE_RATE)?;
+                current_sample_rate = DENOISE_SAMPLE_RATE;
+                tmp
             };
 
             // denoise the audio stream
-            let denoised_buffer = denoise_f32_stream(&prepared_buffer)?;
-
-            if format.sample_rate.to_number() == DENOISE_SAMPLE_RATE {
-                denoised_buffer
-            } else {
-                resample_f32_stream(
-                    &denoised_buffer,
-                    DENOISE_SAMPLE_RATE,
-                    format.sample_rate.to_number(),
-                )?
-            }
-        } else if format.sample_rate.to_number() == packet.sample_rate {
-            buffer
-        } else {
-            resample_f32_stream(&buffer, packet.sample_rate, format.sample_rate.to_number())?
+            buffer = denoise_f32_stream(&prepared_buffer)?;
         };
 
+        if config.speex_denoise {
+            let prepared_buffer = if current_sample_rate == DENOISE_SPEEX_SAMPLE_RATE {
+                buffer.clone()
+            } else {
+                let tmp =
+                    resample_f32_stream(&buffer, current_sample_rate, DENOISE_SPEEX_SAMPLE_RATE)?;
+                current_sample_rate = DENOISE_SPEEX_SAMPLE_RATE;
+                tmp
+            };
+
+            let mut prepared_buffer: Vec<Vec<i16>> = prepared_buffer
+                .into_iter()
+                .map(|v| v.into_iter().map(AudioBytes::from_f32).collect())
+                .collect();
+
+            denoise_speex_f32_stream(&mut prepared_buffer, &mut self.denoise_speex_cache)?;
+
+            buffer = prepared_buffer
+                .into_iter()
+                .map(|v| v.into_iter().map(|v| AudioBytes::to_f32(&v)).collect())
+                .collect();
+        }
+
         if let Some(amplify) = config.amplify {
-            for channel in &mut resampled_buffer {
+            for channel in &mut buffer {
                 for v in channel {
                     *v *= amplify;
                 }
             }
         }
 
-        if config.speex_denoise {
-            todo!();
-        }
+        let buffer = if config.target_format.sample_rate.to_number() == current_sample_rate {
+            buffer
+        } else {
+            resample_f32_stream(
+                &buffer,
+                current_sample_rate,
+                config.target_format.sample_rate.to_number(),
+            )?
+        };
 
         // finally convert to output format
-        let num_channels = format.channel_count.to_number() as usize;
-        let total_bytes: usize =
-            resampled_buffer[0].len() * num_channels * std::mem::size_of::<F>();
+        let num_channels = config.target_format.channel_count.to_number() as usize;
+        let total_bytes: usize = buffer[0].len() * num_channels * std::mem::size_of::<F>();
         let num_bytes = std::cmp::min(self.buff.slots(), total_bytes);
         let num_frames = num_bytes / (num_channels * std::mem::size_of::<F>());
 
         if num_bytes > 0 {
             match self.buff.write_chunk_uninit(num_bytes) {
                 Ok(chunk) => {
-                    let buffer_ref = &resampled_buffer;
+                    let buffer_ref = &buffer;
 
                     chunk.fill_from_iter((0..num_frames).flat_map(|frame_idx| {
                         (0..num_channels).flat_map(move |channel_idx| {
@@ -137,6 +139,20 @@ impl AudioStream {
                 warn!("dropped {} audio bytes", total_bytes - num_bytes);
             }
         }
+
+        // prepare mono channel buffer to return
+        let buffer_mono = if config.target_format.channel_count.to_number() == 1 {
+            buffer[0].clone()
+        } else {
+            // if not mono, average the channels
+            let mut mono_buffer: Vec<f32> = Vec::with_capacity(buffer[0].len());
+            for i in 0..buffer[0].len() {
+                let sample: f32 = buffer.iter().map(|ch| ch[i]).sum::<f32>()
+                    / config.target_format.channel_count.to_number() as f32;
+                mono_buffer.push(sample);
+            }
+            mono_buffer
+        };
 
         Ok(buffer_mono)
     }
