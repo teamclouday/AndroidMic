@@ -21,43 +21,71 @@ pub struct Config {
     pub start_at_login: bool,
     pub auto_connect: bool,
     pub denoise: bool,
+    pub denoise_kind: DenoiseKind,
+    pub speex_noise_suppress: i32,
     pub theme: AppTheme,
     pub amplify: bool,
     pub amplify_value: f32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, Values, PartialEq)]
+pub enum DenoiseKind {
+    #[default]
+    Rnnoise,
+    Speexdsp,
+}
+
+impl Display for DenoiseKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            DenoiseKind::Rnnoise => "RNNoise",
+            DenoiseKind::Speexdsp => "Speexdsp",
+        };
+
+        write!(f, "{}", str)
+    }
 }
 
 impl Default for Config {
     fn default() -> Self {
         Self {
             connection_mode: Default::default(),
-            ip: Default::default(),
+            ip: None,
             audio_format: Default::default(),
             channel_count: Default::default(),
             sample_rate: Default::default(),
-            device_name: Default::default(),
-            start_at_login: Default::default(),
-            auto_connect: Default::default(),
-            denoise: Default::default(),
+            device_name: None,
+            start_at_login: false,
+            auto_connect: false,
+            denoise: false,
+            denoise_kind: Default::default(),
             theme: Default::default(),
-            amplify: Default::default(),
+            amplify: false,
             amplify_value: 2.0,
+            speex_noise_suppress: -30,
         }
     }
 }
 
 pub struct ConfigCache {
     pub amplify_value: String,
+    pub speex_noise_suppress: String,
 }
 
 impl ConfigCache {
     pub fn new(config: &Config) -> Self {
         Self {
             amplify_value: config.amplify_value.to_string(),
+            speex_noise_suppress: config.speex_noise_suppress.to_string(),
         }
     }
 
     pub fn parse_amplify_value(&self) -> Option<f32> {
         self.amplify_value.replace(',', ".").parse().ok()
+    }
+
+    pub fn parse_speex_noise_suppress(&self) -> Option<i32> {
+        self.speex_noise_suppress.parse().ok()
     }
 }
 

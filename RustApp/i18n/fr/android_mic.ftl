@@ -11,7 +11,7 @@ waiting = Attente...
 sample_rate = Fréquence d'échantillonnage  
 channel_count = Nombre de canaux  
 audio_format = Format audio  
-denoise = Activer la réduction du bruit audio
+denoise = Réduction du bruit
 
 start_at_login = Démarrer à la connexion  
 auto_connect = Connexion automatique

@@ -2,10 +2,15 @@ use std::{collections::HashMap, sync::LazyLock};
 
 use cosmic::{
     Element,
-    iced::{Length, alignment::Horizontal, widget::pick_list},
+    iced::{
+        Length,
+        alignment::{Horizontal, Vertical},
+        widget::pick_list,
+    },
     widget::{
-        self, about::About, button, canvas, column, container, context_menu, markdown, menu, radio,
-        row, scrollable, settings, text, text_input, toggler, vertical_space,
+        self, about::About, button, canvas, column, container, context_menu, horizontal_space,
+        markdown, menu, radio, row, scrollable, settings, text, text_input, toggler,
+        vertical_space,
     },
 };
 use cpal::traits::DeviceTrait;
@@ -15,7 +20,7 @@ use super::{
     message::{AppMsg, ConfigMsg},
 };
 use crate::{
-    config::{AppTheme, AudioFormat, ChannelCount, ConnectionMode, SampleRate},
+    config::{AppTheme, AudioFormat, ChannelCount, ConnectionMode, DenoiseKind, SampleRate},
     fl,
     ui::message::MenuMsg,
     utils::APP,
@@ -180,77 +185,135 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
         column()
             .padding(50)
             .spacing(20)
-            .push(settings::section().title(fl!("sample_rate")).add(pick_list(
-                SampleRate::VALUES,
-                Some(&config.sample_rate),
-                ConfigMsg::SampleRate,
-            )))
             .push(
                 settings::section()
-                    .title(fl!("channel_count"))
-                    .add(pick_list(
-                        ChannelCount::VALUES,
-                        Some(&config.channel_count),
-                        ConfigMsg::ChannelCount,
-                    )),
-            )
-            .push(
-                settings::section()
-                    .title(fl!("audio_format"))
-                    .add(pick_list(
-                        AudioFormat::VALUES,
-                        Some(&config.audio_format),
-                        ConfigMsg::AudioFormat,
-                    )),
-            )
-            .push(
-                settings::section()
-                    .title(fl!("denoise"))
-                    .add(toggler(config.denoise).on_toggle(ConfigMsg::DeNoise)),
-            )
-            .push(
-                settings::section()
-                    .title(fl!("amplify"))
-                    .add(toggler(config.amplify).on_toggle(ConfigMsg::Amplify))
-                    .add({
-                        let mut text = text_input("", &app.config_cache.amplify_value);
+                    .title("Audio")
+                    .add(
+                        row()
+                            .align_y(Vertical::Center)
+                            .push(text(fl!("sample_rate")))
+                            .push(horizontal_space())
+                            .push(pick_list(
+                                SampleRate::VALUES,
+                                Some(&config.sample_rate),
+                                ConfigMsg::SampleRate,
+                            )),
+                    )
+                    .add(
+                        row()
+                            .align_y(Vertical::Center)
+                            .push(text(fl!("channel_count")))
+                            .push(horizontal_space())
+                            .push(pick_list(
+                                ChannelCount::VALUES,
+                                Some(&config.channel_count),
+                                ConfigMsg::ChannelCount,
+                            )),
+                    )
+                    .add(
+                        row()
+                            .align_y(Vertical::Center)
+                            .push(text(fl!("audio_format")))
+                            .push(horizontal_space())
+                            .push(pick_list(
+                                AudioFormat::VALUES,
+                                Some(&config.audio_format),
+                                ConfigMsg::AudioFormat,
+                            )),
+                    )
+                    .add(
+                        row()
+                            .align_y(Vertical::Center)
+                            .spacing(10)
+                            .push(text(fl!("denoise")))
+                            .push(toggler(config.denoise).on_toggle(ConfigMsg::DeNoise))
+                            .push(horizontal_space())
+                            .push(pick_list(
+                                DenoiseKind::VALUES,
+                                Some(&config.denoise_kind),
+                                ConfigMsg::DeNoiseKind,
+                            )),
+                    )
+                    // .add_maybe((config.denoise_kind == DenoiseKind::Speexdsp).then(|| {
+                    //     row()
+                    //         .align_y(Vertical::Center)
+                    //         .push(text("suppress (db)"))
+                    //         .push(horizontal_space())
+                    //         .push({
+                    //             let mut text =
+                    //                 text_input("", &app.config_cache.speex_noise_suppress)
+                    //                     .on_input(ConfigMsg::SpeexNoiseSuppress);
+                    //             if app.config_cache.parse_speex_noise_suppress().is_none() {
+                    //                 text = text.error("")
+                    //             }
+                    //             text
+                    //         })
+                    // }))
+                    .add(
+                        row()
+                            .align_y(Vertical::Center)
+                            .spacing(10)
+                            .push(text(fl!("amplify")))
+                            .push(toggler(config.amplify).on_toggle(ConfigMsg::Amplify))
+                            .push(horizontal_space())
+                            .push({
+                                let mut text = text_input("", &app.config_cache.amplify_value);
 
-                        if config.amplify {
-                            text = text.on_input(ConfigMsg::AmplifyValue)
-                        }
+                                if config.amplify {
+                                    text = text.on_input(ConfigMsg::AmplifyValue)
+                                }
 
-                        if app.config_cache.parse_amplify_value().is_none() {
-                            text = text.error("")
-                        }
+                                if app.config_cache.parse_amplify_value().is_none() {
+                                    text = text.error("")
+                                }
 
-                        text
-                    }),
+                                text
+                            }),
+                    )
+                    .add(
+                        button::text("Use Recommended Format")
+                            .on_press(ConfigMsg::UseRecommendedFormat),
+                    ),
             )
-            .push(button::text("Use Recommended Format").on_press(ConfigMsg::UseRecommendedFormat))
-            .push_maybe(if cfg!(target_os = "windows") {
-                Some(
-                    settings::section()
-                        .title(fl!("start_at_login"))
-                        .add(toggler(config.start_at_login).on_toggle(ConfigMsg::StartAtLogin)),
-                )
-            } else {
-                None
-            })
             .push(
                 settings::section()
-                    .title(fl!("auto_connect"))
-                    .add(toggler(config.auto_connect).on_toggle(ConfigMsg::AutoConnect)),
-            )
-            .push(settings::section().title(fl!("theme")).add(pick_list(
-                AppTheme::VALUES,
-                Some(&config.theme),
-                ConfigMsg::Theme,
-            )))
-            .push(
-                settings::section().title(fl!("about")).add(
-                    widget::settings::item::builder(fl!("about"))
-                        .control(button::text("open").on_press(ConfigMsg::ToggleAboutWindow)),
-                ),
+                    .title("App")
+                    .add_maybe(if cfg!(target_os = "windows") {
+                        Some(
+                            row()
+                                .align_y(Vertical::Center)
+                                .push(text(fl!("start_at_login")))
+                                .push(horizontal_space())
+                                .push(
+                                    toggler(config.start_at_login)
+                                        .on_toggle(ConfigMsg::StartAtLogin),
+                                ),
+                        )
+                    } else {
+                        None
+                    })
+                    .add(
+                        row()
+                            .align_y(Vertical::Center)
+                            .push(text(fl!("auto_connect")))
+                            .push(horizontal_space())
+                            .push(toggler(config.auto_connect).on_toggle(ConfigMsg::AutoConnect)),
+                    )
+                    .add(
+                        row()
+                            .align_y(Vertical::Center)
+                            .push(text(fl!("theme")))
+                            .push(horizontal_space())
+                            .push(pick_list(
+                                AppTheme::VALUES,
+                                Some(&config.theme),
+                                ConfigMsg::Theme,
+                            )),
+                    )
+                    .add(
+                        widget::settings::item::builder(fl!("about"))
+                            .control(button::text("open").on_press(ConfigMsg::ToggleAboutWindow)),
+                    ),
             ),
     )
     .into()

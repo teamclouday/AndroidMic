@@ -1,17 +1,21 @@
-use cosmic::iced::futures::{SinkExt, Stream};
+use cosmic::iced::futures::SinkExt;
 use cosmic::iced::stream;
 use either::Either;
+use futures::Stream;
 use futures::{
     future::{self},
     pin_mut,
 };
+use rtrb::Producer;
+use std::fmt::Debug;
 use std::net::IpAddr;
 use tokio::sync::mpsc::{self, Sender};
 
+use crate::audio::process::AudioProcessParams;
 use crate::streamer::{StreamerTrait, WriteError};
 
 use super::{
-    ConnectError, DummyStreamer, StreamConfig, Streamer, adb_streamer, tcp_streamer, udp_streamer,
+    AudioStream, ConnectError, DummyStreamer, Streamer, adb_streamer, tcp_streamer, udp_streamer,
 };
 
 #[derive(Debug)]
@@ -28,11 +32,41 @@ pub enum ConnectOption {
 }
 
 /// App -> Streamer
-#[derive(Debug)]
 pub enum StreamerCommand {
-    Connect(ConnectOption, StreamConfig),
-    ReconfigureStream(StreamConfig),
+    Connect {
+        connect_options: ConnectOption,
+        buff: Producer<u8>,
+        audio_params: AudioProcessParams,
+    },
+    ReconfigureStream {
+        buff: Producer<u8>,
+        audio_params: AudioProcessParams,
+    },
     Stop,
+}
+
+impl Debug for StreamerCommand {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Connect {
+                connect_options,
+                buff: _,
+                audio_params,
+            } => f
+                .debug_struct("Connect")
+                .field("connect_options", connect_options)
+                .field("audio_params", audio_params)
+                .finish(),
+            Self::ReconfigureStream {
+                buff: _,
+                audio_params,
+            } => f
+                .debug_struct("ReconfigureStream")
+                .field("audio_params", audio_params)
+                .finish(),
+            Self::Stop => write!(f, "Stop"),
+        }
+    }
 }
 
 /// Streamer -> App
@@ -91,9 +125,14 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                     if let Some(command) = command {
                         info!("received command {command:?}");
                         match command {
-                            StreamerCommand::Connect(connect_option, stream_config) => {
+                            StreamerCommand::Connect {
+                                connect_options,
+                                buff,
+                                audio_params,
+                            } => {
+                                let stream_config = AudioStream::new(buff, audio_params);
                                 let new_streamer: Result<Streamer, ConnectError> =
-                                    match connect_option {
+                                    match connect_options {
                                         ConnectOption::Tcp { ip } => {
                                             tcp_streamer::new(ip, stream_config)
                                                 .await
@@ -126,7 +165,9 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                     }
                                 }
                             }
-                            StreamerCommand::ReconfigureStream(stream_config) => {
+                            StreamerCommand::ReconfigureStream { buff, audio_params } => {
+                                let stream_config = AudioStream::new(buff, audio_params);
+
                                 streamer.reconfigure_stream(stream_config);
                             }
                             StreamerCommand::Stop => {

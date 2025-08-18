@@ -8,9 +8,11 @@ use crate::{
 };
 
 mod denoise;
+mod denoise_speex;
 mod player;
 pub mod process;
 mod resampler;
+pub use denoise_speex::DenoiseSpeexCache;
 
 impl AppState {
     pub fn start_audio_stream(

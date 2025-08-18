@@ -1,6 +1,6 @@
 use super::app::AudioDevice;
 use crate::{
-    config::{AppTheme, AudioFormat, ChannelCount, ConnectionMode, SampleRate},
+    config::{AppTheme, AudioFormat, ChannelCount, ConnectionMode, DenoiseKind, SampleRate},
     streamer::StreamerMsg,
 };
 
@@ -28,6 +28,8 @@ pub enum ConfigMsg {
     StartAtLogin(bool),
     AutoConnect(bool),
     DeNoise(bool),
+    DeNoiseKind(DenoiseKind),
+    SpeexNoiseSuppress(String),
     Theme(AppTheme),
     Amplify(bool),
     AmplifyValue(String),

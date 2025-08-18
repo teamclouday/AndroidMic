@@ -5,12 +5,9 @@ use prost::Message;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
-use crate::{
-    audio::process::convert_audio_stream,
-    streamer::{DEFAULT_PC_PORT, MAX_PORT, StreamerMsg, WriteError},
-};
+use crate::streamer::{DEFAULT_PC_PORT, MAX_PORT, StreamerMsg, WriteError};
 
-use super::{AudioPacketMessage, ConnectError, StreamConfig, StreamerTrait};
+use super::{AudioPacketMessage, AudioStream, ConnectError, StreamerTrait};
 
 const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
 
@@ -20,7 +17,7 @@ pub struct TcpStreamer {
     ip: IpAddr,
     pub port: u16,
     pub state: TcpStreamerState,
-    stream_config: StreamConfig,
+    stream_config: AudioStream,
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -34,7 +31,7 @@ pub enum TcpStreamerState {
     },
 }
 
-pub async fn new(ip: IpAddr, stream_config: StreamConfig) -> Result<TcpStreamer, ConnectError> {
+pub async fn new(ip: IpAddr, stream_config: AudioStream) -> Result<TcpStreamer, ConnectError> {
     let mut listener = None;
 
     // try to always bind the same port, to not change it everytime Android side
@@ -66,7 +63,7 @@ pub async fn new(ip: IpAddr, stream_config: StreamConfig) -> Result<TcpStreamer,
 }
 
 impl StreamerTrait for TcpStreamer {
-    fn reconfigure_stream(&mut self, stream_config: StreamConfig) {
+    fn reconfigure_stream(&mut self, stream_config: AudioStream) {
         self.stream_config = stream_config;
     }
 
@@ -117,12 +114,8 @@ impl StreamerTrait for TcpStreamer {
                             Ok(packet) => {
                                 let buffer_size = packet.buffer.len();
 
-                                let audio_params = self.stream_config.to_audio_params();
-                                if let Ok(buffer) = convert_audio_stream(
-                                    &mut self.stream_config.buff,
-                                    packet,
-                                    audio_params,
-                                ) {
+                                if let Ok(buffer) = self.stream_config.process_audio_packet(packet)
+                                {
                                     // compute the audio wave from the buffer
                                     res = Some(StreamerMsg::UpdateAudioWave {
                                         data: AudioPacketMessage::to_wave_data(&buffer),
