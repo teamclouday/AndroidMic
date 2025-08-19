@@ -198,7 +198,7 @@ dependencies = [
 
 [[package]]
 name = "android-mic"
-version = "2.1.9"
+version = "2.1.10"
 dependencies = [
  "anyhow",
  "byteorder",
