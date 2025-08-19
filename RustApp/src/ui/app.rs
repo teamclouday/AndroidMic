@@ -25,7 +25,7 @@ use super::{
     wave::AudioWave,
 };
 use crate::{
-    audio::{AudioPacketFormat, process::AudioProcessParams},
+    audio::{AudioPacketFormat, AudioProcessParams},
     config::{
         AppTheme, AudioFormat, ChannelCount, Config, ConfigCache, ConnectionMode, SampleRate,
     },

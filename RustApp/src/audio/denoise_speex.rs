@@ -1,54 +1,122 @@
 use speexdsp::preprocess::*;
+use std::sync::{LazyLock, Mutex};
+
+use crate::audio::AudioProcessParams;
 
 // xxx: do we really need to change the sample rate ?
 // apparently, speexdsp is optimized for low sample rate (8000, 16000), according to chatgpt,
 // but 16000 just doesn't work on my end
 pub const DENOISE_SPEEX_SAMPLE_RATE: u32 = 48000;
+const FRAME_SIZE: usize = (DENOISE_SPEEX_SAMPLE_RATE as f32 * 0.02) as usize; // 20 ms frame
 
-pub struct DenoiseSpeexCache {
+struct DenoiseSpeexCache {
+    sample_buffer: Vec<Vec<i16>>,
     denoisers: Vec<SpeexPreprocess>,
 }
 
 // safe because packets are processed in order, and not concurrently
 unsafe impl Send for DenoiseSpeexCache {}
 
-pub fn denoise_speex_f32_stream(
-    data: &mut [Vec<i16>],
-    cache: &mut Option<DenoiseSpeexCache>,
-    noise_suppress: i32,
-) -> anyhow::Result<()> {
-    const FRAME_SIZE: usize = (DENOISE_SPEEX_SAMPLE_RATE as f32 * 0.02) as usize; // 20 ms frame
+// safe because packets are processed in order, and not concurrently
+static DENOISE_CACHE: LazyLock<Mutex<Option<DenoiseSpeexCache>>> =
+    LazyLock::new(|| Mutex::new(None));
 
-    if cache.is_none() {
-        *cache = Some(DenoiseSpeexCache {
+pub fn denoise_speex_f32_stream(
+    data: &[Vec<f32>],
+    config: &AudioProcessParams,
+) -> anyhow::Result<Vec<Vec<f32>>> {
+    let mut denoise_cache = DENOISE_CACHE.lock().unwrap();
+
+    if denoise_cache.is_none() || data.len() != denoise_cache.as_ref().unwrap().denoisers.len() {
+        *denoise_cache = Some(DenoiseSpeexCache {
+            sample_buffer: vec![Vec::with_capacity(FRAME_SIZE); data.len()],
             denoisers: data
                 .iter()
                 .map(|_| {
                     let mut st =
                         SpeexPreprocess::new(FRAME_SIZE, DENOISE_SPEEX_SAMPLE_RATE as usize)
                             .unwrap();
-                    st.set_denoise(true);
-                    st.set_noise_suppress(noise_suppress);
+                    st.preprocess_ctl(SpeexPreprocessConst::SPEEX_PREPROCESS_SET_DENOISE, 1)
+                        .unwrap();
+                    st.preprocess_ctl(
+                        SpeexPreprocessConst::SPEEX_PREPROCESS_SET_NOISE_SUPPRESS,
+                        config.speex_noise_suppress as f32,
+                    );
+                    st.preprocess_ctl(
+                        SpeexPreprocessConst::SPEEX_PREPROCESS_SET_VAD,
+                        if config.speex_vad_enabled { 1 } else { 0 },
+                    );
+                    st.preprocess_ctl(
+                        SpeexPreprocessConst::SPEEX_PREPROCESS_SET_PROB_START,
+                        config.speex_vad_threshold as u32,
+                    );
+                    st.preprocess_ctl(
+                        SpeexPreprocessConst::SPEEX_PREPROCESS_SET_AGC,
+                        if config.speex_agc_enabled { 1 } else { 0 },
+                    );
+                    st.preprocess_ctl(
+                        SpeexPreprocessConst::SPEEX_PREPROCESS_SET_AGC_TARGET,
+                        config.speex_agc_target,
+                    );
+                    st.preprocess_ctl(
+                        SpeexPreprocessConst::SPEEX_PREPROCESS_SET_DEREVERB,
+                        if config.speex_dereverb_enabled { 1 } else { 0 },
+                    );
+                    st.preprocess_ctl(
+                        SpeexPreprocessConst::SPEEX_PREPROCESS_SET_DEREVERB_LEVEL,
+                        config.speex_dereverb_level,
+                    );
                     st
                 })
                 .collect(),
         });
     }
 
-    for (channel, st) in data
-        .iter_mut()
-        .zip(cache.as_mut().unwrap().denoisers.iter_mut())
-    {
-        for frame in channel.chunks_exact_mut(FRAME_SIZE) {
-            match st.preprocess_run(frame) {
+    let cache = denoise_cache.as_mut().unwrap();
+    let mut output: Vec<Vec<f32>> = vec![Vec::new(); data.len()];
+
+    // Convert f32 to i16
+    let data_i16: Vec<Vec<i16>> = data
+        .iter()
+        .map(|channel| {
+            channel
+                .iter()
+                .map(|&x| (x * i16::MAX as f32).clamp(i16::MIN as f32, i16::MAX as f32) as i16)
+                .collect()
+        })
+        .collect();
+
+    // Append new data into the cache
+    for channel_idx in 0..data_i16.len() {
+        cache.sample_buffer[channel_idx].extend_from_slice(&data_i16[channel_idx]);
+    }
+
+    while cache.sample_buffer[0].len() >= FRAME_SIZE {
+        for channel_idx in 0..data.len() {
+            match cache.denoisers[channel_idx]
+                .preprocess_run(&mut cache.sample_buffer[channel_idx][0..FRAME_SIZE])
+            {
                 0 => {
-                    frame.fill(0);
+                    cache.sample_buffer[channel_idx][0..FRAME_SIZE].fill(0);
                 }
                 1 => {}
                 _ => panic!(),
             }
+
+            // Scale back to -1.0 to 1.0 range
+            output[channel_idx].extend_from_slice(
+                &cache.sample_buffer[channel_idx][0..FRAME_SIZE]
+                    .iter()
+                    .map(|&x| x as f32 / i16::MAX as f32)
+                    .collect::<Vec<f32>>(),
+            );
+        }
+
+        // Clear the sample buffer for the next round
+        for channel in &mut cache.sample_buffer {
+            channel.drain(0..FRAME_SIZE);
         }
     }
 
-    Ok(())
+    Ok(output)
 }

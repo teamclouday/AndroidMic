@@ -11,7 +11,7 @@ use std::fmt::Debug;
 use std::net::IpAddr;
 use tokio::sync::mpsc::{self, Sender};
 
-use crate::audio::process::AudioProcessParams;
+use crate::audio::AudioProcessParams;
 use crate::streamer::{StreamerTrait, WriteError};
 
 use super::{

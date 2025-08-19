@@ -23,6 +23,12 @@ pub struct Config {
     pub denoise: bool,
     pub denoise_kind: DenoiseKind,
     pub speex_noise_suppress: i32,
+    pub speex_vad_enabled: bool,
+    pub speex_vad_threshold: u32,
+    pub speex_agc_enabled: bool,
+    pub speex_agc_target: u32,
+    pub speex_dereverb_enabled: bool,
+    pub speex_dereverb_level: f32,
     pub theme: AppTheme,
     pub amplify: bool,
     pub amplify_value: f32,
@@ -62,7 +68,13 @@ impl Default for Config {
             theme: Default::default(),
             amplify: false,
             amplify_value: 2.0,
-            speex_noise_suppress: -30,
+            speex_noise_suppress: -30, // range: [-100, 0]
+            speex_vad_enabled: false,
+            speex_vad_threshold: 80, // range: [0, 100]
+            speex_agc_enabled: false,
+            speex_agc_target: 8000, // range: [8000, 65535]
+            speex_dereverb_enabled: false,
+            speex_dereverb_level: 0.5, // range: [0.0, 1.0]
         }
     }
 }

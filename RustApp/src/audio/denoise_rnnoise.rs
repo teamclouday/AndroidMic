@@ -2,6 +2,8 @@ use std::sync::{LazyLock, Mutex};
 
 use nnnoiseless::DenoiseState;
 
+pub const DENOISE_RNNOISE_SAMPLE_RATE: u32 = 48000;
+
 struct DenoiseCache {
     sample_buffer: Vec<Vec<f32>>,
     denoisers: Vec<Box<DenoiseState<'static>>>,
