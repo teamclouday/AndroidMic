@@ -1,34 +1,15 @@
 use std::borrow::Cow;
 
 use crate::{
-    audio::denoise_speex::{DENOISE_SPEEX_SAMPLE_RATE, denoise_speex_f32_stream},
-    config::{AudioFormat, Config, DenoiseKind},
+    audio::{
+        denoise_rnnoise::DENOISE_RNNOISE_SAMPLE_RATE,
+        denoise_speex::{DENOISE_SPEEX_SAMPLE_RATE, denoise_speex_f32_stream},
+    },
+    config::{AudioFormat, DenoiseKind},
     streamer::{AudioPacketMessage, AudioStream},
 };
 
-use super::{
-    AudioBytes, AudioPacketFormat, denoise::denoise_f32_stream, resampler::resample_f32_stream,
-};
-
-/// Audio processing parameters
-#[derive(Clone, Debug)]
-pub struct AudioProcessParams {
-    pub target_format: AudioPacketFormat,
-    pub denoise: Option<DenoiseKind>,
-    pub amplify: Option<f32>,
-    pub speex_noise_suppress: i32,
-}
-
-impl AudioProcessParams {
-    pub fn new(target_format: AudioPacketFormat, config: Config) -> Self {
-        Self {
-            target_format,
-            denoise: config.denoise.then_some(config.denoise_kind),
-            amplify: config.amplify.then_some(config.amplify_value),
-            speex_noise_suppress: config.speex_noise_suppress,
-        }
-    }
-}
+use super::{AudioBytes, denoise_rnnoise::denoise_f32_stream, resampler::resample_f32_stream};
 
 impl AudioStream {
     /// This function converts an audio stream from packet into producer
@@ -65,14 +46,15 @@ impl AudioStream {
         if let Some(denoise) = &config.denoise {
             match denoise {
                 DenoiseKind::Rnnoise => {
-                    const DENOISE_SAMPLE_RATE: u32 = 48000;
-
-                    let prepared_buffer = if current_sample_rate == DENOISE_SAMPLE_RATE {
+                    let prepared_buffer = if current_sample_rate == DENOISE_RNNOISE_SAMPLE_RATE {
                         Cow::Borrowed(&buffer)
                     } else {
-                        let tmp =
-                            resample_f32_stream(&buffer, current_sample_rate, DENOISE_SAMPLE_RATE)?;
-                        current_sample_rate = DENOISE_SAMPLE_RATE;
+                        let tmp = resample_f32_stream(
+                            &buffer,
+                            current_sample_rate,
+                            DENOISE_RNNOISE_SAMPLE_RATE,
+                        )?;
+                        current_sample_rate = DENOISE_RNNOISE_SAMPLE_RATE;
                         Cow::Owned(tmp)
                     };
 
@@ -92,21 +74,7 @@ impl AudioStream {
                         Cow::Owned(tmp)
                     };
 
-                    let mut prepared_buffer: Vec<Vec<i16>> = prepared_buffer
-                        .iter()
-                        .map(|v| v.iter().map(|v| AudioBytes::from_f32(*v)).collect())
-                        .collect();
-
-                    denoise_speex_f32_stream(
-                        &mut prepared_buffer,
-                        &mut self.denoise_speex_cache,
-                        config.speex_noise_suppress,
-                    )?;
-
-                    buffer = prepared_buffer
-                        .into_iter()
-                        .map(|v| v.into_iter().map(|v| AudioBytes::to_f32(&v)).collect())
-                        .collect();
+                    buffer = denoise_speex_f32_stream(&prepared_buffer, &config)?;
                 }
             }
         }

@@ -26,10 +26,7 @@ use crate::streamer::usb_streamer::UsbStreamer;
 pub use message::{AudioPacketMessage, AudioPacketMessageOrdered};
 pub use streamer_runner::{ConnectOption, StreamerCommand, StreamerMsg, sub};
 
-use crate::{
-    audio::{DenoiseSpeexCache, process::AudioProcessParams},
-    config::AudioFormat,
-};
+use crate::{audio::AudioProcessParams, config::AudioFormat};
 
 /// Default port on the PC
 const DEFAULT_PC_PORT: u16 = 55555;
@@ -38,16 +35,11 @@ const MAX_PORT: u16 = 60000;
 pub struct AudioStream {
     pub buff: Producer<u8>,
     pub audio_params: AudioProcessParams,
-    pub denoise_speex_cache: Option<DenoiseSpeexCache>,
 }
 
 impl AudioStream {
     pub fn new(buff: Producer<u8>, audio_params: AudioProcessParams) -> Self {
-        Self {
-            buff,
-            audio_params,
-            denoise_speex_cache: None,
-        }
+        Self { buff, audio_params }
     }
 }
 

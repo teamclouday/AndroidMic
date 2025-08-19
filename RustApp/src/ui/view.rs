@@ -9,8 +9,7 @@ use cosmic::{
     },
     widget::{
         self, about::About, button, canvas, column, container, context_menu, horizontal_space,
-        markdown, menu, radio, row, scrollable, settings, text, text_input, toggler,
-        vertical_space,
+        markdown, menu, radio, row, scrollable, settings, text, toggler, vertical_space,
     },
 };
 use cpal::traits::DeviceTrait;
@@ -223,6 +222,15 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                     )
                     .add(
                         row()
+                            .push(horizontal_space())
+                            .push(
+                                button::text("Use Recommended Audio Format")
+                                    .on_press(ConfigMsg::UseRecommendedFormat),
+                            )
+                            .push(horizontal_space()),
+                    )
+                    .add(
+                        row()
                             .align_y(Vertical::Center)
                             .spacing(10)
                             .push(text(fl!("denoise")))
@@ -234,45 +242,153 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                                 ConfigMsg::DeNoiseKind,
                             )),
                     )
-                    // .add_maybe((config.denoise_kind == DenoiseKind::Speexdsp).then(|| {
-                    //     row()
-                    //         .align_y(Vertical::Center)
-                    //         .push(text("suppress (db)"))
-                    //         .push(horizontal_space())
-                    //         .push({
-                    //             let mut text =
-                    //                 text_input("", &app.config_cache.speex_noise_suppress)
-                    //                     .on_input(ConfigMsg::SpeexNoiseSuppress);
-                    //             if app.config_cache.parse_speex_noise_suppress().is_none() {
-                    //                 text = text.error("")
-                    //             }
-                    //             text
-                    //         })
-                    // }))
+                    .add_maybe(
+                        (config.denoise && config.denoise_kind == DenoiseKind::Speexdsp).then(
+                            || {
+                                row()
+                                    .align_y(Vertical::Center)
+                                    .spacing(10)
+                                    .push(text(format!("{} db", config.speex_noise_suppress)))
+                                    .push(
+                                        widget::slider(
+                                            -100..=0,
+                                            config.speex_noise_suppress,
+                                            ConfigMsg::SpeexNoiseSuppress,
+                                        )
+                                        .step(1),
+                                    )
+                            },
+                        ),
+                    )
+                    .add_maybe(
+                        (config.denoise && config.denoise_kind == DenoiseKind::Speexdsp).then(
+                            || {
+                                row()
+                                    .align_y(Vertical::Center)
+                                    .spacing(10)
+                                    .push(text("Voice Activity Detection (VAD)"))
+                                    .push(
+                                        toggler(config.speex_vad_enabled)
+                                            .on_toggle(ConfigMsg::SpeexVADEnabled),
+                                    )
+                            },
+                        ),
+                    )
+                    .add_maybe(
+                        (config.denoise
+                            && config.denoise_kind == DenoiseKind::Speexdsp
+                            && config.speex_vad_enabled)
+                            .then(|| {
+                                row()
+                                    .align_y(Vertical::Center)
+                                    .spacing(10)
+                                    .push(text(format!("{}", config.speex_vad_threshold)))
+                                    .push(
+                                        widget::slider(
+                                            0..=100,
+                                            config.speex_vad_threshold as i32,
+                                            ConfigMsg::SpeexVADThreshold,
+                                        )
+                                        .step(1),
+                                    )
+                            }),
+                    )
+                    .add_maybe(
+                        (config.denoise && config.denoise_kind == DenoiseKind::Speexdsp).then(
+                            || {
+                                row()
+                                    .align_y(Vertical::Center)
+                                    .spacing(10)
+                                    .push(text("Automatic Gain Control (AGC)"))
+                                    .push(
+                                        toggler(config.speex_agc_enabled)
+                                            .on_toggle(ConfigMsg::SpeexAGCEnabled),
+                                    )
+                            },
+                        ),
+                    )
+                    .add_maybe(
+                        (config.denoise
+                            && config.denoise_kind == DenoiseKind::Speexdsp
+                            && config.speex_agc_enabled)
+                            .then(|| {
+                                row()
+                                    .align_y(Vertical::Center)
+                                    .spacing(10)
+                                    .push(text(format!("{}", config.speex_agc_target)))
+                                    .push(
+                                        widget::slider(
+                                            8000..=65535,
+                                            config.speex_agc_target as i32,
+                                            ConfigMsg::SpeexAGCTarget,
+                                        )
+                                        .step(1),
+                                    )
+                            }),
+                    )
+                    .add_maybe(
+                        (config.denoise && config.denoise_kind == DenoiseKind::Speexdsp).then(
+                            || {
+                                row()
+                                    .align_y(Vertical::Center)
+                                    .spacing(10)
+                                    .push(text("Dereverberation"))
+                                    .push(
+                                        toggler(config.speex_dereverb_enabled)
+                                            .on_toggle(ConfigMsg::SpeexDereverbEnabled),
+                                    )
+                            },
+                        ),
+                    )
+                    .add_maybe(
+                        (config.denoise
+                            && config.denoise_kind == DenoiseKind::Speexdsp
+                            && config.speex_dereverb_enabled)
+                            .then(|| {
+                                row()
+                                    .align_y(Vertical::Center)
+                                    .spacing(10)
+                                    .push(text(format!("{:.1}", config.speex_dereverb_level)))
+                                    .push(
+                                        widget::slider(
+                                            0.0..=1.0,
+                                            config.speex_dereverb_level,
+                                            ConfigMsg::SpeexDereverbLevel,
+                                        )
+                                        .step(0.1),
+                                    )
+                            }),
+                    )
                     .add(
                         row()
                             .align_y(Vertical::Center)
                             .spacing(10)
                             .push(text(fl!("amplify")))
-                            .push(toggler(config.amplify).on_toggle(ConfigMsg::Amplify))
                             .push(horizontal_space())
-                            .push({
-                                let mut text = text_input("", &app.config_cache.amplify_value);
-
-                                if config.amplify {
-                                    text = text.on_input(ConfigMsg::AmplifyValue)
-                                }
-
-                                if app.config_cache.parse_amplify_value().is_none() {
-                                    text = text.error("")
-                                }
-
-                                text
-                            }),
+                            .push(toggler(config.amplify).on_toggle(ConfigMsg::Amplify)),
                     )
+                    .add_maybe((config.amplify).then(|| {
+                        row()
+                            .align_y(Vertical::Center)
+                            .spacing(10)
+                            .push(text(format!("{:.1}", config.amplify_value)))
+                            .push(
+                                widget::slider(
+                                    0.0..=10.0,
+                                    config.amplify_value,
+                                    ConfigMsg::AmplifyValue,
+                                )
+                                .step(0.1),
+                            )
+                    }))
                     .add(
-                        button::text("Use Recommended Format")
-                            .on_press(ConfigMsg::UseRecommendedFormat),
+                        row()
+                            .push(horizontal_space())
+                            .push(
+                                button::text("Reset Denoise Settings")
+                                    .on_press(ConfigMsg::ResetDenoiseSettings),
+                            )
+                            .push(horizontal_space()),
                     ),
             )
             .push(
@@ -346,5 +462,7 @@ static ABOUT: LazyLock<About> = LazyLock::new(|| {
 });
 
 pub fn about_window() -> Element<'static, AppMsg> {
-    widget::about(&ABOUT, AppMsg::LinkClicked)
+    container(widget::about(&ABOUT, AppMsg::LinkClicked))
+        .padding(20)
+        .into()
 }

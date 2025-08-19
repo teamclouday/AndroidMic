@@ -25,10 +25,8 @@ use super::{
     wave::AudioWave,
 };
 use crate::{
-    audio::{AudioPacketFormat, process::AudioProcessParams},
-    config::{
-        AppTheme, AudioFormat, ChannelCount, Config, ConfigCache, ConnectionMode, SampleRate,
-    },
+    audio::{AudioPacketFormat, AudioProcessParams},
+    config::{AppTheme, AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
     fl,
     streamer::{self, ConnectOption, StreamerCommand, StreamerMsg},
     ui::view::{SCROLLABLE_ID, about_window},
@@ -117,7 +115,6 @@ pub struct AppState {
     core: Core,
     pub streamer: Option<Sender<StreamerCommand>>,
     pub config: ConfigManager<Config>,
-    pub config_cache: ConfigCache,
     pub audio_host: Host,
     pub audio_devices: Vec<AudioDevice>,
     pub audio_device: Option<cpal::Device>,
@@ -295,7 +292,6 @@ impl Application for AppState {
             core,
             audio_stream: None,
             streamer: None,
-            config_cache: ConfigCache::new(flags.config.data()),
             config: flags.config,
             audio_device,
             audio_host,
@@ -435,25 +431,29 @@ impl Application for AppState {
                     self.config.update(|s| s.auto_connect = auto_connect);
                 }
                 ConfigMsg::UseRecommendedFormat => {
-                    if let Some(device) = &self.audio_device
-                        && let Ok(format) = device.default_output_config()
-                    {
-                        info!(
-                            "using recommended audio format: sample rate = {}, channels = {}, audio format = {}",
-                            format.sample_rate().0,
-                            format.channels(),
-                            format.sample_format()
-                        );
-                        self.config.update(|s| {
-                            s.sample_rate =
-                                SampleRate::from_number(format.sample_rate().0).unwrap_or_default();
-                            s.channel_count =
-                                ChannelCount::from_number(format.channels()).unwrap_or_default();
-                            s.audio_format = AudioFormat::from_cpal_format(format.sample_format())
-                                .unwrap_or_default();
-                        });
-                        return self.update_audio_stream();
+                    if let Some(device) = &self.audio_device {
+                        if let Ok(format) = device.default_output_config() {
+                            info!(
+                                "using recommended audio format: sample rate = {}, channels = {}, audio format = {}",
+                                format.sample_rate().0,
+                                format.channels(),
+                                format.sample_format()
+                            );
+                            self.config.update(|s| {
+                                s.sample_rate = SampleRate::from_number(format.sample_rate().0)
+                                    .unwrap_or_default();
+                                s.channel_count = ChannelCount::from_number(format.channels())
+                                    .unwrap_or_default();
+                                s.audio_format =
+                                    AudioFormat::from_cpal_format(format.sample_format())
+                                        .unwrap_or_default();
+                            });
+                            return self.update_audio_stream();
+                        }
                     }
+                }
+                ConfigMsg::ResetDenoiseSettings => {
+                    self.config.update(|c| c.reset_denoise_settings());
                 }
                 ConfigMsg::DeNoise(denoise) => {
                     self.config.update(|c| c.denoise = denoise);
@@ -494,24 +494,47 @@ impl Application for AppState {
                     return self.update_audio_stream();
                 }
                 ConfigMsg::AmplifyValue(amplify_value) => {
-                    self.config_cache.amplify_value = amplify_value;
-
-                    if let Some(value) = self.config_cache.parse_amplify_value() {
-                        self.config.update(|c| c.amplify_value = value);
-                        return self.update_audio_stream();
-                    }
+                    self.config.update(|c| c.amplify_value = amplify_value);
+                    return self.update_audio_stream();
                 }
                 ConfigMsg::DeNoiseKind(denoise_kind) => {
                     self.config.update(|c| c.denoise_kind = denoise_kind);
                     return self.update_audio_stream();
                 }
                 ConfigMsg::SpeexNoiseSuppress(speex_noise_suppress) => {
-                    self.config_cache.speex_noise_suppress = speex_noise_suppress;
-
-                    if let Some(value) = self.config_cache.parse_speex_noise_suppress() {
-                        self.config.update(|c| c.speex_noise_suppress = value);
-                        return self.update_audio_stream();
-                    }
+                    self.config
+                        .update(|c| c.speex_noise_suppress = speex_noise_suppress);
+                    return self.update_audio_stream();
+                }
+                ConfigMsg::SpeexVADEnabled(speex_vad_enabled) => {
+                    self.config
+                        .update(|c| c.speex_vad_enabled = speex_vad_enabled);
+                    return self.update_audio_stream();
+                }
+                ConfigMsg::SpeexVADThreshold(speex_vad_threshold) => {
+                    self.config
+                        .update(|c| c.speex_vad_threshold = speex_vad_threshold as u32);
+                    return self.update_audio_stream();
+                }
+                ConfigMsg::SpeexAGCEnabled(speex_agc_enabled) => {
+                    self.config
+                        .update(|c| c.speex_agc_enabled = speex_agc_enabled);
+                    return self.update_audio_stream();
+                }
+                ConfigMsg::SpeexAGCTarget(speex_agc_target) => {
+                    self.config
+                        .update(|c| c.speex_agc_target = speex_agc_target as u32);
+                    return self.update_audio_stream();
+                }
+                ConfigMsg::SpeexDereverbEnabled(speex_dereverb_enabled) => {
+                    self.config
+                        .update(|c| c.speex_dereverb_enabled = speex_dereverb_enabled);
+                    return self.update_audio_stream();
+                }
+                ConfigMsg::SpeexDereverbLevel(speex_dereverb_level) => {
+                    self.config
+                        .update(|c| c.speex_dereverb_level = speex_dereverb_level);
+                    return self.update_audio_stream();
                 }
             },
             AppMsg::Shutdown => {
@@ -545,21 +568,21 @@ impl Application for AppState {
     }
 
     fn view_window(&self, id: window::Id) -> Element<'_, Self::Message> {
-        if let Some(window) = &self.settings_window
-            && window.window_id == id
-        {
-            return settings_window(self).map(AppMsg::Config);
+        if let Some(window) = &self.settings_window {
+            if window.window_id == id {
+                return settings_window(self).map(AppMsg::Config);
+            }
         }
-        if let Some(window) = &self.main_window
-            && window.window_id == id
-        {
-            return main_window(self);
+        if let Some(window) = &self.main_window {
+            if window.window_id == id {
+                return main_window(self);
+            }
         }
 
-        if let Some(window) = &self.about_window
-            && window.window_id == id
-        {
-            return about_window();
+        if let Some(window) = &self.about_window {
+            if window.window_id == id {
+                return about_window();
+            }
         }
 
         cosmic::widget::text(format!("no view for window {id:?}")).into()
@@ -570,21 +593,21 @@ impl Application for AppState {
     }
 
     fn on_close_requested(&self, id: window::Id) -> Option<Self::Message> {
-        if let Some(window) = &self.settings_window
-            && window.window_id == id
-        {
-            return Some(AppMsg::ToggleSettingsWindow);
+        if let Some(window) = &self.settings_window {
+            if window.window_id == id {
+                return Some(AppMsg::ToggleSettingsWindow);
+            }
         }
-        if let Some(window) = &self.about_window
-            && window.window_id == id
-        {
-            return Some(AppMsg::Config(ConfigMsg::ToggleAboutWindow));
+        if let Some(window) = &self.about_window {
+            if window.window_id == id {
+                return Some(AppMsg::Config(ConfigMsg::ToggleAboutWindow));
+            }
         }
-        if let Some(window) = &self.main_window
-            && window.window_id == id
-        {
-            // close the app
-            return Some(AppMsg::Shutdown);
+        if let Some(window) = &self.main_window {
+            if window.window_id == id {
+                // close the app
+                return Some(AppMsg::Shutdown);
+            }
         }
 
         None

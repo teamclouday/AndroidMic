@@ -3,16 +3,47 @@ use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use rtrb::Consumer;
 
 use crate::{
-    config::{AudioFormat, ChannelCount, SampleRate},
+    config::{AudioFormat, ChannelCount, Config, DenoiseKind, SampleRate},
     ui::app::{AppState, Stream},
 };
 
-mod denoise;
+mod denoise_rnnoise;
 mod denoise_speex;
 mod player;
 pub mod process;
 mod resampler;
-pub use denoise_speex::DenoiseSpeexCache;
+
+/// Audio processing parameters
+#[derive(Clone, Debug)]
+pub struct AudioProcessParams {
+    pub target_format: AudioPacketFormat,
+    pub denoise: Option<DenoiseKind>,
+    pub amplify: Option<f32>,
+    pub speex_noise_suppress: i32,
+    pub speex_vad_enabled: bool,
+    pub speex_vad_threshold: u32,
+    pub speex_agc_enabled: bool,
+    pub speex_agc_target: u32,
+    pub speex_dereverb_enabled: bool,
+    pub speex_dereverb_level: f32,
+}
+
+impl AudioProcessParams {
+    pub fn new(target_format: AudioPacketFormat, config: Config) -> Self {
+        Self {
+            target_format,
+            denoise: config.denoise.then_some(config.denoise_kind),
+            amplify: config.amplify.then_some(config.amplify_value),
+            speex_noise_suppress: config.speex_noise_suppress,
+            speex_vad_enabled: config.speex_vad_enabled,
+            speex_vad_threshold: config.speex_vad_threshold,
+            speex_agc_enabled: config.speex_agc_enabled,
+            speex_agc_target: config.speex_agc_target,
+            speex_dereverb_enabled: config.speex_dereverb_enabled,
+            speex_dereverb_level: config.speex_dereverb_level,
+        }
+    }
+}
 
 impl AppState {
     pub fn start_audio_stream(
