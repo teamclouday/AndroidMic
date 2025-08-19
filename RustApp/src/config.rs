@@ -79,6 +79,18 @@ impl Default for Config {
     }
 }
 
+impl Config {
+    pub fn reset_denoise_settings(&mut self) {
+        self.speex_noise_suppress = -30;
+        self.speex_vad_enabled = false;
+        self.speex_vad_threshold = 80;
+        self.speex_agc_enabled = false;
+        self.speex_agc_target = 8000;
+        self.speex_dereverb_enabled = false;
+        self.speex_dereverb_level = 0.5;
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Values)]
 pub enum AppTheme {
     System,

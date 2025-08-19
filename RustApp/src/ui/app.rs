@@ -452,6 +452,9 @@ impl Application for AppState {
                         }
                     }
                 }
+                ConfigMsg::ResetDenoiseSettings => {
+                    self.config.update(|c| c.reset_denoise_settings());
+                }
                 ConfigMsg::DeNoise(denoise) => {
                     self.config.update(|c| c.denoise = denoise);
                     return self.update_audio_stream();

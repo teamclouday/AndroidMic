@@ -222,6 +222,15 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                     )
                     .add(
                         row()
+                            .push(horizontal_space())
+                            .push(
+                                button::text("Use Recommended Audio Format")
+                                    .on_press(ConfigMsg::UseRecommendedFormat),
+                            )
+                            .push(horizontal_space()),
+                    )
+                    .add(
+                        row()
                             .align_y(Vertical::Center)
                             .spacing(10)
                             .push(text(fl!("denoise")))
@@ -373,8 +382,13 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                             )
                     }))
                     .add(
-                        button::text("Use Recommended Format")
-                            .on_press(ConfigMsg::UseRecommendedFormat),
+                        row()
+                            .push(horizontal_space())
+                            .push(
+                                button::text("Reset Denoise Settings")
+                                    .on_press(ConfigMsg::ResetDenoiseSettings),
+                            )
+                            .push(horizontal_space()),
                     ),
             )
             .push(

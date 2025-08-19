@@ -25,6 +25,7 @@ pub enum ConfigMsg {
     ChannelCount(ChannelCount),
     AudioFormat(AudioFormat),
     UseRecommendedFormat,
+    ResetDenoiseSettings,
     StartAtLogin(bool),
     AutoConnect(bool),
     DeNoise(bool),
