@@ -39,7 +39,9 @@ pub fn start_audio_stream(
     }
 
     if !supported {
-        bail!("unsupported output audio format or sample rate.");
+        bail!(
+            "Unsupported output audio format or sample rate. Please apply recommended format from settings page."
+        );
     }
 
     let config = cpal::StreamConfig {
