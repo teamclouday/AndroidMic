@@ -41,31 +41,38 @@ pub fn denoise_speex_f32_stream(
                     st.preprocess_ctl(
                         SpeexPreprocessConst::SPEEX_PREPROCESS_SET_NOISE_SUPPRESS,
                         config.speex_noise_suppress as f32,
-                    );
+                    )
+                    .unwrap();
                     st.preprocess_ctl(
                         SpeexPreprocessConst::SPEEX_PREPROCESS_SET_VAD,
                         if config.speex_vad_enabled { 1 } else { 0 },
-                    );
+                    )
+                    .unwrap();
                     st.preprocess_ctl(
                         SpeexPreprocessConst::SPEEX_PREPROCESS_SET_PROB_START,
                         config.speex_vad_threshold as u32,
-                    );
+                    )
+                    .unwrap();
                     st.preprocess_ctl(
                         SpeexPreprocessConst::SPEEX_PREPROCESS_SET_AGC,
                         if config.speex_agc_enabled { 1 } else { 0 },
-                    );
+                    )
+                    .unwrap();
                     st.preprocess_ctl(
                         SpeexPreprocessConst::SPEEX_PREPROCESS_SET_AGC_TARGET,
                         config.speex_agc_target,
-                    );
+                    )
+                    .unwrap();
                     st.preprocess_ctl(
                         SpeexPreprocessConst::SPEEX_PREPROCESS_SET_DEREVERB,
                         if config.speex_dereverb_enabled { 1 } else { 0 },
-                    );
+                    )
+                    .unwrap();
                     st.preprocess_ctl(
                         SpeexPreprocessConst::SPEEX_PREPROCESS_SET_DEREVERB_LEVEL,
                         config.speex_dereverb_level,
-                    );
+                    )
+                    .unwrap();
                     st
                 })
                 .collect(),
