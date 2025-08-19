@@ -29,10 +29,16 @@ pub enum ConfigMsg {
     AutoConnect(bool),
     DeNoise(bool),
     DeNoiseKind(DenoiseKind),
-    SpeexNoiseSuppress(String),
+    SpeexNoiseSuppress(i32),
+    SpeexVADEnabled(bool),
+    SpeexVADThreshold(i32),
+    SpeexAGCEnabled(bool),
+    SpeexAGCTarget(i32),
+    SpeexDereverbEnabled(bool),
+    SpeexDereverbLevel(f32),
     Theme(AppTheme),
     Amplify(bool),
-    AmplifyValue(String),
+    AmplifyValue(f32),
     ToggleAboutWindow,
 }
 

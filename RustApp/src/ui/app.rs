@@ -26,9 +26,7 @@ use super::{
 };
 use crate::{
     audio::{AudioPacketFormat, AudioProcessParams},
-    config::{
-        AppTheme, AudioFormat, ChannelCount, Config, ConfigCache, ConnectionMode, SampleRate,
-    },
+    config::{AppTheme, AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
     fl,
     streamer::{self, ConnectOption, StreamerCommand, StreamerMsg},
     ui::view::{SCROLLABLE_ID, about_window},
@@ -117,7 +115,6 @@ pub struct AppState {
     core: Core,
     pub streamer: Option<Sender<StreamerCommand>>,
     pub config: ConfigManager<Config>,
-    pub config_cache: ConfigCache,
     pub audio_host: Host,
     pub audio_devices: Vec<AudioDevice>,
     pub audio_device: Option<cpal::Device>,
@@ -295,7 +292,6 @@ impl Application for AppState {
             core,
             audio_stream: None,
             streamer: None,
-            config_cache: ConfigCache::new(flags.config.data()),
             config: flags.config,
             audio_device,
             audio_host,
@@ -495,24 +491,47 @@ impl Application for AppState {
                     return self.update_audio_stream();
                 }
                 ConfigMsg::AmplifyValue(amplify_value) => {
-                    self.config_cache.amplify_value = amplify_value;
-
-                    if let Some(value) = self.config_cache.parse_amplify_value() {
-                        self.config.update(|c| c.amplify_value = value);
-                        return self.update_audio_stream();
-                    }
+                    self.config.update(|c| c.amplify_value = amplify_value);
+                    return self.update_audio_stream();
                 }
                 ConfigMsg::DeNoiseKind(denoise_kind) => {
                     self.config.update(|c| c.denoise_kind = denoise_kind);
                     return self.update_audio_stream();
                 }
                 ConfigMsg::SpeexNoiseSuppress(speex_noise_suppress) => {
-                    self.config_cache.speex_noise_suppress = speex_noise_suppress;
-
-                    if let Some(value) = self.config_cache.parse_speex_noise_suppress() {
-                        self.config.update(|c| c.speex_noise_suppress = value);
-                        return self.update_audio_stream();
-                    }
+                    self.config
+                        .update(|c| c.speex_noise_suppress = speex_noise_suppress);
+                    return self.update_audio_stream();
+                }
+                ConfigMsg::SpeexVADEnabled(speex_vad_enabled) => {
+                    self.config
+                        .update(|c| c.speex_vad_enabled = speex_vad_enabled);
+                    return self.update_audio_stream();
+                }
+                ConfigMsg::SpeexVADThreshold(speex_vad_threshold) => {
+                    self.config
+                        .update(|c| c.speex_vad_threshold = speex_vad_threshold as u32);
+                    return self.update_audio_stream();
+                }
+                ConfigMsg::SpeexAGCEnabled(speex_agc_enabled) => {
+                    self.config
+                        .update(|c| c.speex_agc_enabled = speex_agc_enabled);
+                    return self.update_audio_stream();
+                }
+                ConfigMsg::SpeexAGCTarget(speex_agc_target) => {
+                    self.config
+                        .update(|c| c.speex_agc_target = speex_agc_target as u32);
+                    return self.update_audio_stream();
+                }
+                ConfigMsg::SpeexDereverbEnabled(speex_dereverb_enabled) => {
+                    self.config
+                        .update(|c| c.speex_dereverb_enabled = speex_dereverb_enabled);
+                    return self.update_audio_stream();
+                }
+                ConfigMsg::SpeexDereverbLevel(speex_dereverb_level) => {
+                    self.config
+                        .update(|c| c.speex_dereverb_level = speex_dereverb_level);
+                    return self.update_audio_stream();
                 }
             },
             AppMsg::Shutdown => {

@@ -1,5 +1,6 @@
-use speexdsp::preprocess::*;
 use std::sync::{LazyLock, Mutex};
+
+use speexdsp::preprocess::{SpeexPreprocess, SpeexPreprocessConst};
 
 use crate::audio::AudioProcessParams;
 
@@ -12,6 +13,25 @@ const FRAME_SIZE: usize = (DENOISE_SPEEX_SAMPLE_RATE as f32 * 0.02) as usize; //
 struct DenoiseSpeexCache {
     sample_buffer: Vec<Vec<i16>>,
     denoisers: Vec<SpeexPreprocess>,
+    config_noise_suppress: i32,
+    config_vad_enabled: bool,
+    config_vad_threshold: u32,
+    config_agc_enabled: bool,
+    config_agc_target: u32,
+    config_dereverb_enabled: bool,
+    config_dereverb_level: f32,
+}
+
+impl DenoiseSpeexCache {
+    fn is_config_changed(&self, config: &AudioProcessParams) -> bool {
+        self.config_noise_suppress != config.speex_noise_suppress
+            || self.config_vad_enabled != config.speex_vad_enabled
+            || self.config_vad_threshold != config.speex_vad_threshold
+            || self.config_agc_enabled != config.speex_agc_enabled
+            || self.config_agc_target != config.speex_agc_target
+            || self.config_dereverb_enabled != config.speex_dereverb_enabled
+            || self.config_dereverb_level != config.speex_dereverb_level
+    }
 }
 
 // safe because packets are processed in order, and not concurrently
@@ -27,7 +47,10 @@ pub fn denoise_speex_f32_stream(
 ) -> anyhow::Result<Vec<Vec<f32>>> {
     let mut denoise_cache = DENOISE_CACHE.lock().unwrap();
 
-    if denoise_cache.is_none() || data.len() != denoise_cache.as_ref().unwrap().denoisers.len() {
+    if denoise_cache.is_none()
+        || data.len() != denoise_cache.as_ref().unwrap().denoisers.len()
+        || denoise_cache.as_ref().unwrap().is_config_changed(config)
+    {
         *denoise_cache = Some(DenoiseSpeexCache {
             sample_buffer: vec![Vec::with_capacity(FRAME_SIZE); data.len()],
             denoisers: data
@@ -38,11 +61,7 @@ pub fn denoise_speex_f32_stream(
                             .unwrap();
                     st.preprocess_ctl(SpeexPreprocessConst::SPEEX_PREPROCESS_SET_DENOISE, 1)
                         .unwrap();
-                    st.preprocess_ctl(
-                        SpeexPreprocessConst::SPEEX_PREPROCESS_SET_NOISE_SUPPRESS,
-                        config.speex_noise_suppress as f32,
-                    )
-                    .unwrap();
+                    st.set_noise_suppress(config.speex_noise_suppress);
                     st.preprocess_ctl(
                         SpeexPreprocessConst::SPEEX_PREPROCESS_SET_VAD,
                         if config.speex_vad_enabled { 1 } else { 0 },
@@ -50,7 +69,7 @@ pub fn denoise_speex_f32_stream(
                     .unwrap();
                     st.preprocess_ctl(
                         SpeexPreprocessConst::SPEEX_PREPROCESS_SET_PROB_START,
-                        config.speex_vad_threshold as u32,
+                        config.speex_vad_threshold,
                     )
                     .unwrap();
                     st.preprocess_ctl(
@@ -76,6 +95,13 @@ pub fn denoise_speex_f32_stream(
                     st
                 })
                 .collect(),
+            config_noise_suppress: config.speex_noise_suppress,
+            config_vad_enabled: config.speex_vad_enabled,
+            config_vad_threshold: config.speex_vad_threshold,
+            config_agc_enabled: config.speex_agc_enabled,
+            config_agc_target: config.speex_agc_target,
+            config_dereverb_enabled: config.speex_dereverb_enabled,
+            config_dereverb_level: config.speex_dereverb_level,
         });
     }
 

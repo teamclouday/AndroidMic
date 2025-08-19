@@ -79,28 +79,6 @@ impl Default for Config {
     }
 }
 
-pub struct ConfigCache {
-    pub amplify_value: String,
-    pub speex_noise_suppress: String,
-}
-
-impl ConfigCache {
-    pub fn new(config: &Config) -> Self {
-        Self {
-            amplify_value: config.amplify_value.to_string(),
-            speex_noise_suppress: config.speex_noise_suppress.to_string(),
-        }
-    }
-
-    pub fn parse_amplify_value(&self) -> Option<f32> {
-        self.amplify_value.replace(',', ".").parse().ok()
-    }
-
-    pub fn parse_speex_noise_suppress(&self) -> Option<i32> {
-        self.speex_noise_suppress.parse().ok()
-    }
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq, Values)]
 pub enum AppTheme {
     System,
