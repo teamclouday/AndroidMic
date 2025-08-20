@@ -38,8 +38,7 @@ impl SpeexdspCache {
 unsafe impl Send for SpeexdspCache {}
 
 // safe because packets are processed in order, and not concurrently
-static DENOISE_CACHE: LazyLock<Mutex<Option<SpeexdspCache>>> =
-    LazyLock::new(|| Mutex::new(None));
+static DENOISE_CACHE: LazyLock<Mutex<Option<SpeexdspCache>>> = LazyLock::new(|| Mutex::new(None));
 
 pub fn process_speex_f32_stream(
     data: &[Vec<f32>],

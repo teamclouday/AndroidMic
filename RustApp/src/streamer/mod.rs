@@ -1,4 +1,3 @@
-use adb_streamer::AdbStreamer;
 use anyhow::Result;
 use enum_dispatch::enum_dispatch;
 use prost::DecodeError;
@@ -8,7 +7,11 @@ use tcp_streamer::TcpStreamer;
 use thiserror::Error;
 use udp_streamer::UdpStreamer;
 
+#[cfg(feature = "adb")]
 mod adb_streamer;
+#[cfg(feature = "adb")]
+use adb_streamer::AdbStreamer;
+
 mod message;
 mod streamer_runner;
 mod tcp_streamer;
@@ -16,10 +19,8 @@ mod udp_streamer;
 
 #[cfg(feature = "usb")]
 mod usb;
-
 #[cfg(feature = "usb")]
 mod usb_streamer;
-
 #[cfg(feature = "usb")]
 use crate::streamer::usb_streamer::UsbStreamer;
 
@@ -68,6 +69,7 @@ trait StreamerTrait {
 #[enum_dispatch(StreamerTrait)]
 enum Streamer {
     TcpStreamer,
+    #[cfg(feature = "adb")]
     AdbStreamer,
     UdpStreamer,
     #[cfg(feature = "usb")]

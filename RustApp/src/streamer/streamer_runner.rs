@@ -14,9 +14,7 @@ use tokio::sync::mpsc::{self, Sender};
 use crate::audio::AudioProcessParams;
 use crate::streamer::{StreamerTrait, WriteError};
 
-use super::{
-    AudioStream, ConnectError, DummyStreamer, Streamer, adb_streamer, tcp_streamer, udp_streamer,
-};
+use super::{AudioStream, ConnectError, DummyStreamer, Streamer, tcp_streamer, udp_streamer};
 
 #[derive(Debug)]
 pub enum ConnectOption {
@@ -26,6 +24,7 @@ pub enum ConnectOption {
     Udp {
         ip: IpAddr,
     },
+    #[cfg(feature = "adb")]
     Adb,
     #[cfg(feature = "usb")]
     Usb,
@@ -138,9 +137,12 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                                 .await
                                                 .map(Streamer::from)
                                         }
-                                        ConnectOption::Adb => adb_streamer::new(stream_config)
-                                            .await
-                                            .map(Streamer::from),
+                                        #[cfg(feature = "adb")]
+                                        ConnectOption::Adb => {
+                                            crate::streamer::adb_streamer::new(stream_config)
+                                                .await
+                                                .map(Streamer::from)
+                                        }
                                         ConnectOption::Udp { ip } => {
                                             udp_streamer::new(ip, stream_config)
                                                 .await

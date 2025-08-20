@@ -126,17 +126,6 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
 fn connection_type(app: &AppState) -> Element<'_, AppMsg> {
     let connection_mode = &app.config.data().connection_mode;
 
-    #[cfg(not(feature = "usb"))]
-    let usb: Option<Element<_>> = None;
-
-    #[cfg(feature = "usb")]
-    let usb = Some(radio(
-        "USB Serial",
-        &ConnectionMode::Usb,
-        Some(connection_mode),
-        |mode| AppMsg::ChangeConnectionMode(*mode),
-    ));
-
     column()
         .spacing(20)
         .align_x(Horizontal::Center)
@@ -155,13 +144,38 @@ fn connection_type(app: &AppState) -> Element<'_, AppMsg> {
                     Some(connection_mode),
                     |mode| AppMsg::ChangeConnectionMode(*mode),
                 ))
-                .push_maybe(usb)
-                .push(radio(
-                    "USB Adb",
-                    &ConnectionMode::Adb,
-                    Some(connection_mode),
-                    |mode| AppMsg::ChangeConnectionMode(*mode),
-                )),
+                .push_maybe({
+                    #[cfg(feature = "usb")]
+                    {
+                        Some(radio(
+                            "USB Serial",
+                            &ConnectionMode::Usb,
+                            Some(connection_mode),
+                            |mode| AppMsg::ChangeConnectionMode(*mode),
+                        ))
+                    }
+
+                    #[cfg(not(feature = "usb"))]
+                    {
+                        Option::<Element<AppMsg>>::None
+                    }
+                })
+                .push_maybe({
+                    #[cfg(feature = "adb")]
+                    {
+                        Some(radio(
+                            "USB Adb",
+                            &ConnectionMode::Adb,
+                            Some(connection_mode),
+                            |mode| AppMsg::ChangeConnectionMode(*mode),
+                        ))
+                    }
+
+                    #[cfg(not(feature = "adb"))]
+                    {
+                        Option::<Element<AppMsg>>::None
+                    }
+                }),
         )
         .push(connect_button(app))
         .into()

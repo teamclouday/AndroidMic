@@ -41,8 +41,9 @@ unexpected_cfgs = { level = "warn", check-cfg = [
 to_string_trait_impl = "allow"
 
 [features]
-default = ["usb"]
+default = ["usb", "adb"]
 usb = ["nusb"]
+adb = []
 
 [dependencies]
 clap = { version = "4", features = ["derive"] }
