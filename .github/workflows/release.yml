@@ -197,7 +197,7 @@ jobs:
           body: |
             ## AndroidMic v${{ env.VERSION }}
 
-            ### What's Changed
+            ### Release Notes
             <!-- You can add manual notes here, they will be combined with automated notes -->
              - Several improvements and bug fixed
 
