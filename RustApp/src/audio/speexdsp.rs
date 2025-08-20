@@ -7,10 +7,10 @@ use crate::audio::AudioProcessParams;
 // xxx: do we really need to change the sample rate ?
 // apparently, speexdsp is optimized for low sample rate (8000, 16000), according to chatgpt,
 // but 16000 just doesn't work on my end
-pub const DENOISE_SPEEX_SAMPLE_RATE: u32 = 48000;
-const FRAME_SIZE: usize = (DENOISE_SPEEX_SAMPLE_RATE as f32 * 0.02) as usize; // 20 ms frame
+pub const SPEEXDSP_SAMPLE_RATE: u32 = 48000;
+const FRAME_SIZE: usize = (SPEEXDSP_SAMPLE_RATE as f32 * 0.02) as usize; // 20 ms frame
 
-struct DenoiseSpeexCache {
+struct SpeexdspCache {
     sample_buffer: Vec<Vec<i16>>,
     denoisers: Vec<SpeexPreprocess>,
     config_noise_suppress: i32,
@@ -22,7 +22,7 @@ struct DenoiseSpeexCache {
     config_dereverb_level: f32,
 }
 
-impl DenoiseSpeexCache {
+impl SpeexdspCache {
     fn is_config_changed(&self, config: &AudioProcessParams) -> bool {
         self.config_noise_suppress != config.speex_noise_suppress
             || self.config_vad_enabled != config.speex_vad_enabled
@@ -35,13 +35,13 @@ impl DenoiseSpeexCache {
 }
 
 // safe because packets are processed in order, and not concurrently
-unsafe impl Send for DenoiseSpeexCache {}
+unsafe impl Send for SpeexdspCache {}
 
 // safe because packets are processed in order, and not concurrently
-static DENOISE_CACHE: LazyLock<Mutex<Option<DenoiseSpeexCache>>> =
+static DENOISE_CACHE: LazyLock<Mutex<Option<SpeexdspCache>>> =
     LazyLock::new(|| Mutex::new(None));
 
-pub fn denoise_speex_f32_stream(
+pub fn process_speex_f32_stream(
     data: &[Vec<f32>],
     config: &AudioProcessParams,
 ) -> anyhow::Result<Vec<Vec<f32>>> {
@@ -51,17 +51,26 @@ pub fn denoise_speex_f32_stream(
         || data.len() != denoise_cache.as_ref().unwrap().denoisers.len()
         || denoise_cache.as_ref().unwrap().is_config_changed(config)
     {
-        *denoise_cache = Some(DenoiseSpeexCache {
+        *denoise_cache = Some(SpeexdspCache {
             sample_buffer: vec![Vec::with_capacity(FRAME_SIZE); data.len()],
             denoisers: data
                 .iter()
                 .map(|_| {
                     let mut st =
-                        SpeexPreprocess::new(FRAME_SIZE, DENOISE_SPEEX_SAMPLE_RATE as usize)
-                            .unwrap();
-                    st.preprocess_ctl(SpeexPreprocessConst::SPEEX_PREPROCESS_SET_DENOISE, 1)
-                        .unwrap();
+                        SpeexPreprocess::new(FRAME_SIZE, SPEEXDSP_SAMPLE_RATE as usize).unwrap();
+
+                    st.preprocess_ctl(
+                        SpeexPreprocessConst::SPEEX_PREPROCESS_SET_DENOISE,
+                        if config.is_speex_denoise_enabled() {
+                            1
+                        } else {
+                            0
+                        },
+                    )
+                    .unwrap();
+
                     st.set_noise_suppress(config.speex_noise_suppress);
+
                     st.preprocess_ctl(
                         SpeexPreprocessConst::SPEEX_PREPROCESS_SET_VAD,
                         if config.speex_vad_enabled { 1 } else { 0 },

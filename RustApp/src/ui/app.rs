@@ -431,8 +431,8 @@ impl Application for AppState {
                     self.config.update(|s| s.auto_connect = auto_connect);
                 }
                 ConfigMsg::UseRecommendedFormat => {
-                    if let Some(device) = &self.audio_device {
-                        if let Ok(format) = device.default_output_config() {
+                    if let Some(device) = &self.audio_device
+                        && let Ok(format) = device.default_output_config() {
                             info!(
                                 "using recommended audio format: sample rate = {}, channels = {}, audio format = {}",
                                 format.sample_rate().0,
@@ -450,7 +450,6 @@ impl Application for AppState {
                             });
                             return self.update_audio_stream();
                         }
-                    }
                 }
                 ConfigMsg::ResetDenoiseSettings => {
                     self.config.update(|c| c.reset_denoise_settings());
@@ -568,22 +567,19 @@ impl Application for AppState {
     }
 
     fn view_window(&self, id: window::Id) -> Element<'_, Self::Message> {
-        if let Some(window) = &self.settings_window {
-            if window.window_id == id {
+        if let Some(window) = &self.settings_window
+            && window.window_id == id {
                 return settings_window(self).map(AppMsg::Config);
             }
-        }
-        if let Some(window) = &self.main_window {
-            if window.window_id == id {
+        if let Some(window) = &self.main_window
+            && window.window_id == id {
                 return main_window(self);
             }
-        }
 
-        if let Some(window) = &self.about_window {
-            if window.window_id == id {
+        if let Some(window) = &self.about_window
+            && window.window_id == id {
                 return about_window();
             }
-        }
 
         cosmic::widget::text(format!("no view for window {id:?}")).into()
     }
@@ -593,22 +589,19 @@ impl Application for AppState {
     }
 
     fn on_close_requested(&self, id: window::Id) -> Option<Self::Message> {
-        if let Some(window) = &self.settings_window {
-            if window.window_id == id {
+        if let Some(window) = &self.settings_window
+            && window.window_id == id {
                 return Some(AppMsg::ToggleSettingsWindow);
             }
-        }
-        if let Some(window) = &self.about_window {
-            if window.window_id == id {
+        if let Some(window) = &self.about_window
+            && window.window_id == id {
                 return Some(AppMsg::Config(ConfigMsg::ToggleAboutWindow));
             }
-        }
-        if let Some(window) = &self.main_window {
-            if window.window_id == id {
+        if let Some(window) = &self.main_window
+            && window.window_id == id {
                 // close the app
                 return Some(AppMsg::Shutdown);
             }
-        }
 
         None
     }

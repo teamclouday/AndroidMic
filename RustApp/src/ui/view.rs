@@ -186,7 +186,7 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
             .spacing(20)
             .push(
                 settings::section()
-                    .title("Audio")
+                    .title("Audio format")
                     .add(
                         row()
                             .align_y(Vertical::Center)
@@ -228,20 +228,29 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                                     .on_press(ConfigMsg::UseRecommendedFormat),
                             )
                             .push(horizontal_space()),
-                    )
+                    ),
+            )
+            .push(
+                settings::section()
+                    .title(fl!("denoise"))
                     .add(
                         row()
                             .align_y(Vertical::Center)
-                            .spacing(10)
-                            .push(text(fl!("denoise")))
-                            .push(toggler(config.denoise).on_toggle(ConfigMsg::DeNoise))
+                            .push(text("Enabled"))
+                            .push(horizontal_space())
+                            .push(toggler(config.denoise).on_toggle(ConfigMsg::DeNoise)),
+                    )
+                    .add_maybe((config.denoise).then(|| {
+                        row()
+                            .align_y(Vertical::Center)
+                            .push(text("Type"))
                             .push(horizontal_space())
                             .push(pick_list(
                                 DenoiseKind::VALUES,
                                 Some(&config.denoise_kind),
                                 ConfigMsg::DeNoiseKind,
-                            )),
-                    )
+                            ))
+                    }))
                     .add_maybe(
                         (config.denoise && config.denoise_kind == DenoiseKind::Speexdsp).then(
                             || {
@@ -259,110 +268,66 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                                     )
                             },
                         ),
-                    )
-                    .add_maybe(
-                        (config.denoise && config.denoise_kind == DenoiseKind::Speexdsp).then(
-                            || {
-                                row()
-                                    .align_y(Vertical::Center)
-                                    .spacing(10)
-                                    .push(text("Voice Activity Detection (VAD)"))
-                                    .push(
-                                        toggler(config.speex_vad_enabled)
-                                            .on_toggle(ConfigMsg::SpeexVADEnabled),
-                                    )
-                            },
-                        ),
-                    )
-                    .add_maybe(
-                        (config.denoise
-                            && config.denoise_kind == DenoiseKind::Speexdsp
-                            && config.speex_vad_enabled)
-                            .then(|| {
-                                row()
-                                    .align_y(Vertical::Center)
-                                    .spacing(10)
-                                    .push(text(format!("{}", config.speex_vad_threshold)))
-                                    .push(
-                                        widget::slider(
-                                            0..=100,
-                                            config.speex_vad_threshold as i32,
-                                            ConfigMsg::SpeexVADThreshold,
-                                        )
-                                        .step(1),
-                                    )
-                            }),
-                    )
-                    .add_maybe(
-                        (config.denoise && config.denoise_kind == DenoiseKind::Speexdsp).then(
-                            || {
-                                row()
-                                    .align_y(Vertical::Center)
-                                    .spacing(10)
-                                    .push(text("Automatic Gain Control (AGC)"))
-                                    .push(
-                                        toggler(config.speex_agc_enabled)
-                                            .on_toggle(ConfigMsg::SpeexAGCEnabled),
-                                    )
-                            },
-                        ),
-                    )
-                    .add_maybe(
-                        (config.denoise
-                            && config.denoise_kind == DenoiseKind::Speexdsp
-                            && config.speex_agc_enabled)
-                            .then(|| {
-                                row()
-                                    .align_y(Vertical::Center)
-                                    .spacing(10)
-                                    .push(text(format!("{}", config.speex_agc_target)))
-                                    .push(
-                                        widget::slider(
-                                            8000..=65535,
-                                            config.speex_agc_target as i32,
-                                            ConfigMsg::SpeexAGCTarget,
-                                        )
-                                        .step(1),
-                                    )
-                            }),
-                    )
-                    .add_maybe(
-                        (config.denoise && config.denoise_kind == DenoiseKind::Speexdsp).then(
-                            || {
-                                row()
-                                    .align_y(Vertical::Center)
-                                    .spacing(10)
-                                    .push(text("Dereverberation"))
-                                    .push(
-                                        toggler(config.speex_dereverb_enabled)
-                                            .on_toggle(ConfigMsg::SpeexDereverbEnabled),
-                                    )
-                            },
-                        ),
-                    )
-                    .add_maybe(
-                        (config.denoise
-                            && config.denoise_kind == DenoiseKind::Speexdsp
-                            && config.speex_dereverb_enabled)
-                            .then(|| {
-                                row()
-                                    .align_y(Vertical::Center)
-                                    .spacing(10)
-                                    .push(text(format!("{:.1}", config.speex_dereverb_level)))
-                                    .push(
-                                        widget::slider(
-                                            0.0..=1.0,
-                                            config.speex_dereverb_level,
-                                            ConfigMsg::SpeexDereverbLevel,
-                                        )
-                                        .step(0.1),
-                                    )
-                            }),
-                    )
+                    ),
+            )
+            .push(
+                settings::section()
+                    .title("Voice Activity Detection (VAD)")
                     .add(
                         row()
                             .align_y(Vertical::Center)
+                            .push(text("Enabled"))
+                            .push(horizontal_space())
+                            .push(
+                                toggler(config.speex_vad_enabled)
+                                    .on_toggle(ConfigMsg::SpeexVADEnabled),
+                            ),
+                    )
+                    .add_maybe((config.speex_vad_enabled).then(|| {
+                        row()
+                            .align_y(Vertical::Center)
                             .spacing(10)
+                            .push(text(format!("{}", config.speex_vad_threshold)))
+                            .push(
+                                widget::slider(
+                                    0..=100,
+                                    config.speex_vad_threshold as i32,
+                                    ConfigMsg::SpeexVADThreshold,
+                                )
+                                .step(1),
+                            )
+                    })),
+            )
+            .push(
+                settings::section()
+                    .title("Gain Control")
+                    .add(
+                        row()
+                            .align_y(Vertical::Center)
+                            .push(text("Automatic Gain Control (AGC)"))
+                            .push(horizontal_space())
+                            .push(
+                                toggler(config.speex_agc_enabled)
+                                    .on_toggle(ConfigMsg::SpeexAGCEnabled),
+                            ),
+                    )
+                    .add_maybe((config.speex_agc_enabled).then(|| {
+                        row()
+                            .align_y(Vertical::Center)
+                            .spacing(10)
+                            .push(text(format!("{}", config.speex_agc_target)))
+                            .push(
+                                widget::slider(
+                                    8000..=65535,
+                                    config.speex_agc_target as i32,
+                                    ConfigMsg::SpeexAGCTarget,
+                                )
+                                .step(1),
+                            )
+                    }))
+                    .add(
+                        row()
+                            .align_y(Vertical::Center)
                             .push(text(fl!("amplify")))
                             .push(horizontal_space())
                             .push(toggler(config.amplify).on_toggle(ConfigMsg::Amplify)),
@@ -380,17 +345,37 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                                 )
                                 .step(0.1),
                             )
-                    }))
+                    })),
+            )
+            .push(
+                settings::section()
+                    .title("Dereverberation")
                     .add(
                         row()
+                            .align_y(Vertical::Center)
+                            .push(text("Enabled"))
                             .push(horizontal_space())
                             .push(
-                                button::text("Reset Denoise Settings")
-                                    .on_press(ConfigMsg::ResetDenoiseSettings),
+                                toggler(config.speex_dereverb_enabled)
+                                    .on_toggle(ConfigMsg::SpeexDereverbEnabled),
+                            ),
+                    )
+                    .add_maybe((config.speex_dereverb_enabled).then(|| {
+                        row()
+                            .align_y(Vertical::Center)
+                            .spacing(10)
+                            .push(text(format!("{:.1}", config.speex_dereverb_level)))
+                            .push(
+                                widget::slider(
+                                    0.0..=1.0,
+                                    config.speex_dereverb_level,
+                                    ConfigMsg::SpeexDereverbLevel,
+                                )
+                                .step(0.1),
                             )
-                            .push(horizontal_space()),
-                    ),
+                    })),
             )
+            .push(button::text("Reset Denoise Settings").on_press(ConfigMsg::ResetDenoiseSettings))
             .push(
                 settings::section()
                     .title("App")
