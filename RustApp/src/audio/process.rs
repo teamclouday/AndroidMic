@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use crate::{
     audio::{
         denoise_rnnoise::DENOISE_RNNOISE_SAMPLE_RATE,
-        denoise_speex::{DENOISE_SPEEX_SAMPLE_RATE, denoise_speex_f32_stream},
+        speexdsp::{SPEEXDSP_SAMPLE_RATE, process_speex_f32_stream},
     },
     config::{AudioFormat, DenoiseKind},
     streamer::{AudioPacketMessage, AudioStream},
@@ -61,22 +61,20 @@ impl AudioStream {
                     // denoise the audio stream
                     buffer = denoise_f32_stream(&prepared_buffer)?;
                 }
-                DenoiseKind::Speexdsp => {
-                    let prepared_buffer = if current_sample_rate == DENOISE_SPEEX_SAMPLE_RATE {
-                        Cow::Borrowed(&buffer)
-                    } else {
-                        let tmp = resample_f32_stream(
-                            &buffer,
-                            current_sample_rate,
-                            DENOISE_SPEEX_SAMPLE_RATE,
-                        )?;
-                        current_sample_rate = DENOISE_SPEEX_SAMPLE_RATE;
-                        Cow::Owned(tmp)
-                    };
-
-                    buffer = denoise_speex_f32_stream(&prepared_buffer, &config)?;
-                }
+                DenoiseKind::Speexdsp => {}
             }
+        }
+
+        if config.is_speex_used() {
+            let prepared_buffer = if current_sample_rate == SPEEXDSP_SAMPLE_RATE {
+                Cow::Borrowed(&buffer)
+            } else {
+                let tmp = resample_f32_stream(&buffer, current_sample_rate, SPEEXDSP_SAMPLE_RATE)?;
+                current_sample_rate = SPEEXDSP_SAMPLE_RATE;
+                Cow::Owned(tmp)
+            };
+
+            buffer = process_speex_f32_stream(&prepared_buffer, config)?;
         }
 
         if let Some(amplify) = config.amplify {

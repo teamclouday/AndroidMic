@@ -8,10 +8,10 @@ use crate::{
 };
 
 mod denoise_rnnoise;
-mod denoise_speex;
 mod player;
 pub mod process;
 mod resampler;
+mod speexdsp;
 
 /// Audio processing parameters
 #[derive(Clone, Debug)]
@@ -42,6 +42,19 @@ impl AudioProcessParams {
             speex_dereverb_enabled: config.speex_dereverb_enabled,
             speex_dereverb_level: config.speex_dereverb_level,
         }
+    }
+
+    pub fn is_speex_denoise_enabled(&self) -> bool {
+        self.denoise
+            .as_ref()
+            .is_some_and(|k| *k == DenoiseKind::Speexdsp)
+    }
+
+    pub fn is_speex_used(&self) -> bool {
+        self.is_speex_denoise_enabled()
+            || self.speex_vad_enabled
+            || self.speex_agc_enabled
+            || self.speex_dereverb_enabled
     }
 }
 
