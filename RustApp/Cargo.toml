@@ -7,6 +7,7 @@ authors = [
     "teamclouday <teamclouday@gmail.com>",
 ]
 license = "GPL-3.0-only"
+rust-version = "1.88.0"
 
 
 [package.metadata.packager]
@@ -94,7 +95,7 @@ fix-path-env = { git = "https://github.com/wiiznokes/fix-path-env-rs", rev = "86
 env_logger = "0.11"
 nnnoiseless = "0.5"
 open = "5"
-speexdsp = { git = "https://github.com/wiiznokes/speexdsp-rs-fork", rev = "367a12d11ac2fea30ef712c779b7e5f5707d33fe", features = [
+speexdsp = { git = "https://github.com/wiiznokes/speexdsp-rs-fork", branch = "vendor", features = [
     "sys",
     "vendored-sys",
 ] }
