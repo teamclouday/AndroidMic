@@ -13,6 +13,7 @@ const FRAME_SIZE: usize = (SPEEXDSP_SAMPLE_RATE as f32 * 0.02) as usize; // 20 m
 struct SpeexdspCache {
     sample_buffer: Vec<Vec<i16>>,
     denoisers: Vec<SpeexPreprocess>,
+    config_denoise_enabled: bool,
     config_noise_suppress: i32,
     config_vad_enabled: bool,
     config_vad_threshold: u32,
@@ -24,7 +25,8 @@ struct SpeexdspCache {
 
 impl SpeexdspCache {
     fn is_config_changed(&self, config: &AudioProcessParams) -> bool {
-        self.config_noise_suppress != config.speex_noise_suppress
+        self.config_denoise_enabled != config.is_speex_denoise_enabled()
+            || self.config_noise_suppress != config.speex_noise_suppress
             || self.config_vad_enabled != config.speex_vad_enabled
             || self.config_vad_threshold != config.speex_vad_threshold
             || self.config_agc_enabled != config.speex_agc_enabled
@@ -103,6 +105,7 @@ pub fn process_speex_f32_stream(
                     st
                 })
                 .collect(),
+            config_denoise_enabled: config.is_speex_denoise_enabled(),
             config_noise_suppress: config.speex_noise_suppress,
             config_vad_enabled: config.speex_vad_enabled,
             config_vad_threshold: config.speex_vad_threshold,
