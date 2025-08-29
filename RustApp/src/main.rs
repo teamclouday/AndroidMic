@@ -44,6 +44,7 @@ impl Write for DualWriter {
 
 fn main() {
     let _ = fix_path_env::fix();
+    utils::setup_wgpu();
 
     let project_dirs = ProjectDirs::from(QUALIFIER, ORG, APP).unwrap();
     let log_path = if cfg!(debug_assertions) {
