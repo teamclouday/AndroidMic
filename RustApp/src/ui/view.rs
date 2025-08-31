@@ -9,7 +9,7 @@ use cosmic::{
     },
     widget::{
         self, about::About, button, canvas, column, container, context_menu, horizontal_space,
-        markdown, menu, radio, row, scrollable, settings, text, toggler, vertical_space,
+        markdown, menu, radio, row, scrollable, settings, text, toggler, tooltip, vertical_space,
     },
 };
 use cpal::traits::DeviceTrait;
@@ -110,8 +110,13 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
                 .width(Length::Fill)
                 .spacing(5)
                 .push(
-                    pick_list(app.audio_devices.clone(), selected, AppMsg::Device)
-                        .width(Length::Fill),
+                    tooltip(
+                        pick_list(app.audio_devices.clone(), selected, AppMsg::Device)
+                            .width(Length::Fill),
+                        selected.as_ref().map_or("None", |device| &device.name),
+                        tooltip::Position::Top,
+                    )
+                    .class(cosmic::theme::Container::Tooltip),
                 )
                 .push(
                     widget_icon_button!("refresh24")
@@ -125,6 +130,7 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
 }
 
 fn network_adapter(app: &AppState) -> Element<'_, AppMsg> {
+    let selected = app.network_adapter.as_ref();
     column()
         .spacing(20)
         .align_x(Horizontal::Center)
@@ -134,12 +140,13 @@ fn network_adapter(app: &AppState) -> Element<'_, AppMsg> {
                 .width(Length::Fill)
                 .spacing(5)
                 .push(
-                    pick_list(
-                        app.network_adapters.clone(),
-                        app.network_adapter.as_ref(),
-                        AppMsg::Adapter,
+                    tooltip(
+                        pick_list(app.network_adapters.clone(), selected, AppMsg::Adapter)
+                            .width(Length::Fill),
+                        selected.map_or("None", |adapter| &adapter.name),
+                        tooltip::Position::Top,
                     )
-                    .width(Length::Fill),
+                    .class(cosmic::theme::Container::Tooltip),
                 )
                 .push(
                     widget_icon_button!("refresh24")
