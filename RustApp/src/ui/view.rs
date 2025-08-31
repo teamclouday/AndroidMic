@@ -45,6 +45,7 @@ pub fn main_window(app: &AppState) -> Element<'_, AppMsg> {
                 .width(Length::FillPortion(1))
                 .height(Length::Fill)
                 .align_x(Horizontal::Center)
+                .push(network_adapter(app))
                 .push(audio(app))
                 .push(vertical_space())
                 .push(connection_type(app)),
@@ -120,6 +121,33 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
                 ),
         )
         .push(button::text(fl!("settings")).on_press(AppMsg::ToggleSettingsWindow))
+        .into()
+}
+
+fn network_adapter(app: &AppState) -> Element<'_, AppMsg> {
+    column()
+        .spacing(20)
+        .align_x(Horizontal::Center)
+        .push(text::title4("Network Adapter"))
+        .push(
+            row()
+                .width(Length::Fill)
+                .spacing(5)
+                .push(
+                    pick_list(
+                        app.network_adapters.clone(),
+                        app.network_adapter.as_ref(),
+                        AppMsg::Adapter,
+                    )
+                    .width(Length::Fill),
+                )
+                .push(
+                    widget_icon_button!("refresh24")
+                        .on_press(AppMsg::RefreshNetworkAdapters)
+                        .class(cosmic::theme::Button::Text)
+                        .width(Length::Shrink),
+                ),
+        )
         .into()
 }
 

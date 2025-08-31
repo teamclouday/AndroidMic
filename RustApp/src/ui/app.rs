@@ -4,7 +4,7 @@ use cpal::{
     Device, Host,
     traits::{DeviceTrait, HostTrait},
 };
-use local_ip_address::local_ip;
+use local_ip_address::{list_afinet_netifas, local_ip};
 use rtrb::RingBuffer;
 use tokio::sync::mpsc::Sender;
 
@@ -26,7 +26,9 @@ use super::{
 };
 use crate::{
     audio::{AudioPacketFormat, AudioProcessParams},
-    config::{AppTheme, AudioFormat, ChannelCount, Config, ConnectionMode, SampleRate},
+    config::{
+        AppTheme, AudioFormat, ChannelCount, Config, ConnectionMode, NetworkAdapter, SampleRate,
+    },
     fl,
     streamer::{self, ConnectOption, StreamerCommand, StreamerMsg},
     ui::view::{SCROLLABLE_ID, about_window},
@@ -121,6 +123,8 @@ pub struct AppState {
     pub audio_stream: Option<Stream>,
     pub audio_wave: AudioWave,
     pub connection_state: ConnectionState,
+    pub network_adapters: Vec<NetworkAdapter>,
+    pub network_adapter: Option<NetworkAdapter>,
     pub main_window: Option<CustomWindow>,
     pub settings_window: Option<CustomWindow>,
     pub about_window: Option<CustomWindow>,
@@ -256,9 +260,7 @@ impl Application for AppState {
         flags: Self::Flags,
     ) -> (Self, cosmic::app::Task<Self::Message>) {
         let audio_host = cpal::default_host();
-
         let audio_devices = get_audio_devices(&audio_host);
-
         let audio_device = match &flags.config.data().device_name {
             Some(name) => {
                 match audio_devices
@@ -267,12 +269,32 @@ impl Application for AppState {
                 {
                     Some(audio_device) => Some(audio_device.device.clone()),
                     None => {
-                        error!("can't find audio device name {}", name);
+                        warn!("can't find audio device name {}", name);
                         audio_host.default_output_device()
                     }
                 }
             }
             None => audio_host.default_output_device(),
+        };
+
+        let network_adapters = list_afinet_netifas()
+            .unwrap()
+            .iter()
+            .filter(|(_, ip)| ip.is_ipv4())
+            .map(|(name, ip)| NetworkAdapter {
+                name: name.clone(),
+                ip: *ip,
+            })
+            .collect::<Vec<_>>();
+        let network_adapter = match &flags.config.data().ip {
+            Some(ip) => match network_adapters.iter().find(|adapter| adapter.ip == *ip) {
+                Some(adapter) => Some(adapter.clone()),
+                None => {
+                    warn!("can't find network adapter for IP {}", ip);
+                    network_adapters.first().cloned()
+                }
+            },
+            None => None,
         };
 
         let settings = window::Settings {
@@ -299,6 +321,8 @@ impl Application for AppState {
             audio_devices,
             audio_wave: AudioWave::new(),
             connection_state: ConnectionState::Default,
+            network_adapters,
+            network_adapter,
             main_window: Some(CustomWindow { window_id: new_id }),
             settings_window: None,
             about_window: None,
@@ -339,6 +363,18 @@ impl Application for AppState {
                 let audio_host = cpal::default_host();
                 self.audio_devices = get_audio_devices(&audio_host);
             }
+            AppMsg::RefreshNetworkAdapters => {
+                let network_adapters = list_afinet_netifas()
+                    .unwrap()
+                    .iter()
+                    .filter(|(_, ip)| ip.is_ipv4())
+                    .map(|(name, ip)| NetworkAdapter {
+                        name: name.clone(),
+                        ip: *ip,
+                    })
+                    .collect::<Vec<_>>();
+                self.network_adapters = network_adapters;
+            }
             AppMsg::Streamer(streamer_msg) => match streamer_msg {
                 StreamerMsg::Error(e) => {
                     self.connection_state = ConnectionState::Default;
@@ -375,6 +411,11 @@ impl Application for AppState {
                 self.config
                     .update(|c| c.device_name = Some(audio_device.name.clone()));
                 return self.update_audio_stream();
+            }
+            AppMsg::Adapter(adapter) => {
+                self.config.update(|c| c.ip = Some(adapter.ip));
+                self.network_adapter = Some(adapter.clone());
+                return self.add_log(format!("Selected network adapter: {adapter}").as_str());
             }
             AppMsg::Connect => {
                 return self.connect();
