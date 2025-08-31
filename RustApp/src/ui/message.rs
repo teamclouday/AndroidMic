@@ -1,6 +1,9 @@
 use super::app::AudioDevice;
 use crate::{
-    config::{AppTheme, AudioFormat, ChannelCount, ConnectionMode, DenoiseKind, SampleRate},
+    config::{
+        AppTheme, AudioFormat, ChannelCount, ConnectionMode, DenoiseKind, NetworkAdapter,
+        SampleRate,
+    },
     streamer::StreamerMsg,
 };
 
@@ -9,11 +12,13 @@ pub enum AppMsg {
     ChangeConnectionMode(ConnectionMode),
     Streamer(StreamerMsg),
     Device(AudioDevice),
+    Adapter(NetworkAdapter),
     Connect,
     Stop,
     ToggleSettingsWindow,
     Config(ConfigMsg),
     RefreshAudioDevices,
+    RefreshNetworkAdapters,
     Shutdown,
     Menu(MenuMsg),
     LinkClicked(String),

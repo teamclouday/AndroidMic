@@ -370,3 +370,15 @@ impl SampleRate {
         }
     }
 }
+
+#[derive(Debug, Clone, PartialEq)]
+pub struct NetworkAdapter {
+    pub name: String,
+    pub ip: IpAddr,
+}
+
+impl Display for NetworkAdapter {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{} ({})", self.name, self.ip)
+    }
+}

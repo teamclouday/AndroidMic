@@ -9,7 +9,7 @@ use cosmic::{
     },
     widget::{
         self, about::About, button, canvas, column, container, context_menu, horizontal_space,
-        markdown, menu, radio, row, scrollable, settings, text, toggler, vertical_space,
+        markdown, menu, radio, row, scrollable, settings, text, toggler, tooltip, vertical_space,
     },
 };
 use cpal::traits::DeviceTrait;
@@ -45,6 +45,7 @@ pub fn main_window(app: &AppState) -> Element<'_, AppMsg> {
                 .width(Length::FillPortion(1))
                 .height(Length::Fill)
                 .align_x(Horizontal::Center)
+                .push(network_adapter(app))
                 .push(audio(app))
                 .push(vertical_space())
                 .push(connection_type(app)),
@@ -109,8 +110,13 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
                 .width(Length::Fill)
                 .spacing(5)
                 .push(
-                    pick_list(app.audio_devices.clone(), selected, AppMsg::Device)
-                        .width(Length::Fill),
+                    tooltip(
+                        pick_list(app.audio_devices.clone(), selected, AppMsg::Device)
+                            .width(Length::Fill),
+                        selected.as_ref().map_or("None", |device| &device.name),
+                        tooltip::Position::Top,
+                    )
+                    .class(cosmic::theme::Container::Tooltip),
                 )
                 .push(
                     widget_icon_button!("refresh24")
@@ -120,6 +126,35 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
                 ),
         )
         .push(button::text(fl!("settings")).on_press(AppMsg::ToggleSettingsWindow))
+        .into()
+}
+
+fn network_adapter(app: &AppState) -> Element<'_, AppMsg> {
+    let selected = app.network_adapter.as_ref();
+    column()
+        .spacing(20)
+        .align_x(Horizontal::Center)
+        .push(text::title4("Network Adapter"))
+        .push(
+            row()
+                .width(Length::Fill)
+                .spacing(5)
+                .push(
+                    tooltip(
+                        pick_list(app.network_adapters.clone(), selected, AppMsg::Adapter)
+                            .width(Length::Fill),
+                        selected.map_or("None", |adapter| &adapter.name),
+                        tooltip::Position::Top,
+                    )
+                    .class(cosmic::theme::Container::Tooltip),
+                )
+                .push(
+                    widget_icon_button!("refresh24")
+                        .on_press(AppMsg::RefreshNetworkAdapters)
+                        .class(cosmic::theme::Button::Text)
+                        .width(Length::Shrink),
+                ),
+        )
         .into()
 }
 
