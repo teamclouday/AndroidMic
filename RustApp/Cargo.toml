@@ -86,6 +86,8 @@ libcosmic = { git = "https://github.com/pop-os/libcosmic.git", rev = "8412dd5939
     "highlighter",
     "about",
 ] }
+tray-icon = "0.21.1"
+notify-rust = "4"
 byteorder = "1"
 nusb = { version = "0.1", optional = true }
 serde_with = "3"
