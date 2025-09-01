@@ -1,10 +1,14 @@
-use std::fmt::{Debug, Display};
+use std::{
+    fmt::{Debug, Display},
+    net::{IpAddr, Ipv4Addr},
+};
 
 use cpal::{
     Device, Host,
     traits::{DeviceTrait, HostTrait},
 };
 use local_ip_address::{list_afinet_netifas, local_ip};
+use notify_rust::Notification;
 use rtrb::RingBuffer;
 use tokio::sync::mpsc::Sender;
 
@@ -418,6 +422,23 @@ impl Application for AppState {
                         system_tray.update_menu_state(false, "Listening");
                     }
 
+                    if self.main_window.is_none() {
+                        let address = format!(
+                            "{}:{}",
+                            ip.unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
+                            port.unwrap_or_default()
+                        );
+                        // show notification when app is minimized
+                        Notification::new()
+                            .summary("AndroidMic")
+                            .body(format!("Listening on {address}").as_str())
+                            .auto_icon()
+                            .show()
+                            .unwrap_or_else(|e| {
+                                error!("failed to show notification: {e}");
+                            });
+                    }
+
                     self.connection_state = ConnectionState::Listening;
                     if let (Some(ip), Some(port)) = (ip, port) {
                         info!("listening on {ip}:{port}");
@@ -427,6 +448,23 @@ impl Application for AppState {
                 StreamerMsg::Connected { ip, port } => {
                     if let Some(system_tray) = self.system_tray.as_mut() {
                         system_tray.update_menu_state(false, "Connected");
+                    }
+
+                    if self.main_window.is_none() {
+                        let address = format!(
+                            "{}:{}",
+                            ip.unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
+                            port.unwrap_or_default()
+                        );
+                        // show notification when app is minimized
+                        Notification::new()
+                            .summary("AndroidMic")
+                            .body(format!("Connected on {address}").as_str())
+                            .auto_icon()
+                            .show()
+                            .unwrap_or_else(|e| {
+                                error!("failed to show notification: {e}");
+                            });
                     }
 
                     self.connection_state = ConnectionState::Connected;
@@ -638,6 +676,15 @@ impl Application for AppState {
                     ));
                     self.about_window = None;
                 }
+
+                Notification::new()
+                    .summary("AndroidMic")
+                    .body("Application is minimized to system tray")
+                    .auto_icon()
+                    .show()
+                    .unwrap_or_else(|e| {
+                        error!("failed to show notification: {e}");
+                    });
 
                 return cosmic::iced_runtime::Task::batch(effects);
             }
