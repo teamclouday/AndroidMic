@@ -92,9 +92,10 @@ impl SystemTray {
         // update menu item states
         self.item_connect.set_enabled(disconnected);
         self.item_disconnect.set_enabled(!disconnected);
-        self.tray_icon
+        let _ = self
+            .tray_icon
             .set_tooltip(Some(format!("AndroidMic - {}", status)))
-            .unwrap_or_else(|e| {
+            .map_err(|e| {
                 error!("failed to set tray icon tooltip: {e}");
             });
     }

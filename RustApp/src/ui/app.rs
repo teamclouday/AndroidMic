@@ -429,12 +429,12 @@ impl Application for AppState {
                             port.unwrap_or_default()
                         );
                         // show notification when app is minimized
-                        Notification::new()
+                        let _ = Notification::new()
                             .summary("AndroidMic")
                             .body(format!("Listening on {address}").as_str())
                             .auto_icon()
                             .show()
-                            .unwrap_or_else(|e| {
+                            .map_err(|e| {
                                 error!("failed to show notification: {e}");
                             });
                     }
@@ -457,12 +457,12 @@ impl Application for AppState {
                             port.unwrap_or_default()
                         );
                         // show notification when app is minimized
-                        Notification::new()
+                        let _ = Notification::new()
                             .summary("AndroidMic")
                             .body(format!("Connected on {address}").as_str())
                             .auto_icon()
                             .show()
-                            .unwrap_or_else(|e| {
+                            .map_err(|e| {
                                 error!("failed to show notification: {e}");
                             });
                     }
@@ -677,12 +677,12 @@ impl Application for AppState {
                     self.about_window = None;
                 }
 
-                Notification::new()
+                let _ = Notification::new()
                     .summary("AndroidMic")
                     .body("Application is minimized to system tray")
                     .auto_icon()
                     .show()
-                    .unwrap_or_else(|e| {
+                    .map_err(|e| {
                         error!("failed to show notification: {e}");
                     });
 
