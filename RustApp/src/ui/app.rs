@@ -1,10 +1,14 @@
-use std::fmt::{Debug, Display};
+use std::{
+    fmt::{Debug, Display},
+    net::{IpAddr, Ipv4Addr},
+};
 
 use cpal::{
     Device, Host,
     traits::{DeviceTrait, HostTrait},
 };
 use local_ip_address::{list_afinet_netifas, local_ip};
+use notify_rust::Notification;
 use rtrb::RingBuffer;
 use tokio::sync::mpsc::Sender;
 
@@ -13,7 +17,6 @@ use cosmic::{
     app::{Core, Settings, Task},
     executor,
     iced::{Size, Subscription, futures::StreamExt, window},
-    iced_runtime::Action,
     iced_widget::scrollable::{self, AbsoluteOffset},
     theme,
     widget::markdown,
@@ -21,6 +24,7 @@ use cosmic::{
 
 use super::{
     message::{AppMsg, ConfigMsg},
+    tray::{SystemTray, SystemTrayMsg, SystemTrayStream},
     view::{main_window, settings_window},
     wave::AudioWave,
 };
@@ -130,6 +134,8 @@ pub struct AppState {
     pub about_window: Option<CustomWindow>,
     pub logs: Vec<markdown::Item>,
     log_path: String,
+    pub system_tray: Option<SystemTray>,
+    pub system_tray_stream: Option<SystemTrayStream>,
 }
 
 pub struct CustomWindow {
@@ -159,7 +165,7 @@ impl AppState {
             }
             Err(e) => {
                 error!("failed to start audio stream: {e}");
-                self.send_command(StreamerCommand::Stop);
+                let _ = self.disconnect();
                 self.add_log(&e.to_string())
             }
         }
@@ -218,6 +224,19 @@ impl AppState {
 
         Task::none()
     }
+
+    fn disconnect(&mut self) -> Task<AppMsg> {
+        self.send_command(StreamerCommand::Stop);
+        self.connection_state = ConnectionState::Default;
+        self.audio_stream = None;
+        self.audio_wave.clear();
+
+        if let Some(system_tray) = self.system_tray.as_mut() {
+            system_tray.update_menu_state(true, "Disconnected");
+        }
+
+        Task::none()
+    }
 }
 
 pub struct Flags {
@@ -259,6 +278,7 @@ impl Application for AppState {
         core: cosmic::app::Core,
         flags: Self::Flags,
     ) -> (Self, cosmic::app::Task<Self::Message>) {
+        // initialize audio device
         let audio_host = cpal::default_host();
         let audio_devices = get_audio_devices(&audio_host);
         let audio_device = match &flags.config.data().device_name {
@@ -277,6 +297,7 @@ impl Application for AppState {
             None => audio_host.default_output_device(),
         };
 
+        // initialize network adapter
         let network_adapters = list_afinet_netifas()
             .unwrap()
             .iter()
@@ -297,10 +318,22 @@ impl Application for AppState {
             None => None,
         };
 
+        // initialize system tray
+        let (system_tray, system_tray_stream) = match SystemTray::new() {
+            Ok((mut tray, stream)) => {
+                tray.update_menu_state(true, "Disconnected");
+                (Some(tray), Some(stream))
+            }
+            Err(e) => {
+                error!("failed to create system tray: {e}");
+                (None, None)
+            }
+        };
+
+        // configure window settings
         let settings = window::Settings {
             size: Size::new(800.0, 600.0),
             position: window::Position::Centered,
-            exit_on_close_request: true,
             icon: window_icon!("icon"),
             ..Default::default()
         };
@@ -328,6 +361,8 @@ impl Application for AppState {
             about_window: None,
             logs: Vec::new(),
             log_path: flags.log_path.clone(),
+            system_tray,
+            system_tray_stream,
         };
 
         commands.push(
@@ -383,6 +418,27 @@ impl Application for AppState {
                     return self.add_log(&e);
                 }
                 StreamerMsg::Listening { ip, port } => {
+                    if let Some(system_tray) = self.system_tray.as_mut() {
+                        system_tray.update_menu_state(false, "Listening");
+                    }
+
+                    if self.main_window.is_none() {
+                        let address = format!(
+                            "{}:{}",
+                            ip.unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
+                            port.unwrap_or_default()
+                        );
+                        // show notification when app is minimized
+                        let _ = Notification::new()
+                            .summary("AndroidMic")
+                            .body(format!("Listening on {address}").as_str())
+                            .auto_icon()
+                            .show()
+                            .map_err(|e| {
+                                error!("failed to show notification: {e}");
+                            });
+                    }
+
                     self.connection_state = ConnectionState::Listening;
                     if let (Some(ip), Some(port)) = (ip, port) {
                         info!("listening on {ip}:{port}");
@@ -390,6 +446,27 @@ impl Application for AppState {
                     }
                 }
                 StreamerMsg::Connected { ip, port } => {
+                    if let Some(system_tray) = self.system_tray.as_mut() {
+                        system_tray.update_menu_state(false, "Connected");
+                    }
+
+                    if self.main_window.is_none() {
+                        let address = format!(
+                            "{}:{}",
+                            ip.unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
+                            port.unwrap_or_default()
+                        );
+                        // show notification when app is minimized
+                        let _ = Notification::new()
+                            .summary("AndroidMic")
+                            .body(format!("Connected on {address}").as_str())
+                            .auto_icon()
+                            .show()
+                            .map_err(|e| {
+                                error!("failed to show notification: {e}");
+                            });
+                    }
+
                     self.connection_state = ConnectionState::Connected;
                     if let (Some(ip), Some(port)) = (ip, port) {
                         info!("connected on {ip}:{port}");
@@ -421,24 +498,20 @@ impl Application for AppState {
                 return self.connect();
             }
             AppMsg::Stop => {
-                self.send_command(StreamerCommand::Stop);
-                self.connection_state = ConnectionState::Default;
-                self.audio_stream = None;
-                self.audio_wave.clear();
+                return self.disconnect();
             }
             AppMsg::ToggleSettingsWindow => match &self.settings_window {
                 Some(settings_window) => {
                     let id = settings_window.window_id;
                     self.settings_window = None;
-                    return cosmic::iced::runtime::task::effect(Action::Window(
-                        window::Action::Close(id),
-                    ));
+                    return cosmic::iced::runtime::task::effect(
+                        cosmic::iced::runtime::Action::Window(window::Action::Close(id)),
+                    );
                 }
                 None => {
                     let settings = window::Settings {
                         size: Size::new(500.0, 600.0),
                         position: window::Position::Centered,
-                        exit_on_close_request: true,
                         icon: window_icon!("icon"),
                         ..Default::default()
                     };
@@ -452,7 +525,6 @@ impl Application for AppState {
                         .chain(set_window_title);
                 }
             },
-
             AppMsg::Config(msg) => match msg {
                 ConfigMsg::SampleRate(sample_rate) => {
                     self.config.update(|s| s.sample_rate = sample_rate);
@@ -509,15 +581,14 @@ impl Application for AppState {
                     Some(about_window) => {
                         let id = about_window.window_id;
                         self.about_window = None;
-                        return cosmic::iced::runtime::task::effect(Action::Window(
-                            window::Action::Close(id),
-                        ));
+                        return cosmic::iced::runtime::task::effect(
+                            cosmic::iced::runtime::Action::Window(window::Action::Close(id)),
+                        );
                     }
                     None => {
                         let settings = window::Settings {
                             size: Size::new(500.0, 600.0),
                             position: window::Position::Centered,
-                            exit_on_close_request: true,
                             icon: window_icon!("icon"),
                             ..Default::default()
                         };
@@ -578,8 +649,44 @@ impl Application for AppState {
                     return self.update_audio_stream();
                 }
             },
-            AppMsg::Shutdown => {
-                return cosmic::iced_runtime::task::effect(Action::Exit);
+            AppMsg::HideWindow => {
+                let mut effects = Vec::new();
+
+                if let Some(main_window) = &self.main_window {
+                    effects.push(cosmic::iced_runtime::task::effect(
+                        cosmic::iced::runtime::Action::Window(window::Action::Close(
+                            main_window.window_id,
+                        )),
+                    ));
+                    self.main_window = None;
+                }
+                if let Some(settings_window) = &self.settings_window {
+                    effects.push(cosmic::iced_runtime::task::effect(
+                        cosmic::iced::runtime::Action::Window(window::Action::Close(
+                            settings_window.window_id,
+                        )),
+                    ));
+                    self.settings_window = None;
+                }
+                if let Some(about_window) = &self.about_window {
+                    effects.push(cosmic::iced_runtime::task::effect(
+                        cosmic::iced::runtime::Action::Window(window::Action::Close(
+                            about_window.window_id,
+                        )),
+                    ));
+                    self.about_window = None;
+                }
+
+                let _ = Notification::new()
+                    .summary("AndroidMic")
+                    .body("Application is minimized to system tray")
+                    .auto_icon()
+                    .show()
+                    .map_err(|e| {
+                        error!("failed to show notification: {e}");
+                    });
+
+                return cosmic::iced_runtime::Task::batch(effects);
             }
             AppMsg::Menu(menu_msg) => match menu_msg {
                 super::message::MenuMsg::ClearLogs => self.logs.clear(),
@@ -599,6 +706,34 @@ impl Application for AppState {
                     error!("{e}");
                 }
             }
+            AppMsg::SystemTray(tray_msg) => match tray_msg {
+                SystemTrayMsg::Show => {
+                    let settings = window::Settings {
+                        size: Size::new(800.0, 600.0),
+                        position: window::Position::Centered,
+                        icon: window_icon!("icon"),
+                        ..Default::default()
+                    };
+
+                    let (new_id, command) = cosmic::iced::window::open(settings);
+                    self.main_window = Some(CustomWindow { window_id: new_id });
+                    let set_window_title = self.set_window_title(fl!("main_window_title"), new_id);
+
+                    return command
+                        .map(|_| cosmic::action::Action::None)
+                        .chain(set_window_title)
+                        .chain(cosmic::iced_runtime::task::effect(
+                            cosmic::iced::runtime::Action::Window(window::Action::GainFocus(
+                                new_id,
+                            )),
+                        ));
+                }
+                SystemTrayMsg::Exit => {
+                    return cosmic::iced_runtime::task::effect(cosmic::iced::runtime::Action::Exit);
+                }
+                SystemTrayMsg::Connect => return self.connect(),
+                SystemTrayMsg::Disconnect => return self.disconnect(),
+            },
         }
 
         Task::none()
@@ -630,7 +765,16 @@ impl Application for AppState {
     }
 
     fn subscription(&self) -> cosmic::iced::Subscription<Self::Message> {
-        Subscription::run(|| streamer::sub().map(AppMsg::Streamer))
+        let mut subscriptions = vec![Subscription::run(|| streamer::sub().map(AppMsg::Streamer))];
+
+        if let Some(system_tray_stream) = &self.system_tray_stream {
+            subscriptions.push(Subscription::run_with_id(
+                "system-tray",
+                system_tray_stream.clone().sub().map(AppMsg::SystemTray),
+            ));
+        }
+
+        Subscription::batch(subscriptions)
     }
 
     fn on_close_requested(&self, id: window::Id) -> Option<Self::Message> {
@@ -648,7 +792,7 @@ impl Application for AppState {
             && window.window_id == id
         {
             // close the app
-            return Some(AppMsg::Shutdown);
+            return Some(AppMsg::HideWindow);
         }
 
         None

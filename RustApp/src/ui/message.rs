@@ -1,4 +1,5 @@
 use super::app::AudioDevice;
+use super::tray::SystemTrayMsg;
 use crate::{
     config::{
         AppTheme, AudioFormat, ChannelCount, ConnectionMode, DenoiseKind, NetworkAdapter,
@@ -19,9 +20,10 @@ pub enum AppMsg {
     Config(ConfigMsg),
     RefreshAudioDevices,
     RefreshNetworkAdapters,
-    Shutdown,
+    HideWindow,
     Menu(MenuMsg),
     LinkClicked(String),
+    SystemTray(SystemTrayMsg),
 }
 
 #[derive(Debug, Clone)]

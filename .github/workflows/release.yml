@@ -33,7 +33,7 @@ jobs:
         if: matrix.platform == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libasound2-dev libjack-jackd2-dev libxkbcommon-dev protobuf-compiler
+          sudo apt-get install -y libasound2-dev libjack-jackd2-dev libxkbcommon-dev protobuf-compiler libgtk-3-dev libxdo-dev libappindicator3-dev
 
       - name: Install dependencies (Windows)
         if: matrix.platform == 'windows'
