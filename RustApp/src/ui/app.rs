@@ -13,7 +13,6 @@ use cosmic::{
     app::{Core, Settings, Task},
     executor,
     iced::{Size, Subscription, futures::StreamExt, window},
-    iced_runtime::Action,
     iced_widget::scrollable::{self, AbsoluteOffset},
     theme,
     widget::markdown,
@@ -324,7 +323,6 @@ impl Application for AppState {
         let settings = window::Settings {
             size: Size::new(800.0, 600.0),
             position: window::Position::Centered,
-            exit_on_close_request: true,
             icon: window_icon!("icon"),
             ..Default::default()
         };
@@ -453,15 +451,14 @@ impl Application for AppState {
                 Some(settings_window) => {
                     let id = settings_window.window_id;
                     self.settings_window = None;
-                    return cosmic::iced::runtime::task::effect(Action::Window(
-                        window::Action::Close(id),
-                    ));
+                    return cosmic::iced::runtime::task::effect(
+                        cosmic::iced::runtime::Action::Window(window::Action::Close(id)),
+                    );
                 }
                 None => {
                     let settings = window::Settings {
                         size: Size::new(500.0, 600.0),
                         position: window::Position::Centered,
-                        exit_on_close_request: true,
                         icon: window_icon!("icon"),
                         ..Default::default()
                     };
@@ -531,15 +528,14 @@ impl Application for AppState {
                     Some(about_window) => {
                         let id = about_window.window_id;
                         self.about_window = None;
-                        return cosmic::iced::runtime::task::effect(Action::Window(
-                            window::Action::Close(id),
-                        ));
+                        return cosmic::iced::runtime::task::effect(
+                            cosmic::iced::runtime::Action::Window(window::Action::Close(id)),
+                        );
                     }
                     None => {
                         let settings = window::Settings {
                             size: Size::new(500.0, 600.0),
                             position: window::Position::Centered,
-                            exit_on_close_request: true,
                             icon: window_icon!("icon"),
                             ..Default::default()
                         };
@@ -601,21 +597,34 @@ impl Application for AppState {
                 }
             },
             AppMsg::HideWindow => {
+                let mut effects = Vec::new();
+
                 if let Some(main_window) = &self.main_window {
-                    return cosmic::iced_runtime::task::effect(Action::Window(
-                        window::Action::ChangeMode(main_window.window_id, window::Mode::Hidden),
+                    effects.push(cosmic::iced_runtime::task::effect(
+                        cosmic::iced::runtime::Action::Window(window::Action::Close(
+                            main_window.window_id,
+                        )),
                     ));
+                    self.main_window = None;
                 }
                 if let Some(settings_window) = &self.settings_window {
-                    return cosmic::iced_runtime::task::effect(Action::Window(
-                        window::Action::ChangeMode(settings_window.window_id, window::Mode::Hidden),
+                    effects.push(cosmic::iced_runtime::task::effect(
+                        cosmic::iced::runtime::Action::Window(window::Action::Close(
+                            settings_window.window_id,
+                        )),
                     ));
+                    self.settings_window = None;
                 }
                 if let Some(about_window) = &self.about_window {
-                    return cosmic::iced_runtime::task::effect(Action::Window(
-                        window::Action::ChangeMode(about_window.window_id, window::Mode::Hidden),
+                    effects.push(cosmic::iced_runtime::task::effect(
+                        cosmic::iced::runtime::Action::Window(window::Action::Close(
+                            about_window.window_id,
+                        )),
                     ));
+                    self.about_window = None;
                 }
+
+                return cosmic::iced_runtime::Task::batch(effects);
             }
             AppMsg::Menu(menu_msg) => match menu_msg {
                 super::message::MenuMsg::ClearLogs => self.logs.clear(),
@@ -637,34 +646,28 @@ impl Application for AppState {
             }
             AppMsg::SystemTray(tray_msg) => match tray_msg {
                 SystemTrayMsg::Show => {
-                    info!("show event");
-                    if let Some(main_window) = &self.main_window {
-                        return cosmic::iced::runtime::task::effect(Action::Window(
-                            window::Action::ChangeMode(
-                                main_window.window_id,
-                                window::Mode::Windowed,
-                            ),
+                    let settings = window::Settings {
+                        size: Size::new(800.0, 600.0),
+                        position: window::Position::Centered,
+                        icon: window_icon!("icon"),
+                        ..Default::default()
+                    };
+
+                    let (new_id, command) = cosmic::iced::window::open(settings);
+                    self.main_window = Some(CustomWindow { window_id: new_id });
+                    let set_window_title = self.set_window_title(fl!("main_window_title"), new_id);
+
+                    return command
+                        .map(|_| cosmic::action::Action::None)
+                        .chain(set_window_title)
+                        .chain(cosmic::iced_runtime::task::effect(
+                            cosmic::iced::runtime::Action::Window(window::Action::GainFocus(
+                                new_id,
+                            )),
                         ));
-                    }
-                    if let Some(settings_window) = &self.settings_window {
-                        return cosmic::iced::runtime::task::effect(Action::Window(
-                            window::Action::ChangeMode(
-                                settings_window.window_id,
-                                window::Mode::Windowed,
-                            ),
-                        ));
-                    }
-                    if let Some(about_window) = &self.about_window {
-                        return cosmic::iced::runtime::task::effect(Action::Window(
-                            window::Action::ChangeMode(
-                                about_window.window_id,
-                                window::Mode::Windowed,
-                            ),
-                        ));
-                    }
                 }
                 SystemTrayMsg::Exit => {
-                    return cosmic::iced_runtime::task::effect(Action::Exit);
+                    return cosmic::iced_runtime::task::effect(cosmic::iced::runtime::Action::Exit);
                 }
                 SystemTrayMsg::Connect => return self.connect(),
                 SystemTrayMsg::Disconnect => return self.disconnect(),
