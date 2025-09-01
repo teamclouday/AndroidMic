@@ -88,19 +88,12 @@ impl SystemTray {
         ))
     }
 
-    pub fn update_menu_state(&mut self, connected: bool) {
+    pub fn update_menu_state(&mut self, disconnected: bool, status: &str) {
         // update menu item states
-        self.item_connect.set_enabled(!connected);
-        self.item_disconnect.set_enabled(connected);
+        self.item_connect.set_enabled(disconnected);
+        self.item_disconnect.set_enabled(!disconnected);
         self.tray_icon
-            .set_tooltip(Some(format!(
-                "AndroidMic - {}",
-                if connected {
-                    "Connected"
-                } else {
-                    "Disconnected"
-                }
-            )))
+            .set_tooltip(Some(format!("AndroidMic - {}", status)))
             .unwrap_or_else(|e| {
                 error!("failed to set tray icon tooltip: {e}");
             });

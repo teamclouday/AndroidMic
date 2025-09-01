@@ -227,6 +227,10 @@ impl AppState {
         self.audio_stream = None;
         self.audio_wave.clear();
 
+        if let Some(system_tray) = self.system_tray.as_mut() {
+            system_tray.update_menu_state(true, "Disconnected");
+        }
+
         Task::none()
     }
 }
@@ -312,7 +316,10 @@ impl Application for AppState {
 
         // initialize system tray
         let (system_tray, system_tray_stream) = match SystemTray::new() {
-            Ok((tray, stream)) => (Some(tray), Some(stream)),
+            Ok((mut tray, stream)) => {
+                tray.update_menu_state(true, "Disconnected");
+                (Some(tray), Some(stream))
+            }
             Err(e) => {
                 error!("failed to create system tray: {e}");
                 (None, None)
@@ -407,6 +414,10 @@ impl Application for AppState {
                     return self.add_log(&e);
                 }
                 StreamerMsg::Listening { ip, port } => {
+                    if let Some(system_tray) = self.system_tray.as_mut() {
+                        system_tray.update_menu_state(false, "Listening");
+                    }
+
                     self.connection_state = ConnectionState::Listening;
                     if let (Some(ip), Some(port)) = (ip, port) {
                         info!("listening on {ip}:{port}");
@@ -414,6 +425,10 @@ impl Application for AppState {
                     }
                 }
                 StreamerMsg::Connected { ip, port } => {
+                    if let Some(system_tray) = self.system_tray.as_mut() {
+                        system_tray.update_menu_state(false, "Connected");
+                    }
+
                     self.connection_state = ConnectionState::Connected;
                     if let (Some(ip), Some(port)) = (ip, port) {
                         info!("connected on {ip}:{port}");
