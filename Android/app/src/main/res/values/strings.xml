@@ -19,14 +19,14 @@
 
     <string name="drawerMode">Connection mode</string>
 
-    <string name="drawerIpPort" translatable="false">IP:PORT</string>
-    <string name="dialog_ip" translatable="false">IP</string>
-    <string name="dialog_port" translatable="false">PORT</string>
+    <string name="drawerIpPort">IP:PORT</string>
+    <string name="dialog_ip">IP</string>
+    <string name="dialog_port">PORT</string>
 
 
-    <string name="sample_rate" translatable="false">Sample Rate</string>
-    <string name="channel_count" translatable="false">Channel Count</string>
-    <string name="audio_format" translatable="false">Audio Format</string>
+    <string name="sample_rate">Sample Rate</string>
+    <string name="channel_count">Channel Count</string>
+    <string name="audio_format">Audio Format</string>
 
     <string name="drawerTheme">Themes</string>
     <string name="dynamic_color">Dynamic color</string>
