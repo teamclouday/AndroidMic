@@ -134,7 +134,7 @@ fn network_adapter(app: &AppState) -> Element<'_, AppMsg> {
     column()
         .spacing(20)
         .align_x(Horizontal::Center)
-        .push(text::title4("Network Adapter"))
+        .push(text::title4(fl!("network_adapter")))
         .push(
             row()
                 .width(Length::Fill)
@@ -168,13 +168,13 @@ fn connection_type(app: &AppState) -> Element<'_, AppMsg> {
         .push(
             column()
                 .push(radio(
-                    "WIFI / LAN (TCP)",
+                    text(fl!("connection_tcp")),
                     &ConnectionMode::Tcp,
                     Some(connection_mode),
                     |mode| AppMsg::ChangeConnectionMode(*mode),
                 ))
                 .push(radio(
-                    "WIFI / LAN (UDP)",
+                    text(fl!("connection_udp")),
                     &ConnectionMode::Udp,
                     Some(connection_mode),
                     |mode| AppMsg::ChangeConnectionMode(*mode),
@@ -183,7 +183,7 @@ fn connection_type(app: &AppState) -> Element<'_, AppMsg> {
                     #[cfg(feature = "usb")]
                     {
                         Some(radio(
-                            "USB Serial",
+                            text(fl!("connection_usb")),
                             &ConnectionMode::Usb,
                             Some(connection_mode),
                             |mode| AppMsg::ChangeConnectionMode(*mode),
@@ -199,7 +199,7 @@ fn connection_type(app: &AppState) -> Element<'_, AppMsg> {
                     #[cfg(feature = "adb")]
                     {
                         Some(radio(
-                            "USB Adb",
+                            text(fl!("connection_adb")),
                             &ConnectionMode::Adb,
                             Some(connection_mode),
                             |mode| AppMsg::ChangeConnectionMode(*mode),
@@ -235,7 +235,7 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
             .spacing(20)
             .push(
                 settings::section()
-                    .title("Audio format")
+                    .title(fl!("title_audio_format"))
                     .add(
                         row()
                             .align_y(Vertical::Center)
@@ -273,7 +273,7 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                         row()
                             .push(horizontal_space())
                             .push(
-                                button::text("Use Recommended Audio Format")
+                                button::text(fl!("use_recommended_audio_format"))
                                     .on_press(ConfigMsg::UseRecommendedFormat),
                             )
                             .push(horizontal_space()),
@@ -285,14 +285,14 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                     .add(
                         row()
                             .align_y(Vertical::Center)
-                            .push(text("Enabled"))
+                            .push(text(fl!("denoise_enabled")))
                             .push(horizontal_space())
                             .push(toggler(config.denoise).on_toggle(ConfigMsg::DeNoise)),
                     )
                     .add_maybe((config.denoise).then(|| {
                         row()
                             .align_y(Vertical::Center)
-                            .push(text("Type"))
+                            .push(text(fl!("denoise_type")))
                             .push(horizontal_space())
                             .push(pick_list(
                                 DenoiseKind::VALUES,
@@ -321,11 +321,11 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
             )
             .push(
                 settings::section()
-                    .title("Voice Activity Detection (VAD)")
+                    .title(fl!("voice_activity_detection"))
                     .add(
                         row()
                             .align_y(Vertical::Center)
-                            .push(text("Enabled"))
+                            .push(text(fl!("voice_activity_detection_enabled")))
                             .push(horizontal_space())
                             .push(
                                 toggler(config.speex_vad_enabled)
@@ -349,11 +349,11 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
             )
             .push(
                 settings::section()
-                    .title("Gain Control")
+                    .title(fl!("gain_control"))
                     .add(
                         row()
                             .align_y(Vertical::Center)
-                            .push(text("Automatic Gain Control (AGC)"))
+                            .push(text(fl!("auto_gain_control")))
                             .push(horizontal_space())
                             .push(
                                 toggler(config.speex_agc_enabled)
@@ -398,11 +398,11 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
             )
             .push(
                 settings::section()
-                    .title("Dereverberation")
+                    .title(fl!("dereverberation"))
                     .add(
                         row()
                             .align_y(Vertical::Center)
-                            .push(text("Enabled"))
+                            .push(text(fl!("dereverberation_enabled")))
                             .push(horizontal_space())
                             .push(
                                 toggler(config.speex_dereverb_enabled)
@@ -424,10 +424,10 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                             )
                     })),
             )
-            .push(button::text("Reset Denoise Settings").on_press(ConfigMsg::ResetDenoiseSettings))
+            .push(button::text(fl!("reset_denoise_settings")).on_press(ConfigMsg::ResetDenoiseSettings))
             .push(
                 settings::section()
-                    .title("App")
+                    .title(fl!("title_app"))
                     .add_maybe(if cfg!(target_os = "windows") {
                         Some(
                             row()
@@ -462,7 +462,7 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                     )
                     .add(
                         widget::settings::item::builder(fl!("about"))
-                            .control(button::text("open").on_press(ConfigMsg::ToggleAboutWindow)),
+                            .control(button::text(fl!("about_open")).on_press(ConfigMsg::ToggleAboutWindow)),
                     ),
             ),
     )

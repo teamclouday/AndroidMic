@@ -232,7 +232,7 @@ impl AppState {
         self.audio_wave.clear();
 
         if let Some(system_tray) = self.system_tray.as_mut() {
-            system_tray.update_menu_state(true, "Disconnected");
+            system_tray.update_menu_state(true, &fl!("state_disconnected"));
         }
 
         Task::none()
@@ -321,7 +321,7 @@ impl Application for AppState {
         // initialize system tray
         let (system_tray, system_tray_stream) = match SystemTray::new() {
             Ok((mut tray, stream)) => {
-                tray.update_menu_state(true, "Disconnected");
+                tray.update_menu_state(true, &fl!("state_disconnected"));
                 (Some(tray), Some(stream))
             }
             Err(e) => {
@@ -419,7 +419,7 @@ impl Application for AppState {
                 }
                 StreamerMsg::Listening { ip, port } => {
                     if let Some(system_tray) = self.system_tray.as_mut() {
-                        system_tray.update_menu_state(false, "Listening");
+                        system_tray.update_menu_state(false, &fl!("state_listening"));
                     }
 
                     if self.main_window.is_none() {
@@ -447,7 +447,7 @@ impl Application for AppState {
                 }
                 StreamerMsg::Connected { ip, port } => {
                     if let Some(system_tray) = self.system_tray.as_mut() {
-                        system_tray.update_menu_state(false, "Connected");
+                        system_tray.update_menu_state(false, &fl!("state_connected"));
                     }
 
                     if self.main_window.is_none() {
@@ -679,7 +679,7 @@ impl Application for AppState {
 
                 let _ = Notification::new()
                     .summary("AndroidMic")
-                    .body("Application is minimized to system tray")
+                    .body(&fl!("minimized_to_tray"))
                     .auto_icon()
                     .show()
                     .map_err(|e| {
