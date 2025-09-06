@@ -136,6 +136,7 @@ pub struct AppState {
     log_path: String,
     pub system_tray: Option<SystemTray>,
     pub system_tray_stream: Option<SystemTrayStream>,
+    has_shown_minimize_notification: bool,
 }
 
 pub struct CustomWindow {
@@ -363,6 +364,7 @@ impl Application for AppState {
             log_path: flags.log_path.clone(),
             system_tray,
             system_tray_stream,
+            has_shown_minimize_notification: false,
         };
 
         commands.push(
@@ -677,14 +679,17 @@ impl Application for AppState {
                     self.about_window = None;
                 }
 
-                let _ = Notification::new()
-                    .summary("AndroidMic")
-                    .body(&fl!("minimized_to_tray"))
-                    .auto_icon()
-                    .show()
-                    .map_err(|e| {
-                        error!("failed to show notification: {e}");
-                    });
+                if !self.has_shown_minimize_notification {
+                    let _ = Notification::new()
+                        .summary("AndroidMic")
+                        .body(&fl!("minimized_to_tray"))
+                        .auto_icon()
+                        .show()
+                        .map_err(|e| {
+                            error!("failed to show notification: {e}");
+                        });
+                    self.has_shown_minimize_notification = true;
+                }
 
                 return cosmic::iced_runtime::Task::batch(effects);
             }
@@ -708,25 +713,35 @@ impl Application for AppState {
             }
             AppMsg::SystemTray(tray_msg) => match tray_msg {
                 SystemTrayMsg::Show => {
-                    let settings = window::Settings {
-                        size: Size::new(800.0, 600.0),
-                        position: window::Position::Centered,
-                        icon: window_icon!("icon"),
-                        ..Default::default()
-                    };
-
-                    let (new_id, command) = cosmic::iced::window::open(settings);
-                    self.main_window = Some(CustomWindow { window_id: new_id });
-                    let set_window_title = self.set_window_title(fl!("main_window_title"), new_id);
-
-                    return command
-                        .map(|_| cosmic::action::Action::None)
-                        .chain(set_window_title)
-                        .chain(cosmic::iced_runtime::task::effect(
+                    if let Some(main_window) = &self.main_window {
+                        // avoid duplicate window
+                        return cosmic::iced_runtime::task::effect(
                             cosmic::iced::runtime::Action::Window(window::Action::GainFocus(
-                                new_id,
+                                main_window.window_id,
                             )),
-                        ));
+                        );
+                    } else {
+                        let settings = window::Settings {
+                            size: Size::new(800.0, 600.0),
+                            position: window::Position::Centered,
+                            icon: window_icon!("icon"),
+                            ..Default::default()
+                        };
+
+                        let (new_id, command) = cosmic::iced::window::open(settings);
+                        self.main_window = Some(CustomWindow { window_id: new_id });
+                        let set_window_title =
+                            self.set_window_title(fl!("main_window_title"), new_id);
+
+                        return command
+                            .map(|_| cosmic::action::Action::None)
+                            .chain(set_window_title)
+                            .chain(cosmic::iced_runtime::task::effect(
+                                cosmic::iced::runtime::Action::Window(window::Action::GainFocus(
+                                    new_id,
+                                )),
+                            ));
+                    }
                 }
                 SystemTrayMsg::Exit => {
                     return cosmic::iced_runtime::task::effect(cosmic::iced::runtime::Action::Exit);

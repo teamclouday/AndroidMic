@@ -48,6 +48,7 @@ macro_rules! window_icon {
     ($name:literal) => {{ window_icon!($name, 32, 32) }};
 }
 
+#[cfg(not(target_os = "linux"))]
 #[macro_export]
 macro_rules! tray_icon {
     ($name:literal, $width:expr, $height:expr) => {{
