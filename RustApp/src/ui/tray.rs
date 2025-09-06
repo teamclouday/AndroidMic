@@ -7,7 +7,7 @@ use tray_icon::{
     menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem},
 };
 
-use crate::tray_icon;
+use crate::{fl, tray_icon};
 
 #[derive(Debug, Clone)]
 pub enum SystemTrayMsg {
@@ -30,10 +30,10 @@ pub struct SystemTray {
 
 impl SystemTray {
     pub fn new() -> anyhow::Result<(Self, SystemTrayStream)> {
-        let item_show = MenuItem::new("Show Window", true, None);
-        let item_connect = MenuItem::new("Connect", true, None);
-        let item_disconnect = MenuItem::new("Disconnect", true, None);
-        let item_exit = MenuItem::new("Exit", true, None);
+        let item_show = MenuItem::new(fl!("tray_show_window"), true, None);
+        let item_connect = MenuItem::new(fl!("tray_connect"), true, None);
+        let item_disconnect = MenuItem::new(fl!("tray_disconnect"), true, None);
+        let item_exit = MenuItem::new(fl!("tray_exit"), true, None);
 
         let item_show_id = item_show.id().clone();
         let item_connect_id = item_connect.id().clone();
