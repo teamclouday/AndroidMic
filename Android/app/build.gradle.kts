@@ -21,7 +21,7 @@ android {
 
         vectorDrawables.useSupportLibrary = true
         androidResources {
-            localeFilters += listOf("en", "fr")
+            localeFilters += listOf("en", "fr", "zh-rCN")
         }
 
     }

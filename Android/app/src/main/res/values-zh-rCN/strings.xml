@@ -1,0 +1,67 @@
+<resources>
+    <!--
+    Main UI
+    -->
+    <string name="connect">连接</string>
+    <string name="disconnect">断开连接</string>
+    <string name="turn_audio">录制音频</string>
+
+    <!--
+    Setting
+    -->
+    <string name="drawerHeader">设置</string>
+    <string name="drawer_subtitle_connection">连接</string>
+    <string name="drawer_subtitle_record">录制</string>
+    <string name="drawer_subtitle_other">其它</string>
+
+
+    <string name="drawerMode">连接方式</string>
+
+    <string name="drawerIpPort">IP:端口</string>
+    <string name="dialog_ip">IP</string>
+    <string name="dialog_port">端口</string>
+
+
+    <string name="sample_rate">采样率</string>
+    <string name="channel_count">通道数量</string>
+    <string name="audio_format">音频格式</string>
+
+    <string name="drawerTheme">主题</string>
+    <string name="dynamic_color">动态颜色</string>
+
+    <string name="reset">重置</string>
+    <string name="save">保存</string>
+    <string name="cancel">取消</string>
+
+    <string name="mono">单声道</string>
+    <string name="stereo">双声道</string>
+
+    <!--
+    Error messages
+    -->
+    <string name="invalid_ip_port">IP:端口 无效</string>
+    <string name="invalid_port">端口 无效</string>
+
+    <string name="error">错误\n</string>
+    <string name="failed_to_connect">连接失败</string>
+    <string name="stream_already_started">流式传输已经启动了</string>
+    <string name="microphone_already_started">麦克风已经启动了</string>
+    <string name="microphone_not_recording">麦克风没有在录制</string>
+
+    <string name="connected_device">已连接设备:\n</string>
+    <string name="mic_start_recording">麦克风已启动录制</string>
+
+    <string name="device_disconnected">设备已断开连接</string>
+    <string name="recording_stopped">已停止录制</string>
+
+    <!--
+    Service
+    -->
+    <string name="notification_info">音频流式传输已激活</string>
+
+    <string name="start_streaming">开始推流</string>
+    <string name="start_recording">开始录制</string>
+    <string name="stop_streaming">停止推流</string>
+    <string name="stop_recording">停止录制</string>
+
+</resources>
