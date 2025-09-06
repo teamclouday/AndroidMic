@@ -73,10 +73,3 @@ macro_rules! tray_icon {
     }};
     ($name:literal) => {{ tray_icon!($name, 32, 32) }};
 }
-
-// placeholder here
-#[cfg(target_os = "linux")]
-#[macro_export]
-macro_rules! tray_icon {
-    () => {};
-}

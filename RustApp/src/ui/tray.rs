@@ -9,6 +9,7 @@ use tray_icon::{
     menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem},
 };
 
+#[cfg(not(target_os = "linux"))]
 use crate::{fl, tray_icon};
 
 #[derive(Debug, Clone)]
