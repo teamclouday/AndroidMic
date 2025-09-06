@@ -708,25 +708,35 @@ impl Application for AppState {
             }
             AppMsg::SystemTray(tray_msg) => match tray_msg {
                 SystemTrayMsg::Show => {
-                    let settings = window::Settings {
-                        size: Size::new(800.0, 600.0),
-                        position: window::Position::Centered,
-                        icon: window_icon!("icon"),
-                        ..Default::default()
-                    };
-
-                    let (new_id, command) = cosmic::iced::window::open(settings);
-                    self.main_window = Some(CustomWindow { window_id: new_id });
-                    let set_window_title = self.set_window_title(fl!("main_window_title"), new_id);
-
-                    return command
-                        .map(|_| cosmic::action::Action::None)
-                        .chain(set_window_title)
-                        .chain(cosmic::iced_runtime::task::effect(
+                    if let Some(main_window) = &self.main_window {
+                        // avoid duplicate window
+                        return cosmic::iced_runtime::task::effect(
                             cosmic::iced::runtime::Action::Window(window::Action::GainFocus(
-                                new_id,
+                                main_window.window_id,
                             )),
-                        ));
+                        );
+                    } else {
+                        let settings = window::Settings {
+                            size: Size::new(800.0, 600.0),
+                            position: window::Position::Centered,
+                            icon: window_icon!("icon"),
+                            ..Default::default()
+                        };
+
+                        let (new_id, command) = cosmic::iced::window::open(settings);
+                        self.main_window = Some(CustomWindow { window_id: new_id });
+                        let set_window_title =
+                            self.set_window_title(fl!("main_window_title"), new_id);
+
+                        return command
+                            .map(|_| cosmic::action::Action::None)
+                            .chain(set_window_title)
+                            .chain(cosmic::iced_runtime::task::effect(
+                                cosmic::iced::runtime::Action::Window(window::Action::GainFocus(
+                                    new_id,
+                                )),
+                            ));
+                    }
                 }
                 SystemTrayMsg::Exit => {
                     return cosmic::iced_runtime::task::effect(cosmic::iced::runtime::Action::Exit);
