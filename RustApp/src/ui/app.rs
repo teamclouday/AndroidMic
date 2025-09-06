@@ -136,6 +136,7 @@ pub struct AppState {
     log_path: String,
     pub system_tray: Option<SystemTray>,
     pub system_tray_stream: Option<SystemTrayStream>,
+    has_shown_minimize_notification: bool,
 }
 
 pub struct CustomWindow {
@@ -363,6 +364,7 @@ impl Application for AppState {
             log_path: flags.log_path.clone(),
             system_tray,
             system_tray_stream,
+            has_shown_minimize_notification: false,
         };
 
         commands.push(
@@ -677,14 +679,17 @@ impl Application for AppState {
                     self.about_window = None;
                 }
 
-                let _ = Notification::new()
-                    .summary("AndroidMic")
-                    .body(&fl!("minimized_to_tray"))
-                    .auto_icon()
-                    .show()
-                    .map_err(|e| {
-                        error!("failed to show notification: {e}");
-                    });
+                if !self.has_shown_minimize_notification {
+                    let _ = Notification::new()
+                        .summary("AndroidMic")
+                        .body(&fl!("minimized_to_tray"))
+                        .auto_icon()
+                        .show()
+                        .map_err(|e| {
+                            error!("failed to show notification: {e}");
+                        });
+                    self.has_shown_minimize_notification = true;
+                }
 
                 return cosmic::iced_runtime::Task::batch(effects);
             }
