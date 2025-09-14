@@ -9,19 +9,19 @@ plugins {
 
 android {
     namespace = "io.github.teamclouday.AndroidMic"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "io.github.teamclouday.AndroidMic"
         minSdk = 23
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 17
         versionName = "2.2.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         vectorDrawables.useSupportLibrary = true
         androidResources {
-            localeFilters += listOf("en", "fr", "zh-rCN")
+            generateLocaleConfig = true
         }
 
     }
