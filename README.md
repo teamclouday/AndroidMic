@@ -114,3 +114,5 @@ For more question / feature request / bug report, please [submit an issues](http
 The PC app started as a WPF app written in C# and was only supported on Windows. Now most of the features are recreated in Rust app thanks to @wiiznokes and it's cross platform supported. But here's the [link to the WPF app branch](https://github.com/teamclouday/AndroidMic/tree/wpf-app-backup) in case you are interested.
 
 Bluetooth is no longer supported because USB serial is made possible.
+
+Windows defender will very often identify the app as a virus, with their ML algorithm. If that happens, please [report to Microsoft](https://www.microsoft.com/en-us/wdsi/filesubmission) to get it fixed.
