@@ -16,6 +16,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.launch
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 // manage microphone recording
 class MicAudioManager(
@@ -35,6 +37,8 @@ class MicAudioManager(
     private val recorder: AudioRecord
     private val bufferSize: Int
     private val buffer: ByteArray
+    private val bufferFloat: FloatArray
+    private val bufferFloatConvert: ByteBuffer
     private var streamJob: Job? = null
 
     init {
@@ -79,6 +83,8 @@ class MicAudioManager(
         }
 
         buffer = ByteArray(bufferSize)
+        bufferFloat = FloatArray(bufferSize / 4) // float is 4 bytes
+        bufferFloatConvert = ByteBuffer.allocate(bufferSize).order(ByteOrder.nativeOrder())
     }
 
     // audio stream publisher
@@ -90,17 +96,37 @@ class MicAudioManager(
                     delay(RECORD_DELAY_MS)
                     continue
                 }
-                val bytesRead = recorder.read(buffer, 0, buffer.size)
 
-                if (bytesRead <= 0) {
+                val readCount: Int // number of samples read (for float) or number of bytes read (for int)
+                val packetBuffer: ByteArray
+
+                if (audioFormat == AudioFormat.ENCODING_PCM_FLOAT) {
+                    readCount =
+                        recorder.read(bufferFloat, 0, bufferFloat.size, AudioRecord.READ_BLOCKING)
+
+                    if (readCount > 0) {
+                        bufferFloatConvert.clear()
+                        bufferFloatConvert.asFloatBuffer().put(bufferFloat, 0, readCount)
+                        packetBuffer = bufferFloatConvert.array()
+                    } else {
+                        packetBuffer = ByteArray(0)
+                    }
+                } else {
+                    readCount = recorder.read(buffer, 0, buffer.size)
+
+                    if (readCount > 0) {
+                        packetBuffer = ByteArray(readCount)
+                        buffer.copyInto(packetBuffer, 0, 0, readCount)
+                    } else {
+                        packetBuffer = ByteArray(0)
+                    }
+                }
+
+                if (readCount <= 0) {
                     delay(RECORD_DELAY_MS)
                     continue
                 }
 
-//                Log.d(TAG, "audioStream: $bytesRead bytes read")
-
-                val packetBuffer = ByteArray(bytesRead)
-                buffer.copyInto(packetBuffer, 0, 0, bytesRead)
                 send(
                     AudioPacket(
                         buffer = packetBuffer,

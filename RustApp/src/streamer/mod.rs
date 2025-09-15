@@ -156,8 +156,9 @@ impl StreamerTrait for DummyStreamer {
 }
 
 impl AudioPacketMessage {
-    fn to_wave_data(buffer: &[f32]) -> Vec<(f32, f32)> {
-        let window_size = 50;
+    fn to_wave_data(buffer: &[f32], sample_rate: u32) -> Vec<(f32, f32)> {
+        const DEFAULT_WINDOW_DURATION_MS: f32 = 10.0; // 10ms window
+        let window_size = ((sample_rate as f32 * DEFAULT_WINDOW_DURATION_MS) / 1000.0) as usize;
 
         buffer
             .chunks_exact(window_size)

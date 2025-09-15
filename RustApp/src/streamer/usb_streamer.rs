@@ -198,11 +198,12 @@ impl StreamerTrait for UsbStreamer {
                 match AudioPacketMessage::decode(frame) {
                     Ok(packet) => {
                         let buffer_size = packet.buffer.len();
+                        let sample_rate = packet.sample_rate;
 
                         if let Ok(buffer) = self.stream_config.process_audio_packet(packet) {
                             // compute the audio wave from the buffer
                             res = Some(StreamerMsg::UpdateAudioWave {
-                                data: AudioPacketMessage::to_wave_data(&buffer),
+                                data: AudioPacketMessage::to_wave_data(&buffer, sample_rate),
                             });
 
                             debug!("received {} bytes", buffer_size);
