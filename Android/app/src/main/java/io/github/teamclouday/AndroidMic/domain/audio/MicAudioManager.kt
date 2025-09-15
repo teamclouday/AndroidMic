@@ -101,7 +101,8 @@ class MicAudioManager(
                 val packetBuffer: ByteArray
 
                 if (audioFormat == AudioFormat.ENCODING_PCM_FLOAT) {
-                    readCount = recorder.read(bufferFloat, 0, bufferFloat.size, AudioRecord.READ_BLOCKING)
+                    readCount =
+                        recorder.read(bufferFloat, 0, bufferFloat.size, AudioRecord.READ_BLOCKING)
 
                     if (readCount > 0) {
                         bufferFloatConvert.clear()
@@ -115,7 +116,7 @@ class MicAudioManager(
 
                     if (readCount > 0) {
                         packetBuffer = ByteArray(readCount)
-                        buffer.copyInto(packetBuffer, destinationOffset = 0, startIndex = 0, endIndex = readCount)
+                        buffer.copyInto(packetBuffer, 0, 0, readCount)
                     } else {
                         packetBuffer = ByteArray(0)
                     }
