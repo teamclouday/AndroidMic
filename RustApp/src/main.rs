@@ -8,6 +8,7 @@ use std::{fs::File, path::Path};
 use clap::Parser;
 use config::{Args, Config};
 use directories::ProjectDirs;
+use fslock::LockFile;
 use ui::app::run_ui;
 use utils::{APP, ORG, QUALIFIER};
 use zconf::ConfigManager;
@@ -47,6 +48,7 @@ fn main() {
     utils::setup_wgpu();
 
     let project_dirs = ProjectDirs::from(QUALIFIER, ORG, APP).unwrap();
+
     let log_path = if cfg!(debug_assertions) {
         Path::new("log")
     } else {
@@ -74,6 +76,21 @@ fn main() {
         .filter_level(log::LevelFilter::Warn)
         .parse_default_env()
         .init();
+
+    // ensure single instance
+    let instance_lock_path = if cfg!(debug_assertions) {
+        std::path::PathBuf::from("log").join("app.lock")
+    } else {
+        project_dirs.cache_dir().join("app.lock")
+    };
+    let mut app_lock = LockFile::open(&instance_lock_path).expect("Failed to open app lock file");
+    if !app_lock.try_lock_with_pid().unwrap_or(false) {
+        error!(
+            "Another instance is already running. PID can be found in {:?}",
+            instance_lock_path
+        );
+        return;
+    }
 
     // generated from https://patorjk.com/software/taag/#p=display&h=2&f=Doom&t=AndroidMic
     info!(
