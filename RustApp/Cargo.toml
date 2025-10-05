@@ -101,6 +101,7 @@ speexdsp = { git = "https://github.com/wiiznokes/speexdsp-rs-fork", branch = "ve
     "sys",
     "vendored-sys",
 ] }
+fslock = "0.2.1"
 
 [build-dependencies]
 prost-build = "0.14"
