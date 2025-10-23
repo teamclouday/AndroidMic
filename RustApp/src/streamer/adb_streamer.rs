@@ -1,7 +1,10 @@
 use anyhow::Result;
 use tokio::process::Command;
 
-use crate::streamer::{StreamerMsg, tcp_streamer};
+use crate::{
+    config::ConnectionMode,
+    streamer::{StreamerMsg, tcp_streamer},
+};
 
 use super::{
     AudioStream, ConnectError, StreamerTrait,
@@ -108,6 +111,7 @@ impl StreamerTrait for AdbStreamer {
             TcpStreamerState::Streaming { .. } => StreamerMsg::Connected {
                 ip: None,
                 port: None,
+                mode: ConnectionMode::Adb,
             },
         }
     }

@@ -12,7 +12,7 @@ use super::{
         frame::UsbStream,
     },
 };
-use crate::streamer::WriteError;
+use crate::{config::ConnectionMode, streamer::WriteError};
 
 use super::{AudioPacketMessage, ConnectError, StreamerMsg, StreamerTrait};
 
@@ -185,6 +185,7 @@ impl StreamerTrait for UsbStreamer {
             UsbStreamerState::Streaming => StreamerMsg::Connected {
                 ip: None,
                 port: None,
+                mode: ConnectionMode::Usb,
             },
         }
     }

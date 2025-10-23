@@ -5,7 +5,10 @@ use prost::Message;
 use tokio::net::UdpSocket;
 use tokio_util::{codec::LengthDelimitedCodec, udp::UdpFramed};
 
-use crate::streamer::{AudioPacketMessage, DEFAULT_PC_PORT, MAX_PORT, WriteError};
+use crate::{
+    config::ConnectionMode,
+    streamer::{AudioPacketMessage, DEFAULT_PC_PORT, MAX_PORT, WriteError},
+};
 
 use super::{AudioPacketMessageOrdered, AudioStream, ConnectError, StreamerMsg, StreamerTrait};
 
@@ -62,6 +65,7 @@ impl StreamerTrait for UdpStreamer {
         StreamerMsg::Connected {
             ip: Some(self.ip),
             port: Some(self.port),
+            mode: ConnectionMode::Udp,
         }
     }
 

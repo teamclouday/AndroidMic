@@ -77,11 +77,8 @@ impl SystemTray {
         }));
 
         let tray_sender = sender.clone();
-        TrayIconEvent::set_event_handler(Some(move |event: TrayIconEvent| match event {
-            TrayIconEvent::DoubleClick { .. } => {
-                let _ = tray_sender.send(SystemTrayMsg::Show);
-            }
-            _ => {}
+        TrayIconEvent::set_event_handler(Some(move |event: TrayIconEvent| if let TrayIconEvent::DoubleClick { .. } = event {
+            let _ = tray_sender.send(SystemTrayMsg::Show);
         }));
 
         Ok((

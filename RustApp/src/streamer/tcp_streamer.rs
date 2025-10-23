@@ -5,7 +5,10 @@ use prost::Message;
 use tokio::net::{TcpListener, TcpStream};
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
-use crate::streamer::{DEFAULT_PC_PORT, MAX_PORT, StreamerMsg, WriteError};
+use crate::{
+    config::ConnectionMode,
+    streamer::{DEFAULT_PC_PORT, MAX_PORT, StreamerMsg, WriteError},
+};
 
 use super::{AudioPacketMessage, AudioStream, ConnectError, StreamerTrait};
 
@@ -76,6 +79,7 @@ impl StreamerTrait for TcpStreamer {
             TcpStreamerState::Streaming { .. } => StreamerMsg::Connected {
                 ip: Some(self.ip),
                 port: Some(self.port),
+                mode: ConnectionMode::Tcp,
             },
         }
     }
@@ -100,6 +104,7 @@ impl StreamerTrait for TcpStreamer {
                 Ok(Some(StreamerMsg::Connected {
                     ip: Some(self.ip),
                     port: Some(self.port),
+                    mode: ConnectionMode::Tcp,
                 }))
             }
             TcpStreamerState::Streaming {

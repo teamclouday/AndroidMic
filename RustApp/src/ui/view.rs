@@ -450,7 +450,10 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                             .align_y(Vertical::Center)
                             .push(text(fl!("start_minimized")))
                             .push(horizontal_space())
-                            .push(toggler(config.start_minimized).on_toggle(ConfigMsg::StartMinimized)),
+                            .push(
+                                toggler(config.start_minimized)
+                                    .on_toggle(ConfigMsg::StartMinimized),
+                            ),
                     )
                     .add(
                         row()

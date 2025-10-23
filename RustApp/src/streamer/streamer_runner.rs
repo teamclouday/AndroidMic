@@ -12,6 +12,7 @@ use std::net::IpAddr;
 use tokio::sync::mpsc::{self, Sender};
 
 use crate::audio::AudioProcessParams;
+use crate::config::ConnectionMode;
 use crate::streamer::{StreamerTrait, WriteError};
 
 use super::{AudioStream, ConnectError, DummyStreamer, Streamer, tcp_streamer, udp_streamer};
@@ -82,6 +83,7 @@ pub enum StreamerMsg {
     Connected {
         ip: Option<IpAddr>,
         port: Option<u16>,
+        mode: ConnectionMode,
     },
     Ready(Sender<StreamerCommand>),
 }

@@ -206,7 +206,7 @@ impl AppState {
                     let e = "no address ip found";
 
                     error!("failed to start audio stream: {e}");
-                    return self.add_log(&e.to_string());
+                    return self.add_log(e);
                 };
 
                 ConnectOption::Tcp { ip }
@@ -216,7 +216,7 @@ impl AppState {
                     let e = "no address ip found";
 
                     error!("failed to start audio stream: {e}");
-                    return self.add_log(&e.to_string());
+                    return self.add_log(e);
                 };
                 ConnectOption::Udp { ip }
             }
@@ -466,7 +466,7 @@ impl Application for AppState {
                         return self.add_log(format!("Listening on `{ip}:{port}`").as_str());
                     }
                 }
-                StreamerMsg::Connected { ip, port } => {
+                StreamerMsg::Connected { ip, port, mode } => {
                     if let Some(system_tray) = self.system_tray.as_mut() {
                         system_tray.update_menu_state(false, &fl!("state_connected"));
                     }
@@ -477,15 +477,18 @@ impl Application for AppState {
                             ip.unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
                             port.unwrap_or_default()
                         );
-                        // show notification when app is minimized
-                        let _ = Notification::new()
-                            .summary("AndroidMic")
-                            .body(format!("Connected on {address}").as_str())
-                            .auto_icon()
-                            .show()
-                            .map_err(|e| {
-                                error!("failed to show notification: {e}");
-                            });
+
+                        if mode != ConnectionMode::Udp {
+                            // show notification when app is minimized
+                            let _ = Notification::new()
+                                .summary("AndroidMic")
+                                .body(format!("Connected on {address}").as_str())
+                                .auto_icon()
+                                .show()
+                                .map_err(|e| {
+                                    error!("failed to show notification: {e}");
+                                });
+                        }
                     }
 
                     self.connection_state = ConnectionState::Connected;
@@ -701,7 +704,7 @@ impl Application for AppState {
                     self.about_window = None;
                 }
 
-                if !self.has_shown_minimize_notification {
+                if !self.config.data().start_minimized && !self.has_shown_minimize_notification {
                     let _ = Notification::new()
                         .summary("AndroidMic")
                         .body(&fl!("minimized_to_tray"))
