@@ -1,5 +1,5 @@
 [env]
-RUST_LOG = "warn,android_mic=info"
+RUST_LOG = "error,android_mic=info"
 ANDROID_MIC_COMMIT = "undefined"
 # ANDROID_MIC_FORMAT = "flatpak"
 # RUST_LOG = "info"
