@@ -7,7 +7,7 @@ use cpal::{
     Device, Host,
     traits::{DeviceTrait, HostTrait},
 };
-use local_ip_address::{list_afinet_netifas, local_ip};
+use local_ip_address::list_afinet_netifas;
 use notify_rust::Notification;
 use rtrb::RingBuffer;
 use tokio::sync::mpsc::Sender;
@@ -202,11 +202,22 @@ impl AppState {
 
         let connect_options = match config.connection_mode {
             ConnectionMode::Tcp => {
-                let ip = config.ip.unwrap_or(local_ip().unwrap());
+                let Some(ip) = config.ip_or_default() else {
+                    let e = "no address ip found";
+
+                    error!("failed to start audio stream: {e}");
+                    return self.add_log(&e.to_string());
+                };
+
                 ConnectOption::Tcp { ip }
             }
             ConnectionMode::Udp => {
-                let ip = config.ip.unwrap_or(local_ip().unwrap());
+                let Some(ip) = config.ip_or_default() else {
+                    let e = "no address ip found";
+
+                    error!("failed to start audio stream: {e}");
+                    return self.add_log(&e.to_string());
+                };
                 ConnectOption::Udp { ip }
             }
             #[cfg(feature = "adb")]
@@ -308,7 +319,7 @@ impl Application for AppState {
                 ip: *ip,
             })
             .collect::<Vec<_>>();
-        let network_adapter = match &flags.config.data().ip {
+        let network_adapter = match &flags.config.data().ip_or_default() {
             Some(ip) => match network_adapters.iter().find(|adapter| adapter.ip == *ip) {
                 Some(adapter) => Some(adapter.clone()),
                 None => {

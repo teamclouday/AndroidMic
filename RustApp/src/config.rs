@@ -2,6 +2,7 @@ use std::{fmt::Display, net::IpAddr};
 
 use clap::Parser;
 use light_enum::Values;
+use local_ip_address::local_ip;
 use serde::{Deserialize, Serialize};
 
 use crate::fl;
@@ -88,6 +89,10 @@ impl Config {
         self.speex_agc_target = 8000;
         self.speex_dereverb_enabled = false;
         self.speex_dereverb_level = 0.5;
+    }
+
+    pub fn ip_or_default(&self) -> Option<IpAddr> {
+        self.ip.or(local_ip().ok())
     }
 }
 
