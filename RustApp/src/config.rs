@@ -20,6 +20,7 @@ pub struct Config {
     // device that could be disconnected sometime.
     pub device_name: Option<String>,
     pub start_at_login: bool,
+    pub start_minimized: bool,
     pub auto_connect: bool,
     pub denoise: bool,
     pub denoise_kind: DenoiseKind,
@@ -75,7 +76,8 @@ impl Default for Config {
             speex_agc_enabled: false,
             speex_agc_target: 8000, // range: [8000, 65535]
             speex_dereverb_enabled: false,
-            speex_dereverb_level: 0.5, // range: [0.0, 1.0]
+            speex_dereverb_level: 0.5,
+            start_minimized: false,
         }
     }
 }

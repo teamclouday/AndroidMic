@@ -352,9 +352,15 @@ impl Application for AppState {
 
         let mut commands = Vec::new();
 
-        let (new_id, command) = cosmic::iced::window::open(settings);
+        let main_window = if flags.config.data().start_minimized {
+            None
+        } else {
+            let (new_id, command) = cosmic::iced::window::open(settings);
 
-        commands.push(command.map(|_| cosmic::action::Action::None));
+            commands.push(command.map(|_| cosmic::action::Action::None));
+
+            Some(CustomWindow { window_id: new_id })
+        };
 
         let mut app = Self {
             core,
@@ -368,7 +374,7 @@ impl Application for AppState {
             connection_state: ConnectionState::Default,
             network_adapters,
             network_adapter,
-            main_window: Some(CustomWindow { window_id: new_id }),
+            main_window,
             settings_window: None,
             about_window: None,
             logs: Vec::new(),
@@ -393,7 +399,9 @@ impl Application for AppState {
         info!("config path: {}", flags.config_path);
         info!("log path: {}", flags.log_path);
 
-        commands.push(app.set_window_title(fl!("main_window_title"), new_id));
+        if let Some(main_window) = &app.main_window {
+            commands.push(app.set_window_title(fl!("main_window_title"), main_window.window_id));
+        }
 
         (app, Task::batch(commands))
     }
@@ -660,6 +668,9 @@ impl Application for AppState {
                     self.config
                         .update(|c| c.speex_dereverb_level = speex_dereverb_level);
                     return self.update_audio_stream();
+                }
+                ConfigMsg::StartMinimized(start_minimized) => {
+                    self.config.update(|s| s.start_minimized = start_minimized);
                 }
             },
             AppMsg::HideWindow => {

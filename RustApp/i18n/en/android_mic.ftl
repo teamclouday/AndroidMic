@@ -47,6 +47,7 @@ reset_denoise_settings = Reset Denoise Settings
 title_app = App
 
 start_at_login = Start at login
+start_minimized = Start minimized
 auto_connect = Auto connect
 theme = Theme
 amplify = Amplify

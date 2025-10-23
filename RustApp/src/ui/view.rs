@@ -448,6 +448,13 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                     .add(
                         row()
                             .align_y(Vertical::Center)
+                            .push(text(fl!("start_minimized")))
+                            .push(horizontal_space())
+                            .push(toggler(config.start_minimized).on_toggle(ConfigMsg::StartMinimized)),
+                    )
+                    .add(
+                        row()
+                            .align_y(Vertical::Center)
                             .push(text(fl!("auto_connect")))
                             .push(horizontal_space())
                             .push(toggler(config.auto_connect).on_toggle(ConfigMsg::AutoConnect)),

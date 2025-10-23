@@ -34,6 +34,7 @@ pub enum ConfigMsg {
     UseRecommendedFormat,
     ResetDenoiseSettings,
     StartAtLogin(bool),
+    StartMinimized(bool),
     AutoConnect(bool),
     DeNoise(bool),
     DeNoiseKind(DenoiseKind),
