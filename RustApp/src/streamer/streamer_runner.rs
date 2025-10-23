@@ -37,10 +37,12 @@ pub enum StreamerCommand {
         connect_options: ConnectOption,
         buff: Producer<u8>,
         audio_params: AudioProcessParams,
+        is_window_visible: bool,
     },
     ReconfigureStream {
         buff: Producer<u8>,
         audio_params: AudioProcessParams,
+        is_window_visible: bool,
     },
     Stop,
 }
@@ -52,17 +54,21 @@ impl Debug for StreamerCommand {
                 connect_options,
                 buff: _,
                 audio_params,
+                is_window_visible,
             } => f
                 .debug_struct("Connect")
                 .field("connect_options", connect_options)
                 .field("audio_params", audio_params)
+                .field("is_window_visible", is_window_visible)
                 .finish(),
             Self::ReconfigureStream {
                 buff: _,
                 audio_params,
+                is_window_visible,
             } => f
                 .debug_struct("ReconfigureStream")
                 .field("audio_params", audio_params)
+                .field("is_window_visible", is_window_visible)
                 .finish(),
             Self::Stop => write!(f, "Stop"),
         }
@@ -130,8 +136,10 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                 connect_options,
                                 buff,
                                 audio_params,
+                                is_window_visible,
                             } => {
-                                let stream_config = AudioStream::new(buff, audio_params);
+                                let stream_config =
+                                    AudioStream::new(buff, audio_params, is_window_visible);
                                 let new_streamer: Result<Streamer, ConnectError> =
                                     match connect_options {
                                         ConnectOption::Tcp { ip } => {
@@ -169,8 +177,13 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                     }
                                 }
                             }
-                            StreamerCommand::ReconfigureStream { buff, audio_params } => {
-                                let stream_config = AudioStream::new(buff, audio_params);
+                            StreamerCommand::ReconfigureStream {
+                                buff,
+                                audio_params,
+                                is_window_visible,
+                            } => {
+                                let stream_config =
+                                    AudioStream::new(buff, audio_params, is_window_visible);
 
                                 streamer.reconfigure_stream(stream_config);
                             }

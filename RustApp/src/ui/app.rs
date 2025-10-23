@@ -160,6 +160,7 @@ impl AppState {
                 self.send_command(StreamerCommand::ReconfigureStream {
                     buff: producer,
                     audio_params: AudioProcessParams::new(audio_config, config),
+                    is_window_visible: self.main_window.is_some(),
                 });
 
                 Task::none()
@@ -232,6 +233,7 @@ impl AppState {
             connect_options,
             buff: producer,
             audio_params: AudioProcessParams::new(audio_config, config),
+            is_window_visible: self.main_window.is_some(),
         });
 
         Task::none()
@@ -248,6 +250,26 @@ impl AppState {
         }
 
         Task::none()
+    }
+
+    fn open_main_window(&mut self) -> Task<AppMsg> {
+        let mut commands = Vec::new();
+        let settings = window::Settings {
+            size: Size::new(800.0, 600.0),
+            position: window::Position::Centered,
+            icon: window_icon!("icon"),
+            ..Default::default()
+        };
+
+        let (window_id, command) = cosmic::iced::window::open(settings);
+
+        commands.push(command.map(|_| cosmic::action::Action::None));
+
+        commands.push(self.set_window_title(fl!("main_window_title"), window_id));
+
+        self.main_window = Some(CustomWindow { window_id });
+
+        Task::batch(commands)
     }
 }
 
@@ -342,25 +364,7 @@ impl Application for AppState {
             }
         };
 
-        // configure window settings
-        let settings = window::Settings {
-            size: Size::new(800.0, 600.0),
-            position: window::Position::Centered,
-            icon: window_icon!("icon"),
-            ..Default::default()
-        };
-
         let mut commands = Vec::new();
-
-        let main_window = if flags.config.data().start_minimized {
-            None
-        } else {
-            let (new_id, command) = cosmic::iced::window::open(settings);
-
-            commands.push(command.map(|_| cosmic::action::Action::None));
-
-            Some(CustomWindow { window_id: new_id })
-        };
 
         let mut app = Self {
             core,
@@ -374,7 +378,7 @@ impl Application for AppState {
             connection_state: ConnectionState::Default,
             network_adapters,
             network_adapter,
-            main_window,
+            main_window: None,
             settings_window: None,
             about_window: None,
             logs: Vec::new(),
@@ -399,8 +403,8 @@ impl Application for AppState {
         info!("config path: {}", flags.config_path);
         info!("log path: {}", flags.log_path);
 
-        if let Some(main_window) = &app.main_window {
-            commands.push(app.set_window_title(fl!("main_window_title"), main_window.window_id));
+        if !app.config.data().start_minimized {
+            commands.push(app.open_main_window());
         }
 
         (app, Task::batch(commands))
@@ -716,6 +720,8 @@ impl Application for AppState {
                     self.has_shown_minimize_notification = true;
                 }
 
+                effects.push(self.update_audio_stream());
+
                 return cosmic::iced_runtime::Task::batch(effects);
             }
             AppMsg::Menu(menu_msg) => match menu_msg {
@@ -746,26 +752,9 @@ impl Application for AppState {
                             )),
                         );
                     } else {
-                        let settings = window::Settings {
-                            size: Size::new(800.0, 600.0),
-                            position: window::Position::Centered,
-                            icon: window_icon!("icon"),
-                            ..Default::default()
-                        };
+                        let command = self.open_main_window();
 
-                        let (new_id, command) = cosmic::iced::window::open(settings);
-                        self.main_window = Some(CustomWindow { window_id: new_id });
-                        let set_window_title =
-                            self.set_window_title(fl!("main_window_title"), new_id);
-
-                        return command
-                            .map(|_| cosmic::action::Action::None)
-                            .chain(set_window_title)
-                            .chain(cosmic::iced_runtime::task::effect(
-                                cosmic::iced::runtime::Action::Window(window::Action::GainFocus(
-                                    new_id,
-                                )),
-                            ));
+                        return Task::batch(vec![command, self.update_audio_stream()]);
                     }
                 }
                 SystemTrayMsg::Exit => {

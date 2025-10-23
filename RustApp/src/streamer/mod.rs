@@ -36,11 +36,20 @@ const MAX_PORT: u16 = 60000;
 pub struct AudioStream {
     pub buff: Producer<u8>,
     pub audio_params: AudioProcessParams,
+    pub is_window_visible: bool,
 }
 
 impl AudioStream {
-    pub fn new(buff: Producer<u8>, audio_params: AudioProcessParams) -> Self {
-        Self { buff, audio_params }
+    pub fn new(
+        buff: Producer<u8>,
+        audio_params: AudioProcessParams,
+        is_window_visible: bool,
+    ) -> Self {
+        Self {
+            buff,
+            audio_params,
+            is_window_visible,
+        }
     }
 }
 
@@ -48,6 +57,7 @@ impl Debug for AudioStream {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("AudioStream")
             .field("audio_params", &self.audio_params)
+            .field("is_window_visible", &self.is_window_visible)
             .finish()
     }
 }

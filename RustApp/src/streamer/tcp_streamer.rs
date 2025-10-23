@@ -112,34 +112,26 @@ impl StreamerTrait for TcpStreamer {
                 disconnect_loop_detecter: _,
             } => {
                 match framed.next().await {
-                    Some(Ok(frame)) => {
-                        let mut res = None;
+                    Some(Ok(frame)) => match AudioPacketMessage::decode(frame) {
+                        Ok(packet) => {
+                            let buffer_size = packet.buffer.len();
+                            let sample_rate = packet.sample_rate;
 
-                        match AudioPacketMessage::decode(frame) {
-                            Ok(packet) => {
-                                let buffer_size = packet.buffer.len();
-                                let sample_rate = packet.sample_rate;
-
-                                if let Ok(buffer) = self.stream_config.process_audio_packet(packet)
-                                {
-                                    // compute the audio wave from the buffer
-                                    res = Some(StreamerMsg::UpdateAudioWave {
+                            match self.stream_config.process_audio_packet(packet) {
+                                Ok(Some(buffer)) => {
+                                    debug!("received {} bytes", buffer_size);
+                                    Ok(Some(StreamerMsg::UpdateAudioWave {
                                         data: AudioPacketMessage::to_wave_data(
                                             &buffer,
                                             sample_rate,
                                         ),
-                                    });
-
-                                    debug!("received {} bytes", buffer_size);
-                                };
-                            }
-                            Err(e) => {
-                                return Err(ConnectError::WriteError(WriteError::Deserializer(e)));
+                                    }))
+                                }
+                                _ => Ok(None),
                             }
                         }
-
-                        Ok(res)
-                    }
+                        Err(e) => Err(ConnectError::WriteError(WriteError::Deserializer(e))),
+                    },
 
                     Some(Err(e)) => {
                         match e.kind() {
