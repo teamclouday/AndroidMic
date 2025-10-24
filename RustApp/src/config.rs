@@ -2,6 +2,7 @@ use std::{fmt::Display, net::IpAddr};
 
 use clap::Parser;
 use light_enum::Values;
+use local_ip_address::local_ip;
 use serde::{Deserialize, Serialize};
 
 use crate::fl;
@@ -19,15 +20,20 @@ pub struct Config {
     // device that could be disconnected sometime.
     pub device_name: Option<String>,
     pub start_at_login: bool,
+    pub start_minimized: bool,
     pub auto_connect: bool,
     pub denoise: bool,
     pub denoise_kind: DenoiseKind,
+    /// range: [-100, 0]
     pub speex_noise_suppress: i32,
     pub speex_vad_enabled: bool,
+    /// range: [0, 100]
     pub speex_vad_threshold: u32,
     pub speex_agc_enabled: bool,
+    /// range: [8000, 65535]
     pub speex_agc_target: u32,
     pub speex_dereverb_enabled: bool,
+    /// range: [0.0, 1.0]
     pub speex_dereverb_level: f32,
     pub theme: AppTheme,
     pub amplify: bool,
@@ -68,13 +74,14 @@ impl Default for Config {
             theme: Default::default(),
             amplify: false,
             amplify_value: 2.0,
-            speex_noise_suppress: -30, // range: [-100, 0]
+            speex_noise_suppress: -30,
             speex_vad_enabled: false,
-            speex_vad_threshold: 80, // range: [0, 100]
+            speex_vad_threshold: 80,
             speex_agc_enabled: false,
-            speex_agc_target: 8000, // range: [8000, 65535]
+            speex_agc_target: 8000,
             speex_dereverb_enabled: false,
-            speex_dereverb_level: 0.5, // range: [0.0, 1.0]
+            speex_dereverb_level: 0.5,
+            start_minimized: false,
         }
     }
 }
@@ -88,6 +95,10 @@ impl Config {
         self.speex_agc_target = 8000;
         self.speex_dereverb_enabled = false;
         self.speex_dereverb_level = 0.5;
+    }
+
+    pub fn ip_or_default(&self) -> Option<IpAddr> {
+        self.ip.or(local_ip().ok())
     }
 }
 

@@ -12,7 +12,7 @@ use super::{
         frame::UsbStream,
     },
 };
-use crate::streamer::WriteError;
+use crate::{config::ConnectionMode, streamer::WriteError};
 
 use super::{AudioPacketMessage, ConnectError, StreamerMsg, StreamerTrait};
 
@@ -185,6 +185,7 @@ impl StreamerTrait for UsbStreamer {
             UsbStreamerState::Streaming => StreamerMsg::Connected {
                 ip: None,
                 port: None,
+                mode: ConnectionMode::Usb,
             },
         }
     }
@@ -194,27 +195,23 @@ impl StreamerTrait for UsbStreamer {
             Some(Ok(frame)) => {
                 self.state = UsbStreamerState::Streaming;
 
-                let mut res = None;
                 match AudioPacketMessage::decode(frame) {
                     Ok(packet) => {
                         let buffer_size = packet.buffer.len();
                         let sample_rate = packet.sample_rate;
 
-                        if let Ok(buffer) = self.stream_config.process_audio_packet(packet) {
-                            // compute the audio wave from the buffer
-                            res = Some(StreamerMsg::UpdateAudioWave {
-                                data: AudioPacketMessage::to_wave_data(&buffer, sample_rate),
-                            });
-
-                            debug!("received {} bytes", buffer_size);
+                        match self.stream_config.process_audio_packet(packet) {
+                            Ok(Some(buffer)) => {
+                                debug!("received {} bytes", buffer_size);
+                                Ok(Some(StreamerMsg::UpdateAudioWave {
+                                    data: AudioPacketMessage::to_wave_data(&buffer, sample_rate),
+                                }))
+                            }
+                            _ => Ok(None),
                         }
                     }
-                    Err(e) => {
-                        return Err(ConnectError::WriteError(WriteError::Deserializer(e)));
-                    }
+                    Err(e) => Err(ConnectError::WriteError(WriteError::Deserializer(e))),
                 }
-
-                Ok(res)
             }
             Some(Err(e)) => {
                 panic!("{}", e);

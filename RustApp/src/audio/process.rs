@@ -15,7 +15,10 @@ impl AudioStream {
     /// This function converts an audio stream from packet into producer
     /// apply any necessary conversions based on the audio format
     /// and returns mono channel f32 vector for audio wave display
-    pub fn process_audio_packet(&mut self, packet: AudioPacketMessage) -> anyhow::Result<Vec<f32>> {
+    pub fn process_audio_packet(
+        &mut self,
+        packet: AudioPacketMessage,
+    ) -> anyhow::Result<Option<Vec<f32>>> {
         match self.audio_params.target_format.audio_format {
             AudioFormat::I16 => self.process_audio_packet_internal::<i16>(packet),
             AudioFormat::I24 => self.process_audio_packet_internal::<f32>(packet),
@@ -32,7 +35,7 @@ impl AudioStream {
     fn process_audio_packet_internal<F>(
         &mut self,
         packet: AudioPacketMessage,
-    ) -> anyhow::Result<Vec<f32>>
+    ) -> anyhow::Result<Option<Vec<f32>>>
     where
         F: cpal::SizedSample + AudioBytes + std::fmt::Debug + 'static,
     {
@@ -130,18 +133,22 @@ impl AudioStream {
             }
         }
 
-        // prepare mono channel buffer to return
-        let buffer_mono = if config.target_format.channel_count.to_number() == 1 {
-            buffer[0].clone()
-        } else {
-            // if not mono, average the channels
-            let mut mono_buffer: Vec<f32> = Vec::with_capacity(buffer[0].len());
-            for i in 0..buffer[0].len() {
-                let sample: f32 = buffer.iter().map(|ch| ch[i]).sum::<f32>()
-                    / config.target_format.channel_count.to_number() as f32;
-                mono_buffer.push(sample);
+        let buffer_mono = if self.is_window_visible {
+            // prepare mono channel buffer to return
+            if config.target_format.channel_count.to_number() == 1 {
+                Some(buffer[0].clone())
+            } else {
+                // if not mono, average the channels
+                let mut mono_buffer: Vec<f32> = Vec::with_capacity(buffer[0].len());
+                for i in 0..buffer[0].len() {
+                    let sample: f32 = buffer.iter().map(|ch| ch[i]).sum::<f32>()
+                        / config.target_format.channel_count.to_number() as f32;
+                    mono_buffer.push(sample);
+                }
+                Some(mono_buffer)
             }
-            mono_buffer
+        } else {
+            None
         };
 
         Ok(buffer_mono)

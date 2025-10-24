@@ -424,7 +424,10 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                             )
                     })),
             )
-            .push(button::text(fl!("reset_denoise_settings")).on_press(ConfigMsg::ResetDenoiseSettings))
+            .push(
+                button::text(fl!("reset_denoise_settings"))
+                    .on_press(ConfigMsg::ResetDenoiseSettings),
+            )
             .push(
                 settings::section()
                     .title(fl!("title_app"))
@@ -445,6 +448,16 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                     .add(
                         row()
                             .align_y(Vertical::Center)
+                            .push(text(fl!("start_minimized")))
+                            .push(horizontal_space())
+                            .push(
+                                toggler(config.start_minimized)
+                                    .on_toggle(ConfigMsg::StartMinimized),
+                            ),
+                    )
+                    .add(
+                        row()
+                            .align_y(Vertical::Center)
                             .push(text(fl!("auto_connect")))
                             .push(horizontal_space())
                             .push(toggler(config.auto_connect).on_toggle(ConfigMsg::AutoConnect)),
@@ -460,10 +473,9 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                                 ConfigMsg::Theme,
                             )),
                     )
-                    .add(
-                        widget::settings::item::builder(fl!("about"))
-                            .control(button::text(fl!("about_open")).on_press(ConfigMsg::ToggleAboutWindow)),
-                    ),
+                    .add(widget::settings::item::builder(fl!("about")).control(
+                        button::text(fl!("about_open")).on_press(ConfigMsg::ToggleAboutWindow),
+                    )),
             ),
     )
     .into()

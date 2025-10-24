@@ -28,7 +28,7 @@ pub fn denoise_f32_stream(data: &[Vec<f32>]) -> anyhow::Result<Vec<Vec<f32>>> {
     // Convert f32 to i16 range
     let data_i16: Vec<Vec<f32>> = data
         .iter()
-        .map(|channel| channel.iter().map(|&x| (x * i16::MAX as f32)).collect())
+        .map(|channel| channel.iter().map(|&x| x * i16::MAX as f32).collect())
         .collect();
 
     // Append new data into the cache

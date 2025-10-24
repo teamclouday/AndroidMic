@@ -5,7 +5,10 @@ use prost::Message;
 use tokio::net::UdpSocket;
 use tokio_util::{codec::LengthDelimitedCodec, udp::UdpFramed};
 
-use crate::streamer::{AudioPacketMessage, DEFAULT_PC_PORT, MAX_PORT, WriteError};
+use crate::{
+    config::ConnectionMode,
+    streamer::{AudioPacketMessage, DEFAULT_PC_PORT, MAX_PORT, WriteError},
+};
 
 use super::{AudioPacketMessageOrdered, AudioStream, ConnectError, StreamerMsg, StreamerTrait};
 
@@ -62,14 +65,13 @@ impl StreamerTrait for UdpStreamer {
         StreamerMsg::Connected {
             ip: Some(self.ip),
             port: Some(self.port),
+            mode: ConnectionMode::Udp,
         }
     }
 
     async fn next(&mut self) -> Result<Option<StreamerMsg>, ConnectError> {
         match self.framed.next().await {
             Some(Ok((frame, addr))) => {
-                let mut res = None;
-
                 match AudioPacketMessageOrdered::decode(frame) {
                     Ok(packet) => {
                         if packet.sequence_number < self.tracked_sequence {
@@ -85,21 +87,18 @@ impl StreamerTrait for UdpStreamer {
                         let buffer_size = packet.buffer.len();
                         let sample_rate = packet.sample_rate;
 
-                        if let Ok(buffer) = self.stream_config.process_audio_packet(packet) {
-                            // compute the audio wave from the buffer
-                            res = Some(StreamerMsg::UpdateAudioWave {
-                                data: AudioPacketMessage::to_wave_data(&buffer, sample_rate),
-                            });
-
-                            debug!("From {:?}, received {} bytes", addr, buffer_size);
+                        match self.stream_config.process_audio_packet(packet) {
+                            Ok(Some(buffer)) => {
+                                debug!("From {:?}, received {} bytes", addr, buffer_size);
+                                Ok(Some(StreamerMsg::UpdateAudioWave {
+                                    data: AudioPacketMessage::to_wave_data(&buffer, sample_rate),
+                                }))
+                            }
+                            _ => Ok(None),
                         }
                     }
-                    Err(e) => {
-                        return Err(ConnectError::WriteError(WriteError::Deserializer(e)));
-                    }
+                    Err(e) => Err(ConnectError::WriteError(WriteError::Deserializer(e))),
                 }
-
-                Ok(res)
             }
 
             Some(Err(e)) => {

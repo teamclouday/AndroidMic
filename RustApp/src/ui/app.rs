@@ -7,7 +7,7 @@ use cpal::{
     Device, Host,
     traits::{DeviceTrait, HostTrait},
 };
-use local_ip_address::{list_afinet_netifas, local_ip};
+use local_ip_address::list_afinet_netifas;
 use notify_rust::Notification;
 use rtrb::RingBuffer;
 use tokio::sync::mpsc::Sender;
@@ -160,6 +160,7 @@ impl AppState {
                 self.send_command(StreamerCommand::ReconfigureStream {
                     buff: producer,
                     audio_params: AudioProcessParams::new(audio_config, config),
+                    is_window_visible: self.main_window.is_some(),
                 });
 
                 Task::none()
@@ -202,11 +203,22 @@ impl AppState {
 
         let connect_options = match config.connection_mode {
             ConnectionMode::Tcp => {
-                let ip = config.ip.unwrap_or(local_ip().unwrap());
+                let Some(ip) = config.ip_or_default() else {
+                    let e = "no address ip found";
+
+                    error!("failed to start audio stream: {e}");
+                    return self.add_log(e);
+                };
+
                 ConnectOption::Tcp { ip }
             }
             ConnectionMode::Udp => {
-                let ip = config.ip.unwrap_or(local_ip().unwrap());
+                let Some(ip) = config.ip_or_default() else {
+                    let e = "no address ip found";
+
+                    error!("failed to start audio stream: {e}");
+                    return self.add_log(e);
+                };
                 ConnectOption::Udp { ip }
             }
             #[cfg(feature = "adb")]
@@ -221,6 +233,7 @@ impl AppState {
             connect_options,
             buff: producer,
             audio_params: AudioProcessParams::new(audio_config, config),
+            is_window_visible: self.main_window.is_some(),
         });
 
         Task::none()
@@ -237,6 +250,26 @@ impl AppState {
         }
 
         Task::none()
+    }
+
+    fn open_main_window(&mut self) -> Task<AppMsg> {
+        let mut commands = Vec::new();
+        let settings = window::Settings {
+            size: Size::new(800.0, 600.0),
+            position: window::Position::Centered,
+            icon: window_icon!("icon"),
+            ..Default::default()
+        };
+
+        let (window_id, command) = cosmic::iced::window::open(settings);
+
+        commands.push(command.map(|_| cosmic::action::Action::None));
+
+        commands.push(self.set_window_title(fl!("main_window_title"), window_id));
+
+        self.main_window = Some(CustomWindow { window_id });
+
+        Task::batch(commands)
     }
 }
 
@@ -308,7 +341,7 @@ impl Application for AppState {
                 ip: *ip,
             })
             .collect::<Vec<_>>();
-        let network_adapter = match &flags.config.data().ip {
+        let network_adapter = match &flags.config.data().ip_or_default() {
             Some(ip) => match network_adapters.iter().find(|adapter| adapter.ip == *ip) {
                 Some(adapter) => Some(adapter.clone()),
                 None => {
@@ -331,19 +364,7 @@ impl Application for AppState {
             }
         };
 
-        // configure window settings
-        let settings = window::Settings {
-            size: Size::new(800.0, 600.0),
-            position: window::Position::Centered,
-            icon: window_icon!("icon"),
-            ..Default::default()
-        };
-
         let mut commands = Vec::new();
-
-        let (new_id, command) = cosmic::iced::window::open(settings);
-
-        commands.push(command.map(|_| cosmic::action::Action::None));
 
         let mut app = Self {
             core,
@@ -357,7 +378,7 @@ impl Application for AppState {
             connection_state: ConnectionState::Default,
             network_adapters,
             network_adapter,
-            main_window: Some(CustomWindow { window_id: new_id }),
+            main_window: None,
             settings_window: None,
             about_window: None,
             logs: Vec::new(),
@@ -382,7 +403,9 @@ impl Application for AppState {
         info!("config path: {}", flags.config_path);
         info!("log path: {}", flags.log_path);
 
-        commands.push(app.set_window_title(fl!("main_window_title"), new_id));
+        if !app.config.data().start_minimized {
+            commands.push(app.open_main_window());
+        }
 
         (app, Task::batch(commands))
     }
@@ -447,7 +470,7 @@ impl Application for AppState {
                         return self.add_log(format!("Listening on `{ip}:{port}`").as_str());
                     }
                 }
-                StreamerMsg::Connected { ip, port } => {
+                StreamerMsg::Connected { ip, port, mode } => {
                     if let Some(system_tray) = self.system_tray.as_mut() {
                         system_tray.update_menu_state(false, &fl!("state_connected"));
                     }
@@ -458,15 +481,18 @@ impl Application for AppState {
                             ip.unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
                             port.unwrap_or_default()
                         );
-                        // show notification when app is minimized
-                        let _ = Notification::new()
-                            .summary("AndroidMic")
-                            .body(format!("Connected on {address}").as_str())
-                            .auto_icon()
-                            .show()
-                            .map_err(|e| {
-                                error!("failed to show notification: {e}");
-                            });
+
+                        if mode != ConnectionMode::Udp {
+                            // show notification when app is minimized
+                            let _ = Notification::new()
+                                .summary("AndroidMic")
+                                .body(format!("Connected on {address}").as_str())
+                                .auto_icon()
+                                .show()
+                                .map_err(|e| {
+                                    error!("failed to show notification: {e}");
+                                });
+                        }
                     }
 
                     self.connection_state = ConnectionState::Connected;
@@ -650,6 +676,9 @@ impl Application for AppState {
                         .update(|c| c.speex_dereverb_level = speex_dereverb_level);
                     return self.update_audio_stream();
                 }
+                ConfigMsg::StartMinimized(start_minimized) => {
+                    self.config.update(|s| s.start_minimized = start_minimized);
+                }
             },
             AppMsg::HideWindow => {
                 let mut effects = Vec::new();
@@ -679,7 +708,7 @@ impl Application for AppState {
                     self.about_window = None;
                 }
 
-                if !self.has_shown_minimize_notification {
+                if !self.config.data().start_minimized && !self.has_shown_minimize_notification {
                     let _ = Notification::new()
                         .summary("AndroidMic")
                         .body(&fl!("minimized_to_tray"))
@@ -690,6 +719,8 @@ impl Application for AppState {
                         });
                     self.has_shown_minimize_notification = true;
                 }
+
+                effects.push(self.update_audio_stream());
 
                 return cosmic::iced_runtime::Task::batch(effects);
             }
@@ -721,26 +752,9 @@ impl Application for AppState {
                             )),
                         );
                     } else {
-                        let settings = window::Settings {
-                            size: Size::new(800.0, 600.0),
-                            position: window::Position::Centered,
-                            icon: window_icon!("icon"),
-                            ..Default::default()
-                        };
+                        let command = self.open_main_window();
 
-                        let (new_id, command) = cosmic::iced::window::open(settings);
-                        self.main_window = Some(CustomWindow { window_id: new_id });
-                        let set_window_title =
-                            self.set_window_title(fl!("main_window_title"), new_id);
-
-                        return command
-                            .map(|_| cosmic::action::Action::None)
-                            .chain(set_window_title)
-                            .chain(cosmic::iced_runtime::task::effect(
-                                cosmic::iced::runtime::Action::Window(window::Action::GainFocus(
-                                    new_id,
-                                )),
-                            ));
+                        return Task::batch(vec![command, self.update_audio_stream()]);
                     }
                 }
                 SystemTrayMsg::Exit => {
