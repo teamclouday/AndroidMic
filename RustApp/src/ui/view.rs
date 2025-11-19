@@ -508,7 +508,9 @@ static ABOUT: LazyLock<About> = LazyLock::new(|| {
 });
 
 pub fn about_window() -> Element<'static, AppMsg> {
-    container(widget::about(&ABOUT, AppMsg::LinkClicked))
-        .padding(20)
-        .into()
+    container(widget::about(&ABOUT, |url| {
+        AppMsg::LinkClicked(url.to_owned())
+    }))
+    .padding(20)
+    .into()
 }
