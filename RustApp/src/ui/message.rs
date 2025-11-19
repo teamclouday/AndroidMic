@@ -21,6 +21,7 @@ pub enum AppMsg {
     RefreshAudioDevices,
     RefreshNetworkAdapters,
     HideWindow,
+    ShowWindow,
     Menu(MenuMsg),
     LinkClicked(String),
     SystemTray(SystemTrayMsg),

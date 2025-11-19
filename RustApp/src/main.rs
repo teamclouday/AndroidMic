@@ -18,6 +18,7 @@ extern crate log;
 
 mod audio;
 mod config;
+mod single_instance;
 mod start_at_login;
 mod streamer;
 mod ui;
@@ -85,10 +86,14 @@ fn main() {
     };
     let mut app_lock = LockFile::open(&instance_lock_path).expect("Failed to open app lock file");
     if !app_lock.try_lock_with_pid().unwrap_or(false) {
-        error!(
+        info!(
             "Another instance is already running. PID can be found in {:?}",
             instance_lock_path
         );
+
+        if let Err(e) = single_instance::send_event(single_instance::IpcEvent::Show) {
+            error!("can't send ipc event {e}");
+        }
         return;
     }
 

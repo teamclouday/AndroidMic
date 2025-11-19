@@ -33,7 +33,7 @@ use crate::{
     config::{
         AppTheme, AudioFormat, ChannelCount, Config, ConnectionMode, NetworkAdapter, SampleRate,
     },
-    fl,
+    fl, single_instance,
     streamer::{self, ConnectOption, StreamerCommand, StreamerMsg},
     ui::view::{SCROLLABLE_ID, about_window},
     utils::APP_ID,
@@ -407,6 +407,24 @@ impl Application for AppState {
             commands.push(app.open_main_window());
         }
 
+        commands.push(
+            cosmic::iced::task::Task::future(async { single_instance::create_stream().await })
+                .then(|stream| match stream {
+                    Ok(stream) => cosmic::iced::task::Task::run(
+                        single_instance::parse_stream(stream),
+                        |event| match event {
+                            single_instance::IpcEvent::Show => {
+                                cosmic::Action::App(AppMsg::ShowWindow)
+                            }
+                        },
+                    ),
+                    Err(e) => {
+                        error!("{e}");
+                        Task::none()
+                    }
+                }),
+        );
+
         (app, Task::batch(commands))
     }
 
@@ -763,6 +781,20 @@ impl Application for AppState {
                 SystemTrayMsg::Connect => return self.connect(),
                 SystemTrayMsg::Disconnect => return self.disconnect(),
             },
+            AppMsg::ShowWindow => {
+                if let Some(main_window) = &self.main_window {
+                    // avoid duplicate window
+                    return cosmic::iced_runtime::task::effect(
+                        cosmic::iced::runtime::Action::Window(window::Action::GainFocus(
+                            main_window.window_id,
+                        )),
+                    );
+                } else {
+                    let command = self.open_main_window();
+
+                    return Task::batch(vec![command, self.update_audio_stream()]);
+                }
+            }
         }
 
         Task::none()
