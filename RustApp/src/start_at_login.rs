@@ -19,7 +19,10 @@ mod windows {
     fn create_shortcut(lnk: &Path) -> anyhow::Result<()> {
         let target = env::current_exe()?;
 
-        mslnk::ShellLink::new(target)?.create_lnk(lnk)?;
+        let mut shell_link = mslnk::ShellLink::new(target)?;
+        shell_link.set_name(Some(String::from("AndroidMic")));
+        shell_link.set_arguments(Some(String::from("--launched-automatically")));
+        shell_link.create_lnk(lnk)?;
 
         Ok(())
     }

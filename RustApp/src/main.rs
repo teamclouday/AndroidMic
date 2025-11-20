@@ -13,6 +13,8 @@ use ui::app::run_ui;
 use utils::{APP, ORG, QUALIFIER};
 use zconf::ConfigManager;
 
+use crate::ui::app::Flags;
+
 #[macro_use]
 extern crate log;
 
@@ -147,9 +149,13 @@ fn main() {
     });
 
     localize::localize();
-    run_ui(
+
+    let flags = Flags {
         config,
-        config_file_path.to_string_lossy().to_string(),
-        log_file_path.to_string_lossy().to_string(),
-    )
+        config_path: config_file_path.to_string_lossy().to_string(),
+        log_path: log_file_path.to_string_lossy().to_string(),
+        launched_automatically: args.launched_automatically,
+    };
+
+    run_ui(flags)
 }
