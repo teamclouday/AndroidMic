@@ -13,11 +13,14 @@ use ui::app::run_ui;
 use utils::{APP, ORG, QUALIFIER};
 use zconf::ConfigManager;
 
+use crate::ui::app::Flags;
+
 #[macro_use]
 extern crate log;
 
 mod audio;
 mod config;
+mod single_instance;
 mod start_at_login;
 mod streamer;
 mod ui;
@@ -85,10 +88,14 @@ fn main() {
     };
     let mut app_lock = LockFile::open(&instance_lock_path).expect("Failed to open app lock file");
     if !app_lock.try_lock_with_pid().unwrap_or(false) {
-        error!(
+        info!(
             "Another instance is already running. PID can be found in {:?}",
             instance_lock_path
         );
+
+        if let Err(e) = single_instance::send_event(single_instance::IpcEvent::Show) {
+            error!("can't send ipc event {e}");
+        }
         return;
     }
 
@@ -142,9 +149,13 @@ fn main() {
     });
 
     localize::localize();
-    run_ui(
+
+    let flags = Flags {
         config,
-        config_file_path.to_string_lossy().to_string(),
-        log_file_path.to_string_lossy().to_string(),
-    )
+        config_path: config_file_path.to_string_lossy().to_string(),
+        log_path: log_file_path.to_string_lossy().to_string(),
+        launched_automatically: args.launched_automatically,
+    };
+
+    run_ui(flags)
 }

@@ -33,7 +33,7 @@ use crate::{
     config::{
         AppTheme, AudioFormat, ChannelCount, Config, ConnectionMode, NetworkAdapter, SampleRate,
     },
-    fl,
+    fl, single_instance,
     streamer::{self, ConnectOption, StreamerCommand, StreamerMsg},
     ui::view::{SCROLLABLE_ID, about_window},
     utils::APP_ID,
@@ -41,16 +41,10 @@ use crate::{
 };
 use zconf::ConfigManager;
 
-pub fn run_ui(config: ConfigManager<Config>, config_path: String, log_path: String) {
+pub fn run_ui(flags: Flags) {
     let settings = Settings::default()
         .no_main_window(true)
-        .theme(to_cosmic_theme(&config.data().theme));
-
-    let flags = Flags {
-        config,
-        config_path,
-        log_path,
-    };
+        .theme(to_cosmic_theme(&flags.config.data().theme));
 
     cosmic::app::run::<AppState>(settings, flags).unwrap();
 }
@@ -137,6 +131,7 @@ pub struct AppState {
     pub system_tray: Option<SystemTray>,
     pub system_tray_stream: Option<SystemTrayStream>,
     has_shown_minimize_notification: bool,
+    launched_automatically: bool,
 }
 
 pub struct CustomWindow {
@@ -274,9 +269,10 @@ impl AppState {
 }
 
 pub struct Flags {
-    config: ConfigManager<Config>,
-    config_path: String,
-    log_path: String,
+    pub config: ConfigManager<Config>,
+    pub config_path: String,
+    pub log_path: String,
+    pub launched_automatically: bool,
 }
 
 // used because the markdown parsing only detect https links
@@ -386,6 +382,7 @@ impl Application for AppState {
             system_tray,
             system_tray_stream,
             has_shown_minimize_notification: false,
+            launched_automatically: flags.launched_automatically,
         };
 
         commands.push(
@@ -403,8 +400,19 @@ impl Application for AppState {
         info!("config path: {}", flags.config_path);
         info!("log path: {}", flags.log_path);
 
-        if !app.config.data().start_minimized {
+        if !flags.launched_automatically || !app.config.data().start_minimized {
             commands.push(app.open_main_window());
+        }
+
+        match single_instance::stream() {
+            Ok(stream) => {
+                commands.push(cosmic::iced::task::Task::run(stream, |event| match event {
+                    single_instance::IpcEvent::Show => cosmic::Action::App(AppMsg::ShowWindow),
+                }));
+            }
+            Err(e) => {
+                error!("can't create ipc stream {e}")
+            }
         }
 
         (app, Task::batch(commands))
@@ -708,7 +716,7 @@ impl Application for AppState {
                     self.about_window = None;
                 }
 
-                if !self.config.data().start_minimized && !self.has_shown_minimize_notification {
+                if !self.launched_automatically && !self.has_shown_minimize_notification {
                     let _ = Notification::new()
                         .summary("AndroidMic")
                         .body(&fl!("minimized_to_tray"))
@@ -763,6 +771,20 @@ impl Application for AppState {
                 SystemTrayMsg::Connect => return self.connect(),
                 SystemTrayMsg::Disconnect => return self.disconnect(),
             },
+            AppMsg::ShowWindow => {
+                if let Some(main_window) = &self.main_window {
+                    // avoid duplicate window
+                    return cosmic::iced_runtime::task::effect(
+                        cosmic::iced::runtime::Action::Window(window::Action::GainFocus(
+                            main_window.window_id,
+                        )),
+                    );
+                } else {
+                    let command = self.open_main_window();
+
+                    return Task::batch(vec![command, self.update_audio_stream()]);
+                }
+            }
         }
 
         Task::none()

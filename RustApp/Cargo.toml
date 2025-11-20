@@ -76,15 +76,14 @@ directories = "6"
 prost = "0.14"
 tokio-util = { version = "0.7", features = ["codec", "net"] }
 chrono = "0.4"
-libcosmic = { git = "https://github.com/pop-os/libcosmic.git", rev = "8412dd593913b85618ec30e8b92a58aaa0ad6bb8", default-features = false, features = [
+libcosmic = { git = "https://github.com/pop-os/libcosmic.git", rev = "709044891ee04c6ca62ff3d1087ab0e4ebb59bb4", default-features = false, features = [
     "winit",
     "wgpu",
     "tokio",
     "multi-window",
     "markdown",
-    # todo: remove this
-    "highlighter",
     "about",
+    "a11y",
 ] }
 notify-rust = "4"
 byteorder = "1"
@@ -93,6 +92,7 @@ serde_with = "3"
 strum = { version = "0.27", features = ["derive"] }
 resvg = "0.45"
 rubato = "0.16"
+#https://github.com/tauri-apps/fix-path-env-rs/pull/19
 fix-path-env = { git = "https://github.com/wiiznokes/fix-path-env-rs", rev = "8612a0d8590843dbe9c6326d26292963e6a97f2a" }
 env_logger = "0.11"
 nnnoiseless = "0.5"
@@ -101,7 +101,9 @@ speexdsp = { git = "https://github.com/wiiznokes/speexdsp-rs-fork", branch = "ve
     "sys",
     "vendored-sys",
 ] }
-fslock = "0.2.1"
+fslock = "0.2"
+interprocess = { version = "2", features = ["tokio"] }
+async-stream = "0.3"
 
 [build-dependencies]
 prost-build = "0.14"

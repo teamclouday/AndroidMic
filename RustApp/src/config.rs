@@ -177,6 +177,9 @@ pub struct Args {
         default_value_t = false
     )]
     pub show_supported_audio_config: bool,
+
+    #[arg(long, hide = true, default_value_t = false)]
+    pub launched_automatically: bool,
 }
 
 #[derive(
