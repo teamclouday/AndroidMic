@@ -103,6 +103,7 @@ speexdsp = { git = "https://github.com/wiiznokes/speexdsp-rs-fork", branch = "ve
 ] }
 fslock = "0.2"
 interprocess = { version = "2", features = ["tokio"] }
+async-stream = "0.3"
 
 [build-dependencies]
 prost-build = "0.14"

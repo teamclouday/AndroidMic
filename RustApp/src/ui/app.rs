@@ -407,23 +407,16 @@ impl Application for AppState {
             commands.push(app.open_main_window());
         }
 
-        commands.push(
-            cosmic::iced::task::Task::future(async { single_instance::create_stream().await })
-                .then(|stream| match stream {
-                    Ok(stream) => cosmic::iced::task::Task::run(
-                        single_instance::parse_stream(stream),
-                        |event| match event {
-                            single_instance::IpcEvent::Show => {
-                                cosmic::Action::App(AppMsg::ShowWindow)
-                            }
-                        },
-                    ),
-                    Err(e) => {
-                        error!("{e}");
-                        Task::none()
-                    }
-                }),
-        );
+        match single_instance::stream() {
+            Ok(stream) => {
+                commands.push(cosmic::iced::task::Task::run(stream, |event| match event {
+                    single_instance::IpcEvent::Show => cosmic::Action::App(AppMsg::ShowWindow),
+                }));
+            }
+            Err(e) => {
+                error!("can't create ipc stream {e}")
+            }
+        }
 
         (app, Task::batch(commands))
     }
