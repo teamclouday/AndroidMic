@@ -30,7 +30,7 @@ pub use streamer_runner::{ConnectOption, StreamerCommand, StreamerMsg, sub};
 use crate::{audio::AudioProcessParams, config::AudioFormat};
 
 /// Default port on the PC
-const DEFAULT_PC_PORT: u16 = 55666;
+const DEFAULT_PC_PORT: u16 = 55555;
 const MAX_PORT: u16 = 60000;
 
 const CHECK_1: &str = "AndroidMic1";

@@ -478,7 +478,7 @@ impl Application for AppState {
                         return self.add_log(format!("Listening on `{ip}:{port}`").as_str());
                     }
                 }
-                StreamerMsg::Connected { ip, port, mode } => {
+                StreamerMsg::Connected { ip, port, mode: _ } => {
                     if let Some(system_tray) = self.system_tray.as_mut() {
                         system_tray.update_menu_state(false, &fl!("state_connected"));
                     }
@@ -490,17 +490,15 @@ impl Application for AppState {
                             port.unwrap_or_default()
                         );
 
-                        if mode != ConnectionMode::Udp {
-                            // show notification when app is minimized
-                            let _ = Notification::new()
-                                .summary("AndroidMic")
-                                .body(format!("Connected on {address}").as_str())
-                                .auto_icon()
-                                .show()
-                                .map_err(|e| {
-                                    error!("failed to show notification: {e}");
-                                });
-                        }
+                        // show notification when app is minimized
+                        let _ = Notification::new()
+                            .summary("AndroidMic")
+                            .body(format!("Connected on {address}").as_str())
+                            .auto_icon()
+                            .show()
+                            .map_err(|e| {
+                                error!("failed to show notification: {e}");
+                            });
                     }
 
                     self.connection_state = ConnectionState::Connected;
