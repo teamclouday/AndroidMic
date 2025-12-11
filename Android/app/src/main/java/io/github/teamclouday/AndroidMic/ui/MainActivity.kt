@@ -7,6 +7,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
 import io.github.teamclouday.AndroidMic.AndroidMicApp
+import io.github.teamclouday.AndroidMic.domain.service.WAIT_PERIOD
 import io.github.teamclouday.AndroidMic.ui.home.HomeScreen
 import io.github.teamclouday.AndroidMic.ui.home.openAppSettings
 import io.github.teamclouday.AndroidMic.ui.theme.AndroidMicTheme
@@ -16,8 +17,6 @@ import io.github.teamclouday.AndroidMic.utils.ignore
 
 class MainActivity : ComponentActivity() {
     private val TAG = "MainActivity"
-
-    private val WAIT_PERIOD = 500L
 
     val vm: MainViewModel by viewModels()
 
@@ -66,7 +65,7 @@ class MainActivity : ComponentActivity() {
     override fun onStop() {
         super.onStop()
         Log.d(TAG, "onStop")
-        vm.mMessengerLooper.quitSafely()
+        vm.messengerLooper.quitSafely()
         ignore { vm.handlerThread.join(WAIT_PERIOD) }
 
         (application as AndroidMicApp).unBindService()

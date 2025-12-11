@@ -31,7 +31,7 @@ data class ServiceStates(
 )
 
 private const val TAG = "ForegroundService"
-private const val WAIT_PERIOD = 500L
+const val WAIT_PERIOD = 500L
 
 
 const val BIND_SERVICE_ACTION = "BIND_SERVICE_ACTION"

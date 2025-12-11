@@ -20,8 +20,8 @@ class AndroidMicApp : Application() {
 
     companion object {
         lateinit var appModule: AppModule
-        var mService: Messenger? = null
-        var mBound = false
+        var service: Messenger? = null
+        var isBound = false
     }
 
     private val scope = MainScope()
@@ -38,8 +38,8 @@ class AndroidMicApp : Application() {
     private val mConnection = object : ServiceConnection {
         override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
             Log.d(TAG, "onServiceConnected")
-            mService = Messenger(service)
-            mBound = true
+            Companion.service = Messenger(service)
+            isBound = true
             // notify current running activity that service is connected
             val notifyIntent = Intent(applicationContext, MainActivity::class.java).apply {
                 action = Intent.ACTION_VIEW
@@ -51,8 +51,8 @@ class AndroidMicApp : Application() {
 
         override fun onServiceDisconnected(name: ComponentName?) {
             Log.d(TAG, "onServiceDisconnected")
-            mService = null
-            mBound = false
+            service = null
+            isBound = false
         }
     }
 
@@ -67,7 +67,7 @@ class AndroidMicApp : Application() {
 
     fun unBindService() {
         unbindService(mConnection)
-        mService = null
-        mBound = false
+        service = null
+        isBound = false
     }
 }
