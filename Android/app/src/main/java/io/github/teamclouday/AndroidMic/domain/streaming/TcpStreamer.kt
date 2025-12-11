@@ -1,6 +1,8 @@
 package io.github.teamclouday.AndroidMic.domain.streaming
 
 import Message
+import android.content.Context
+import android.net.ConnectivityManager
 import android.os.Messenger
 import android.util.Log
 import com.google.protobuf.ByteString
@@ -18,32 +20,80 @@ import java.net.InetSocketAddress
 import java.net.Socket
 import java.net.SocketTimeoutException
 
-class AdbStreamer(private val scope: CoroutineScope) : Streamer {
-    private val TAG: String = "UsbAdbStreamer"
+class TcpStreamer(
+    private val scope: CoroutineScope,
+    private val tag: String,
+    ip: String,
+    port: Int
+) : Streamer {
 
-    private val MAX_WAIT_TIME = 1500 // timeout
 
     private var socket: Socket? = null
-    private val address: String = "127.0.0.1"
+    private var address: String
+    private val port: Int
     private var streamJob: Job? = null
+
+    companion object {
+
+        private const val MAX_WAIT_TIME = 1500 // timeout
+
+        fun wifi(
+            ctx: Context,
+            scope: CoroutineScope,
+            ip: String,
+            port: Int
+        ): TcpStreamer {
+
+            // check WIFI
+            // reference: https://stackoverflow.com/questions/70107145/connectivity-manager-allnetworks-deprecated
+            val cm = ctx.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            val net = cm.activeNetwork
+            require(net != null) {
+                "Wifi not available"
+            }
+            require(cm.getNetworkCapabilities(net) != null) {
+                "Wifi not available"
+            }
+
+            return TcpStreamer(
+                scope = scope,
+                tag = "WifiStreamer",
+                ip = ip,
+                port = port
+            )
+        }
+
+        fun adb(
+            scope: CoroutineScope,
+        ) = TcpStreamer(
+            scope = scope,
+            tag = "AdbStreamer",
+            ip = "127.0.0.1",
+            port = 55555
+        )
+    }
+
+    init {
+        val inetSocketAddress = InetSocketAddress(ip, port)
+        this.address = inetSocketAddress.hostName
+        this.port = inetSocketAddress.port
+    }
 
     // connect to server
     override fun connect(): Boolean {
         // create socket
         socket = Socket()
         try {
-            socket?.connect(InetSocketAddress(address, 55555), MAX_WAIT_TIME)
+            socket?.connect(InetSocketAddress(address, port), MAX_WAIT_TIME)
         } catch (e: IOException) {
-            Log.d(TAG, "connect [Socket]: ${e.message}")
+            Log.d(tag, "connect [Socket]: ${e.message}")
             null
         } catch (e: SocketTimeoutException) {
-            Log.d(TAG, "connect [Socket]: ${e.message}")
-            null
-        } catch (e: Exception) {
-            Log.d(TAG, "connect [Socket]: ${e.message}")
+            Log.d(tag, "connect [Socket]: ${e.message}")
             null
         } ?: return false
         socket?.soTimeout = MAX_WAIT_TIME
+
         return true
     }
 
@@ -64,17 +114,16 @@ class AdbStreamer(private val scope: CoroutineScope) : Streamer {
                         .build()
                     val pack = message.toByteArray()
 
-//                    Log.d(TAG, "audio buffer size = ${message.buffer.size()}")
                     socket!!.outputStream.write(pack.size.toBigEndianU32())
                     socket!!.outputStream.write(message.toByteArray())
                     socket!!.outputStream.flush()
                 } catch (e: IOException) {
-                    Log.d(TAG, "${e.message}")
+                    Log.d(tag, "${e.message}")
                     delay(5)
                     disconnect()
                     tx.send(CommandData(Command.StopStream).toCommandMsg())
                 } catch (e: Exception) {
-                    Log.d(TAG, "${e.message}")
+                    Log.d(tag, "${e.message}")
                 }
             }
         }
@@ -86,20 +135,21 @@ class AdbStreamer(private val scope: CoroutineScope) : Streamer {
         try {
             socket?.close()
         } catch (e: IOException) {
-            Log.d(TAG, "disconnect [close]: ${e.message}")
+            Log.d(tag, "disconnect [close]: ${e.message}")
             socket = null
             return false
         }
         socket = null
         streamJob?.cancel()
         streamJob = null
-        Log.d(TAG, "disconnect: complete")
+        Log.d(tag, "disconnect: complete")
         return true
     }
 
     // shutdown streamer
     override fun shutdown() {
         disconnect()
+        address = ""
     }
 
     // get connected server information
@@ -112,5 +162,4 @@ class AdbStreamer(private val scope: CoroutineScope) : Streamer {
     override fun isAlive(): Boolean {
         return (socket != null && socket?.isConnected == true)
     }
-
 }
