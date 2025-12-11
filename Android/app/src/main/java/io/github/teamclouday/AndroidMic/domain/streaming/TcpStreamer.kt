@@ -85,11 +85,11 @@ class TcpStreamer(
         } else {
             for (p in DEFAULT_PORT..MAX_PORT) {
                 val socket = createSocket(p, 100) ?: continue
-                socket.soTimeout = 1500
                 if (!handShake(socket)) {
                     socket.close()
                     continue
                 }
+                socket.soTimeout = 1500
 
                 this.socket = socket
                 this.port = p
