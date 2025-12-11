@@ -20,6 +20,8 @@ fn main() -> io::Result<()> {
     set_env("ANDROID_MIC_FORMAT");
     set_env("ANDROID_MIC_COMMIT");
 
+    println!("cargo:rerun-if-changed=src/proto/message.proto");
+
     // build protobuf
     prost_build::Config::new()
         .out_dir("src/streamer")

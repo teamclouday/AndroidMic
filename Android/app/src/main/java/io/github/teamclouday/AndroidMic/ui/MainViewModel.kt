@@ -116,14 +116,18 @@ class MainViewModel : ViewModel() {
 
             when (mode) {
                 Mode.WIFI, Mode.UDP -> {
-                    if (!checkIp(ip) || !checkPort(port)) {
+                    if (!checkIp(ip) || !checkPort(port, true)) {
                         uiHelper.makeToast(
                             uiHelper.getString(R.string.invalid_ip_port)
                         )
                         return Dialogs.IpPort
                     }
                     data.ip = ip
-                    data.port = port.toInt()
+                    data.port = try {
+                        port.toInt()
+                    } catch (_: Exception) {
+                        null
+                    }
                 }
 
                 else -> {}

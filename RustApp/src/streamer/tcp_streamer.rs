@@ -2,12 +2,15 @@ use std::{io, net::IpAddr, time::Duration};
 
 use futures::StreamExt;
 use prost::Message;
-use tokio::net::{TcpListener, TcpStream};
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    net::{TcpListener, TcpStream},
+};
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 use crate::{
     config::ConnectionMode,
-    streamer::{DEFAULT_PC_PORT, MAX_PORT, StreamerMsg, WriteError},
+    streamer::{CHECK_1, CHECK_2, DEFAULT_PC_PORT, MAX_PORT, StreamerMsg, WriteError},
 };
 
 use super::{AudioPacketMessage, AudioStream, ConnectError, StreamerTrait};
@@ -92,7 +95,29 @@ impl StreamerTrait for TcpStreamer {
 
                 info!("TCP server listening on {}", addr);
 
-                let (stream, addr) = listener.accept().await.map_err(ConnectError::CantAccept)?;
+                let (mut stream, addr) =
+                    listener.accept().await.map_err(ConnectError::CantAccept)?;
+
+                let mut buf1 = [0u8; CHECK_1.len()];
+
+                stream
+                    .read_exact(&mut buf1)
+                    .await
+                    .map_err(|e| ConnectError::HandShakeFailed("reading", e))?;
+
+                if buf1 != CHECK_1.as_bytes() {
+                    let s = String::from_utf8_lossy(&buf1);
+
+                    return Err(ConnectError::HandShakeFailed2(format!(
+                        "{} != {}",
+                        CHECK_1, s
+                    )));
+                }
+
+                stream
+                    .write_all(CHECK_2.as_bytes())
+                    .await
+                    .map_err(|e| ConnectError::HandShakeFailed("writing", e))?;
 
                 info!("connection accepted, remote address: {}", addr);
 

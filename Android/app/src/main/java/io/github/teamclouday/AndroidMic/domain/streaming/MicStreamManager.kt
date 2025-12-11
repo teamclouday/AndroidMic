@@ -18,7 +18,7 @@ class MicStreamManager(
 
     private var streamer: Streamer = when (mode) {
         Mode.WIFI -> {
-            TcpStreamer.wifi(ctx, scope, ip!!, port!!)
+            TcpStreamer.wifi(ctx, scope, ip!!, port)
         }
 
         Mode.ADB -> {

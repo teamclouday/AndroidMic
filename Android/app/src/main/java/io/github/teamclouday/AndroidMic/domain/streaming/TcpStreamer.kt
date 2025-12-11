@@ -23,25 +23,20 @@ import java.net.SocketTimeoutException
 class TcpStreamer(
     private val scope: CoroutineScope,
     private val tag: String,
-    ip: String,
-    port: Int
+    private val ip: String,
+    private var port: Int?
 ) : Streamer {
 
-
     private var socket: Socket? = null
-    private var address: String
-    private val port: Int
     private var streamJob: Job? = null
 
     companion object {
-
-        private const val MAX_WAIT_TIME = 1500 // timeout
 
         fun wifi(
             ctx: Context,
             scope: CoroutineScope,
             ip: String,
-            port: Int
+            port: Int?
         ): TcpStreamer {
 
             // check WIFI
@@ -73,28 +68,36 @@ class TcpStreamer(
         )
     }
 
-    init {
-        val inetSocketAddress = InetSocketAddress(ip, port)
-        this.address = inetSocketAddress.hostName
-        this.port = inetSocketAddress.port
-    }
-
     // connect to server
     override fun connect(): Boolean {
-        // create socket
-        socket = Socket()
-        try {
-            socket?.connect(InetSocketAddress(address, port), MAX_WAIT_TIME)
-        } catch (e: IOException) {
-            Log.d(tag, "connect [Socket]: ${e.message}")
-            null
-        } catch (e: SocketTimeoutException) {
-            Log.d(tag, "connect [Socket]: ${e.message}")
-            null
-        } ?: return false
-        socket?.soTimeout = MAX_WAIT_TIME
 
-        return true
+        val p = port
+        if (p != null) {
+            val socket = createSocket(p, 1500) ?: return false
+
+            if (!handShake(socket)) {
+                Log.d(tag, "connect [Socket]: handshake error")
+                socket.close()
+                return false
+            }
+            this.socket = socket
+            return true
+        } else {
+            for (p in DEFAULT_PORT..MAX_PORT) {
+                val socket = createSocket(p, 100) ?: continue
+                socket.soTimeout = 1500
+                if (!handShake(socket)) {
+                    socket.close()
+                    continue
+                }
+
+                this.socket = socket
+                this.port = p
+                return true
+            }
+        }
+
+        return false
     }
 
     // stream data through socket
@@ -115,7 +118,7 @@ class TcpStreamer(
                     val pack = message.toByteArray()
 
                     socket!!.outputStream.write(pack.size.toBigEndianU32())
-                    socket!!.outputStream.write(message.toByteArray())
+                    socket!!.outputStream.write(pack)
                     socket!!.outputStream.flush()
                 } catch (e: IOException) {
                     Log.d(tag, "${e.message}")
@@ -149,7 +152,6 @@ class TcpStreamer(
     // shutdown streamer
     override fun shutdown() {
         disconnect()
-        address = ""
     }
 
     // get connected server information
@@ -161,5 +163,40 @@ class TcpStreamer(
     // return true if is connected for streaming
     override fun isAlive(): Boolean {
         return (socket != null && socket?.isConnected == true)
+    }
+
+
+    fun createSocket(p: Int, timeout: Int): Socket? {
+        val socket = Socket()
+        return try {
+            socket.connect(InetSocketAddress(ip, p), timeout)
+            socket.soTimeout = timeout
+            socket
+        } catch (e: IOException) {
+            Log.d(tag, "connect [Socket]: ${e.message}")
+            null
+        } catch (e: SocketTimeoutException) {
+            Log.d(tag, "connect [Socket]: ${e.message}")
+            null
+        }
+    }
+
+    fun handShake(
+        socket: Socket,
+    ): Boolean {
+
+        return try {
+            val out = socket.getOutputStream()
+            out.write(CHECK_1.toByteArray())
+            out.flush()
+
+            val input = socket.getInputStream()
+            val msgBuf = ByteArray(CHECK_2.length)
+            input.read(msgBuf)
+            msgBuf.contentEquals(CHECK_2.toByteArray())
+
+        } catch (_: Exception) {
+            false
+        }
     }
 }

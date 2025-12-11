@@ -59,7 +59,7 @@ data class CommandData(
                 command = Command.entries[msg.what],
                 mode = msg.data.getOrdinal(ID_MODE)?.let { Mode.entries[it] },
                 ip = msg.data.getString(ID_IP),
-                port = msg.data.getInt(ID_PORT),
+                port = msg.data.getInt(ID_PORT).let { if (it == -1) null else it },
                 sampleRate = msg.data.getOrdinal(ID_SAMPLE_RATE)?.let { SampleRates.entries[it] },
                 channelCount = msg.data.getOrdinal(ID_CHANNEL_COUNT)
                     ?.let { ChannelCount.entries[it] },
@@ -75,7 +75,7 @@ data class CommandData(
         this.mode?.let { r.putInt(ID_MODE, it.ordinal) }
 
         this.ip?.let { r.putString(ID_IP, it) }
-        this.port?.let { r.putInt(ID_PORT, it) }
+        r.putInt(ID_PORT, this.port ?: -1)
 
         this.sampleRate?.let { r.putInt(ID_SAMPLE_RATE, it.ordinal) }
         this.channelCount?.let { r.putInt(ID_CHANNEL_COUNT, it.ordinal) }

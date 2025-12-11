@@ -23,7 +23,7 @@ class AppPreferences(
     val mode = enumPreference("mode", Mode.WIFI)
 
     val ip = stringPreference("ip", "192.168.")
-    val port = stringPreference("port", "55555")
+    val port = stringPreference("port", "")
 
 
     val theme = enumPreference("theme", Themes.System)
