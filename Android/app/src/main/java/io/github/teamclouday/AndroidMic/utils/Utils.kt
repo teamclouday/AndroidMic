@@ -21,7 +21,12 @@ fun checkIp(ip: String): Boolean {
     }
 }
 
-fun checkPort(portStr: String): Boolean {
+fun checkPort(portStr: String, emptyAllowed: Boolean): Boolean {
+
+    if (portStr.isEmpty()) {
+        return emptyAllowed
+    }
+
     val port = try {
         portStr.toInt()
     } catch (e: NumberFormatException) {

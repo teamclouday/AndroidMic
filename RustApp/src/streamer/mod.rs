@@ -33,6 +33,9 @@ use crate::{audio::AudioProcessParams, config::AudioFormat};
 const DEFAULT_PC_PORT: u16 = 55555;
 const MAX_PORT: u16 = 60000;
 
+const CHECK_1: &str = "AndroidMic1";
+const CHECK_2: &str = "AndroidMic2";
+
 pub struct AudioStream {
     pub buff: Producer<u8>,
     pub audio_params: AudioProcessParams,
@@ -127,6 +130,10 @@ enum ConnectError {
     AdbStatusCommand { code: Option<i32>, stderr: String },
     #[error("command failed: {0} make sure adb is installed and in your PATH")]
     CommandFailed(io::Error),
+    #[error("Handshake failed: {0} {1}")]
+    HandShakeFailed(&'static str, io::Error),
+    #[error("Handshake failed: {0}")]
+    HandShakeFailed2(String),
 }
 
 #[derive(Debug, Error)]

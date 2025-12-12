@@ -18,11 +18,11 @@ class MicStreamManager(
 
     private var streamer: Streamer = when (mode) {
         Mode.WIFI -> {
-            WifiStreamer(ctx, scope, ip!!, port!!)
+            TcpStreamer.wifi(ctx, scope, ip!!, port)
         }
 
         Mode.ADB -> {
-            AdbStreamer(scope)
+            TcpStreamer.adb(scope)
         }
 
         Mode.USB -> {
@@ -30,7 +30,7 @@ class MicStreamManager(
         }
 
         Mode.UDP -> {
-            UdpStreamer(scope, ip!!, port!!)
+            UdpStreamer(scope, ip!!, port)
         }
     }
 
