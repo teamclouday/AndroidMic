@@ -1,5 +1,6 @@
 #![allow(clippy::needless_range_loop)]
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
+use cpal::traits::StreamTrait;
 use rtrb::Consumer;
 
 use crate::{
@@ -59,7 +60,7 @@ impl AudioProcessParams {
 }
 
 impl AppState {
-    pub fn start_audio_stream(
+    pub fn create_audio_stream(
         &mut self,
         consumer: Consumer<u8>,
     ) -> anyhow::Result<AudioPacketFormat> {
@@ -78,7 +79,11 @@ impl AppState {
         };
 
         let (stream, final_audio_config) =
-            player::start_audio_stream(device, wanted_audio_config, consumer)?;
+            player::create_audio_stream(device, wanted_audio_config, consumer)?;
+
+        if let Err(e) = stream.pause() {
+            error!("{e}");
+        }
 
         self.audio_stream = Some(Stream {
             stream,
