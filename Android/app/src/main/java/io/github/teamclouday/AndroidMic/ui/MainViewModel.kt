@@ -25,9 +25,9 @@ import io.github.teamclouday.AndroidMic.domain.service.Response
 import io.github.teamclouday.AndroidMic.domain.service.ResponseData
 import io.github.teamclouday.AndroidMic.domain.service.ServiceState
 import io.github.teamclouday.AndroidMic.ui.utils.UiHelper
-import io.github.teamclouday.AndroidMic.utils.checkIp
-import io.github.teamclouday.AndroidMic.utils.checkPort
+import io.github.teamclouday.AndroidMic.utils.Either
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 
 
 class MainViewModel : ViewModel() {
@@ -38,13 +38,12 @@ class MainViewModel : ViewModel() {
     val prefs: AppPreferences = AndroidMicApp.appModule.appPreferences
     val uiHelper: UiHelper = AndroidMicApp.appModule.uiHelper
 
-    private var mService: Messenger? = null
-    private var mBound = false
+    private var service: Messenger? = null
+    private var isBound = false
 
     lateinit var handlerThread: HandlerThread
-    private lateinit var mMessenger: Messenger
-    lateinit var mMessengerLooper: Looper
-    private lateinit var mMessengerHandler: ReplyHandler
+    private lateinit var messenger: Messenger
+    lateinit var messengerLooper: Looper
 
 
     val textLog = mutableStateOf("")
@@ -61,7 +60,7 @@ class MainViewModel : ViewModel() {
 
             val data = ResponseData.fromMessage(msg);
 
-            when (Response.entries[msg.what]) {
+            when (data.kind) {
                 Response.Standard -> {
                     data.state?.let {
                         isButtonConnectClickable.value = true
@@ -77,71 +76,57 @@ class MainViewModel : ViewModel() {
     }
 
     fun handlerServiceResponse() {
-        handlerThread = HandlerThread("activity", Process.THREAD_PRIORITY_BACKGROUND)
+        handlerThread =
+            HandlerThread("MainViewModelResponseHandler", Process.THREAD_PRIORITY_BACKGROUND)
         handlerThread.start()
-        mMessengerLooper = handlerThread.looper
-        mMessengerHandler = ReplyHandler(mMessengerLooper)
-        mMessenger = Messenger(mMessengerHandler)
+        messengerLooper = handlerThread.looper
+        messenger = Messenger(ReplyHandler(messengerLooper))
     }
 
     fun refreshAppVariables() {
-        mBound = AndroidMicApp.mBound
-        mService = AndroidMicApp.mService
+        isBound = AndroidMicApp.isBound
+        service = AndroidMicApp.service
 
         isStreamStarted.value = false
         isButtonConnectClickable.value = false
 
         val msg = CommandData(Command.BindCheck).toCommandMsg()
-        msg.replyTo = mMessenger
-        mService?.send(msg)
+        msg.replyTo = messenger
+        service?.send(msg)
     }
 
     fun onConnectButton(): Dialogs? {
-        if (!mBound) return null
-        val reply = if (isStreamStarted.value) {
+        if (!isBound) return null
+        val message = if (isStreamStarted.value) {
             Log.d(TAG, "onConnectButton: stop stream")
-            CommandData(Command.StopStream).toCommandMsg()
+            CommandData(Command.StopStream)
         } else {
-            val ip = prefs.ip.getBlocking()
-            val port = prefs.port.getBlocking()
-            val mode = prefs.mode.getBlocking()
-
-            val data = CommandData(
-                command = Command.StartStream,
-                sampleRate = prefs.sampleRate.getBlocking(),
-                channelCount = prefs.channelCount.getBlocking(),
-                audioFormat = prefs.audioFormat.getBlocking(),
-                mode = mode
-            )
-
-            when (mode) {
-                Mode.WIFI, Mode.UDP -> {
-                    if (!checkIp(ip) || !checkPort(port, true)) {
-                        uiHelper.makeToast(
-                            uiHelper.getString(R.string.invalid_ip_port)
-                        )
-                        return Dialogs.IpPort
-                    }
-                    data.ip = ip
-                    data.port = try {
-                        port.toInt()
-                    } catch (_: Exception) {
-                        null
-                    }
+            val res = runBlocking {
+                CommandData.fromPref(prefs, Command.StartStream)
+            }
+            val data = when (res) {
+                is Either.Left<CommandData> -> {
+                    res.value
                 }
 
-                else -> {}
+                is Either.Right<Dialogs> -> {
+                    uiHelper.makeToast(
+                        uiHelper.getString(R.string.invalid_ip_port)
+                    )
+                    return res.value
+                }
             }
 
             Log.d(TAG, "onConnectButton: start stream")
-            // lock button to avoid duplicate events
-            isButtonConnectClickable.value = false
 
-            data.toCommandMsg()
-        }
+            data
+        }.toCommandMsg()
 
-        reply.replyTo = mMessenger
-        mService?.send(reply)
+        // lock button to avoid duplicate events
+        isButtonConnectClickable.value = false
+
+        message.replyTo = messenger
+        service?.send(message)
 
         return null
     }
@@ -197,11 +182,11 @@ class MainViewModel : ViewModel() {
 
     // ask foreground service for current status
     fun askForStatus() {
-        if (!mBound) return
-        val reply = Message.obtain()
-        reply.what = Command.GetStatus.ordinal
-        reply.replyTo = mMessenger
-        mService?.send(reply)
+        if (!isBound) return
+        val message = Message.obtain()
+        message.what = Command.GetStatus.ordinal
+        message.replyTo = messenger
+        service?.send(message)
     }
 
 

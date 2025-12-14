@@ -2,10 +2,15 @@ package io.github.teamclouday.AndroidMic.domain.service
 
 import android.os.Bundle
 import android.os.Message
+import io.github.teamclouday.AndroidMic.AppPreferences
 import io.github.teamclouday.AndroidMic.AudioFormat
 import io.github.teamclouday.AndroidMic.ChannelCount
+import io.github.teamclouday.AndroidMic.Dialogs
 import io.github.teamclouday.AndroidMic.Mode
 import io.github.teamclouday.AndroidMic.SampleRates
+import io.github.teamclouday.AndroidMic.utils.Either
+import io.github.teamclouday.AndroidMic.utils.checkIp
+import io.github.teamclouday.AndroidMic.utils.checkPort
 
 
 private const val ID_MSG: String = "ID_MSG"
@@ -66,26 +71,62 @@ data class CommandData(
                 audioFormat = msg.data.getOrdinal(ID_AUDIO_FORMAT)?.let { AudioFormat.entries[it] },
             )
         }
+
+        suspend fun fromPref(
+            prefs: AppPreferences,
+            command: Command
+        ): Either<CommandData, Dialogs> {
+            val ip = prefs.ip.get()
+            val port = prefs.port.get()
+            val mode = prefs.mode.get()
+
+            val data = CommandData(
+                command = command,
+                sampleRate = prefs.sampleRate.get(),
+                channelCount = prefs.channelCount.get(),
+                audioFormat = prefs.audioFormat.get(),
+                mode = mode
+            )
+
+            when (mode) {
+                Mode.WIFI, Mode.UDP -> {
+                    if (!checkIp(ip) || !checkPort(port, true)) {
+
+                        return Either.Right(Dialogs.IpPort)
+                    }
+                    data.ip = ip
+                    data.port = try {
+                        port.toInt()
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+
+                else -> {}
+            }
+
+            return Either.Left(data)
+        }
     }
 
     fun toCommandMsg(): Message {
 
-        val r = Bundle()
+        val data = Bundle()
 
-        this.mode?.let { r.putInt(ID_MODE, it.ordinal) }
+        this.mode?.let { data.putInt(ID_MODE, it.ordinal) }
 
-        this.ip?.let { r.putString(ID_IP, it) }
-        r.putInt(ID_PORT, this.port ?: -1)
+        this.ip?.let { data.putString(ID_IP, it) }
+        data.putInt(ID_PORT, this.port ?: -1)
 
-        this.sampleRate?.let { r.putInt(ID_SAMPLE_RATE, it.ordinal) }
-        this.channelCount?.let { r.putInt(ID_CHANNEL_COUNT, it.ordinal) }
-        this.audioFormat?.let { r.putInt(ID_AUDIO_FORMAT, it.ordinal) }
+        this.sampleRate?.let { data.putInt(ID_SAMPLE_RATE, it.ordinal) }
+        this.channelCount?.let { data.putInt(ID_CHANNEL_COUNT, it.ordinal) }
+        this.audioFormat?.let { data.putInt(ID_AUDIO_FORMAT, it.ordinal) }
 
-        val reply = Message.obtain()
-        reply.data = r
-        reply.what = this.command.ordinal
+        val message = Message.obtain()
+        message.data = data
+        message.what = this.command.ordinal
 
-        return reply
+        return message
     }
 
 
