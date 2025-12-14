@@ -1,12 +1,12 @@
 use anyhow::bail;
-use cpal::traits::{DeviceTrait, StreamTrait};
+use cpal::traits::DeviceTrait;
 use rtrb::{Consumer, chunks::ChunkError};
 
 use crate::config::{AudioFormat, ChannelCount, SampleRate};
 
 use super::{AudioBytes, AudioPacketFormat};
 
-pub fn start_audio_stream(
+pub fn create_audio_stream(
     device: &cpal::Device,
     config: AudioPacketFormat,
     consumer: Consumer<u8>,
@@ -58,8 +58,6 @@ pub fn start_audio_stream(
         AudioFormat::U8 => build_output_stream::<u8>(device, config.clone(), consumer),
         AudioFormat::F32 => build_output_stream::<f32>(device, config.clone(), consumer),
     }?;
-
-    stream.play()?;
 
     // convert stream config to AudioPacketFormat
     let config = AudioPacketFormat {

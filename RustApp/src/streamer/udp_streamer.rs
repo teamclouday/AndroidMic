@@ -125,49 +125,63 @@ impl StreamerTrait for UdpStreamer {
             }
 
             UdpStreamerState::Streaming { tracked_sequence } => {
-                match self.framed.next().await {
-                    Some(Ok((frame, addr))) => {
-                        match AudioPacketMessageOrdered::decode(frame) {
-                            Ok(packet) => {
-                                if packet.sequence_number < *tracked_sequence {
-                                    // drop packet
-                                    info!(
-                                        "dropped packet: old sequence number {} < {}",
-                                        packet.sequence_number, tracked_sequence
-                                    );
-                                }
-                                *tracked_sequence = packet.sequence_number;
-
-                                let packet = packet.audio_packet.unwrap();
-                                let buffer_size = packet.buffer.len();
-                                let sample_rate = packet.sample_rate;
-
-                                match self.stream_config.process_audio_packet(packet) {
-                                    Ok(Some(buffer)) => {
-                                        debug!("From {:?}, received {} bytes", addr, buffer_size);
-                                        Ok(Some(StreamerMsg::UpdateAudioWave {
-                                            data: AudioPacketMessage::to_wave_data(
-                                                &buffer,
-                                                sample_rate,
-                                            ),
-                                        }))
+                match tokio::time::timeout(Duration::from_secs(1), self.framed.next()).await {
+                    Ok(res) => match res {
+                        Some(Ok((frame, addr))) => {
+                            match AudioPacketMessageOrdered::decode(frame) {
+                                Ok(packet) => {
+                                    if packet.sequence_number < *tracked_sequence {
+                                        // drop packet
+                                        info!(
+                                            "dropped packet: old sequence number {} < {}",
+                                            packet.sequence_number, tracked_sequence
+                                        );
                                     }
-                                    _ => Ok(None),
+                                    *tracked_sequence = packet.sequence_number;
+
+                                    let packet = packet.audio_packet.unwrap();
+                                    let buffer_size = packet.buffer.len();
+                                    let sample_rate = packet.sample_rate;
+
+                                    match self.stream_config.process_audio_packet(packet) {
+                                        Ok(Some(buffer)) => {
+                                            debug!(
+                                                "From {:?}, received {} bytes",
+                                                addr, buffer_size
+                                            );
+                                            Ok(Some(StreamerMsg::UpdateAudioWave {
+                                                data: AudioPacketMessage::to_wave_data(
+                                                    &buffer,
+                                                    sample_rate,
+                                                ),
+                                            }))
+                                        }
+                                        _ => Ok(None),
+                                    }
+                                }
+                                Err(e) => {
+                                    Err(ConnectError::WriteError(WriteError::Deserializer(e)))
                                 }
                             }
-                            Err(e) => Err(ConnectError::WriteError(WriteError::Deserializer(e))),
                         }
-                    }
 
-                    Some(Err(e)) => {
-                        match e.kind() {
-                            io::ErrorKind::TimedOut => Ok(None), // timeout use to check for input on stdin
-                            io::ErrorKind::WouldBlock => Ok(None), // trigger on Linux when there is no stream input
-                            _ => Err(WriteError::Io(e))?,
+                        Some(Err(e)) => {
+                            match e.kind() {
+                                io::ErrorKind::TimedOut => Ok(None), // timeout use to check for input on stdin
+                                io::ErrorKind::WouldBlock => Ok(None), // trigger on Linux when there is no stream input
+                                _ => Err(WriteError::Io(e))?,
+                            }
                         }
-                    }
-                    None => {
-                        todo!()
+                        None => {
+                            todo!()
+                        }
+                    },
+                    Err(_) => {
+                        self.state = UdpStreamerState::Listening;
+                        Ok(Some(StreamerMsg::Listening {
+                            ip: Some(self.ip),
+                            port: Some(self.port),
+                        }))
                     }
                 }
             }

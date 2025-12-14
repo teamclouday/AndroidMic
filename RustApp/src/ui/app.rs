@@ -5,7 +5,7 @@ use std::{
 
 use cpal::{
     Device, Host,
-    traits::{DeviceTrait, HostTrait},
+    traits::{DeviceTrait, HostTrait, StreamTrait},
 };
 use local_ip_address::list_afinet_netifas;
 use notify_rust::Notification;
@@ -150,7 +150,7 @@ impl AppState {
         let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
         let config = self.config.data().clone();
 
-        match self.start_audio_stream(consumer) {
+        match self.create_audio_stream(consumer) {
             Ok(audio_config) => {
                 self.send_command(StreamerCommand::ReconfigureStream {
                     buff: producer,
@@ -188,7 +188,7 @@ impl AppState {
         let config = self.config.data().clone();
         let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
 
-        let audio_config = match self.start_audio_stream(consumer) {
+        let audio_config = match self.create_audio_stream(consumer) {
             Ok(audio_config) => audio_config,
             Err(e) => {
                 error!("failed to start audio stream: {e}");
@@ -451,6 +451,10 @@ impl Application for AppState {
                     return self.add_log(&e);
                 }
                 StreamerMsg::Listening { ip, port } => {
+                    if let Err(e) = self.audio_stream.as_ref().unwrap().stream.pause() {
+                        error!("{e}");
+                    }
+
                     if let Some(system_tray) = self.system_tray.as_mut() {
                         system_tray.update_menu_state(false, &fl!("state_listening"));
                     }
@@ -479,6 +483,10 @@ impl Application for AppState {
                     }
                 }
                 StreamerMsg::Connected { ip, port, mode: _ } => {
+                    if let Err(e) = self.audio_stream.as_ref().unwrap().stream.play() {
+                        error!("{e}");
+                    }
+
                     if let Some(system_tray) = self.system_tray.as_mut() {
                         system_tray.update_menu_state(false, &fl!("state_connected"));
                     }
