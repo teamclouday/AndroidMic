@@ -841,7 +841,8 @@ impl Application for AppState {
     }
 
     fn subscription(&self) -> cosmic::iced::Subscription<Self::Message> {
-        let subscriptions = vec![Subscription::run(|| streamer::sub().map(AppMsg::Streamer))];
+        #[allow(unused_mut)]
+        let mut subscriptions = vec![Subscription::run(|| streamer::sub().map(AppMsg::Streamer))];
 
         #[cfg(not(target_os = "linux"))]
         if let Some(system_tray_stream) = &self.system_tray_stream {
