@@ -150,7 +150,7 @@ impl AppState {
         let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
         let config = self.config.data().clone();
 
-        match self.create_audio_stream(consumer) {
+        match self.create_audio_stream(consumer, true) {
             Ok(audio_config) => {
                 self.send_command(StreamerCommand::ReconfigureStream {
                     buff: producer,
@@ -188,7 +188,7 @@ impl AppState {
         let config = self.config.data().clone();
         let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
 
-        let audio_config = match self.create_audio_stream(consumer) {
+        let audio_config = match self.create_audio_stream(consumer, false) {
             Ok(audio_config) => audio_config,
             Err(e) => {
                 error!("failed to start audio stream: {e}");

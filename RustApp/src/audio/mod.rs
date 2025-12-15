@@ -63,6 +63,7 @@ impl AppState {
     pub fn create_audio_stream(
         &mut self,
         consumer: Consumer<u8>,
+        auto_play: bool,
     ) -> anyhow::Result<AudioPacketFormat> {
         self.audio_stream = None;
 
@@ -81,8 +82,14 @@ impl AppState {
         let (stream, final_audio_config) =
             player::create_audio_stream(device, wanted_audio_config, consumer)?;
 
-        if let Err(e) = stream.pause() {
-            error!("{e}");
+        if auto_play {
+            if let Err(e) = stream.play() {
+                error!("{e}");
+            }
+        } else {
+            if let Err(e) = stream.pause() {
+                error!("{e}");
+            }
         }
 
         self.audio_stream = Some(Stream {
