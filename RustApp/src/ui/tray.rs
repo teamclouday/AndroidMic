@@ -3,13 +3,11 @@ use futures::SinkExt;
 use std::sync::Arc;
 use tokio::sync::{Mutex, mpsc};
 
-#[cfg(not(target_os = "linux"))]
 use tray_icon::{
     TrayIcon, TrayIconBuilder, TrayIconEvent,
     menu::{Menu, MenuEvent, MenuItem, PredefinedMenuItem},
 };
 
-#[cfg(not(target_os = "linux"))]
 use crate::{fl, tray_icon};
 
 #[derive(Debug, Clone)]
@@ -25,18 +23,13 @@ pub struct SystemTrayStream {
     receiver: Arc<Mutex<mpsc::UnboundedReceiver<SystemTrayMsg>>>,
 }
 
-#[cfg(not(target_os = "linux"))]
 pub struct SystemTray {
     tray_icon: TrayIcon,
     item_connect: MenuItem,
     item_disconnect: MenuItem,
 }
 
-#[cfg(target_os = "linux")]
-pub struct SystemTray;
-
 impl SystemTray {
-    #[cfg(not(target_os = "linux"))]
     pub fn new() -> anyhow::Result<(Self, SystemTrayStream)> {
         let item_show = MenuItem::new(fl!("tray_show_window"), true, None);
         let item_connect = MenuItem::new(fl!("tray_connect"), true, None);
@@ -95,19 +88,6 @@ impl SystemTray {
         ))
     }
 
-    #[cfg(target_os = "linux")]
-    pub fn new() -> anyhow::Result<(Self, SystemTrayStream)> {
-        // placeholder here
-        let (_sender, receiver) = mpsc::unbounded_channel();
-        Ok((
-            Self {},
-            SystemTrayStream {
-                receiver: Arc::new(Mutex::new(receiver)),
-            },
-        ))
-    }
-
-    #[cfg(not(target_os = "linux"))]
     pub fn update_menu_state(&mut self, disconnected: bool, status: &str) {
         // update menu item states
         self.item_connect.set_enabled(disconnected);
@@ -118,11 +98,6 @@ impl SystemTray {
             .map_err(|e| {
                 error!("failed to set tray icon tooltip: {e}");
             });
-    }
-
-    #[cfg(target_os = "linux")]
-    pub fn update_menu_state(&mut self, _disconnected: bool, _status: &str) {
-        // placeholder here
     }
 }
 

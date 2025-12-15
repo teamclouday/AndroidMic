@@ -86,10 +86,8 @@ impl AppState {
             if let Err(e) = stream.play() {
                 error!("{e}");
             }
-        } else {
-            if let Err(e) = stream.pause() {
-                error!("{e}");
-            }
+        } else if let Err(e) = stream.pause() {
+            error!("{e}");
         }
 
         self.audio_stream = Some(Stream {

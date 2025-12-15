@@ -24,10 +24,13 @@ use cosmic::{
 
 use super::{
     message::{AppMsg, ConfigMsg},
-    tray::{SystemTray, SystemTrayMsg, SystemTrayStream},
     view::{main_window, settings_window},
     wave::AudioWave,
 };
+
+#[cfg(not(target_os = "linux"))]
+use super::tray::{SystemTray, SystemTrayMsg, SystemTrayStream};
+
 use crate::{
     audio::{AudioPacketFormat, AudioProcessParams},
     config::{
@@ -128,7 +131,9 @@ pub struct AppState {
     pub about_window: Option<CustomWindow>,
     pub logs: Vec<markdown::Item>,
     log_path: String,
+    #[cfg(not(target_os = "linux"))]
     pub system_tray: Option<SystemTray>,
+    #[cfg(not(target_os = "linux"))]
     pub system_tray_stream: Option<SystemTrayStream>,
     has_shown_minimize_notification: bool,
     launched_automatically: bool,
@@ -240,6 +245,7 @@ impl AppState {
         self.audio_stream = None;
         self.audio_wave.clear();
 
+        #[cfg(not(target_os = "linux"))]
         if let Some(system_tray) = self.system_tray.as_mut() {
             system_tray.update_menu_state(true, &fl!("state_disconnected"));
         }
@@ -349,6 +355,7 @@ impl Application for AppState {
         };
 
         // initialize system tray
+        #[cfg(not(target_os = "linux"))]
         let (system_tray, system_tray_stream) = match SystemTray::new() {
             Ok((mut tray, stream)) => {
                 tray.update_menu_state(true, &fl!("state_disconnected"));
@@ -379,7 +386,9 @@ impl Application for AppState {
             about_window: None,
             logs: Vec::new(),
             log_path: flags.log_path.clone(),
+            #[cfg(not(target_os = "linux"))]
             system_tray,
+            #[cfg(not(target_os = "linux"))]
             system_tray_stream,
             has_shown_minimize_notification: false,
             launched_automatically: flags.launched_automatically,
@@ -400,9 +409,13 @@ impl Application for AppState {
         info!("config path: {}", flags.config_path);
         info!("log path: {}", flags.log_path);
 
+        #[cfg(not(target_os = "linux"))]
         if !flags.launched_automatically || !app.config.data().start_minimized {
             commands.push(app.open_main_window());
         }
+
+        #[cfg(target_os = "linux")]
+        commands.push(app.open_main_window());
 
         match single_instance::stream() {
             Ok(stream) => {
@@ -455,6 +468,7 @@ impl Application for AppState {
                         error!("{e}");
                     }
 
+                    #[cfg(not(target_os = "linux"))]
                     if let Some(system_tray) = self.system_tray.as_mut() {
                         system_tray.update_menu_state(false, &fl!("state_listening"));
                     }
@@ -487,6 +501,7 @@ impl Application for AppState {
                         error!("{e}");
                     }
 
+                    #[cfg(not(target_os = "linux"))]
                     if let Some(system_tray) = self.system_tray.as_mut() {
                         system_tray.update_menu_state(false, &fl!("state_connected"));
                     }
@@ -756,6 +771,7 @@ impl Application for AppState {
                     error!("{e}");
                 }
             }
+            #[cfg(not(target_os = "linux"))]
             AppMsg::SystemTray(tray_msg) => match tray_msg {
                 SystemTrayMsg::Show => {
                     if let Some(main_window) = &self.main_window {
@@ -791,6 +807,9 @@ impl Application for AppState {
                     return Task::batch(vec![command, self.update_audio_stream()]);
                 }
             }
+            AppMsg::Exit => {
+                return cosmic::iced_runtime::task::effect(cosmic::iced::runtime::Action::Exit);
+            }
         }
 
         Task::none()
@@ -822,8 +841,9 @@ impl Application for AppState {
     }
 
     fn subscription(&self) -> cosmic::iced::Subscription<Self::Message> {
-        let mut subscriptions = vec![Subscription::run(|| streamer::sub().map(AppMsg::Streamer))];
+        let subscriptions = vec![Subscription::run(|| streamer::sub().map(AppMsg::Streamer))];
 
+        #[cfg(not(target_os = "linux"))]
         if let Some(system_tray_stream) = &self.system_tray_stream {
             subscriptions.push(Subscription::run_with_id(
                 "system-tray",
@@ -848,8 +868,11 @@ impl Application for AppState {
         if let Some(window) = &self.main_window
             && window.window_id == id
         {
-            // close the app
+            #[cfg(not(target_os = "linux"))]
             return Some(AppMsg::HideWindow);
+
+            #[cfg(target_os = "linux")]
+            return Some(AppMsg::Exit);
         }
 
         None
