@@ -467,6 +467,7 @@ impl Application for AppState {
                     if let Err(e) = self.audio_stream.as_ref().unwrap().stream.pause() {
                         error!("{e}");
                     }
+                    self.audio_wave.clear();
 
                     #[cfg(not(target_os = "linux"))]
                     if let Some(system_tray) = self.system_tray.as_mut() {
