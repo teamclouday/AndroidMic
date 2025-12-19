@@ -30,7 +30,7 @@ class MicStreamManager(
         }
 
         Mode.UDP -> {
-            UdpStreamer(scope, ip!!, port)
+            UdpStreamer(scope, ip!!, port!!)
         }
     }
 

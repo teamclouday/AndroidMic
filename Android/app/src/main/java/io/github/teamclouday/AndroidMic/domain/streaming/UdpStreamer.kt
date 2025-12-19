@@ -14,7 +14,7 @@ import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
 
-class UdpStreamer(private val scope: CoroutineScope, val ip: String, var port: Int?) : Streamer {
+class UdpStreamer(private val scope: CoroutineScope, val ip: String, var port: Int) : Streamer {
 
     private val TAG: String = "UDP streamer"
 
@@ -24,27 +24,8 @@ class UdpStreamer(private val scope: CoroutineScope, val ip: String, var port: I
     private var sequenceIdx = 0
 
     override fun connect(): Boolean {
-
-        val p = port
-        if (p != null) {
-
-            if (!handShake(p, 1500)) {
-                Log.d(TAG, "connect [Socket]: handshake error")
-                socket.close()
-                return false
-            }
-            return true
-        } else {
-            for (p in DEFAULT_PORT..MAX_PORT) {
-                if (!handShake(p, 100)) {
-                    continue
-                }
-                this.port = p
-                return true
-            }
-        }
-
-        return false
+        socket.soTimeout = 1500
+        return true
     }
 
     override fun disconnect(): Boolean {
@@ -103,33 +84,4 @@ class UdpStreamer(private val scope: CoroutineScope, val ip: String, var port: I
         return true
     }
 
-    fun handShake(
-        p: Int,
-        timeout: Int
-    ): Boolean {
-
-        return try {
-
-            val array = CHECK_1.toByteArray()
-            val packet = DatagramPacket(
-                array,
-                0,
-                array.size,
-                address,
-                p
-            )
-
-            socket.send(packet)
-
-            val buff = ByteArray(CHECK_2.length)
-            val recvPacket = DatagramPacket(buff, buff.size)
-
-            socket.soTimeout = timeout
-            socket.receive(recvPacket)
-
-            recvPacket.data.contentEquals(CHECK_2.toByteArray())
-        } catch (_: Exception) {
-            false
-        }
-    }
 }

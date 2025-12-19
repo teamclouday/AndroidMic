@@ -58,7 +58,7 @@ class MainViewModel : ViewModel() {
     private inner class ReplyHandler(looper: Looper) : Handler(looper) {
         override fun handleMessage(msg: Message) {
 
-            val data = ResponseData.fromMessage(msg);
+            val data = ResponseData.fromMessage(msg)
 
             when (data.kind) {
                 Response.Standard -> {
