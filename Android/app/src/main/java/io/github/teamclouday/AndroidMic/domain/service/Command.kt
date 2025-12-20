@@ -90,7 +90,7 @@ data class CommandData(
 
             when (mode) {
                 Mode.WIFI, Mode.UDP -> {
-                    if (!checkIp(ip) || !checkPort(port, true)) {
+                    if (!checkIp(ip) || !checkPort(port, mode != Mode.UDP)) {
 
                         return Either.Right(Dialogs.IpPort)
                     }
