@@ -1,4 +1,4 @@
-use std::{io, net::IpAddr, time::Duration, u64};
+use std::{io, net::IpAddr, time::Duration};
 
 use futures::StreamExt;
 use prost::Message;
@@ -7,7 +7,7 @@ use tokio_util::{codec::LengthDelimitedCodec, udp::UdpFramed};
 
 use crate::{
     config::ConnectionMode,
-    streamer::{AudioPacketMessage, DEFAULT_PC_PORT, MAX_PORT, WriteError},
+    streamer::{AudioPacketMessage, WriteError},
 };
 
 use super::{AudioPacketMessageOrdered, AudioStream, ConnectError, StreamerMsg, StreamerTrait};
@@ -25,24 +25,10 @@ pub struct UdpStreamer {
     tracked_sequence: u32,
 }
 
-pub async fn new(ip: IpAddr, stream_config: AudioStream) -> Result<UdpStreamer, ConnectError> {
-    let mut socket = None;
-
-    // try to always bind the same port, to not change it everytime Android side
-    for p in DEFAULT_PC_PORT..=MAX_PORT {
-        if let Ok(l) = UdpSocket::bind((ip, p)).await {
-            socket = Some(l);
-            break;
-        }
-    }
-
-    let socket = if let Some(socket) = socket {
-        socket
-    } else {
-        UdpSocket::bind((ip, 0))
-            .await
-            .map_err(ConnectError::CantBindPort)?
-    };
+pub async fn new(ip: IpAddr, port: u16, stream_config: AudioStream) -> Result<UdpStreamer, ConnectError> {
+    let socket = UdpSocket::bind((ip, port))
+        .await
+        .map_err(ConnectError::CantBindPort)?;
 
     let addr = socket.local_addr().map_err(ConnectError::NoLocalAddress)?;
 
@@ -80,7 +66,7 @@ impl StreamerTrait for UdpStreamer {
 
     async fn next(&mut self) -> Result<Option<StreamerMsg>, ConnectError> {
         match tokio::time::timeout(
-            Duration::from_secs(if self.is_listening { u64::MAX } else { 1 }),
+            Duration::from_secs(if self.is_listening { Duration::MAX.as_secs() } else { 1 }),
             self.framed.next(),
         )
         .await

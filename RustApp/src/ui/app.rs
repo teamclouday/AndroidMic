@@ -126,6 +126,7 @@ pub struct AppState {
     pub connection_state: ConnectionState,
     pub network_adapters: Vec<NetworkAdapter>,
     pub network_adapter: Option<NetworkAdapter>,
+    pub port_input: String,
     pub main_window: Option<CustomWindow>,
     pub settings_window: Option<CustomWindow>,
     pub about_window: Option<CustomWindow>,
@@ -210,7 +211,7 @@ impl AppState {
                     return self.add_log(e);
                 };
 
-                ConnectOption::Tcp { ip }
+                ConnectOption::Tcp { ip, port: config.port }
             }
             ConnectionMode::Udp => {
                 let Some(ip) = config.ip_or_default() else {
@@ -219,7 +220,7 @@ impl AppState {
                     error!("failed to start audio stream: {e}");
                     return self.add_log(e);
                 };
-                ConnectOption::Udp { ip }
+                ConnectOption::Udp { ip, port: config.port }
             }
             #[cfg(feature = "adb")]
             ConnectionMode::Adb => ConnectOption::Adb,
@@ -369,6 +370,7 @@ impl Application for AppState {
 
         let mut commands = Vec::new();
 
+        let config = flags.config.data().clone();
         let mut app = Self {
             core,
             audio_stream: None,
@@ -381,6 +383,7 @@ impl Application for AppState {
             connection_state: ConnectionState::Default,
             network_adapters,
             network_adapter,
+            port_input: config.port.to_string(),
             main_window: None,
             settings_window: None,
             about_window: None,
@@ -551,6 +554,26 @@ impl Application for AppState {
                 self.config.update(|c| c.ip = Some(adapter.ip));
                 self.network_adapter = Some(adapter.clone());
                 return self.add_log(format!("Selected network adapter: {adapter}").as_str());
+            }
+            AppMsg::PortTextInput(text) => {
+                self.port_input = text;
+            }
+            AppMsg::PortSave => {
+                let port = if self.port_input.is_empty() {
+                    55555
+                } else {
+                    match self.port_input.parse() {
+                        Ok(p) => p,
+                        Err(_) => {
+                            self.port_input = "55555".to_string();
+                            self.config.update(|c| c.port = 55555);
+                            return self.add_log("Invalid port number, using default 55555");
+                        }
+                    }
+                };
+                self.config.update(|c| c.port = port);
+                self.port_input = port.to_string();
+                return self.add_log(format!("Changed port to {}", port).as_str());
             }
             AppMsg::Connect => {
                 return self.connect();

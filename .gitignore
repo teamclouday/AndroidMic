@@ -1,5 +1,6 @@
 release/*
 *.zip
 .vscode
+.trae
 .DS_Store
 .env

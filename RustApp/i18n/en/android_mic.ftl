@@ -1,6 +1,8 @@
 audio_device = Audio Device
 settings = Settings
 network_adapter = Network adapter
+port = Port
+save = Save
 connection = Connection
 connection_tcp = WIFI / LAN (TCP)
 connection_udp = WIFI / LAN (UDP)
