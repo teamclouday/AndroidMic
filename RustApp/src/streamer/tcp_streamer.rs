@@ -10,7 +10,7 @@ use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 use crate::{
     config::ConnectionMode,
-    streamer::{CHECK_1, CHECK_2, DEFAULT_PC_PORT, MAX_PORT, StreamerMsg, WriteError},
+    streamer::{CHECK_1, CHECK_2, StreamerMsg, WriteError},
 };
 
 use super::{AudioPacketMessage, AudioStream, ConnectError, StreamerTrait};
@@ -37,24 +37,10 @@ pub enum TcpStreamerState {
     },
 }
 
-pub async fn new(ip: IpAddr, stream_config: AudioStream) -> Result<TcpStreamer, ConnectError> {
-    let mut listener = None;
-
-    // try to always bind the same port, to not change it everytime Android side
-    for p in DEFAULT_PC_PORT..=MAX_PORT {
-        if let Ok(l) = TcpListener::bind((ip, p)).await {
-            listener = Some(l);
-            break;
-        }
-    }
-
-    let listener = if let Some(listener) = listener {
-        listener
-    } else {
-        TcpListener::bind((ip, 0))
-            .await
-            .map_err(ConnectError::CantBindPort)?
-    };
+pub async fn new(ip: IpAddr, port: u16, stream_config: AudioStream) -> Result<TcpStreamer, ConnectError> {
+    let listener = TcpListener::bind((ip, port))
+        .await
+        .map_err(ConnectError::CantBindPort)?;
 
     let addr = TcpListener::local_addr(&listener).map_err(ConnectError::NoLocalAddress)?;
 

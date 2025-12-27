@@ -12,6 +12,7 @@ use crate::fl;
 pub struct Config {
     pub connection_mode: ConnectionMode,
     pub ip: Option<IpAddr>,
+    pub port: u16,
     pub audio_format: AudioFormat,
     pub channel_count: ChannelCount,
     pub sample_rate: SampleRate,
@@ -63,6 +64,7 @@ impl Default for Config {
         Self {
             connection_mode: Default::default(),
             ip: None,
+            port: 55555,
             audio_format: Default::default(),
             channel_count: Default::default(),
             sample_rate: Default::default(),
