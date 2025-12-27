@@ -160,8 +160,6 @@ fn network_adapter(app: &AppState) -> Element<'_, AppMsg> {
 }
 
 fn port(app: &AppState) -> Element<'_, AppMsg> {
-    let port = app.config.data().port;
-    let port_str = port.to_string();
     column()
         .spacing(20)
         .align_x(Horizontal::Center)
@@ -171,15 +169,12 @@ fn port(app: &AppState) -> Element<'_, AppMsg> {
                 .width(Length::Fill)
                 .spacing(5)
                 .push(
-                    text_input(&port_str, &port_str)
-                        .on_input(|s| {
-                            if let Ok(p) = s.parse() {
-                                AppMsg::Port(p)
-                            } else {
-                                AppMsg::Port(55555)
-                            }
-                        })
-                        .width(Length::Fixed(100.0)),
+                    text_input("", &app.port_input)
+                        .on_input(AppMsg::PortTextInput)
+                        .width(Length::Fixed(150.0)),
+                )
+                .push(
+                    button::text(fl!("save")).on_press(AppMsg::PortSave),
                 ),
         )
         .into()

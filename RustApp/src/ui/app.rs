@@ -126,6 +126,7 @@ pub struct AppState {
     pub connection_state: ConnectionState,
     pub network_adapters: Vec<NetworkAdapter>,
     pub network_adapter: Option<NetworkAdapter>,
+    pub port_input: String,
     pub main_window: Option<CustomWindow>,
     pub settings_window: Option<CustomWindow>,
     pub about_window: Option<CustomWindow>,
@@ -369,6 +370,7 @@ impl Application for AppState {
 
         let mut commands = Vec::new();
 
+        let config = flags.config.data().clone();
         let mut app = Self {
             core,
             audio_stream: None,
@@ -381,6 +383,7 @@ impl Application for AppState {
             connection_state: ConnectionState::Default,
             network_adapters,
             network_adapter,
+            port_input: config.port.to_string(),
             main_window: None,
             settings_window: None,
             about_window: None,
@@ -552,8 +555,24 @@ impl Application for AppState {
                 self.network_adapter = Some(adapter.clone());
                 return self.add_log(format!("Selected network adapter: {adapter}").as_str());
             }
-            AppMsg::Port(port) => {
+            AppMsg::PortTextInput(text) => {
+                self.port_input = text;
+            }
+            AppMsg::PortSave => {
+                let port = if self.port_input.is_empty() {
+                    55555
+                } else {
+                    match self.port_input.parse() {
+                        Ok(p) => p,
+                        Err(_) => {
+                            self.port_input = "55555".to_string();
+                            self.config.update(|c| c.port = 55555);
+                            return self.add_log("Invalid port number, using default 55555");
+                        }
+                    }
+                };
                 self.config.update(|c| c.port = port);
+                self.port_input = port.to_string();
                 return self.add_log(format!("Changed port to {}", port).as_str());
             }
             AppMsg::Connect => {
