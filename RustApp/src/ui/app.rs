@@ -210,7 +210,7 @@ impl AppState {
                     return self.add_log(e);
                 };
 
-                ConnectOption::Tcp { ip }
+                ConnectOption::Tcp { ip, port: config.port }
             }
             ConnectionMode::Udp => {
                 let Some(ip) = config.ip_or_default() else {
@@ -219,7 +219,7 @@ impl AppState {
                     error!("failed to start audio stream: {e}");
                     return self.add_log(e);
                 };
-                ConnectOption::Udp { ip }
+                ConnectOption::Udp { ip, port: config.port }
             }
             #[cfg(feature = "adb")]
             ConnectionMode::Adb => ConnectOption::Adb,
@@ -551,6 +551,10 @@ impl Application for AppState {
                 self.config.update(|c| c.ip = Some(adapter.ip));
                 self.network_adapter = Some(adapter.clone());
                 return self.add_log(format!("Selected network adapter: {adapter}").as_str());
+            }
+            AppMsg::Port(port) => {
+                self.config.update(|c| c.port = port);
+                return self.add_log(format!("Changed port to {}", port).as_str());
             }
             AppMsg::Connect => {
                 return self.connect();

@@ -1,6 +1,7 @@
 audio_device = 音频设备
 settings = 设置
 network_adapter = 网络适配器
+port = 端口
 connection = 建立连接
 connection_tcp = WIFI / 局域网 (TCP)
 connection_udp = WIFI / 局域网 (UDP)

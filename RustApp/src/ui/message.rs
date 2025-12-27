@@ -15,6 +15,7 @@ pub enum AppMsg {
     Streamer(StreamerMsg),
     Device(AudioDevice),
     Adapter(NetworkAdapter),
+    Port(u16),
     Connect,
     Stop,
     ToggleSettingsWindow,

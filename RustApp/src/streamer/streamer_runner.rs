@@ -21,9 +21,11 @@ use super::{AudioStream, ConnectError, DummyStreamer, Streamer, tcp_streamer, ud
 pub enum ConnectOption {
     Tcp {
         ip: IpAddr,
+        port: u16,
     },
     Udp {
         ip: IpAddr,
+        port: u16,
     },
     #[cfg(feature = "adb")]
     Adb,
@@ -142,8 +144,8 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                     AudioStream::new(buff, audio_params, is_window_visible);
                                 let new_streamer: Result<Streamer, ConnectError> =
                                     match connect_options {
-                                        ConnectOption::Tcp { ip } => {
-                                            tcp_streamer::new(ip, stream_config)
+                                        ConnectOption::Tcp { ip, port } => {
+                                            tcp_streamer::new(ip, port, stream_config)
                                                 .await
                                                 .map(Streamer::from)
                                         }
@@ -153,8 +155,8 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                                 .await
                                                 .map(Streamer::from)
                                         }
-                                        ConnectOption::Udp { ip } => {
-                                            udp_streamer::new(ip, stream_config)
+                                        ConnectOption::Udp { ip, port } => {
+                                            udp_streamer::new(ip, port, stream_config)
                                                 .await
                                                 .map(Streamer::from)
                                         }

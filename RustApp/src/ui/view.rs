@@ -5,7 +5,7 @@ use cosmic::{
     iced::{
         Length,
         alignment::{Horizontal, Vertical},
-        widget::pick_list,
+        widget::{pick_list, text_input},
     },
     widget::{
         self, about::About, button, canvas, column, container, context_menu, horizontal_space,
@@ -46,6 +46,7 @@ pub fn main_window(app: &AppState) -> Element<'_, AppMsg> {
                 .height(Length::Fill)
                 .align_x(Horizontal::Center)
                 .push(network_adapter(app))
+                .push(port(app))
                 .push(audio(app))
                 .push(vertical_space())
                 .push(connection_type(app)),
@@ -153,6 +154,32 @@ fn network_adapter(app: &AppState) -> Element<'_, AppMsg> {
                         .on_press(AppMsg::RefreshNetworkAdapters)
                         .class(cosmic::theme::Button::Text)
                         .width(Length::Shrink),
+                ),
+        )
+        .into()
+}
+
+fn port(app: &AppState) -> Element<'_, AppMsg> {
+    let port = app.config.data().port;
+    let port_str = port.to_string();
+    column()
+        .spacing(20)
+        .align_x(Horizontal::Center)
+        .push(text::title4(fl!("port")))
+        .push(
+            row()
+                .width(Length::Fill)
+                .spacing(5)
+                .push(
+                    text_input(&port_str, &port_str)
+                        .on_input(|s| {
+                            if let Ok(p) = s.parse() {
+                                AppMsg::Port(p)
+                            } else {
+                                AppMsg::Port(55555)
+                            }
+                        })
+                        .width(Length::Fixed(100.0)),
                 ),
         )
         .into()
