@@ -6,7 +6,7 @@
     -->
     <string name="connect">Connect</string>
     <string name="disconnect">Disconnect</string>
-    <string name="turn_audio">Record Audio</string>
+    <string name="turn_audio">Mute Audio</string>
 
     <!--
     Setting

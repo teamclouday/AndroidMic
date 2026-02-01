@@ -12,10 +12,16 @@ import io.github.teamclouday.AndroidMic.utils.Either
 import io.github.teamclouday.AndroidMic.utils.checkIp
 import io.github.teamclouday.AndroidMic.utils.checkPort
 
-
+/**
+ * Service -> UI
+ */
 private const val ID_MSG: String = "ID_MSG"
-private const val ID_STATE: String = "ID_STATE"
+private const val ID_CONNECTION_STATE: String = "ID_CONNECTION_STATE"
+private const val ID_MUTE_STATE: String = "ID_MUTE_STATE"
 
+/**
+ * UI -> Service
+ */
 private const val ID_MODE: String = "ID_MODE"
 
 private const val ID_IP: String = "ID_IP"
@@ -27,7 +33,7 @@ private const val ID_AUDIO_FORMAT: String = "ID_AUDIO_FORMAT"
 
 
 /**
- * Commands UI -> Service
+ * UI -> Service
  */
 enum class Command {
     StartStream,
@@ -36,17 +42,11 @@ enum class Command {
 
     // called when the ui is bind
     BindCheck,
+
+    Mute,
+    Unmute,
 }
 
-fun Bundle.getOrdinal(key: String): Int? {
-    val v = this.getInt(key, Int.MIN_VALUE);
-
-    return if (v == Int.MIN_VALUE) {
-        null
-    } else {
-        v
-    }
-}
 
 data class CommandData(
     val command: Command,
@@ -134,29 +134,38 @@ data class CommandData(
 
 
 /**
- * Response Service -> UI
+ * Service -> UI
  */
-enum class Response {
+enum class ResponseKind {
     Standard,
 }
 
-enum class ServiceState {
+private enum class ConnectionState {
     Connected,
-    Disconnected,
+    Disconnected;
+}
+
+private enum class MuteState {
+    Muted,
+    Unmuted,
 }
 
 data class ResponseData(
-    val state: ServiceState? = null,
     val msg: String? = null,
-    val kind: Response = Response.Standard,
+    val isConnected: Boolean? = null,
+    val isMuted: Boolean? = null,
+    val kind: ResponseKind = ResponseKind.Standard,
 ) {
 
 
     companion object {
         fun fromMessage(msg: Message): ResponseData {
             return ResponseData(
-                kind = Response.entries[msg.what],
-                state = msg.data.getOrdinal(ID_STATE)?.let { ServiceState.entries[it] },
+                kind = ResponseKind.entries[msg.what],
+                isConnected = msg.data.getOrdinal(ID_CONNECTION_STATE)
+                    ?.let { ConnectionState.entries[it] == ConnectionState.Connected },
+                isMuted = msg.data.getOrdinal(ID_MUTE_STATE)
+                    ?.let { MuteState.entries[it] == MuteState.Muted },
                 msg = msg.data.getString(ID_MSG)
             )
         }
@@ -168,7 +177,13 @@ data class ResponseData(
         val r = Bundle()
 
         this.msg?.let { r.putString(ID_MSG, it) }
-        this.state?.let { r.putInt(ID_STATE, it.ordinal) }
+        this.isConnected?.let {
+            r.putInt(
+                ID_CONNECTION_STATE,
+                (if (it) ConnectionState.Connected else ConnectionState.Disconnected).ordinal
+            )
+        }
+        this.isMuted?.let { r.putInt(ID_MUTE_STATE, (if (it) MuteState.Muted else MuteState.Unmuted).ordinal) }
 
         val reply = Message.obtain()
         reply.data = r
@@ -180,4 +195,12 @@ data class ResponseData(
 }
 
 
+fun Bundle.getOrdinal(key: String): Int? {
+    val v = this.getInt(key, Int.MIN_VALUE);
 
+    return if (v == Int.MIN_VALUE) {
+        null
+    } else {
+        v
+    }
+}

@@ -4,7 +4,7 @@
     -->
     <string name="connect">Connecter</string>
     <string name="disconnect">Deconnecter</string>
-    <string name="turn_audio">Enregister l\'audio</string>
+    <string name="turn_audio">Muter l\'audio</string>
 
     <!--
     Setting

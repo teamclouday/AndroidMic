@@ -41,6 +41,8 @@ class MicAudioManager(
     private val bufferFloatConvert: ByteBuffer
     private var streamJob: Job? = null
 
+    private var isMuted = false
+
     init {
         // check microphone
         require(ctx.packageManager.hasSystemFeature(PackageManager.FEATURE_MICROPHONE)) {
@@ -92,6 +94,12 @@ class MicAudioManager(
         // launch in scope so infinite loop will be canceled when scope exits
         streamJob = scope.launch {
             while (true) {
+
+                if (isMuted) {
+                    delay(RECORD_DELAY_MS)
+                    continue
+                }
+
                 if (recorder.state != AudioRecord.STATE_INITIALIZED || recorder.recordingState != AudioRecord.RECORDSTATE_RECORDING) {
                     delay(RECORD_DELAY_MS)
                     continue
@@ -141,6 +149,14 @@ class MicAudioManager(
         awaitClose {
             streamJob?.cancel()
         }
+    }
+
+    fun mute() {
+        isMuted = true
+    }
+
+    fun unmute() {
+        isMuted = false
     }
 
     // start recording

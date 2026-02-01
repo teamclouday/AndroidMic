@@ -12,12 +12,15 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.DrawerValue
@@ -25,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
@@ -103,12 +107,23 @@ fun HomeScreen(
                             .fillMaxWidth()
                             .padding(all = 15.dp)
                     )
+
+                    Spacer(modifier = Modifier.height(40.dp))
                     ConnectButton(
                         vm = vm,
-                        modifier = Modifier
-                            .padding(vertical = 40.dp),
+                        modifier = Modifier,
                         openAppSettings = openAppSettings
                     )
+
+                    if (vm.isStreamStarted.value) {
+                        Spacer(modifier = Modifier.height(15.dp))
+
+                        AudioSwitch(
+                            vm = vm,
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(40.dp))
                 }
 
             } else {
@@ -128,12 +143,26 @@ fun HomeScreen(
                             .padding(all = 15.dp)
                     )
 
-                    ConnectButton(
-                        vm = vm,
+                    Column(
                         modifier = Modifier
                             .padding(all = 15.dp),
-                        openAppSettings = openAppSettings
-                    )
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        ConnectButton(
+                            vm = vm,
+                            modifier = Modifier,
+                            openAppSettings = openAppSettings
+                        )
+
+
+                        if (vm.isStreamStarted.value) {
+                            Spacer(modifier = Modifier.height(15.dp))
+                            AudioSwitch(
+                                vm = vm,
+                            )
+                        }
+                    }
                 }
             }
 
@@ -166,6 +195,31 @@ private fun Log(
             modifier = Modifier
                 .verticalScroll(ScrollState(Int.MAX_VALUE))
                 .padding(15.dp)
+        )
+    }
+}
+
+@Composable
+private fun AudioSwitch(
+    vm: MainViewModel,
+) {
+
+    Row(
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+
+        Text(
+            text = stringResource(id = R.string.turn_audio),
+            color = MaterialTheme.colorScheme.onBackground,
+            style = MaterialTheme.typography.labelLarge
+        )
+        Spacer(Modifier.width(12.dp))
+        Switch(
+            checked = vm.isMuted.value,
+            onCheckedChange = {
+                vm.onMuteSwitch()
+            }
         )
     }
 }

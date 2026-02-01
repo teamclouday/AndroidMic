@@ -21,9 +21,8 @@ import io.github.teamclouday.AndroidMic.SampleRates
 import io.github.teamclouday.AndroidMic.Themes
 import io.github.teamclouday.AndroidMic.domain.service.Command
 import io.github.teamclouday.AndroidMic.domain.service.CommandData
-import io.github.teamclouday.AndroidMic.domain.service.Response
+import io.github.teamclouday.AndroidMic.domain.service.ResponseKind
 import io.github.teamclouday.AndroidMic.domain.service.ResponseData
-import io.github.teamclouday.AndroidMic.domain.service.ServiceState
 import io.github.teamclouday.AndroidMic.ui.utils.UiHelper
 import io.github.teamclouday.AndroidMic.utils.Either
 import kotlinx.coroutines.launch
@@ -51,6 +50,8 @@ class MainViewModel : ViewModel() {
     val isStreamStarted = mutableStateOf(false)
     val isButtonConnectClickable = mutableStateOf(false)
 
+    val isMuted = mutableStateOf(false)
+
     init {
         Log.d(TAG, "init")
     }
@@ -61,10 +62,14 @@ class MainViewModel : ViewModel() {
             val data = ResponseData.fromMessage(msg)
 
             when (data.kind) {
-                Response.Standard -> {
-                    data.state?.let {
+                ResponseKind.Standard -> {
+                    data.isConnected?.let {
                         isButtonConnectClickable.value = true
-                        isStreamStarted.value = it == ServiceState.Connected
+                        isStreamStarted.value = it
+                    }
+
+                    data.isMuted?.let {
+                        isMuted.value = it
                     }
 
                     data.msg?.let {
@@ -89,14 +94,31 @@ class MainViewModel : ViewModel() {
 
         isStreamStarted.value = false
         isButtonConnectClickable.value = false
+        isMuted.value = false
 
         val msg = CommandData(Command.BindCheck).toCommandMsg()
         msg.replyTo = messenger
         service?.send(msg)
     }
 
+    fun onMuteSwitch() {
+        if (!isBound) return
+
+        val message = if (isMuted.value) {
+            isMuted.value = false
+            CommandData(Command.Unmute)
+        } else {
+            isMuted.value = true
+            CommandData(Command.Mute)
+        }.toCommandMsg()
+
+        message.replyTo = messenger
+        service?.send(message)
+    }
+
     fun onConnectButton(): Dialogs? {
         if (!isBound) return null
+        isMuted.value = false
         val message = if (isStreamStarted.value) {
             Log.d(TAG, "onConnectButton: stop stream")
             CommandData(Command.StopStream)

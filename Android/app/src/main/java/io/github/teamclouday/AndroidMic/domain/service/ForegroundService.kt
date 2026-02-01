@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 data class ServiceStates(
     var isStreamStarted: Boolean = false,
     var isAudioStarted: Boolean = false,
+    var isMuted: Boolean = false,
     var mode: Mode = Mode.WIFI
 )
 
@@ -51,6 +52,16 @@ class ForegroundService : Service() {
                 Command.GetStatus -> getStatus(msg.replyTo)
                 Command.BindCheck -> {
                     uiMessenger = msg.replyTo
+                }
+
+                Command.Mute -> {
+                    states.isMuted = true
+                    managerAudio?.mute()
+                }
+
+                Command.Unmute -> {
+                    states.isMuted = false
+                    managerAudio?.unmute()
                 }
             }
 
@@ -181,13 +192,15 @@ class ForegroundService : Service() {
 
     // start streaming
     private fun startStream(msg: CommandData, replyTo: Messenger) {
+        states.isMuted = false
         // check connection state
         if (states.isStreamStarted) {
             reply(
                 replyTo,
                 ResponseData(
-                    ServiceState.Connected,
-                    this.getString(R.string.stream_already_started)
+                    msg = this.getString(R.string.stream_already_started),
+                    isConnected = true,
+                    isMuted = states.isMuted,
                 )
             )
             return
@@ -206,8 +219,9 @@ class ForegroundService : Service() {
             reply(
                 replyTo,
                 ResponseData(
-                    ServiceState.Disconnected,
-                    applicationContext.getString(R.string.error) + e.message
+                    msg = applicationContext.getString(R.string.error) + e.message,
+                    isConnected = false,
+                    isMuted = states.isMuted,
                 )
             )
             return
@@ -219,8 +233,9 @@ class ForegroundService : Service() {
             reply(
                 replyTo,
                 ResponseData(
-                    ServiceState.Disconnected,
-                    applicationContext.getString(R.string.failed_to_connect)
+                    msg = applicationContext.getString(R.string.failed_to_connect),
+                    isConnected = false,
+                    isMuted = states.isMuted,
                 )
             )
             shutdownStream()
@@ -245,8 +260,9 @@ class ForegroundService : Service() {
         reply(
             replyTo,
             ResponseData(
-                ServiceState.Connected,
-                applicationContext.getString(R.string.connected_device) + managerStream?.getInfo()
+                msg = applicationContext.getString(R.string.connected_device) + managerStream?.getInfo(),
+                isConnected = true,
+                isMuted = states.isMuted,
             )
         )
 
@@ -263,8 +279,9 @@ class ForegroundService : Service() {
         reply(
             uiMessenger,
             ResponseData(
-                ServiceState.Disconnected,
-                applicationContext.getString(R.string.device_disconnected)
+                msg = applicationContext.getString(R.string.device_disconnected),
+                isConnected = false,
+                isMuted = states.isMuted,
             )
         )
 
@@ -279,13 +296,6 @@ class ForegroundService : Service() {
         states.isStreamStarted = false
     }
 
-    private fun isConnected(): ServiceState {
-        return if (states.isStreamStarted) {
-            ServiceState.Connected
-        } else {
-            ServiceState.Disconnected
-        }
-    }
 
     // start mic
     private fun startAudio(msg: CommandData, replyTo: Messenger): Boolean {
@@ -349,6 +359,6 @@ class ForegroundService : Service() {
     private fun getStatus(replyTo: Messenger) {
         Log.d(TAG, "getStatus")
 
-        reply(replyTo, ResponseData(isConnected()))
+        reply(replyTo, ResponseData(isConnected = states.isStreamStarted, isMuted = states.isMuted))
     }
 }
