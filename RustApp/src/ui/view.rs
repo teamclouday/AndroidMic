@@ -173,9 +173,7 @@ fn port(app: &AppState) -> Element<'_, AppMsg> {
                         .on_input(AppMsg::PortTextInput)
                         .width(Length::Fixed(150.0)),
                 )
-                .push(
-                    button::text(fl!("save")).on_press(AppMsg::PortSave),
-                ),
+                .push(button::text(fl!("save")).on_press(AppMsg::PortSave)),
         )
         .into()
 }

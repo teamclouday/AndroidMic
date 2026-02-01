@@ -24,7 +24,7 @@ mod usb_streamer;
 #[cfg(feature = "usb")]
 use crate::streamer::usb_streamer::UsbStreamer;
 
-pub use message::{AudioPacketMessage, AudioPacketMessageOrdered};
+pub use message::AudioPacketMessage;
 pub use streamer_runner::{ConnectOption, StreamerCommand, StreamerMsg, sub};
 
 use crate::{audio::AudioProcessParams, config::AudioFormat};
@@ -90,8 +90,8 @@ enum Streamer {
 
 #[derive(Debug, Error)]
 enum ConnectError {
-    #[error("can't bind a port on the pc: {0}")]
-    CantBindPort(io::Error),
+    #[error("can't bind port {0} on the pc: {1}")]
+    CantBindPort(u16, io::Error),
     #[error("can't find a local address: {0}")]
     NoLocalAddress(io::Error),
     #[error("accept failed: {0}")]

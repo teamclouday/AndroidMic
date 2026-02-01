@@ -1,13 +1,22 @@
 syntax = "proto3";
 
 message AudioPacketMessage {
-    bytes buffer = 1;
-    uint32 sample_rate = 2;
-    uint32 channel_count = 3;
-    uint32 audio_format = 4;
+  bytes buffer = 1;
+  uint32 sample_rate = 2;
+  uint32 channel_count = 3;
+  uint32 audio_format = 4;
 }
 
 message AudioPacketMessageOrdered {
-    uint32 sequence_number = 1;
-    AudioPacketMessage audio_packet = 2;
+  uint32 sequence_number = 1;
+  AudioPacketMessage audio_packet = 2;
+}
+
+message ConnectMessage {}
+
+message MessageWrapper {
+  oneof payload {
+    AudioPacketMessageOrdered audio_packet = 1;
+    ConnectMessage connect = 2;
+  }
 }

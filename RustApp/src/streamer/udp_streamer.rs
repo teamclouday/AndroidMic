@@ -7,10 +7,13 @@ use tokio_util::{codec::LengthDelimitedCodec, udp::UdpFramed};
 
 use crate::{
     config::ConnectionMode,
-    streamer::{AudioPacketMessage, WriteError},
+    streamer::{
+        AudioPacketMessage, CHECK_2, WriteError,
+        message::{MessageWrapper, message_wrapper::Payload},
+    },
 };
 
-use super::{AudioPacketMessageOrdered, AudioStream, ConnectError, StreamerMsg, StreamerTrait};
+use super::{AudioStream, ConnectError, StreamerMsg, StreamerTrait};
 
 const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
 
@@ -25,10 +28,14 @@ pub struct UdpStreamer {
     tracked_sequence: u32,
 }
 
-pub async fn new(ip: IpAddr, port: u16, stream_config: AudioStream) -> Result<UdpStreamer, ConnectError> {
+pub async fn new(
+    ip: IpAddr,
+    port: u16,
+    stream_config: AudioStream,
+) -> Result<UdpStreamer, ConnectError> {
     let socket = UdpSocket::bind((ip, port))
         .await
-        .map_err(ConnectError::CantBindPort)?;
+        .map_err(|e| ConnectError::CantBindPort(port, e))?;
 
     let addr = socket.local_addr().map_err(ConnectError::NoLocalAddress)?;
 
@@ -66,48 +73,77 @@ impl StreamerTrait for UdpStreamer {
 
     async fn next(&mut self) -> Result<Option<StreamerMsg>, ConnectError> {
         match tokio::time::timeout(
-            Duration::from_secs(if self.is_listening { Duration::MAX.as_secs() } else { 1 }),
+            Duration::from_secs(if self.is_listening {
+                Duration::MAX.as_secs()
+            } else {
+                1
+            }),
             self.framed.next(),
         )
         .await
         {
             Ok(res) => match res {
                 Some(Ok((frame, addr))) => {
-                    match AudioPacketMessageOrdered::decode(frame) {
+                    match MessageWrapper::decode(frame) {
                         Ok(packet) => {
-                            if self.is_listening {
-                                self.is_listening = false;
-                                return Ok(Some(StreamerMsg::Connected {
-                                    ip: Some(self.ip),
-                                    port: Some(self.port),
-                                    mode: ConnectionMode::Udp,
-                                }));
-                            }
+                            match packet.payload {
+                                Some(payload) => {
+                                    let message = match payload {
+                                        Payload::AudioPacket(packet) => {
+                                            if packet.sequence_number < self.tracked_sequence {
+                                                // drop packet
+                                                info!(
+                                                    "dropped packet: old sequence number {} < {}",
+                                                    packet.sequence_number, self.tracked_sequence
+                                                );
+                                            }
+                                            self.tracked_sequence = packet.sequence_number;
 
-                            if packet.sequence_number < self.tracked_sequence {
-                                // drop packet
-                                info!(
-                                    "dropped packet: old sequence number {} < {}",
-                                    packet.sequence_number, self.tracked_sequence
-                                );
-                            }
-                            self.tracked_sequence = packet.sequence_number;
+                                            let packet = packet.audio_packet.unwrap();
+                                            let buffer_size = packet.buffer.len();
+                                            let sample_rate = packet.sample_rate;
 
-                            let packet = packet.audio_packet.unwrap();
-                            let buffer_size = packet.buffer.len();
-                            let sample_rate = packet.sample_rate;
+                                            match self.stream_config.process_audio_packet(packet) {
+                                                Ok(Some(buffer)) => {
+                                                    debug!(
+                                                        "From {:?}, received {} bytes",
+                                                        addr, buffer_size
+                                                    );
+                                                    Some(StreamerMsg::UpdateAudioWave {
+                                                        data: AudioPacketMessage::to_wave_data(
+                                                            &buffer,
+                                                            sample_rate,
+                                                        ),
+                                                    })
+                                                }
+                                                _ => None,
+                                            }
+                                        }
+                                        Payload::Connect(_) => {
+                                            self.framed
+                                                .get_ref()
+                                                .send_to(CHECK_2.as_bytes(), &addr)
+                                                .await
+                                                .map_err(|e| {
+                                                    ConnectError::HandShakeFailed("writing", e)
+                                                })?;
 
-                            match self.stream_config.process_audio_packet(packet) {
-                                Ok(Some(buffer)) => {
-                                    debug!("From {:?}, received {} bytes", addr, buffer_size);
-                                    Ok(Some(StreamerMsg::UpdateAudioWave {
-                                        data: AudioPacketMessage::to_wave_data(
-                                            &buffer,
-                                            sample_rate,
-                                        ),
-                                    }))
+                                            None
+                                        }
+                                    };
+
+                                    if self.is_listening {
+                                        self.is_listening = false;
+                                        Ok(Some(StreamerMsg::Connected {
+                                            ip: Some(self.ip),
+                                            port: Some(self.port),
+                                            mode: ConnectionMode::Udp,
+                                        }))
+                                    } else {
+                                        Ok(message)
+                                    }
                                 }
-                                _ => Ok(None),
+                                None => todo!(),
                             }
                         }
                         Err(e) => Err(ConnectError::WriteError(WriteError::Deserializer(e))),

@@ -211,7 +211,10 @@ impl AppState {
                     return self.add_log(e);
                 };
 
-                ConnectOption::Tcp { ip, port: config.port }
+                ConnectOption::Tcp {
+                    ip,
+                    port: config.port,
+                }
             }
             ConnectionMode::Udp => {
                 let Some(ip) = config.ip_or_default() else {
@@ -220,7 +223,10 @@ impl AppState {
                     error!("failed to start audio stream: {e}");
                     return self.add_log(e);
                 };
-                ConnectOption::Udp { ip, port: config.port }
+                ConnectOption::Udp {
+                    ip,
+                    port: config.port,
+                }
             }
             #[cfg(feature = "adb")]
             ConnectionMode::Adb => ConnectOption::Adb,

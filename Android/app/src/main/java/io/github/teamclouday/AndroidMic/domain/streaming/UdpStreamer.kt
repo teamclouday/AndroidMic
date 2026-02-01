@@ -25,7 +25,41 @@ class UdpStreamer(private val scope: CoroutineScope, val ip: String, var port: I
 
     override fun connect(): Boolean {
         socket.soTimeout = 1500
-        return true
+
+        val message = Message.MessageWrapper.newBuilder()
+            .setConnect(
+                Message.ConnectMessage.newBuilder()
+                    .build()
+            )
+            .build()
+
+        val pack = message.toByteArray()
+        val combined = pack.size.toBigEndianU32() + pack
+
+        val packet = DatagramPacket(
+            combined,
+            0,
+            combined.size,
+            address,
+            port
+        )
+
+        try {
+            socket.send(packet)
+        } catch (_: Exception) {
+            return false
+        }
+
+        val buff = ByteArray(CHECK_2.length)
+        val recvPacket = DatagramPacket(buff, buff.size)
+
+        try {
+            socket.receive(recvPacket)
+        } catch (_: Exception) {
+            return false
+        }
+
+        return recvPacket.data.contentEquals(CHECK_2.toByteArray())
     }
 
     override fun disconnect(): Boolean {
@@ -45,17 +79,22 @@ class UdpStreamer(private val scope: CoroutineScope, val ip: String, var port: I
         streamJob = scope.launch {
             audioStream.collect { data ->
                 try {
-                    val message = Message.AudioPacketMessageOrdered.newBuilder()
-                        .setSequenceNumber(sequenceIdx++)
+
+                    val message = Message.MessageWrapper.newBuilder()
                         .setAudioPacket(
-                            Message.AudioPacketMessage.newBuilder()
-                                .setBuffer(ByteString.copyFrom(data.buffer))
-                                .setSampleRate(data.sampleRate)
-                                .setAudioFormat(data.audioFormat)
-                                .setChannelCount(data.channelCount)
+                            Message.AudioPacketMessageOrdered.newBuilder()
+                                .setSequenceNumber(sequenceIdx++)
+                                .setAudioPacket(
+                                    Message.AudioPacketMessage.newBuilder()
+                                        .setBuffer(ByteString.copyFrom(data.buffer))
+                                        .setSampleRate(data.sampleRate)
+                                        .setAudioFormat(data.audioFormat)
+                                        .setChannelCount(data.channelCount)
+                                )
                                 .build()
                         )
                         .build()
+
 
                     val pack = message.toByteArray()
                     val combined = pack.size.toBigEndianU32() + pack
@@ -65,7 +104,7 @@ class UdpStreamer(private val scope: CoroutineScope, val ip: String, var port: I
                         0,
                         combined.size,
                         address,
-                        port!!
+                        port
                     )
 
                     socket.send(packet)
