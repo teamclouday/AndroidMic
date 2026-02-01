@@ -483,23 +483,6 @@ impl Application for AppState {
                         system_tray.update_menu_state(false, &fl!("state_listening"));
                     }
 
-                    if self.main_window.is_none() {
-                        let address = format!(
-                            "{}:{}",
-                            ip.unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
-                            port.unwrap_or_default()
-                        );
-                        // show notification when app is minimized
-                        let _ = Notification::new()
-                            .summary("AndroidMic")
-                            .body(format!("Listening on {address}").as_str())
-                            .auto_icon()
-                            .show()
-                            .map_err(|e| {
-                                error!("failed to show notification: {e}");
-                            });
-                    }
-
                     self.connection_state = ConnectionState::Listening;
                     if let (Some(ip), Some(port)) = (ip, port) {
                         info!("listening on {ip}:{port}");
