@@ -561,26 +561,6 @@ impl Application for AppState {
                 self.network_adapter = Some(adapter.clone());
                 return self.add_log(format!("Selected network adapter: {adapter}").as_str());
             }
-            AppMsg::PortTextInput(text) => {
-                self.port_input = text;
-            }
-            AppMsg::PortSave => {
-                let port = if self.port_input.is_empty() {
-                    55555
-                } else {
-                    match self.port_input.parse() {
-                        Ok(p) => p,
-                        Err(_) => {
-                            self.port_input = "55555".to_string();
-                            self.config.update(|c| c.port = 55555);
-                            return self.add_log("Invalid port number, using default 55555");
-                        }
-                    }
-                };
-                self.config.update(|c| c.port = port);
-                self.port_input = port.to_string();
-                return self.add_log(format!("Changed port to {}", port).as_str());
-            }
             AppMsg::Connect => {
                 return self.connect();
             }
@@ -613,6 +593,27 @@ impl Application for AppState {
                 }
             },
             AppMsg::Config(msg) => match msg {
+                ConfigMsg::PortTextInput(text) => {
+                    self.port_input = text;
+                }
+                ConfigMsg::PortSave => {
+                    let port = if self.port_input.is_empty() {
+                        55555
+                    } else {
+                        match self.port_input.parse() {
+                            Ok(p) => p,
+                            Err(_) => {
+                                self.port_input = "55555".to_string();
+                                self.config.update(|c| c.port = 55555);
+                                return self.add_log("Invalid port number, using default 55555");
+                            }
+                        }
+                    };
+                    self.config.update(|c| c.port = port);
+                    self.port_input = port.to_string();
+                    return self.add_log(format!("Changed port to {}", port).as_str());
+                }
+
                 ConfigMsg::SampleRate(sample_rate) => {
                     self.config.update(|s| s.sample_rate = sample_rate);
                     return self.update_audio_stream();

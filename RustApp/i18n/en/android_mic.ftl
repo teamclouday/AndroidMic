@@ -31,6 +31,8 @@ channel_count = Channel count
 audio_format = Audio format
 use_recommended_audio_format = Use Recommended Audio Format
 
+title_connection = Connection
+
 denoise = Noise reduction
 denoise_enabled = Enabled
 denoise_type = Type
