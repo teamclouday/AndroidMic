@@ -21,8 +21,8 @@ pub fn create_audio_stream(
     let mut supported = false;
     for supported_config in supported_configs {
         if audio_format == supported_config.sample_format()
-            && supported_config.max_sample_rate().0 >= sample_rate
-            && supported_config.min_sample_rate().0 <= sample_rate
+            && supported_config.max_sample_rate() >= sample_rate
+            && supported_config.min_sample_rate() <= sample_rate
         {
             // use recommended channel count
             if supported_config.channels() != channel_count {
@@ -46,7 +46,7 @@ pub fn create_audio_stream(
 
     let config = cpal::StreamConfig {
         channels: channel_count,
-        sample_rate: cpal::SampleRate(sample_rate),
+        sample_rate,
         buffer_size: cpal::BufferSize::Default,
     };
 

@@ -16,10 +16,7 @@ pub struct Config {
     pub audio_format: AudioFormat,
     pub channel_count: ChannelCount,
     pub sample_rate: SampleRate,
-    // todo: use a device id (https://github.com/RustAudio/cpal/issues/922)
-    // i'm not using an index because i'm not sure it will works well with
-    // device that could be disconnected sometime.
-    pub device_name: Option<String>,
+    pub device_id: Option<String>,
     pub start_at_login: bool,
     pub start_minimized: bool,
     pub auto_connect: bool,
@@ -68,7 +65,7 @@ impl Default for Config {
             audio_format: Default::default(),
             channel_count: Default::default(),
             sample_rate: Default::default(),
-            device_name: None,
+            device_id: None,
             start_at_login: false,
             auto_connect: false,
             denoise: false,

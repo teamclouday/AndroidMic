@@ -133,7 +133,7 @@ fn main() {
         }
 
         if let Some(output_device) = args.output_device {
-            config.device_name.replace(output_device);
+            config.device_id.replace(output_device);
         }
 
         if let Some(audio_format) = args.audio_format {

@@ -99,8 +99,8 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
     let selected = app
         .audio_device
         .as_ref()
-        .and_then(|d| d.name().ok())
-        .and_then(|name| app.audio_devices.iter().find(|d| d.name == name));
+        .and_then(|d| d.id().ok())
+        .and_then(|id| app.audio_devices.iter().find(|d| d.id == id.1));
 
     column()
         .spacing(20)
