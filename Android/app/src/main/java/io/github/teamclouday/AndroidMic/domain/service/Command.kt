@@ -183,7 +183,12 @@ data class ResponseData(
                 (if (it) ConnectionState.Connected else ConnectionState.Disconnected).ordinal
             )
         }
-        this.isMuted?.let { r.putInt(ID_MUTE_STATE, (if (it) MuteState.Muted else MuteState.Unmuted).ordinal) }
+        this.isMuted?.let {
+            r.putInt(
+                ID_MUTE_STATE,
+                (if (it) MuteState.Muted else MuteState.Unmuted).ordinal
+            )
+        }
 
         val reply = Message.obtain()
         reply.data = r
