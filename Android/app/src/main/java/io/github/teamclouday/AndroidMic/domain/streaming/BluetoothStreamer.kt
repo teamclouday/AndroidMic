@@ -1,6 +1,6 @@
 package io.github.teamclouday.AndroidMic.domain.streaming
 
-import Message
+import Message.Messages
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothClass
@@ -124,7 +124,7 @@ class BluetoothStreamer(private val ctx: Context, val scope: CoroutineScope) : S
                 if (socket == null || socket?.isConnected != true) return@collect
 
                 try {
-                    val message = Message.AudioPacketMessage.newBuilder()
+                    val message = Messages.AudioPacketMessage.newBuilder()
                         .setBuffer(ByteString.copyFrom(data.buffer))
                         .setSampleRate(data.sampleRate)
                         .setAudioFormat(data.audioFormat)

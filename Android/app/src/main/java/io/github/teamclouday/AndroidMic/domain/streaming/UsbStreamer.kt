@@ -1,6 +1,6 @@
 package io.github.teamclouday.AndroidMic.domain.streaming
 
-import Message
+import Message.Messages
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -24,10 +24,14 @@ import java.io.FileDescriptor
 import java.io.FileInputStream
 import java.io.FileOutputStream
 
+
+private const val TAG: String = "USB streamer"
+
 class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
 
-    private val TAG: String = "USB streamer"
-    private val USB_PERMISSION = "io.github.teamclouday.AndroidMic.USB_PERMISSION"
+    companion object {
+        private const val USB_PERMISSION = "io.github.teamclouday.AndroidMic.USB_PERMISSION"
+    }
 
     private var streamJob: Job? = null
 
@@ -44,7 +48,7 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
             if (action == UsbManager.ACTION_USB_ACCESSORY_DETACHED) {
                 Log.d(TAG, "onReceive: USB accessory detached")
 
-                val acc = BundleCompat.getParcelable<UsbAccessory>(
+                val acc = BundleCompat.getParcelable(
                     intent.extras!!,
                     UsbManager.EXTRA_ACCESSORY,
                     UsbAccessory::class.java,
@@ -102,7 +106,7 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
             "No USB device detected"
         }
 
-        accessory = accessoryList[0];
+        accessory = accessoryList[0]
 
         Log.d(
             TAG,
@@ -114,7 +118,7 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
             Log.d(TAG, "requesting permission")
             usbManager.requestPermission(
                 accessory, PendingIntent.getBroadcast(
-                    ctx, 0, Intent(USB_PERMISSION), 0
+                    ctx, 0, Intent(USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE
                 )
             )
         }
@@ -159,7 +163,7 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
                 if (accessory == null || outputStream == null) return@collect
 
                 try {
-                    val message = Message.AudioPacketMessage.newBuilder()
+                    val message = Messages.AudioPacketMessage.newBuilder()
                         .setBuffer(ByteString.copyFrom(data.buffer))
                         .setSampleRate(data.sampleRate)
                         .setAudioFormat(data.audioFormat)
@@ -188,4 +192,6 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
     override fun isAlive(): Boolean {
         return true
     }
+
+
 }

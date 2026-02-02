@@ -1,6 +1,6 @@
 package io.github.teamclouday.AndroidMic.domain.streaming
 
-import Message
+import Message.Messages
 import android.os.Messenger
 import android.util.Log
 import com.google.protobuf.ByteString
@@ -26,9 +26,9 @@ class UdpStreamer(private val scope: CoroutineScope, val ip: String, var port: I
     override fun connect(): Boolean {
         socket.soTimeout = 1500
 
-        val message = Message.MessageWrapper.newBuilder()
+        val message = Messages.MessageWrapper.newBuilder()
             .setConnect(
-                Message.ConnectMessage.newBuilder()
+                Messages.ConnectMessage.newBuilder()
                     .build()
             )
             .build()
@@ -80,12 +80,12 @@ class UdpStreamer(private val scope: CoroutineScope, val ip: String, var port: I
             audioStream.collect { data ->
                 try {
 
-                    val message = Message.MessageWrapper.newBuilder()
+                    val message = Messages.MessageWrapper.newBuilder()
                         .setAudioPacket(
-                            Message.AudioPacketMessageOrdered.newBuilder()
+                            Messages.AudioPacketMessageOrdered.newBuilder()
                                 .setSequenceNumber(sequenceIdx++)
                                 .setAudioPacket(
-                                    Message.AudioPacketMessage.newBuilder()
+                                    Messages.AudioPacketMessage.newBuilder()
                                         .setBuffer(ByteString.copyFrom(data.buffer))
                                         .setSampleRate(data.sampleRate)
                                         .setAudioFormat(data.audioFormat)
