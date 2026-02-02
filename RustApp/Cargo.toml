@@ -97,7 +97,7 @@ fix-path-env = { git = "https://github.com/wiiznokes/fix-path-env-rs", rev = "86
 env_logger = "0.11"
 nnnoiseless = "0.5"
 open = "5"
-speexdsp = { git = "https://github.com/wiiznokes/speexdsp-rs-fork", branch = "vendor-and-fixes", features = [
+speexdsp = { git = "https://github.com/wiiznokes/speexdsp-rs-fork", branch = "helper-for-preprocess_ctl", features = [
     "sys",
     "vendored-sys",
 ] }

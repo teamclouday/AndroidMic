@@ -343,9 +343,9 @@ dependencies = [
 
 [[package]]
 name = "arc-swap"
-version = "1.8.0"
+version = "1.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "51d03449bb8ca2cc2ef70869af31463d1ae5ccc8fa3e334b307203fbf815207e"
+checksum = "9ded5f9a03ac8f24d1b8a25101ee812cd32cdc8c50a4c50237de2c4915850e73"
 dependencies = [
  "rustversion",
 ]
@@ -6643,7 +6643,7 @@ dependencies = [
 [[package]]
 name = "speexdsp"
 version = "0.1.1"
-source = "git+https://github.com/wiiznokes/speexdsp-rs-fork?branch=vendor-and-fixes#8b9bfdf70da0981a7ac5de8c40c3c83eb17266ac"
+source = "git+https://github.com/wiiznokes/speexdsp-rs-fork?branch=helper-for-preprocess_ctl#b44601c86492151417219573758d0a295e1d7d31"
 dependencies = [
  "speexdsp-resampler",
  "speexdsp-sys",
@@ -6652,7 +6652,7 @@ dependencies = [
 [[package]]
 name = "speexdsp-resampler"
 version = "0.1.0"
-source = "git+https://github.com/wiiznokes/speexdsp-rs-fork?branch=vendor-and-fixes#8b9bfdf70da0981a7ac5de8c40c3c83eb17266ac"
+source = "git+https://github.com/wiiznokes/speexdsp-rs-fork?branch=helper-for-preprocess_ctl#b44601c86492151417219573758d0a295e1d7d31"
 dependencies = [
  "cfg-if",
 ]
@@ -6660,7 +6660,7 @@ dependencies = [
 [[package]]
 name = "speexdsp-sys"
 version = "0.1.2"
-source = "git+https://github.com/wiiznokes/speexdsp-rs-fork?branch=vendor-and-fixes#8b9bfdf70da0981a7ac5de8c40c3c83eb17266ac"
+source = "git+https://github.com/wiiznokes/speexdsp-rs-fork?branch=helper-for-preprocess_ctl#b44601c86492151417219573758d0a295e1d7d31"
 dependencies = [
  "bindgen",
  "cc",
