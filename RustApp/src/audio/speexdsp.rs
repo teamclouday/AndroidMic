@@ -64,10 +64,10 @@ pub fn process_speex_f32_stream(
                     st.set_noise_suppress(config.speex_noise_suppress);
 
                     st.set_vad(config.speex_vad_enabled);
-                    st.set_prob_start(config.speex_vad_threshold);
+                    st.set_prob_start(config.speex_vad_threshold.try_into().unwrap_or(i32::MAX));
 
                     st.set_agc(config.speex_agc_enabled);
-                    st.set_agc_target(config.speex_agc_target);
+                    st.set_agc_target(config.speex_agc_target.try_into().unwrap_or(i32::MAX));
 
                     st.set_dereverb(config.speex_dereverb_enabled);
                     st.set_dereverb_level(config.speex_dereverb_level);
