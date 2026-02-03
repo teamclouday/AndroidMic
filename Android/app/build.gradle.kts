@@ -16,8 +16,8 @@ android {
         applicationId = "io.github.teamclouday.AndroidMic"
         minSdk = 23
         targetSdk = 36
-        versionCode = 19
-        versionName = "2.2.3"
+        versionCode = 20
+        versionName = "2.2.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         vectorDrawables.useSupportLibrary = true
