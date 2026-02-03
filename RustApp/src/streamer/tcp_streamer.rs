@@ -37,10 +37,14 @@ pub enum TcpStreamerState {
     },
 }
 
-pub async fn new(ip: IpAddr, port: u16, stream_config: AudioStream) -> Result<TcpStreamer, ConnectError> {
+pub async fn new(
+    ip: IpAddr,
+    port: u16,
+    stream_config: AudioStream,
+) -> Result<TcpStreamer, ConnectError> {
     let listener = TcpListener::bind((ip, port))
         .await
-        .map_err(ConnectError::CantBindPort)?;
+        .map_err(|e| ConnectError::CantBindPort(port, e))?;
 
     let addr = TcpListener::local_addr(&listener).map_err(ConnectError::NoLocalAddress)?;
 

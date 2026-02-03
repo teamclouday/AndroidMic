@@ -17,3 +17,20 @@ pub struct AudioPacketMessageOrdered {
     #[prost(message, optional, tag = "2")]
     pub audio_packet: ::core::option::Option<AudioPacketMessage>,
 }
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ConnectMessage {}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MessageWrapper {
+    #[prost(oneof = "message_wrapper::Payload", tags = "1, 2")]
+    pub payload: ::core::option::Option<message_wrapper::Payload>,
+}
+/// Nested message and enum types in `MessageWrapper`.
+pub mod message_wrapper {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Payload {
+        #[prost(message, tag = "1")]
+        AudioPacket(super::AudioPacketMessageOrdered),
+        #[prost(message, tag = "2")]
+        Connect(super::ConnectMessage),
+    }
+}

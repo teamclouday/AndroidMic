@@ -1,6 +1,6 @@
 use std::sync::{LazyLock, Mutex};
 
-use speexdsp::preprocess::{SpeexPreprocess, SpeexPreprocessConst};
+use speexdsp::preprocess::SpeexPreprocess;
 
 use crate::audio::AudioProcessParams;
 
@@ -60,48 +60,18 @@ pub fn process_speex_f32_stream(
                     let mut st =
                         SpeexPreprocess::new(FRAME_SIZE, SPEEXDSP_SAMPLE_RATE as usize).unwrap();
 
-                    st.preprocess_ctl(
-                        SpeexPreprocessConst::SPEEX_PREPROCESS_SET_DENOISE,
-                        if config.is_speex_denoise_enabled() {
-                            1
-                        } else {
-                            0
-                        },
-                    )
-                    .unwrap();
-
+                    st.set_denoise(config.is_speex_denoise_enabled());
                     st.set_noise_suppress(config.speex_noise_suppress);
 
-                    st.preprocess_ctl(
-                        SpeexPreprocessConst::SPEEX_PREPROCESS_SET_VAD,
-                        if config.speex_vad_enabled { 1 } else { 0 },
-                    )
-                    .unwrap();
-                    st.preprocess_ctl(
-                        SpeexPreprocessConst::SPEEX_PREPROCESS_SET_PROB_START,
-                        config.speex_vad_threshold,
-                    )
-                    .unwrap();
-                    st.preprocess_ctl(
-                        SpeexPreprocessConst::SPEEX_PREPROCESS_SET_AGC,
-                        if config.speex_agc_enabled { 1 } else { 0 },
-                    )
-                    .unwrap();
-                    st.preprocess_ctl(
-                        SpeexPreprocessConst::SPEEX_PREPROCESS_SET_AGC_TARGET,
-                        config.speex_agc_target,
-                    )
-                    .unwrap();
-                    st.preprocess_ctl(
-                        SpeexPreprocessConst::SPEEX_PREPROCESS_SET_DEREVERB,
-                        if config.speex_dereverb_enabled { 1 } else { 0 },
-                    )
-                    .unwrap();
-                    st.preprocess_ctl(
-                        SpeexPreprocessConst::SPEEX_PREPROCESS_SET_DEREVERB_LEVEL,
-                        config.speex_dereverb_level,
-                    )
-                    .unwrap();
+                    st.set_vad(config.speex_vad_enabled);
+                    st.set_prob_start(config.speex_vad_threshold.try_into().unwrap_or(i32::MAX));
+
+                    st.set_agc(config.speex_agc_enabled);
+                    st.set_agc_target(config.speex_agc_target.try_into().unwrap_or(i32::MAX));
+
+                    st.set_dereverb(config.speex_dereverb_enabled);
+                    st.set_dereverb_level(config.speex_dereverb_level);
+
                     st
                 })
                 .collect(),

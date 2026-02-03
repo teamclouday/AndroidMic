@@ -44,9 +44,9 @@ pub fn main_window(app: &AppState) -> Element<'_, AppMsg> {
             column()
                 .width(Length::FillPortion(1))
                 .height(Length::Fill)
+                .spacing(35)
                 .align_x(Horizontal::Center)
                 .push(network_adapter(app))
-                .push(port(app))
                 .push(audio(app))
                 .push(vertical_space())
                 .push(connection_type(app)),
@@ -99,8 +99,8 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
     let selected = app
         .audio_device
         .as_ref()
-        .and_then(|d| d.name().ok())
-        .and_then(|name| app.audio_devices.iter().find(|d| d.name == name));
+        .and_then(|d| d.id().ok())
+        .and_then(|id| app.audio_devices.iter().find(|d| d.id == id.1));
 
     column()
         .spacing(20)
@@ -154,27 +154,6 @@ fn network_adapter(app: &AppState) -> Element<'_, AppMsg> {
                         .on_press(AppMsg::RefreshNetworkAdapters)
                         .class(cosmic::theme::Button::Text)
                         .width(Length::Shrink),
-                ),
-        )
-        .into()
-}
-
-fn port(app: &AppState) -> Element<'_, AppMsg> {
-    column()
-        .spacing(20)
-        .align_x(Horizontal::Center)
-        .push(text::title4(fl!("port")))
-        .push(
-            row()
-                .width(Length::Fill)
-                .spacing(5)
-                .push(
-                    text_input("", &app.port_input)
-                        .on_input(AppMsg::PortTextInput)
-                        .width(Length::Fixed(150.0)),
-                )
-                .push(
-                    button::text(fl!("save")).on_press(AppMsg::PortSave),
                 ),
         )
         .into()
@@ -300,6 +279,22 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                             )
                             .push(horizontal_space()),
                     ),
+            )
+            .push(
+                settings::section().title(fl!("title_connection")).add(
+                    row()
+                        .width(Length::Fill)
+                        .align_y(Vertical::Center)
+                        .spacing(5)
+                        .push(text(fl!("port")))
+                        .push(horizontal_space())
+                        .push(
+                            text_input("", &app.port_input)
+                                .on_input(ConfigMsg::PortTextInput)
+                                .width(Length::Fixed(150.0)),
+                        )
+                        .push(button::text(fl!("save")).on_press(ConfigMsg::PortSave)),
+                ),
             )
             .push(
                 settings::section()

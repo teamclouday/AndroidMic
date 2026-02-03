@@ -48,7 +48,7 @@ adb = []
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 # linux: alsa will probably be included as a fallback ?
-cpal = { version = "0.16", features = ["jack"] }
+cpal = { version = "0.17", features = ["jack"] }
 rtrb = "0.3"
 local-ip-address = "0.6"
 log = "0.4"
@@ -76,7 +76,7 @@ directories = "6"
 prost = "0.14"
 tokio-util = { version = "0.7", features = ["codec", "net"] }
 chrono = "0.4"
-libcosmic = { git = "https://github.com/pop-os/libcosmic.git", rev = "709044891ee04c6ca62ff3d1087ab0e4ebb59bb4", default-features = false, features = [
+libcosmic = { git = "https://github.com/pop-os/libcosmic.git", rev = "3e78eb238159d90956e85e95e868164671b649f6", default-features = false, features = [
     "winit",
     "wgpu",
     "tokio",
@@ -90,14 +90,14 @@ byteorder = "1"
 nusb = { version = "0.1", optional = true }
 serde_with = "3"
 strum = { version = "0.27", features = ["derive"] }
-resvg = "0.45"
+resvg = "0.46"
 rubato = "0.16"
 #https://github.com/tauri-apps/fix-path-env-rs/pull/19
 fix-path-env = { git = "https://github.com/wiiznokes/fix-path-env-rs", rev = "8612a0d8590843dbe9c6326d26292963e6a97f2a" }
 env_logger = "0.11"
 nnnoiseless = "0.5"
 open = "5"
-speexdsp = { git = "https://github.com/wiiznokes/speexdsp-rs-fork", branch = "vendor", features = [
+speexdsp = { git = "https://github.com/wiiznokes/speexdsp-rs-fork", branch = "helper-for-preprocess_ctl", features = [
     "sys",
     "vendored-sys",
 ] }

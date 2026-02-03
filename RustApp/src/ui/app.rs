@@ -54,9 +54,9 @@ pub fn run_ui(flags: Flags) {
 
 #[derive(Clone)]
 pub struct AudioDevice {
-    pub index: usize,
     pub device: Device,
     pub name: String,
+    pub id: String,
 }
 
 impl Debug for AudioDevice {
@@ -75,17 +75,24 @@ impl Display for AudioDevice {
 
 impl PartialEq for AudioDevice {
     fn eq(&self, other: &Self) -> bool {
-        self.index == other.index
+        self.id == other.id
     }
 }
 
 impl AudioDevice {
-    fn new(device: Device, index: usize) -> Self {
-        Self {
-            name: device.name().unwrap_or(fl!("none")),
+    fn new(device: Device) -> anyhow::Result<Self> {
+        let desc = device.description()?;
+        let id = device.id()?;
+
+        Ok(Self {
+            name: desc
+                .extended()
+                .first()
+                .cloned()
+                .unwrap_or(desc.name().to_owned()),
+            id: id.1,
             device,
-            index,
-        }
+        })
     }
 }
 
@@ -93,8 +100,7 @@ fn get_audio_devices(audio_host: &Host) -> Vec<AudioDevice> {
     audio_host
         .output_devices()
         .unwrap()
-        .enumerate()
-        .map(|(pos, device)| AudioDevice::new(device, pos))
+        .filter_map(|device| AudioDevice::new(device).ok())
         .collect()
 }
 
@@ -211,7 +217,10 @@ impl AppState {
                     return self.add_log(e);
                 };
 
-                ConnectOption::Tcp { ip, port: config.port }
+                ConnectOption::Tcp {
+                    ip,
+                    port: config.port,
+                }
             }
             ConnectionMode::Udp => {
                 let Some(ip) = config.ip_or_default() else {
@@ -220,7 +229,10 @@ impl AppState {
                     error!("failed to start audio stream: {e}");
                     return self.add_log(e);
                 };
-                ConnectOption::Udp { ip, port: config.port }
+                ConnectOption::Udp {
+                    ip,
+                    port: config.port,
+                }
             }
             #[cfg(feature = "adb")]
             ConnectionMode::Adb => ConnectOption::Adb,
@@ -318,15 +330,15 @@ impl Application for AppState {
         // initialize audio device
         let audio_host = cpal::default_host();
         let audio_devices = get_audio_devices(&audio_host);
-        let audio_device = match &flags.config.data().device_name {
-            Some(name) => {
+        let audio_device = match &flags.config.data().device_id {
+            Some(id) => {
                 match audio_devices
                     .iter()
-                    .find(|audio_device| &audio_device.name == name)
+                    .find(|audio_device| &audio_device.id == id)
                 {
                     Some(audio_device) => Some(audio_device.device.clone()),
                     None => {
-                        warn!("can't find audio device name {}", name);
+                        warn!("can't find audio device {}", id);
                         audio_host.default_output_device()
                     }
                 }
@@ -477,23 +489,6 @@ impl Application for AppState {
                         system_tray.update_menu_state(false, &fl!("state_listening"));
                     }
 
-                    if self.main_window.is_none() {
-                        let address = format!(
-                            "{}:{}",
-                            ip.unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
-                            port.unwrap_or_default()
-                        );
-                        // show notification when app is minimized
-                        let _ = Notification::new()
-                            .summary("AndroidMic")
-                            .body(format!("Listening on {address}").as_str())
-                            .auto_icon()
-                            .show()
-                            .map_err(|e| {
-                                error!("failed to show notification: {e}");
-                            });
-                    }
-
                     self.connection_state = ConnectionState::Listening;
                     if let (Some(ip), Some(port)) = (ip, port) {
                         info!("listening on {ip}:{port}");
@@ -547,33 +542,13 @@ impl Application for AppState {
             AppMsg::Device(audio_device) => {
                 self.audio_device = Some(audio_device.device.clone());
                 self.config
-                    .update(|c| c.device_name = Some(audio_device.name.clone()));
+                    .update(|c| c.device_id = Some(audio_device.id.clone()));
                 return self.update_audio_stream();
             }
             AppMsg::Adapter(adapter) => {
                 self.config.update(|c| c.ip = Some(adapter.ip));
                 self.network_adapter = Some(adapter.clone());
                 return self.add_log(format!("Selected network adapter: {adapter}").as_str());
-            }
-            AppMsg::PortTextInput(text) => {
-                self.port_input = text;
-            }
-            AppMsg::PortSave => {
-                let port = if self.port_input.is_empty() {
-                    55555
-                } else {
-                    match self.port_input.parse() {
-                        Ok(p) => p,
-                        Err(_) => {
-                            self.port_input = "55555".to_string();
-                            self.config.update(|c| c.port = 55555);
-                            return self.add_log("Invalid port number, using default 55555");
-                        }
-                    }
-                };
-                self.config.update(|c| c.port = port);
-                self.port_input = port.to_string();
-                return self.add_log(format!("Changed port to {}", port).as_str());
             }
             AppMsg::Connect => {
                 return self.connect();
@@ -607,6 +582,27 @@ impl Application for AppState {
                 }
             },
             AppMsg::Config(msg) => match msg {
+                ConfigMsg::PortTextInput(text) => {
+                    self.port_input = text;
+                }
+                ConfigMsg::PortSave => {
+                    let port = if self.port_input.is_empty() {
+                        55555
+                    } else {
+                        match self.port_input.parse() {
+                            Ok(p) => p,
+                            Err(_) => {
+                                self.port_input = "55555".to_string();
+                                self.config.update(|c| c.port = 55555);
+                                return self.add_log("Invalid port number, using default 55555");
+                            }
+                        }
+                    };
+                    self.config.update(|c| c.port = port);
+                    self.port_input = port.to_string();
+                    return self.add_log(format!("Changed port to {}", port).as_str());
+                }
+
                 ConfigMsg::SampleRate(sample_rate) => {
                     self.config.update(|s| s.sample_rate = sample_rate);
                     return self.update_audio_stream();
@@ -631,13 +627,13 @@ impl Application for AppState {
                     {
                         info!(
                             "using recommended audio format: sample rate = {}, channels = {}, audio format = {}",
-                            format.sample_rate().0,
+                            format.sample_rate(),
                             format.channels(),
                             format.sample_format()
                         );
                         self.config.update(|s| {
                             s.sample_rate =
-                                SampleRate::from_number(format.sample_rate().0).unwrap_or_default();
+                                SampleRate::from_number(format.sample_rate()).unwrap_or_default();
                             s.channel_count =
                                 ChannelCount::from_number(format.channels()).unwrap_or_default();
                             s.audio_format = AudioFormat::from_cpal_format(format.sample_format())

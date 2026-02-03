@@ -9,7 +9,7 @@ plugins {
 }
 
 android {
-    namespace = "io.github.teamclouday.AndroidMic"
+    namespace = "io.github.teamclouday.androidMic"
     compileSdk = 36
 
     defaultConfig {

@@ -15,8 +15,6 @@ pub enum AppMsg {
     Streamer(StreamerMsg),
     Device(AudioDevice),
     Adapter(NetworkAdapter),
-    PortTextInput(String),
-    PortSave,
     Connect,
     Stop,
     ToggleSettingsWindow,
@@ -55,6 +53,8 @@ pub enum ConfigMsg {
     Amplify(bool),
     AmplifyValue(f32),
     ToggleAboutWindow,
+    PortTextInput(String),
+    PortSave,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
