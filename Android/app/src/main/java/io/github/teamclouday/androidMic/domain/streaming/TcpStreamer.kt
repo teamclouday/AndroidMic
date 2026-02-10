@@ -60,11 +60,12 @@ class TcpStreamer(
 
         fun adb(
             scope: CoroutineScope,
+            port: Int?
         ) = TcpStreamer(
             scope = scope,
             tag = "AdbStreamer",
             ip = "127.0.0.1",
-            port = 55555
+            port = port
         )
     }
 

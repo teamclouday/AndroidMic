@@ -22,7 +22,7 @@ class MicStreamManager(
         }
 
         Mode.ADB -> {
-            TcpStreamer.adb(scope)
+            TcpStreamer.adb(scope, port)
         }
 
         Mode.USB -> {

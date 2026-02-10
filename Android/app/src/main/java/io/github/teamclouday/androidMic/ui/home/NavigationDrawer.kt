@@ -76,29 +76,20 @@ fun DrawerBody(vm: MainViewModel) {
             expanded = dialogModeExpanded
         )
 
-        when (mode.value) {
-            Mode.WIFI, Mode.UDP -> {
-                val dialogIpPortExpanded = rememberSaveable {
-                    mutableStateOf(false)
-                }
-                DialogIpPort(vm = vm, expanded = dialogIpPortExpanded)
-                SettingsItem(
-                    title = stringResource(id = R.string.drawerIpPort),
-                    subTitle = vm.prefs.ip.getAsState().value + ":" + vm.prefs.port.getAsState().value,
-                    contentDescription = "set ip and port",
-                    icon = Icons.Rounded.Wifi,
-                    expanded = dialogIpPortExpanded
-                )
+        if (mode.value != Mode.USB) {
+            val dialogIpPortExpanded = rememberSaveable {
+                mutableStateOf(false)
             }
-
-            else -> {
-
-            }
-
-//            Modes.USB, Modes.BLUETOOTH -> {
-//
-//            }
+            DialogIpPort(vm = vm, expanded = dialogIpPortExpanded, portOnly = mode.value == Mode.ADB)
+            SettingsItem(
+                title = stringResource(if (mode.value == Mode.ADB) R.string.dialog_port else R.string.drawerIpPort),
+                subTitle = (if(mode.value != Mode.ADB) (vm.prefs.ip.getAsState().value + ":") else "") + vm.prefs.port.getAsState().value,
+                contentDescription = "set ip and port",
+                icon = Icons.Rounded.Wifi,
+                expanded = dialogIpPortExpanded
+            )
         }
+
 
         // Audio
         SettingsItemsSubtitle(R.string.drawer_subtitle_record)

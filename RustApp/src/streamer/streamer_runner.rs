@@ -28,7 +28,9 @@ pub enum ConnectOption {
         port: u16,
     },
     #[cfg(feature = "adb")]
-    Adb,
+    Adb {
+        port: u16,
+    },
     #[cfg(feature = "usb")]
     Usb,
 }
@@ -150,8 +152,8 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                                 .map(Streamer::from)
                                         }
                                         #[cfg(feature = "adb")]
-                                        ConnectOption::Adb => {
-                                            crate::streamer::adb_streamer::new(stream_config)
+                                        ConnectOption::Adb { port } => {
+                                            crate::streamer::adb_streamer::new(port, stream_config)
                                                 .await
                                                 .map(Streamer::from)
                                         }

@@ -3,7 +3,7 @@ use tokio::process::Command;
 
 use crate::{
     config::ConnectionMode,
-    streamer::{DEFAULT_PC_PORT, StreamerMsg, tcp_streamer},
+    streamer::{StreamerMsg, tcp_streamer},
 };
 
 use super::{
@@ -14,8 +14,6 @@ use super::{
 pub struct AdbStreamer {
     tcp_streamer: TcpStreamer,
 }
-
-const ANDROID_REMOTE_PORT: u16 = 55555;
 
 async fn get_connected_devices() -> Result<Vec<String>, ConnectError> {
     let mut cmd = Command::new("adb");
@@ -35,13 +33,13 @@ async fn get_connected_devices() -> Result<Vec<String>, ConnectError> {
     Ok(devices)
 }
 
-async fn remove_adb_reverse_proxy(device_id: &str) -> Result<(), ConnectError> {
+async fn remove_adb_reverse_proxy(device_id: &str, port: u16) -> Result<(), ConnectError> {
     let mut cmd = Command::new("adb");
     cmd.arg("-s")
         .arg(device_id)
         .arg("reverse")
         .arg("--remove")
-        .arg(format!("tcp:{ANDROID_REMOTE_PORT}"));
+        .arg(format!("tcp:{}", port));
 
     exec_cmd(cmd).await?;
 
@@ -67,9 +65,8 @@ async fn exec_cmd(mut cmd: Command) -> Result<String, ConnectError> {
     Ok(stdout)
 }
 
-pub async fn new(stream_config: AudioStream) -> Result<AdbStreamer, ConnectError> {
-    let tcp_streamer =
-        tcp_streamer::new("127.0.0.1".parse().unwrap(), DEFAULT_PC_PORT, stream_config).await?;
+pub async fn new(port: u16, stream_config: AudioStream) -> Result<AdbStreamer, ConnectError> {
+    let tcp_streamer = tcp_streamer::new("127.0.0.1".parse().unwrap(), port, stream_config).await?;
 
     let devices = get_connected_devices().await?;
     if devices.is_empty() {
@@ -77,7 +74,7 @@ pub async fn new(stream_config: AudioStream) -> Result<AdbStreamer, ConnectError
     }
 
     for device_id in &devices {
-        if let Err(e) = remove_adb_reverse_proxy(device_id).await {
+        if let Err(e) = remove_adb_reverse_proxy(device_id, tcp_streamer.port).await {
             if !e.to_string().contains("not found") {
                 warn!("cannot remove adb proxy for device {device_id}: {e}");
             }
@@ -87,7 +84,7 @@ pub async fn new(stream_config: AudioStream) -> Result<AdbStreamer, ConnectError
         cmd.arg("-s")
             .arg(device_id)
             .arg("reverse")
-            .arg(format!("tcp:{ANDROID_REMOTE_PORT}"))
+            .arg(format!("tcp:{}", tcp_streamer.port))
             .arg(format!("tcp:{}", tcp_streamer.port));
         exec_cmd(cmd).await?;
     }
@@ -122,11 +119,12 @@ impl StreamerTrait for AdbStreamer {
 
 impl Drop for AdbStreamer {
     fn drop(&mut self) {
-        tokio::spawn(async {
-            let devices = get_connected_devices().await.unwrap_or_default();
+        let port = self.tcp_streamer.port;
+        tokio::spawn(async move {
+            let devices: Vec<String> = get_connected_devices().await.unwrap_or_default();
 
             for device_id in devices {
-                if let Err(e) = remove_adb_reverse_proxy(&device_id).await {
+                if let Err(e) = remove_adb_reverse_proxy(&device_id, port).await {
                     warn!("cannot remove adb proxy for device {device_id}: {e}");
                 }
             }

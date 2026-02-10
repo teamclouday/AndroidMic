@@ -235,7 +235,7 @@ impl AppState {
                 }
             }
             #[cfg(feature = "adb")]
-            ConnectionMode::Adb => ConnectOption::Adb,
+            ConnectionMode::Adb => ConnectOption::Adb { port: config.port },
             #[cfg(feature = "usb")]
             ConnectionMode::Usb => ConnectOption::Usb,
         };
