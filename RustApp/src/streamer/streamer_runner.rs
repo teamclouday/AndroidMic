@@ -171,6 +171,7 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                 match new_streamer {
                                     Ok(new_streamer) => {
                                         send(&mut sender, new_streamer.status()).await;
+                                        drop(streamer);
                                         streamer = new_streamer;
                                     }
                                     Err(e) => {
@@ -190,6 +191,7 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                 streamer.reconfigure_stream(stream_config);
                             }
                             StreamerCommand::Stop => {
+                                drop(streamer);
                                 streamer = DummyStreamer::new();
                             }
                         }

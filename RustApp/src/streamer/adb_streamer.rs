@@ -78,7 +78,9 @@ pub async fn new(stream_config: AudioStream) -> Result<AdbStreamer, ConnectError
 
     for device_id in &devices {
         if let Err(e) = remove_adb_reverse_proxy(device_id).await {
-            warn!("cannot remove adb proxy for device {device_id}: {e}");
+            if !e.to_string().contains("not found") {
+                warn!("cannot remove adb proxy for device {device_id}: {e}");
+            }
         }
 
         let mut cmd = Command::new("adb");
@@ -120,7 +122,7 @@ impl StreamerTrait for AdbStreamer {
 
 impl Drop for AdbStreamer {
     fn drop(&mut self) {
-        tokio::task::spawn_blocking(|| async {
+        tokio::spawn(async {
             let devices = get_connected_devices().await.unwrap_or_default();
 
             for device_id in devices {
