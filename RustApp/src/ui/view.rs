@@ -29,6 +29,8 @@ use crate::{
 pub static SCROLLABLE_ID: LazyLock<cosmic::widget::Id> = LazyLock::new(cosmic::widget::Id::unique);
 
 pub fn main_window(app: &AppState) -> Element<'_, AppMsg> {
+    let connection_mode = app.config.data().connection_mode;
+
     row()
         .padding(50)
         .spacing(50)
@@ -46,7 +48,7 @@ pub fn main_window(app: &AppState) -> Element<'_, AppMsg> {
                 .height(Length::Fill)
                 .spacing(35)
                 .align_x(Horizontal::Center)
-                .push(network_adapter(app))
+                .push_maybe((connection_mode == ConnectionMode::Tcp || connection_mode == ConnectionMode::Udp).then(|| network_adapter(app)))
                 .push(audio(app))
                 .push(vertical_space())
                 .push(connection_type(app)),

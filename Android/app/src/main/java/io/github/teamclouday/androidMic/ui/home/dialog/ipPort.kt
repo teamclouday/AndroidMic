@@ -20,7 +20,7 @@ import io.github.teamclouday.androidMic.ui.components.ManagerButton
 import io.github.teamclouday.androidMic.ui.components.ManagerOutlinedTextField
 
 @Composable
-fun DialogIpPort(vm: MainViewModel, expanded: MutableState<Boolean>) {
+fun DialogIpPort(vm: MainViewModel, expanded: MutableState<Boolean>, portOnly: Boolean) {
 
     val tempIp = rememberSaveable {
         mutableStateOf(vm.prefs.ip.getBlocking())
@@ -49,9 +49,11 @@ fun DialogIpPort(vm: MainViewModel, expanded: MutableState<Boolean>) {
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // ip field
-                ManagerOutlinedTextField(tempIp, R.string.dialog_ip)
+                if(!portOnly) {
+                    ManagerOutlinedTextField(tempIp, R.string.dialog_ip)
 
-                Spacer(modifier = Modifier.height(10.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
+                }
 
                 // port field
                 ManagerOutlinedTextField(tempPort, R.string.dialog_port)

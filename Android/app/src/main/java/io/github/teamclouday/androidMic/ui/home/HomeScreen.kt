@@ -263,7 +263,7 @@ private fun ConnectButton(
         }
     }
 
-    DialogIpPort(vm = vm, expanded = dialogIpPortExpanded)
+    DialogIpPort(vm = vm, expanded = dialogIpPortExpanded, portOnly = false)
 
 
 
