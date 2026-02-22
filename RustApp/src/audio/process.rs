@@ -4,7 +4,8 @@ use crate::{
     audio::{
         denoise_rnnoise::DENOISE_RNNOISE_SAMPLE_RATE,
         postprocessing::{
-            post_apply_echo, post_apply_pitch_shift, post_apply_reverb, post_apply_walkie_talkie,
+            post_apply_demon, post_apply_echo, post_apply_pitch_shift, post_apply_reverb,
+            post_apply_walkie_talkie,
         },
         speexdsp::{SPEEXDSP_SAMPLE_RATE, process_speex_f32_stream},
     },
@@ -94,6 +95,7 @@ impl AudioStream {
         };
 
         // inject post effect if needed
+        // NOTE: one day I might add UI for users to customize these parameters, but for now just hardcode the presets
         let sample_rate = config.target_format.sample_rate.to_number();
         match &config.post_effect {
             AudioEffect::Echo => {
@@ -113,6 +115,9 @@ impl AudioStream {
             }
             AudioEffect::Walkie => {
                 post_apply_walkie_talkie(&mut buffer, sample_rate, 1200.0, 1.5, 5.0, 1.0);
+            }
+            AudioEffect::Demon => {
+                post_apply_demon(&mut buffer, sample_rate, 400.0, 0.6);
             }
             AudioEffect::NoEffect => {}
         }

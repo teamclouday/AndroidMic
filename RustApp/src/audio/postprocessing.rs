@@ -179,7 +179,7 @@ struct BiquadFilter {
 
 impl BiquadFilter {
     // BPF: Band-Pass Filter
-    fn new(sample_rate: u32, center_freq: f32, q: f32) -> Self {
+    fn new_bpf(sample_rate: u32, center_freq: f32, q: f32) -> Self {
         let w0 = 2.0 * std::f32::consts::PI * center_freq / (sample_rate as f32);
         let alpha = w0.sin() / (2.0 * q);
         let cos_w0 = w0.cos();
@@ -190,6 +190,48 @@ impl BiquadFilter {
             b0: alpha / a0,
             b1: 0.0,
             b2: -alpha / a0,
+            a1: (-2.0 * cos_w0) / a0,
+            a2: (1.0 - alpha) / a0,
+            x1: 0.0,
+            x2: 0.0,
+            y1: 0.0,
+            y2: 0.0,
+        }
+    }
+
+    // LPF: Low-Pass Filter
+    fn new_lpf(sample_rate: u32, cutoff_freq: f32, q: f32) -> Self {
+        let w0 = 2.0 * std::f32::consts::PI * cutoff_freq / (sample_rate as f32);
+        let alpha = w0.sin() / (2.0 * q);
+        let cos_w0 = w0.cos();
+
+        let a0 = 1.0 + alpha;
+
+        Self {
+            b0: ((1.0 - cos_w0) / 2.0) / a0,
+            b1: (1.0 - cos_w0) / a0,
+            b2: ((1.0 - cos_w0) / 2.0) / a0,
+            a1: (-2.0 * cos_w0) / a0,
+            a2: (1.0 - alpha) / a0,
+            x1: 0.0,
+            x2: 0.0,
+            y1: 0.0,
+            y2: 0.0,
+        }
+    }
+
+    // HPF: High-Pass Filter
+    fn new_hpf(sample_rate: u32, cutoff_freq: f32, q: f32) -> Self {
+        let w0 = 2.0 * std::f32::consts::PI * cutoff_freq / (sample_rate as f32);
+        let alpha = w0.sin() / (2.0 * q);
+        let cos_w0 = w0.cos();
+
+        let a0 = 1.0 + alpha;
+
+        Self {
+            b0: ((1.0 + cos_w0) / 2.0) / a0,
+            b1: (-(1.0 + cos_w0)) / a0,
+            b2: ((1.0 + cos_w0) / 2.0) / a0,
             a1: (-2.0 * cos_w0) / a0,
             a2: (1.0 - alpha) / a0,
             x1: 0.0,
@@ -214,6 +256,35 @@ impl BiquadFilter {
 }
 
 #[derive(Debug, Clone, Default)]
+struct SubOctaveFilter {
+    tracker_lpf: BiquadFilter,
+    prev_filtered: f32,
+    flip_flop_state: f32,
+}
+
+impl SubOctaveFilter {
+    fn new(sample_rate: u32, tracking_cutoff: f32) -> Self {
+        Self {
+            tracker_lpf: BiquadFilter::new_lpf(sample_rate, tracking_cutoff, 0.707),
+            prev_filtered: 0.0,
+            flip_flop_state: 1.0,
+        }
+    }
+
+    fn process(&mut self, input: f32) -> f32 {
+        let filtered = self.tracker_lpf.process(input);
+
+        // detect zero-crossing
+        if filtered > 0.0 && self.prev_filtered <= 0.0 {
+            self.flip_flop_state *= -1.0; // toggle state
+        }
+
+        self.prev_filtered = filtered;
+        filtered * self.flip_flop_state
+    }
+}
+
+#[derive(Debug, Clone, Default)]
 struct AudioPostProcessor {
     channels: usize,
     sample_rate: u32,
@@ -232,6 +303,9 @@ struct AudioPostProcessor {
     walkie_drive: f32,
     walkie_center_freq: f32,
     walkie_q: f32,
+
+    demon_filters: Vec<SubOctaveFilter>,
+    demon_cutoff: f32,
 }
 
 impl AudioPostProcessor {
@@ -470,7 +544,7 @@ impl AudioPostProcessor {
         self.walkie_filters.clear();
         for _ in 0..channels {
             self.walkie_filters
-                .push(BiquadFilter::new(sample_rate, center_freq, q));
+                .push(BiquadFilter::new_bpf(sample_rate, center_freq, q));
         }
     }
 
@@ -497,6 +571,56 @@ impl AudioPostProcessor {
 
                 // mix dry and wet samples
                 let output = (dry_sample * (1.0 - mix)) + (distorted * mix);
+                *sample = output.clamp(-1.0, 1.0);
+            }
+        }
+    }
+
+    fn configure_demon(
+        &mut self,
+        sample_rate: u32,
+        channels: usize,
+        tracking_cutoff: f32,
+        mix: f32,
+    ) {
+        if channels == self.channels
+            && channels == self.demon_filters.len()
+            && sample_rate == self.sample_rate
+            && tracking_cutoff == self.demon_cutoff
+        {
+            self.dry_wet_mix = mix;
+            return;
+        }
+
+        self.channels = channels;
+        self.sample_rate = sample_rate;
+        self.dry_wet_mix = mix;
+
+        self.demon_cutoff = tracking_cutoff;
+
+        self.demon_filters.clear();
+        for _ in 0..channels {
+            self.demon_filters
+                .push(SubOctaveFilter::new(sample_rate, tracking_cutoff));
+        }
+    }
+
+    fn apply_demon(&mut self, buffer: &mut Vec<Vec<f32>>) {
+        if buffer.is_empty() || self.demon_filters.is_empty() {
+            return;
+        }
+
+        let mix = self.dry_wet_mix;
+
+        for channel_idx in 0..buffer.len() {
+            let channel_data = &mut buffer[channel_idx];
+            let filter = &mut self.demon_filters[channel_idx];
+
+            for sample in channel_data.iter_mut() {
+                let dry_sample = *sample;
+                let wet_sample = filter.process(dry_sample);
+
+                let output = (dry_sample * (1.0 - mix)) + (wet_sample * mix);
                 *sample = output.clamp(-1.0, 1.0);
             }
         }
@@ -557,4 +681,16 @@ pub fn post_apply_walkie_talkie(
     let mut processor = AUDIO_POST_PROCESSOR.lock().unwrap();
     processor.configure_walkie_talkie(sample_rate, buffer.len(), center_freq, q, drive, mix);
     processor.apply_walkie_talkie(buffer);
+}
+
+// apply demon effect to audio buffer in place
+pub fn post_apply_demon(
+    buffer: &mut Vec<Vec<f32>>,
+    sample_rate: u32,
+    tracking_cutoff: f32,
+    mix: f32,
+) {
+    let mut processor = AUDIO_POST_PROCESSOR.lock().unwrap();
+    processor.configure_demon(sample_rate, buffer.len(), tracking_cutoff, mix);
+    processor.apply_demon(buffer);
 }
