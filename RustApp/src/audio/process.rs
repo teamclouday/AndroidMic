@@ -5,7 +5,7 @@ use crate::{
         denoise_rnnoise::DENOISE_RNNOISE_SAMPLE_RATE,
         postprocessing::{
             post_apply_echo, post_apply_flanger, post_apply_phaser, post_apply_pitch_shift,
-            post_apply_popstar, post_apply_reverb, post_apply_walkie_talkie,
+            post_apply_popstar, post_apply_reverb, post_apply_vocoder, post_apply_walkie_talkie,
         },
         speexdsp::{SPEEXDSP_SAMPLE_RATE, process_speex_f32_stream},
     },
@@ -107,6 +107,12 @@ impl AudioStream {
             AudioEffect::ReverbSpatious => {
                 post_apply_reverb(&mut buffer, sample_rate, 0.85, 0.5, 0.3);
             }
+            AudioEffect::Spaceship => {
+                post_apply_flanger(&mut buffer, sample_rate, 0.25, 1.0, 6.0, 0.8, 0.5);
+            }
+            AudioEffect::Underwater => {
+                post_apply_phaser(&mut buffer, sample_rate, 1.5, 150.0, 1200.0, 0.6, 0.7);
+            }
             AudioEffect::PitchUp => {
                 post_apply_pitch_shift(&mut buffer, sample_rate, 1.5, 1.0);
             }
@@ -122,11 +128,10 @@ impl AudioStream {
             AudioEffect::Popstar => {
                 post_apply_popstar(&mut buffer, sample_rate, 0.02, 0.8);
             }
-            AudioEffect::Spaceship => {
-                post_apply_flanger(&mut buffer, sample_rate, 0.25, 1.0, 6.0, 0.8, 0.5);
-            }
-            AudioEffect::Underwater => {
-                post_apply_phaser(&mut buffer, sample_rate, 1.5, 150.0, 1200.0, 0.6, 0.7);
+            AudioEffect::Robot => {
+                // NOTE: this vocoder preset does not sound great, but I have no idea how to improve it further
+                // Leave it here for now and maybe one day there will be a better solution
+                post_apply_vocoder(&mut buffer, sample_rate, 4, 120.0, 2.8, 0.9);
             }
             AudioEffect::NoEffect => {}
         }

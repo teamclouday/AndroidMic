@@ -3,7 +3,59 @@ use std::{
     vec,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
+struct SawtoothOscillator {
+    phase: f32,
+    phase_inc: f32,
+}
+
+impl SawtoothOscillator {
+    fn new(frequency: f32, sample_rate: u32) -> Self {
+        Self {
+            phase: 0.0,
+            phase_inc: frequency / sample_rate as f32,
+        }
+    }
+
+    fn sample(&mut self) -> f32 {
+        let out = self.phase * 2.0 - 1.0;
+        self.phase = (self.phase + self.phase_inc) % 1.0;
+        out
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+struct EnvelopeFollower {
+    attack_alpha: f32,
+    release_alpha: f32,
+    current_value: f32,
+}
+
+impl EnvelopeFollower {
+    fn new(attack_ms: f32, release_ms: f32, sample_rate: u32) -> Self {
+        let attack_alpha = (-1.0 / (attack_ms.max(0.1) * 0.001 * sample_rate as f32)).exp();
+        let release_alpha = (-1.0 / (release_ms.max(0.1) * 0.001 * sample_rate as f32)).exp();
+        Self {
+            attack_alpha,
+            release_alpha,
+            current_value: 0.0,
+        }
+    }
+
+    fn process(&mut self, input: f32) -> f32 {
+        let x = input.max(0.0);
+        let alpha = if x > self.current_value {
+            self.attack_alpha
+        } else {
+            self.release_alpha
+        };
+
+        self.current_value = alpha * self.current_value + (1.0 - alpha) * x;
+        self.current_value
+    }
+}
+
+#[derive(Debug, Clone, Default)]
 struct CombFilter {
     buffer: Vec<f32>,
     pos: usize,
@@ -40,7 +92,7 @@ impl CombFilter {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 struct AllPassFilter {
     buffer: Vec<f32>,
     pos: usize,
@@ -69,7 +121,7 @@ impl AllPassFilter {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 struct PitchShifter {
     buffer: Vec<f32>,
     write_pos: usize,
@@ -445,6 +497,13 @@ impl PhaserFilter {
 }
 
 #[derive(Debug, Clone, Default)]
+struct VocoderBand {
+    modulator_bpf: BiquadFilter,
+    carrier_bpf: BiquadFilter,
+    envelope: EnvelopeFollower,
+}
+
+#[derive(Debug, Clone, Default)]
 struct AudioPostProcessor {
     channels: usize,
     sample_rate: u32,
@@ -466,6 +525,7 @@ struct AudioPostProcessor {
 
     popstar_filters: Vec<PitchShifter>,
     popstar_rms_threshold: f32,
+    analysis_buffer: Vec<Vec<f32>>,
 
     flanger_filters: Vec<FlangerFilter>,
     flanger_rate_hz: f32,
@@ -475,7 +535,12 @@ struct AudioPostProcessor {
     phaser_filters: Vec<PhaserFilter>,
     phaser_rate_hz: f32,
 
-    analysis_buffer: Vec<Vec<f32>>,
+    vocoder_bands: Vec<Vec<VocoderBand>>,
+    vocoder_carriers: Vec<SawtoothOscillator>,
+    vocoder_carrier_freq: f32,
+    vocoder_q_factor: f32,
+    vocoder_num_bands: usize,
+    noise_seed: u32,
 }
 
 impl AudioPostProcessor {
@@ -998,6 +1063,135 @@ impl AudioPostProcessor {
             }
         }
     }
+
+    fn configure_vocoder(
+        &mut self,
+        sample_rate: u32,
+        channels: usize,
+        num_bands: usize,  // e.g.8 to 24 bands for a clear vocoder effect
+        carrier_freq: f32, // e.g. 100.0 Hz for a bassy carrier, 1000.0 Hz for a more vocal-like carrier
+        q_factor: f32,     // 1.0 to 10.0 (controls bandwidth of the vocoder bands)
+        mix: f32,          // 0.0 to 1.0 (dry/wet blend)
+    ) {
+        if channels == self.channels
+            && channels == self.vocoder_bands.len()
+            && channels == self.vocoder_carriers.len()
+            && sample_rate == self.sample_rate
+            && carrier_freq == self.vocoder_carrier_freq
+            && q_factor == self.vocoder_q_factor
+            && num_bands == self.vocoder_num_bands
+        {
+            self.dry_wet_mix = mix;
+            return;
+        }
+
+        self.channels = channels;
+        self.sample_rate = sample_rate;
+        self.dry_wet_mix = mix;
+
+        self.vocoder_carrier_freq = carrier_freq;
+        self.vocoder_q_factor = q_factor;
+        self.vocoder_num_bands = num_bands;
+
+        let min_freq = 180.0f32;
+        let max_freq = 6000.0f32;
+        let mut center_frequencies = Vec::with_capacity(num_bands);
+
+        if num_bands == 1 {
+            center_frequencies.push((min_freq + max_freq) * 0.5);
+        } else {
+            for i in 0..num_bands {
+                // logarithmic spacing
+                let fraction = i as f32 / (num_bands as f32 - 1.0);
+                let freq = min_freq * (max_freq / min_freq).powf(fraction);
+                center_frequencies.push(freq);
+            }
+        }
+
+        self.vocoder_bands.clear();
+        self.vocoder_carriers.clear();
+
+        for _ in 0..channels {
+            self.vocoder_carriers
+                .push(SawtoothOscillator::new(carrier_freq, sample_rate));
+
+            let mut channel_bands = Vec::new();
+            for &freq in &center_frequencies {
+                channel_bands.push(VocoderBand {
+                    modulator_bpf: BiquadFilter::new_bpf(sample_rate, freq, q_factor),
+                    carrier_bpf: BiquadFilter::new_bpf(sample_rate, freq, q_factor),
+                    envelope: EnvelopeFollower::new(2.0, 70.0, sample_rate),
+                });
+            }
+            self.vocoder_bands.push(channel_bands);
+        }
+    }
+
+    fn apply_vocoder(&mut self, buffer: &mut Vec<Vec<f32>>) {
+        if buffer.is_empty() || self.vocoder_bands.is_empty() {
+            return;
+        }
+
+        let mix = self.dry_wet_mix;
+
+        for channel_idx in 0..buffer.len() {
+            let channel_data = &mut buffer[channel_idx];
+            let carrier = &mut self.vocoder_carriers[channel_idx];
+            let bands = &mut self.vocoder_bands[channel_idx];
+
+            let band_count = bands.len() as f32;
+            let split_idx = (band_count * 0.66) as usize;
+
+            for sample in channel_data.iter_mut() {
+                let dry_sample = *sample;
+
+                // first pass: get estimate
+                let mut low_env = 0.0f32;
+                let mut high_env = 0.0f32;
+
+                for (i, band) in bands.iter_mut().enumerate() {
+                    let modulated = band.modulator_bpf.process(dry_sample);
+                    let env = band.envelope.process(modulated.abs());
+
+                    if i >= split_idx {
+                        high_env += env;
+                    } else {
+                        low_env += env;
+                    }
+                }
+
+                let denom = (low_env + high_env).max(1e-6);
+                let unvoiced = (high_env / denom).clamp(0.0, 1.0);
+
+                // generate white noise
+                self.noise_seed = self
+                    .noise_seed
+                    .wrapping_mul(1664525)
+                    .wrapping_add(1013904223);
+                let noise = ((self.noise_seed >> 16) as f32 / 65536.0) * 2.0 - 1.0;
+                let noise_mix = (0.02 + unvoiced * 0.28).clamp(0.02, 0.30);
+                let carrier_sample = carrier.sample();
+                let mixed_carrier = carrier_sample * (1.0 - noise_mix) + noise * noise_mix;
+
+                // second pass: apply vocoder effect
+                let mut wet_sample = 0.0;
+                for band in bands.iter_mut() {
+                    let modulated = band.modulator_bpf.process(dry_sample);
+                    let env = band.envelope.process(modulated.abs());
+                    let shaped_carrier = band.carrier_bpf.process(mixed_carrier);
+                    wet_sample += shaped_carrier * env;
+                }
+
+                // normalize wet sample by number of bands and add some saturation
+                wet_sample *= 1.0 / band_count.sqrt();
+                wet_sample = (wet_sample * 1.35).tanh();
+
+                // mix dry and wet samples
+                let output = (dry_sample * (1.0 - mix)) + (wet_sample * mix);
+                *sample = output.clamp(-1.0, 1.0);
+            }
+        }
+    }
 }
 
 static AUDIO_POST_PROCESSOR: LazyLock<Mutex<AudioPostProcessor>> =
@@ -1112,4 +1306,25 @@ pub fn post_apply_phaser(
         mix,
     );
     processor.apply_phaser(buffer);
+}
+
+// apply vocoder effect to audio buffer in place
+pub fn post_apply_vocoder(
+    buffer: &mut Vec<Vec<f32>>,
+    sample_rate: u32,
+    num_bands: usize,
+    carrier_freq: f32,
+    q_factor: f32,
+    mix: f32,
+) {
+    let mut processor = AUDIO_POST_PROCESSOR.lock().unwrap();
+    processor.configure_vocoder(
+        sample_rate,
+        buffer.len(),
+        num_bands,
+        carrier_freq,
+        q_factor,
+        mix,
+    );
+    processor.apply_vocoder(buffer);
 }
