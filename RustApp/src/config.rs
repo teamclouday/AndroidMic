@@ -47,11 +47,13 @@ pub enum AudioEffect {
     ReverbIntimate,
     ReverbSpatious,
     // Character effects:
-    PitchDown,
     PitchUp,
+    PitchDown,
     Demon,
     Walkie,
     Popstar,
+    Spaceship,
+    Underwater,
 }
 
 impl Display for AudioEffect {
@@ -61,11 +63,13 @@ impl Display for AudioEffect {
             AudioEffect::Echo => "Mountain",
             AudioEffect::ReverbIntimate => "Empty Room",
             AudioEffect::ReverbSpatious => "Concert Hall",
-            AudioEffect::PitchDown => "Giant",
             AudioEffect::PitchUp => "Chipmunk",
+            AudioEffect::PitchDown => "Giant",
             AudioEffect::Demon => "Demon",
             AudioEffect::Walkie => "Walkie-Talkie",
             AudioEffect::Popstar => "Pop Star",
+            AudioEffect::Spaceship => "Spaceship",
+            AudioEffect::Underwater => "Underwater",
         };
 
         write!(f, "{}", str)

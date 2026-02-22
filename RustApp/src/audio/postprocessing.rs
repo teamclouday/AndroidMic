@@ -291,6 +291,160 @@ impl BiquadFilter {
 }
 
 #[derive(Debug, Clone, Default)]
+struct FlangerFilter {
+    buffer: Vec<f32>,
+    write_idx: usize,
+    lfo_phase: f32,
+    lfo_phase_inc: f32,
+    min_delay_samples: f32,
+    depth_samples: f32,
+    feedback: f32,
+}
+
+impl FlangerFilter {
+    fn new(
+        sample_rate: u32,
+        rate_hz: f32,
+        min_delay_ms: f32,
+        depth_ms: f32,
+        feedback: f32,
+    ) -> Self {
+        let max_delay_ms = min_delay_ms + depth_ms;
+        let buffer_size = ((sample_rate as f32 * max_delay_ms / 1000.0) as usize) + 10;
+
+        Self {
+            buffer: vec![0.0; buffer_size],
+            write_idx: 0,
+            lfo_phase: 0.0,
+            lfo_phase_inc: rate_hz / sample_rate as f32,
+            min_delay_samples: sample_rate as f32 * (min_delay_ms / 1000.0),
+            depth_samples: sample_rate as f32 * (depth_ms / 1000.0),
+            feedback,
+        }
+    }
+
+    fn process(&mut self, input: f32) -> f32 {
+        let buffer_len = self.buffer.len() as f32;
+
+        // calculate current delay in samples
+        let lfo_val = (self.lfo_phase * 2.0 * std::f32::consts::PI).sin();
+        let lfo_mapped = lfo_val * 0.5 + 0.5;
+        let current_delay = self.min_delay_samples + (self.depth_samples * lfo_mapped);
+
+        // calculate read index with wrapping
+        let mut read_idx = self.write_idx as f32 - current_delay;
+        if read_idx < 0.0 {
+            read_idx += buffer_len;
+        }
+
+        let idx_floor = (read_idx.floor() as usize) % self.buffer.len();
+        let idx_ceil = (idx_floor + 1) % self.buffer.len();
+        let fraction = read_idx.fract();
+
+        // linear interpolation of delayed sample
+        let sample_floor = self.buffer[idx_floor];
+        let sample_ceil = self.buffer[idx_ceil];
+        let delayed_sample = (1.0 - fraction) * sample_floor + fraction * sample_ceil;
+
+        // write current input + feedback into buffer
+        let write_val = (input + (delayed_sample * self.feedback)).clamp(-1.0, 1.0);
+        self.buffer[self.write_idx] = write_val;
+
+        // advance write index and LFO phase
+        self.write_idx = (self.write_idx + 1) % self.buffer.len();
+        self.lfo_phase += self.lfo_phase_inc;
+        if self.lfo_phase >= 1.0 {
+            self.lfo_phase -= 1.0;
+        }
+
+        delayed_sample
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+struct AllPassStage {
+    x1: f32,
+    y1: f32,
+}
+
+impl AllPassStage {
+    fn process(&mut self, input: f32, a: f32) -> f32 {
+        let output = a * input + self.x1 - a * self.y1;
+
+        self.x1 = input;
+        self.y1 = output;
+
+        output
+    }
+}
+
+#[derive(Debug, Clone, Default)]
+struct PhaserFilter {
+    stages: Vec<AllPassStage>,
+    lfo_phase: f32,
+    lfo_phase_inc: f32,
+    f_min: f32,
+    f_max: f32,
+    sample_rate: f32,
+    feedback: f32,
+    last_output: f32,
+}
+
+impl PhaserFilter {
+    fn new(
+        sample_rate: u32,
+        rate_hz: f32,
+        f_min: f32,
+        f_max: f32,
+        feedback: f32,
+        num_stages: usize,
+    ) -> Self {
+        Self {
+            stages: vec![AllPassStage::default(); num_stages],
+            lfo_phase: 0.0,
+            lfo_phase_inc: rate_hz / sample_rate as f32,
+            f_min,
+            f_max,
+            sample_rate: sample_rate as f32,
+            feedback,
+            last_output: 0.0,
+        }
+    }
+
+    fn process(&mut self, input: f32) -> f32 {
+        // calculate LFO value for filter sweeping
+        let lfo_val = (self.lfo_phase * 2.0 * std::f32::consts::PI).sin() * 0.5 + 0.5;
+
+        // map LFO to current center frequency for all-pass filters
+        let current_fc = self.f_min * (self.f_max / self.f_min).powf(lfo_val);
+
+        // calculate all-pass coefficient
+        let w = std::f32::consts::PI * current_fc / self.sample_rate;
+        let tan_w = w.tan();
+        let a = (tan_w - 1.0) / (tan_w + 1.0);
+
+        // apply feedback from previous output
+        let mut wet_signal = input + (self.last_output * self.feedback);
+
+        // run through all-pass stages in series
+        for stage in &mut self.stages {
+            wet_signal = stage.process(wet_signal, a);
+        }
+
+        // store last output for feedback
+        self.last_output = wet_signal.clamp(-1.0, 1.0);
+
+        // advance LFO phase
+        self.lfo_phase += self.lfo_phase_inc;
+        if self.lfo_phase >= 1.0 {
+            self.lfo_phase -= 1.0;
+        }
+
+        self.last_output
+    }
+}
+
+#[derive(Debug, Clone, Default)]
 struct AudioPostProcessor {
     channels: usize,
     sample_rate: u32,
@@ -312,6 +466,14 @@ struct AudioPostProcessor {
 
     popstar_filters: Vec<PitchShifter>,
     popstar_rms_threshold: f32,
+
+    flanger_filters: Vec<FlangerFilter>,
+    flanger_rate_hz: f32,
+    flanger_min_delay_ms: f32,
+    flanger_depth_ms: f32,
+
+    phaser_filters: Vec<PhaserFilter>,
+    phaser_rate_hz: f32,
 
     analysis_buffer: Vec<Vec<f32>>,
 }
@@ -708,6 +870,134 @@ impl AudioPostProcessor {
             None
         }
     }
+
+    fn configure_flanger(
+        &mut self,
+        sample_rate: u32,
+        channels: usize,
+        rate_hz: f32,      // 0.1 to 10.0 Hz (LFO rate)
+        min_delay_ms: f32, // 0.1 to 10.0 ms (base delay time)
+        depth_ms: f32,     // 0.0 to 10.0 ms (how much the delay time modulates)
+        feedback: f32,     // 0.0 to 0.9 (higher values create more intense flanging)
+        mix: f32,          // 0.0 to 1.0 (dry/wet blend)
+    ) {
+        if channels == self.channels
+            && channels == self.flanger_filters.len()
+            && sample_rate == self.sample_rate
+            && rate_hz == self.flanger_rate_hz
+            && min_delay_ms == self.flanger_min_delay_ms
+            && depth_ms == self.flanger_depth_ms
+        {
+            for flanger in &mut self.flanger_filters {
+                flanger.feedback = feedback;
+            }
+            self.dry_wet_mix = mix;
+            return;
+        }
+
+        self.channels = channels;
+        self.sample_rate = sample_rate;
+        self.dry_wet_mix = mix;
+
+        self.flanger_rate_hz = rate_hz;
+        self.flanger_min_delay_ms = min_delay_ms;
+        self.flanger_depth_ms = depth_ms;
+
+        self.flanger_filters.clear();
+        for _ in 0..channels {
+            self.flanger_filters.push(FlangerFilter::new(
+                sample_rate,
+                rate_hz,
+                min_delay_ms,
+                depth_ms,
+                feedback,
+            ));
+        }
+    }
+
+    fn apply_flanger(&mut self, buffer: &mut Vec<Vec<f32>>) {
+        if buffer.is_empty() || self.flanger_filters.is_empty() {
+            return;
+        }
+
+        let mix = self.dry_wet_mix;
+
+        for channel_idx in 0..buffer.len() {
+            let channel_data = &mut buffer[channel_idx];
+            let flanger = &mut self.flanger_filters[channel_idx];
+
+            for sample in channel_data.iter_mut() {
+                let dry_sample = *sample;
+                let wet_sample = flanger.process(dry_sample);
+
+                let output = (dry_sample * (1.0 - mix)) + (wet_sample * mix);
+                *sample = output.clamp(-1.0, 1.0);
+            }
+        }
+    }
+
+    fn configure_phaser(
+        &mut self,
+        sample_rate: u32,
+        channels: usize,
+        rate_hz: f32, // 0.1 to 10.0 Hz (LFO rate)
+        f_min: f32,
+        f_max: f32,
+        feedback: f32, // 0.0 to 0.9 (higher values create more intense phasing)
+        mix: f32,      // 0.0 to 1.0 (dry/wet blend)
+    ) {
+        if channels == self.channels
+            && channels == self.phaser_filters.len()
+            && sample_rate == self.sample_rate
+            && rate_hz == self.phaser_rate_hz
+        {
+            for phaser in &mut self.phaser_filters {
+                phaser.feedback = feedback;
+                phaser.f_min = f_min;
+                phaser.f_max = f_max;
+            }
+            self.dry_wet_mix = mix;
+            return;
+        }
+
+        self.channels = channels;
+        self.sample_rate = sample_rate;
+        self.dry_wet_mix = mix;
+
+        self.phaser_rate_hz = rate_hz;
+        self.phaser_filters.clear();
+        for _ in 0..channels {
+            self.phaser_filters.push(PhaserFilter::new(
+                sample_rate,
+                rate_hz,
+                f_min,
+                f_max,
+                feedback,
+                6,
+            ));
+        }
+    }
+
+    fn apply_phaser(&mut self, buffer: &mut Vec<Vec<f32>>) {
+        if buffer.is_empty() || self.phaser_filters.is_empty() {
+            return;
+        }
+
+        let mix = self.dry_wet_mix;
+
+        for channel_idx in 0..buffer.len() {
+            let channel_data = &mut buffer[channel_idx];
+            let phaser = &mut self.phaser_filters[channel_idx];
+
+            for sample in channel_data.iter_mut() {
+                let dry_sample = *sample;
+                let wet_sample = phaser.process(dry_sample);
+
+                let output = (dry_sample * (1.0 - mix)) + (wet_sample * mix);
+                *sample = output.clamp(-1.0, 1.0);
+            }
+        }
+    }
 }
 
 static AUDIO_POST_PROCESSOR: LazyLock<Mutex<AudioPostProcessor>> =
@@ -776,4 +1066,50 @@ pub fn post_apply_popstar(
     let mut processor = AUDIO_POST_PROCESSOR.lock().unwrap();
     processor.configure_popstar(sample_rate, buffer.len(), rms_threshold, mix);
     processor.apply_popstar(buffer);
+}
+
+// apply flanger effect to audio buffer in place
+pub fn post_apply_flanger(
+    buffer: &mut Vec<Vec<f32>>,
+    sample_rate: u32,
+    rate_hz: f32,
+    min_delay_ms: f32,
+    depth_ms: f32,
+    feedback: f32,
+    mix: f32,
+) {
+    let mut processor = AUDIO_POST_PROCESSOR.lock().unwrap();
+    processor.configure_flanger(
+        sample_rate,
+        buffer.len(),
+        rate_hz,
+        min_delay_ms,
+        depth_ms,
+        feedback,
+        mix,
+    );
+    processor.apply_flanger(buffer);
+}
+
+// apply phaser effect to audio buffer in place
+pub fn post_apply_phaser(
+    buffer: &mut Vec<Vec<f32>>,
+    sample_rate: u32,
+    rate_hz: f32,
+    f_min: f32,
+    f_max: f32,
+    feedback: f32,
+    mix: f32,
+) {
+    let mut processor = AUDIO_POST_PROCESSOR.lock().unwrap();
+    processor.configure_phaser(
+        sample_rate,
+        buffer.len(),
+        rate_hz,
+        f_min,
+        f_max,
+        feedback,
+        mix,
+    );
+    processor.apply_phaser(buffer);
 }
