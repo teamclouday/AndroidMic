@@ -42,9 +42,13 @@ pub struct Config {
 #[derive(Debug, Clone, Serialize, Deserialize, Values, PartialEq, Eq)]
 pub enum AudioEffect {
     NoEffect,
+    // Environment effects:
     Echo,
     ReverbIntimate,
     ReverbSpatious,
+    // Character effects:
+    PitchDown,
+    PitchUp,
 }
 
 impl Display for AudioEffect {
@@ -54,6 +58,8 @@ impl Display for AudioEffect {
             AudioEffect::Echo => "Mountain (Echo)",
             AudioEffect::ReverbIntimate => "Empty Room (Reverb)",
             AudioEffect::ReverbSpatious => "Concert Hall (Reverb)",
+            AudioEffect::PitchDown => "Giant (Pitch Down)",
+            AudioEffect::PitchUp => "Chipmunk (Pitch Up)",
         };
 
         write!(f, "{}", str)

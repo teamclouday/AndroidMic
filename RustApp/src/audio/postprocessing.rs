@@ -66,6 +66,103 @@ impl AllPassFilter {
     }
 }
 
+#[derive(Debug, Clone)]
+struct PitchShifter {
+    buffer: Vec<f32>,
+    write_pos: usize,
+    pitch_ratio: f32,
+    window_size: f32,
+    phase: f32,
+}
+
+impl PitchShifter {
+    fn new(sample_rate: u32, window_ms: f32, pitch_ratio: f32) -> Self {
+        let window_size = (sample_rate as f32 * (window_ms / 1000.0)).max(1.0);
+        let buffer_size = (window_size * 2.0).ceil() as usize;
+
+        Self {
+            buffer: vec![0.0; buffer_size],
+            write_pos: 0,
+            pitch_ratio,
+            window_size,
+            phase: 0.0,
+        }
+    }
+
+    fn process(&mut self, input: f32) -> f32 {
+        self.buffer[self.write_pos] = input;
+
+        // advance phase based on pitch ratio
+        let phase_inc = 1.0 - self.pitch_ratio;
+        self.phase += phase_inc;
+
+        // wrap phase within window size
+        if self.phase >= self.window_size {
+            self.phase -= self.window_size;
+        }
+        if self.phase < 0.0 {
+            self.phase += self.window_size;
+        }
+
+        // calculate two delay positions for crossfading
+        let delay1 = self.phase;
+        let mut delay2 = self.phase + (self.window_size / 2.0);
+        if delay2 >= self.window_size {
+            delay2 -= self.window_size;
+        }
+
+        // read delayed samples with linear interpolation
+        let out1 = self.read_interpolated(delay1);
+        let out2 = self.read_interpolated(delay2);
+
+        // calculate triangle envelopes for crossfading
+        let env1 = self.calculate_envelope(delay1);
+        let env2 = self.calculate_envelope(delay2);
+
+        // mix two delayed outputs with their envelopes
+        let output = (out1 * env1) + (out2 * env2);
+
+        // advance write position
+        self.write_pos = (self.write_pos + 1) % self.buffer.len();
+
+        output
+    }
+
+    // help function to read from buffer with linear interpolation
+    fn read_interpolated(&self, delay: f32) -> f32 {
+        let mut read_pos = self.write_pos as f32 - delay;
+        let len_f = self.buffer.len() as f32;
+
+        // wrap read position within buffer length
+        while read_pos < 0.0 {
+            read_pos += len_f;
+        }
+        while read_pos >= len_f {
+            read_pos -= len_f;
+        }
+
+        let index1 = read_pos.floor() as usize;
+        let index2 = (index1 + 1) % self.buffer.len();
+        let fraction = read_pos - index1 as f32;
+
+        let s1 = self.buffer[index1];
+        let s2 = self.buffer[index2];
+
+        // linear interpolation
+        s1 + fraction * (s2 - s1)
+    }
+
+    // helper function to calculate triangle envelope for crossfading
+    fn calculate_envelope(&self, phase: f32) -> f32 {
+        let half_window = self.window_size / 2.0;
+        if phase < half_window {
+            phase / half_window
+        } else {
+            1.0 - ((phase - half_window) / half_window)
+        }
+    }
+}
+
 #[derive(Debug, Clone, Default)]
 struct AudioPostProcessor {
     channels: usize,
@@ -77,6 +174,9 @@ struct AudioPostProcessor {
 
     reverb_combs: Vec<Vec<CombFilter>>,
     reverb_allpasses: Vec<Vec<AllPassFilter>>,
+
+    pitch_ratio: f32,
+    pitch_shifters: Vec<PitchShifter>,
 }
 
 impl AudioPostProcessor {
@@ -124,7 +224,6 @@ impl AudioPostProcessor {
         // iterate through each channel
         for channel_idx in 0..buffer.len() {
             let channel_data = &mut buffer[channel_idx];
-
             let filter = &mut self.echo_filters[channel_idx];
 
             for sample in channel_data.iter_mut() {
@@ -137,7 +236,7 @@ impl AudioPostProcessor {
         }
     }
 
-    pub fn configure_reverb(
+    fn configure_reverb(
         &mut self,
         sample_rate: u32,
         channels: usize,
@@ -190,7 +289,7 @@ impl AudioPostProcessor {
         }
     }
 
-    pub fn apply_reverb(&mut self, buffer: &mut Vec<Vec<f32>>) {
+    fn apply_reverb(&mut self, buffer: &mut Vec<Vec<f32>>) {
         if buffer.is_empty() || self.reverb_combs.is_empty() {
             return;
         }
@@ -226,6 +325,54 @@ impl AudioPostProcessor {
             }
         }
     }
+
+    fn configure_pitch_shift(
+        &mut self,
+        sample_rate: u32,
+        channels: usize,
+        pitch_ratio: f32, // >1.0 for pitch up, <1.0 for pitch down
+        mix: f32,         // 0.0 to 1.0 (dry/wet blend)
+    ) {
+        if channels == self.channels && sample_rate == self.sample_rate {
+            for shifter in &mut self.pitch_shifters {
+                shifter.pitch_ratio = pitch_ratio;
+            }
+            return;
+        }
+
+        self.channels = channels;
+        self.sample_rate = sample_rate;
+        self.dry_wet_mix = mix;
+
+        self.pitch_ratio = pitch_ratio;
+        let window_ms = 40.0; // 40ms window size for pitch shifting
+        self.pitch_shifters.clear();
+        for _ in 0..channels {
+            self.pitch_shifters
+                .push(PitchShifter::new(sample_rate, window_ms, pitch_ratio));
+        }
+    }
+
+    fn apply_pitch_shift(&mut self, buffer: &mut Vec<Vec<f32>>) {
+        if buffer.is_empty() || self.pitch_shifters.is_empty() {
+            return;
+        }
+
+        let mix = self.dry_wet_mix;
+
+        for channel_idx in 0..buffer.len() {
+            let channel_data = &mut buffer[channel_idx];
+            let shifter = &mut self.pitch_shifters[channel_idx];
+
+            for sample in channel_data.iter_mut() {
+                let dry_sample = *sample;
+                let wet_sample = shifter.process(dry_sample);
+
+                let output = (dry_sample * (1.0 - mix)) + (wet_sample * mix);
+                *sample = output.clamp(-1.0, 1.0);
+            }
+        }
+    }
 }
 
 static AUDIO_POST_PROCESSOR: LazyLock<Mutex<AudioPostProcessor>> =
@@ -256,4 +403,16 @@ pub fn post_apply_reverb(
     let mut processor = AUDIO_POST_PROCESSOR.lock().unwrap();
     processor.configure_reverb(sample_rate, buffer.len(), room_size, damping, mix);
     processor.apply_reverb(buffer);
+}
+
+// apply pitch shift effect to audio buffer in place
+pub fn post_apply_pitch_shift(
+    buffer: &mut Vec<Vec<f32>>,
+    sample_rate: u32,
+    pitch_ratio: f32,
+    mix: f32,
+) {
+    let mut processor = AUDIO_POST_PROCESSOR.lock().unwrap();
+    processor.configure_pitch_shift(sample_rate, buffer.len(), pitch_ratio, mix);
+    processor.apply_pitch_shift(buffer);
 }
