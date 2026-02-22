@@ -4,12 +4,13 @@ use cpal::traits::StreamTrait;
 use rtrb::Consumer;
 
 use crate::{
-    config::{AudioFormat, ChannelCount, Config, DenoiseKind, SampleRate},
+    config::{AudioEffect, AudioFormat, ChannelCount, Config, DenoiseKind, SampleRate},
     ui::app::{AppState, Stream},
 };
 
 mod denoise_rnnoise;
 mod player;
+mod postprocessing;
 pub mod process;
 mod resampler;
 mod speexdsp;
@@ -20,6 +21,7 @@ pub struct AudioProcessParams {
     pub target_format: AudioPacketFormat,
     pub denoise: Option<DenoiseKind>,
     pub amplify: Option<f32>,
+    pub post_effect: AudioEffect,
     pub speex_noise_suppress: i32,
     pub speex_vad_enabled: bool,
     pub speex_vad_threshold: u32,
@@ -35,6 +37,7 @@ impl AudioProcessParams {
             target_format,
             denoise: config.denoise.then_some(config.denoise_kind),
             amplify: config.amplify.then_some(config.amplify_value),
+            post_effect: config.post_effect,
             speex_noise_suppress: config.speex_noise_suppress,
             speex_vad_enabled: config.speex_vad_enabled,
             speex_vad_threshold: config.speex_vad_threshold,

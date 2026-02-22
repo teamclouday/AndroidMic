@@ -36,6 +36,25 @@ pub struct Config {
     pub theme: AppTheme,
     pub amplify: bool,
     pub amplify_value: f32,
+    pub post_effect: AudioEffect,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Values, PartialEq, Eq)]
+pub enum AudioEffect {
+    NoEffect,
+    // Repeat the sound with a delay, creating an echo effect.
+    Echo,
+}
+
+impl Display for AudioEffect {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            AudioEffect::NoEffect => "No Effect",
+            AudioEffect::Echo => "Echo",
+        };
+
+        write!(f, "{}", str)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, Values, PartialEq)]
@@ -80,6 +99,7 @@ impl Default for Config {
             speex_agc_target: 8000,
             speex_dereverb_enabled: false,
             speex_dereverb_level: 0.5,
+            post_effect: AudioEffect::NoEffect,
             start_minimized: false,
         }
     }

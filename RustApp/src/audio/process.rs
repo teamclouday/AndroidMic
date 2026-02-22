@@ -3,9 +3,10 @@ use std::borrow::Cow;
 use crate::{
     audio::{
         denoise_rnnoise::DENOISE_RNNOISE_SAMPLE_RATE,
+        postprocessing::post_apply_echo,
         speexdsp::{SPEEXDSP_SAMPLE_RATE, process_speex_f32_stream},
     },
-    config::{AudioFormat, DenoiseKind},
+    config::{AudioEffect, AudioFormat, DenoiseKind},
     streamer::{AudioPacketMessage, AudioStream},
 };
 
@@ -80,15 +81,7 @@ impl AudioStream {
             buffer = process_speex_f32_stream(&prepared_buffer, config)?;
         }
 
-        if let Some(amplify) = config.amplify {
-            for channel in &mut buffer {
-                for v in channel {
-                    *v *= amplify;
-                }
-            }
-        }
-
-        let buffer = if config.target_format.sample_rate.to_number() == current_sample_rate {
+        buffer = if config.target_format.sample_rate.to_number() == current_sample_rate {
             buffer
         } else {
             resample_f32_stream(
@@ -97,6 +90,28 @@ impl AudioStream {
                 config.target_format.sample_rate.to_number(),
             )?
         };
+
+        // inject post effect if needed
+        match &config.post_effect {
+            AudioEffect::Echo => {
+                post_apply_echo(
+                    &mut buffer,
+                    config.target_format.sample_rate.to_number(),
+                    400,
+                    0.5,
+                    0.2,
+                );
+            }
+            AudioEffect::NoEffect => {}
+        }
+
+        if let Some(amplify) = config.amplify {
+            for channel in &mut buffer {
+                for v in channel {
+                    *v *= amplify;
+                }
+            }
+        }
 
         // finally convert to output format
         let num_channels = config.target_format.channel_count.to_number() as usize;

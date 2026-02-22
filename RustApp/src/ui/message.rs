@@ -3,8 +3,8 @@ use super::app::AudioDevice;
 use super::tray::SystemTrayMsg;
 use crate::{
     config::{
-        AppTheme, AudioFormat, ChannelCount, ConnectionMode, DenoiseKind, NetworkAdapter,
-        SampleRate,
+        AppTheme, AudioEffect, AudioFormat, ChannelCount, ConnectionMode, DenoiseKind,
+        NetworkAdapter, SampleRate,
     },
     streamer::StreamerMsg,
 };
@@ -55,6 +55,7 @@ pub enum ConfigMsg {
     ToggleAboutWindow,
     PortTextInput(String),
     PortSave,
+    PostAudioEffect(AudioEffect),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
