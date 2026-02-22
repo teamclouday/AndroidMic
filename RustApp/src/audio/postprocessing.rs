@@ -164,6 +164,56 @@ impl PitchShifter {
 }
 
 #[derive(Debug, Clone, Default)]
+struct BiquadFilter {
+    b0: f32,
+    b1: f32,
+    b2: f32,
+    a1: f32,
+    a2: f32,
+
+    x1: f32,
+    x2: f32,
+    y1: f32,
+    y2: f32,
+}
+
+impl BiquadFilter {
+    // BPF: Band-Pass Filter
+    fn new(sample_rate: u32, center_freq: f32, q: f32) -> Self {
+        let w0 = 2.0 * std::f32::consts::PI * center_freq / (sample_rate as f32);
+        let alpha = w0.sin() / (2.0 * q);
+        let cos_w0 = w0.cos();
+
+        let a0 = 1.0 + alpha;
+
+        Self {
+            b0: alpha / a0,
+            b1: 0.0,
+            b2: -alpha / a0,
+            a1: (-2.0 * cos_w0) / a0,
+            a2: (1.0 - alpha) / a0,
+            x1: 0.0,
+            x2: 0.0,
+            y1: 0.0,
+            y2: 0.0,
+        }
+    }
+
+    fn process(&mut self, input: f32) -> f32 {
+        let output = self.b0 * input + self.b1 * self.x1 + self.b2 * self.x2
+            - self.a1 * self.y1
+            - self.a2 * self.y2;
+
+        self.x2 = self.x1;
+        self.x1 = input;
+        self.y2 = self.y1;
+        self.y1 = output;
+
+        output
+    }
+}
+
+#[derive(Debug, Clone, Default)]
 struct AudioPostProcessor {
     channels: usize,
     sample_rate: u32,
@@ -177,6 +227,11 @@ struct AudioPostProcessor {
 
     pitch_ratio: f32,
     pitch_shifters: Vec<PitchShifter>,
+
+    walkie_filters: Vec<BiquadFilter>,
+    walkie_drive: f32,
+    walkie_center_freq: f32,
+    walkie_q: f32,
 }
 
 impl AudioPostProcessor {
@@ -190,6 +245,7 @@ impl AudioPostProcessor {
         mix: f32,      // 0.0 to 1.0 (dry/wet blend)
     ) {
         if channels == self.channels
+            && channels == self.echo_filters.len()
             && sample_rate == self.sample_rate
             && delay_ms == self.echo_delay_ms
         {
@@ -197,6 +253,7 @@ impl AudioPostProcessor {
                 filter.decay = decay;
                 filter.cutoff = cutoff;
             }
+            self.dry_wet_mix = mix;
 
             return;
         }
@@ -248,13 +305,17 @@ impl AudioPostProcessor {
         let cutoff = 0.1 + ((1.0 - damping) * 0.4);
 
         // skip allocation if parameters haven't changed
-        if channels == self.channels && sample_rate == self.sample_rate {
+        if channels == self.channels
+            && channels == self.reverb_combs.len()
+            && sample_rate == self.sample_rate
+        {
             for filters in &mut self.reverb_combs {
                 for filter in filters {
                     filter.decay = decay;
                     filter.cutoff = cutoff;
                 }
             }
+            self.dry_wet_mix = mix;
 
             return;
         }
@@ -333,10 +394,14 @@ impl AudioPostProcessor {
         pitch_ratio: f32, // >1.0 for pitch up, <1.0 for pitch down
         mix: f32,         // 0.0 to 1.0 (dry/wet blend)
     ) {
-        if channels == self.channels && sample_rate == self.sample_rate {
+        if channels == self.channels
+            && channels == self.pitch_shifters.len()
+            && sample_rate == self.sample_rate
+        {
             for shifter in &mut self.pitch_shifters {
                 shifter.pitch_ratio = pitch_ratio;
             }
+            self.dry_wet_mix = mix;
             return;
         }
 
@@ -369,6 +434,69 @@ impl AudioPostProcessor {
                 let wet_sample = shifter.process(dry_sample);
 
                 let output = (dry_sample * (1.0 - mix)) + (wet_sample * mix);
+                *sample = output.clamp(-1.0, 1.0);
+            }
+        }
+    }
+
+    fn configure_walkie_talkie(
+        &mut self,
+        sample_rate: u32,
+        channels: usize,
+        center_freq: f32, // Usually ~1000.0 to 1500.0 Hz
+        q: f32,           // usually 1.0 to 2.0 (Quality factor for the band-pass filter)
+        drive: f32,       // 1.0 to 10.0 (controls distortion amount)
+        mix: f32,         // 0.0 to 1.0 (dry/wet blend)
+    ) {
+        if channels == self.channels
+            && channels == self.walkie_filters.len()
+            && sample_rate == self.sample_rate
+            && center_freq == self.walkie_center_freq
+            && q == self.walkie_q
+        {
+            self.walkie_drive = drive;
+            self.dry_wet_mix = mix;
+            return;
+        }
+
+        self.channels = channels;
+        self.sample_rate = sample_rate;
+        self.dry_wet_mix = mix;
+
+        self.walkie_center_freq = center_freq;
+        self.walkie_q = q;
+        self.walkie_drive = drive;
+
+        self.walkie_filters.clear();
+        for _ in 0..channels {
+            self.walkie_filters
+                .push(BiquadFilter::new(sample_rate, center_freq, q));
+        }
+    }
+
+    fn apply_walkie_talkie(&mut self, buffer: &mut Vec<Vec<f32>>) {
+        if buffer.is_empty() || self.walkie_filters.is_empty() {
+            return;
+        }
+
+        let mix = self.dry_wet_mix;
+        let drive = self.walkie_drive;
+
+        for channel_idx in 0..buffer.len() {
+            let channel_data = &mut buffer[channel_idx];
+            let filter = &mut self.walkie_filters[channel_idx];
+
+            for sample in channel_data.iter_mut() {
+                let dry_sample = *sample;
+
+                // band-pass filter
+                let filtered = filter.process(dry_sample);
+
+                // distortion using tanh waveshaper
+                let distorted = (filtered * drive).tanh();
+
+                // mix dry and wet samples
+                let output = (dry_sample * (1.0 - mix)) + (distorted * mix);
                 *sample = output.clamp(-1.0, 1.0);
             }
         }
@@ -415,4 +543,18 @@ pub fn post_apply_pitch_shift(
     let mut processor = AUDIO_POST_PROCESSOR.lock().unwrap();
     processor.configure_pitch_shift(sample_rate, buffer.len(), pitch_ratio, mix);
     processor.apply_pitch_shift(buffer);
+}
+
+// apply walkie-talkie effect to audio buffer in place
+pub fn post_apply_walkie_talkie(
+    buffer: &mut Vec<Vec<f32>>,
+    sample_rate: u32,
+    center_freq: f32,
+    q: f32,
+    drive: f32,
+    mix: f32,
+) {
+    let mut processor = AUDIO_POST_PROCESSOR.lock().unwrap();
+    processor.configure_walkie_talkie(sample_rate, buffer.len(), center_freq, q, drive, mix);
+    processor.apply_walkie_talkie(buffer);
 }

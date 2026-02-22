@@ -3,7 +3,9 @@ use std::borrow::Cow;
 use crate::{
     audio::{
         denoise_rnnoise::DENOISE_RNNOISE_SAMPLE_RATE,
-        postprocessing::{post_apply_echo, post_apply_pitch_shift, post_apply_reverb},
+        postprocessing::{
+            post_apply_echo, post_apply_pitch_shift, post_apply_reverb, post_apply_walkie_talkie,
+        },
         speexdsp::{SPEEXDSP_SAMPLE_RATE, process_speex_f32_stream},
     },
     config::{AudioEffect, AudioFormat, DenoiseKind},
@@ -108,6 +110,9 @@ impl AudioStream {
             }
             AudioEffect::PitchUp => {
                 post_apply_pitch_shift(&mut buffer, sample_rate, 2.0, 1.0);
+            }
+            AudioEffect::Walkie => {
+                post_apply_walkie_talkie(&mut buffer, sample_rate, 1200.0, 1.5, 5.0, 1.0);
             }
             AudioEffect::NoEffect => {}
         }
