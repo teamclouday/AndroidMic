@@ -4,8 +4,8 @@ use crate::{
     audio::{
         denoise_rnnoise::DENOISE_RNNOISE_SAMPLE_RATE,
         postprocessing::{
-            post_apply_demon, post_apply_echo, post_apply_pitch_shift, post_apply_reverb,
-            post_apply_walkie_talkie,
+            post_apply_demon, post_apply_echo, post_apply_pitch_shift, post_apply_popstar,
+            post_apply_reverb, post_apply_walkie_talkie,
         },
         speexdsp::{SPEEXDSP_SAMPLE_RATE, process_speex_f32_stream},
     },
@@ -108,16 +108,19 @@ impl AudioStream {
                 post_apply_reverb(&mut buffer, sample_rate, 0.95, 0.3, 0.4);
             }
             AudioEffect::PitchDown => {
-                post_apply_pitch_shift(&mut buffer, sample_rate, 0.5, 1.0);
+                post_apply_pitch_shift(&mut buffer, sample_rate, 0.8, 1.0);
             }
             AudioEffect::PitchUp => {
-                post_apply_pitch_shift(&mut buffer, sample_rate, 2.0, 1.0);
+                post_apply_pitch_shift(&mut buffer, sample_rate, 1.5, 1.0);
             }
             AudioEffect::Walkie => {
                 post_apply_walkie_talkie(&mut buffer, sample_rate, 1200.0, 1.5, 5.0, 1.0);
             }
             AudioEffect::Demon => {
                 post_apply_demon(&mut buffer, sample_rate, 400.0, 0.6);
+            }
+            AudioEffect::Popstar => {
+                post_apply_popstar(&mut buffer, sample_rate, 0.02, 0.8);
             }
             AudioEffect::NoEffect => {}
         }

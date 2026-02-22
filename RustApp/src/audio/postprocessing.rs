@@ -71,12 +71,13 @@ struct PitchShifter {
     buffer: Vec<f32>,
     write_pos: usize,
     pitch_ratio: f32,
-    window_size: f32,
+    current_window_size: f32,
+    target_window_size: f32,
     phase: f32,
 }
 
 impl PitchShifter {
-    fn new(sample_rate: u32, window_ms: f32, pitch_ratio: f32) -> Self {
+    fn new_fixed(sample_rate: u32, window_ms: f32, pitch_ratio: f32) -> Self {
         let window_size = (sample_rate as f32 * (window_ms / 1000.0)).max(1.0);
         let buffer_size = (window_size * 2.0).ceil() as usize;
 
@@ -84,31 +85,62 @@ impl PitchShifter {
             buffer: vec![0.0; buffer_size],
             write_pos: 0,
             pitch_ratio,
-            window_size,
+            current_window_size: window_size,
+            target_window_size: window_size,
             phase: 0.0,
+        }
+    }
+
+    fn new_dynamic(sample_rate: u32, initial_window_ms: f32) -> Self {
+        let max_window_ms = 100.0;
+        let max_window_size = (sample_rate as f32 * (max_window_ms / 1000.0)).max(1.0);
+        let buffer_size = (max_window_size * 2.0).ceil() as usize;
+
+        let initial_window_size = (sample_rate as f32 * (initial_window_ms / 1000.0)).max(1.0);
+
+        Self {
+            buffer: vec![0.0; buffer_size],
+            write_pos: 0,
+            pitch_ratio: 1.0,
+            current_window_size: initial_window_size,
+            target_window_size: initial_window_size,
+            phase: 0.0,
+        }
+    }
+
+    fn set_dynamic_target(&mut self, pitch_ratio: f32, detected_hz: f32, sample_rate: u32) {
+        self.pitch_ratio = pitch_ratio;
+
+        if detected_hz > 20.0 {
+            let samples_per_wave = sample_rate as f32 / detected_hz;
+            let max_safe_window = (self.buffer.len() as f32 / 2.0) - 1.0;
+            self.target_window_size = samples_per_wave.clamp(10.0, max_safe_window);
         }
     }
 
     fn process(&mut self, input: f32) -> f32 {
         self.buffer[self.write_pos] = input;
 
+        // smooth window size changes to avoid artifacts
+        self.current_window_size += (self.target_window_size - self.current_window_size) * 0.002;
+
         // advance phase based on pitch ratio
         let phase_inc = 1.0 - self.pitch_ratio;
         self.phase += phase_inc;
 
         // wrap phase within window size
-        if self.phase >= self.window_size {
-            self.phase -= self.window_size;
+        if self.phase >= self.current_window_size {
+            self.phase -= self.current_window_size;
         }
         if self.phase < 0.0 {
-            self.phase += self.window_size;
+            self.phase += self.current_window_size;
         }
 
         // calculate two delay positions for crossfading
         let delay1 = self.phase;
-        let mut delay2 = self.phase + (self.window_size / 2.0);
-        if delay2 >= self.window_size {
-            delay2 -= self.window_size;
+        let mut delay2 = self.phase + (self.current_window_size / 2.0);
+        if delay2 >= self.current_window_size {
+            delay2 -= self.current_window_size;
         }
 
         // read delayed samples with linear interpolation
@@ -116,8 +148,8 @@ impl PitchShifter {
         let out2 = self.read_interpolated(delay2);
 
         // calculate triangle envelopes for crossfading
-        let env1 = self.calculate_envelope(delay1);
-        let env2 = self.calculate_envelope(delay2);
+        let env1 = self.calculate_envelope(delay1, self.current_window_size);
+        let env2 = self.calculate_envelope(delay2, self.current_window_size);
 
         // mix two delayed outputs with their envelopes
         let output = (out1 * env1) + (out2 * env2);
@@ -153,8 +185,8 @@ impl PitchShifter {
     }
 
     // helper function to calculate triangle envelope for crossfading
-    fn calculate_envelope(&self, phase: f32) -> f32 {
-        let half_window = self.window_size / 2.0;
+    fn calculate_envelope(&self, phase: f32, window: f32) -> f32 {
+        let half_window = window / 2.0;
         if phase < half_window {
             phase / half_window
         } else {
@@ -306,6 +338,9 @@ struct AudioPostProcessor {
 
     demon_filters: Vec<SubOctaveFilter>,
     demon_cutoff: f32,
+
+    popstar_filters: Vec<PitchShifter>,
+    popstar_rms_threshold: f32,
 }
 
 impl AudioPostProcessor {
@@ -488,7 +523,7 @@ impl AudioPostProcessor {
         self.pitch_shifters.clear();
         for _ in 0..channels {
             self.pitch_shifters
-                .push(PitchShifter::new(sample_rate, window_ms, pitch_ratio));
+                .push(PitchShifter::new_fixed(sample_rate, window_ms, pitch_ratio));
         }
     }
 
@@ -625,6 +660,117 @@ impl AudioPostProcessor {
             }
         }
     }
+
+    fn configure_popstar(
+        &mut self,
+        sample_rate: u32,
+        channels: usize,
+        rms_threshold: f32, // 0.0 to 1.0 (minimum RMS required to attempt pitch detection)
+        mix: f32,           // 0.0 to 1.0 (dry/wet blend)
+    ) {
+        if channels == self.channels
+            && channels == self.popstar_filters.len()
+            && sample_rate == self.sample_rate
+        {
+            self.dry_wet_mix = mix;
+            self.popstar_rms_threshold = rms_threshold;
+            return;
+        }
+
+        self.channels = channels;
+        self.sample_rate = sample_rate;
+        self.dry_wet_mix = mix;
+
+        self.popstar_rms_threshold = rms_threshold;
+        self.popstar_filters.clear();
+        for _ in 0..channels {
+            self.popstar_filters
+                .push(PitchShifter::new_dynamic(sample_rate, 20.0));
+        }
+    }
+
+    fn apply_popstar(&mut self, buffer: &mut Vec<Vec<f32>>) {
+        if buffer.is_empty() || self.popstar_filters.is_empty() {
+            return;
+        }
+
+        let mix = self.dry_wet_mix;
+        let threshold = self.popstar_rms_threshold;
+        let sample_rate = self.sample_rate;
+
+        for channel_idx in 0..buffer.len() {
+            let channel_data = &mut buffer[channel_idx];
+            let shifter = &mut self.popstar_filters[channel_idx];
+
+            // detect pitch of current buffer
+            if let Some(detected_hz) = Self::detect_pitch(channel_data, threshold, sample_rate) {
+                // quantize to nearest musical note
+                let target_hz = {
+                    let midi_note = 69.0 + 12.0 * (detected_hz / 440.0).log2();
+                    let target_note = midi_note.round();
+                    440.0 * (2.0f32).powf((target_note - 69.0) / 12.0)
+                };
+
+                // calculate pitch ratio
+                let pitch_ratio = target_hz / detected_hz;
+                shifter.set_dynamic_target(pitch_ratio, detected_hz, sample_rate);
+            } else {
+                shifter.set_dynamic_target(1.0, 0.0, sample_rate);
+            }
+
+            for sample in channel_data.iter_mut() {
+                let dry_sample = *sample;
+                let wet_sample = shifter.process(dry_sample);
+
+                let output = (dry_sample * (1.0 - mix)) + (wet_sample * mix);
+                *sample = output.clamp(-1.0, 1.0);
+            }
+        }
+    }
+
+    fn detect_pitch(buffer: &[f32], threshold: f32, sample_rate: u32) -> Option<f32> {
+        // check RMS to avoid pitch detection on silence
+        let rms = (buffer.iter().map(|s| s * s).sum::<f32>() / buffer.len() as f32).sqrt();
+        if rms < threshold {
+            return None;
+        }
+
+        // define range for human voice
+        let min_freq = 80.0;
+        let max_freq = 1000.0;
+
+        // convert frequency range to lag range
+        let min_lag = (sample_rate as f32 / max_freq).ceil() as usize;
+        let max_lag = (sample_rate as f32 / min_freq).floor() as usize;
+
+        // ensure buffer is long enough for max lag
+        if buffer.len() < max_lag {
+            return None;
+        }
+
+        // auto-correlation
+        let mut max_corr = 0.0;
+        let mut best_lag = 0;
+
+        for lag in min_lag..=max_lag {
+            let mut corr = 0.0;
+
+            for i in 0..(buffer.len() - lag) {
+                corr += buffer[i] * buffer[i + lag];
+            }
+
+            if corr > max_corr {
+                max_corr = corr;
+                best_lag = lag;
+            }
+        }
+
+        if best_lag > 0 {
+            Some(sample_rate as f32 / best_lag as f32)
+        } else {
+            None
+        }
+    }
 }
 
 static AUDIO_POST_PROCESSOR: LazyLock<Mutex<AudioPostProcessor>> =
@@ -693,4 +839,16 @@ pub fn post_apply_demon(
     let mut processor = AUDIO_POST_PROCESSOR.lock().unwrap();
     processor.configure_demon(sample_rate, buffer.len(), tracking_cutoff, mix);
     processor.apply_demon(buffer);
+}
+
+// apply popstar effect to audio buffer in place
+pub fn post_apply_popstar(
+    buffer: &mut Vec<Vec<f32>>,
+    sample_rate: u32,
+    rms_threshold: f32,
+    mix: f32,
+) {
+    let mut processor = AUDIO_POST_PROCESSOR.lock().unwrap();
+    processor.configure_popstar(sample_rate, buffer.len(), rms_threshold, mix);
+    processor.apply_popstar(buffer);
 }

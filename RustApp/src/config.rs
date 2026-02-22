@@ -51,6 +51,7 @@ pub enum AudioEffect {
     PitchUp,
     Walkie,
     Demon,
+    Popstar,
 }
 
 impl Display for AudioEffect {
@@ -64,6 +65,7 @@ impl Display for AudioEffect {
             AudioEffect::PitchUp => "Chipmunk (Pitch Up)",
             AudioEffect::Walkie => "Walkie-Talkie",
             AudioEffect::Demon => "Demon",
+            AudioEffect::Popstar => "Pop Star",
         };
 
         write!(f, "{}", str)
