@@ -1,4 +1,7 @@
-use std::sync::{LazyLock, Mutex};
+use std::{
+    sync::{LazyLock, Mutex},
+    vec,
+};
 
 #[derive(Debug, Clone)]
 struct CombFilter {
@@ -288,35 +291,6 @@ impl BiquadFilter {
 }
 
 #[derive(Debug, Clone, Default)]
-struct SubOctaveFilter {
-    tracker_lpf: BiquadFilter,
-    prev_filtered: f32,
-    flip_flop_state: f32,
-}
-
-impl SubOctaveFilter {
-    fn new(sample_rate: u32, tracking_cutoff: f32) -> Self {
-        Self {
-            tracker_lpf: BiquadFilter::new_lpf(sample_rate, tracking_cutoff, 0.707),
-            prev_filtered: 0.0,
-            flip_flop_state: 1.0,
-        }
-    }
-
-    fn process(&mut self, input: f32) -> f32 {
-        let filtered = self.tracker_lpf.process(input);
-
-        // detect zero-crossing
-        if filtered > 0.0 && self.prev_filtered <= 0.0 {
-            self.flip_flop_state *= -1.0; // toggle state
-        }
-
-        self.prev_filtered = filtered;
-        filtered * self.flip_flop_state
-    }
-}
-
-#[derive(Debug, Clone, Default)]
 struct AudioPostProcessor {
     channels: usize,
     sample_rate: u32,
@@ -336,11 +310,10 @@ struct AudioPostProcessor {
     walkie_center_freq: f32,
     walkie_q: f32,
 
-    demon_filters: Vec<SubOctaveFilter>,
-    demon_cutoff: f32,
-
     popstar_filters: Vec<PitchShifter>,
     popstar_rms_threshold: f32,
+
+    analysis_buffer: Vec<Vec<f32>>,
 }
 
 impl AudioPostProcessor {
@@ -611,56 +584,6 @@ impl AudioPostProcessor {
         }
     }
 
-    fn configure_demon(
-        &mut self,
-        sample_rate: u32,
-        channels: usize,
-        tracking_cutoff: f32,
-        mix: f32,
-    ) {
-        if channels == self.channels
-            && channels == self.demon_filters.len()
-            && sample_rate == self.sample_rate
-            && tracking_cutoff == self.demon_cutoff
-        {
-            self.dry_wet_mix = mix;
-            return;
-        }
-
-        self.channels = channels;
-        self.sample_rate = sample_rate;
-        self.dry_wet_mix = mix;
-
-        self.demon_cutoff = tracking_cutoff;
-
-        self.demon_filters.clear();
-        for _ in 0..channels {
-            self.demon_filters
-                .push(SubOctaveFilter::new(sample_rate, tracking_cutoff));
-        }
-    }
-
-    fn apply_demon(&mut self, buffer: &mut Vec<Vec<f32>>) {
-        if buffer.is_empty() || self.demon_filters.is_empty() {
-            return;
-        }
-
-        let mix = self.dry_wet_mix;
-
-        for channel_idx in 0..buffer.len() {
-            let channel_data = &mut buffer[channel_idx];
-            let filter = &mut self.demon_filters[channel_idx];
-
-            for sample in channel_data.iter_mut() {
-                let dry_sample = *sample;
-                let wet_sample = filter.process(dry_sample);
-
-                let output = (dry_sample * (1.0 - mix)) + (wet_sample * mix);
-                *sample = output.clamp(-1.0, 1.0);
-            }
-        }
-    }
-
     fn configure_popstar(
         &mut self,
         sample_rate: u32,
@@ -683,9 +606,12 @@ impl AudioPostProcessor {
 
         self.popstar_rms_threshold = rms_threshold;
         self.popstar_filters.clear();
+        self.analysis_buffer.clear();
         for _ in 0..channels {
             self.popstar_filters
                 .push(PitchShifter::new_dynamic(sample_rate, 20.0));
+            self.analysis_buffer
+                .push(vec![0.0; (sample_rate as f32 * 0.05) as usize]); // 50ms analysis buffer
         }
     }
 
@@ -701,9 +627,20 @@ impl AudioPostProcessor {
         for channel_idx in 0..buffer.len() {
             let channel_data = &mut buffer[channel_idx];
             let shifter = &mut self.popstar_filters[channel_idx];
+            let history = &mut self.analysis_buffer[channel_idx];
+
+            // update analysis buffer with current samples
+            let new_len = channel_data.len();
+            let history_len = history.len();
+            if new_len >= history_len {
+                history.copy_from_slice(&channel_data[new_len - history_len..]);
+            } else {
+                history.drain(0..new_len);
+                history.extend_from_slice(channel_data);
+            }
 
             // detect pitch of current buffer
-            if let Some(detected_hz) = Self::detect_pitch(channel_data, threshold, sample_rate) {
+            if let Some(detected_hz) = Self::detect_pitch(history, threshold, sample_rate) {
                 // quantize to nearest musical note
                 let target_hz = {
                     let midi_note = 69.0 + 12.0 * (detected_hz / 440.0).log2();
@@ -827,18 +764,6 @@ pub fn post_apply_walkie_talkie(
     let mut processor = AUDIO_POST_PROCESSOR.lock().unwrap();
     processor.configure_walkie_talkie(sample_rate, buffer.len(), center_freq, q, drive, mix);
     processor.apply_walkie_talkie(buffer);
-}
-
-// apply demon effect to audio buffer in place
-pub fn post_apply_demon(
-    buffer: &mut Vec<Vec<f32>>,
-    sample_rate: u32,
-    tracking_cutoff: f32,
-    mix: f32,
-) {
-    let mut processor = AUDIO_POST_PROCESSOR.lock().unwrap();
-    processor.configure_demon(sample_rate, buffer.len(), tracking_cutoff, mix);
-    processor.apply_demon(buffer);
 }
 
 // apply popstar effect to audio buffer in place

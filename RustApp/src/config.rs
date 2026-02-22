@@ -49,8 +49,8 @@ pub enum AudioEffect {
     // Character effects:
     PitchDown,
     PitchUp,
-    Walkie,
     Demon,
+    Walkie,
     Popstar,
 }
 
@@ -58,13 +58,13 @@ impl Display for AudioEffect {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
             AudioEffect::NoEffect => "No Effect",
-            AudioEffect::Echo => "Mountain (Echo)",
-            AudioEffect::ReverbIntimate => "Empty Room (Reverb)",
-            AudioEffect::ReverbSpatious => "Concert Hall (Reverb)",
-            AudioEffect::PitchDown => "Giant (Pitch Down)",
-            AudioEffect::PitchUp => "Chipmunk (Pitch Up)",
-            AudioEffect::Walkie => "Walkie-Talkie",
+            AudioEffect::Echo => "Mountain",
+            AudioEffect::ReverbIntimate => "Empty Room",
+            AudioEffect::ReverbSpatious => "Concert Hall",
+            AudioEffect::PitchDown => "Giant",
+            AudioEffect::PitchUp => "Chipmunk",
             AudioEffect::Demon => "Demon",
+            AudioEffect::Walkie => "Walkie-Talkie",
             AudioEffect::Popstar => "Pop Star",
         };
 
