@@ -3,7 +3,7 @@ use std::borrow::Cow;
 use crate::{
     audio::{
         denoise_rnnoise::DENOISE_RNNOISE_SAMPLE_RATE,
-        postprocessing::post_apply_echo,
+        postprocessing::{post_apply_echo, post_apply_reverb},
         speexdsp::{SPEEXDSP_SAMPLE_RATE, process_speex_f32_stream},
     },
     config::{AudioEffect, AudioFormat, DenoiseKind},
@@ -92,15 +92,16 @@ impl AudioStream {
         };
 
         // inject post effect if needed
+        let sample_rate = config.target_format.sample_rate.to_number();
         match &config.post_effect {
             AudioEffect::Echo => {
-                post_apply_echo(
-                    &mut buffer,
-                    config.target_format.sample_rate.to_number(),
-                    400,
-                    0.5,
-                    0.2,
-                );
+                post_apply_echo(&mut buffer, sample_rate, 300, 0.5, 0.3, 0.25);
+            }
+            AudioEffect::ReverbIntimate => {
+                post_apply_reverb(&mut buffer, sample_rate, 0.5, 0.8, 0.15);
+            }
+            AudioEffect::ReverbSpatious => {
+                post_apply_reverb(&mut buffer, sample_rate, 0.95, 0.3, 0.4);
             }
             AudioEffect::NoEffect => {}
         }

@@ -42,15 +42,18 @@ pub struct Config {
 #[derive(Debug, Clone, Serialize, Deserialize, Values, PartialEq, Eq)]
 pub enum AudioEffect {
     NoEffect,
-    // Repeat the sound with a delay, creating an echo effect.
     Echo,
+    ReverbIntimate,
+    ReverbSpatious,
 }
 
 impl Display for AudioEffect {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let str = match self {
             AudioEffect::NoEffect => "No Effect",
-            AudioEffect::Echo => "Echo",
+            AudioEffect::Echo => "Mountain (Echo)",
+            AudioEffect::ReverbIntimate => "Empty Room (Reverb)",
+            AudioEffect::ReverbSpatious => "Concert Hall (Reverb)",
         };
 
         write!(f, "{}", str)
