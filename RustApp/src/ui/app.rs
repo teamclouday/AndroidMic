@@ -725,6 +725,10 @@ impl Application for AppState {
                         .update(|c| c.speex_dereverb_level = speex_dereverb_level);
                     return self.update_audio_stream();
                 }
+                ConfigMsg::PostAudioEffect(post_effect) => {
+                    self.config.update(|c| c.post_effect = post_effect);
+                    return self.update_audio_stream();
+                }
                 ConfigMsg::StartMinimized(start_minimized) => {
                     self.config.update(|s| s.start_minimized = start_minimized);
                 }

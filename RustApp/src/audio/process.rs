@@ -3,9 +3,13 @@ use std::borrow::Cow;
 use crate::{
     audio::{
         denoise_rnnoise::DENOISE_RNNOISE_SAMPLE_RATE,
+        postprocessing::{
+            post_apply_echo, post_apply_flanger, post_apply_phaser, post_apply_pitch_shift,
+            post_apply_popstar, post_apply_reverb, post_apply_vocoder, post_apply_walkie_talkie,
+        },
         speexdsp::{SPEEXDSP_SAMPLE_RATE, process_speex_f32_stream},
     },
-    config::{AudioFormat, DenoiseKind},
+    config::{AudioEffect, AudioFormat, DenoiseKind},
     streamer::{AudioPacketMessage, AudioStream},
 };
 
@@ -80,15 +84,7 @@ impl AudioStream {
             buffer = process_speex_f32_stream(&prepared_buffer, config)?;
         }
 
-        if let Some(amplify) = config.amplify {
-            for channel in &mut buffer {
-                for v in channel {
-                    *v *= amplify;
-                }
-            }
-        }
-
-        let buffer = if config.target_format.sample_rate.to_number() == current_sample_rate {
+        buffer = if config.target_format.sample_rate.to_number() == current_sample_rate {
             buffer
         } else {
             resample_f32_stream(
@@ -97,6 +93,56 @@ impl AudioStream {
                 config.target_format.sample_rate.to_number(),
             )?
         };
+
+        // inject post effect if needed
+        // NOTE: one day I might add UI for users to customize these parameters, but for now just hardcode the presets
+        let sample_rate = config.target_format.sample_rate.to_number();
+        match &config.post_effect {
+            AudioEffect::Echo => {
+                post_apply_echo(&mut buffer, sample_rate, 300, 0.5, 0.3, 0.25);
+            }
+            AudioEffect::ReverbIntimate => {
+                post_apply_reverb(&mut buffer, sample_rate, 0.5, 0.8, 0.15);
+            }
+            AudioEffect::ReverbSpatious => {
+                post_apply_reverb(&mut buffer, sample_rate, 0.85, 0.5, 0.3);
+            }
+            AudioEffect::Spaceship => {
+                post_apply_flanger(&mut buffer, sample_rate, 0.25, 1.0, 6.0, 0.8, 0.5);
+            }
+            AudioEffect::Underwater => {
+                post_apply_phaser(&mut buffer, sample_rate, 1.5, 150.0, 1200.0, 0.6, 0.7);
+            }
+            AudioEffect::PitchUp => {
+                post_apply_pitch_shift(&mut buffer, sample_rate, 1.5, 1.0);
+            }
+            AudioEffect::PitchDown => {
+                post_apply_pitch_shift(&mut buffer, sample_rate, 0.75, 1.0);
+            }
+            AudioEffect::Demon => {
+                post_apply_pitch_shift(&mut buffer, sample_rate, 0.8, 0.65);
+            }
+            AudioEffect::Walkie => {
+                post_apply_walkie_talkie(&mut buffer, sample_rate, 1200.0, 1.5, 5.0, 1.0);
+            }
+            AudioEffect::Popstar => {
+                post_apply_popstar(&mut buffer, sample_rate, 0.02, 0.8);
+            }
+            AudioEffect::Robot => {
+                // NOTE: this vocoder preset does not sound great, but I have no idea how to improve it further
+                // Leave it here for now and maybe one day there will be a better solution
+                post_apply_vocoder(&mut buffer, sample_rate, 4, 120.0, 2.8, 0.9);
+            }
+            AudioEffect::NoEffect => {}
+        }
+
+        if let Some(amplify) = config.amplify {
+            for channel in &mut buffer {
+                for v in channel {
+                    *v *= amplify;
+                }
+            }
+        }
 
         // finally convert to output format
         let num_channels = config.target_format.channel_count.to_number() as usize;

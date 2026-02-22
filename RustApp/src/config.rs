@@ -36,6 +36,46 @@ pub struct Config {
     pub theme: AppTheme,
     pub amplify: bool,
     pub amplify_value: f32,
+    pub post_effect: AudioEffect,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Values, PartialEq, Eq)]
+pub enum AudioEffect {
+    NoEffect,
+    // Environment effects:
+    Echo,
+    ReverbIntimate,
+    ReverbSpatious,
+    Spaceship,
+    Underwater,
+    // Character effects:
+    PitchUp,
+    PitchDown,
+    Demon,
+    Walkie,
+    Popstar,
+    Robot,
+}
+
+impl Display for AudioEffect {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let str = match self {
+            AudioEffect::NoEffect => "No Effect",
+            AudioEffect::Echo => "Mountain",
+            AudioEffect::ReverbIntimate => "Empty Room",
+            AudioEffect::ReverbSpatious => "Concert Hall",
+            AudioEffect::Spaceship => "Spaceship",
+            AudioEffect::Underwater => "Underwater",
+            AudioEffect::PitchUp => "Chipmunk",
+            AudioEffect::PitchDown => "Giant",
+            AudioEffect::Demon => "Demon",
+            AudioEffect::Walkie => "Walkie-Talkie",
+            AudioEffect::Popstar => "Pop Star",
+            AudioEffect::Robot => "Robot",
+        };
+
+        write!(f, "{}", str)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, Values, PartialEq)]
@@ -80,6 +120,7 @@ impl Default for Config {
             speex_agc_target: 8000,
             speex_dereverb_enabled: false,
             speex_dereverb_level: 0.5,
+            post_effect: AudioEffect::NoEffect,
             start_minimized: false,
         }
     }

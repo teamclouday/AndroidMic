@@ -15,6 +15,7 @@ env:
 jobs:
   build-rust-app:
     name: Build Rust App on  ${{ matrix.os }}
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -63,6 +64,7 @@ jobs:
 
   build-android-app:
     name: Build Android App
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     runs-on: ubuntu-latest
 
     steps:

@@ -19,7 +19,9 @@ use super::{
     message::{AppMsg, ConfigMsg},
 };
 use crate::{
-    config::{AppTheme, AudioFormat, ChannelCount, ConnectionMode, DenoiseKind, SampleRate},
+    config::{
+        AppTheme, AudioEffect, AudioFormat, ChannelCount, ConnectionMode, DenoiseKind, SampleRate,
+    },
     fl,
     ui::message::MenuMsg,
     utils::APP,
@@ -48,7 +50,11 @@ pub fn main_window(app: &AppState) -> Element<'_, AppMsg> {
                 .height(Length::Fill)
                 .spacing(35)
                 .align_x(Horizontal::Center)
-                .push_maybe((connection_mode == ConnectionMode::Tcp || connection_mode == ConnectionMode::Udp).then(|| network_adapter(app)))
+                .push_maybe(
+                    (connection_mode == ConnectionMode::Tcp
+                        || connection_mode == ConnectionMode::Udp)
+                        .then(|| network_adapter(app)),
+                )
                 .push(audio(app))
                 .push(vertical_space())
                 .push(connection_type(app)),
@@ -446,6 +452,19 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
             .push(
                 button::text(fl!("reset_denoise_settings"))
                     .on_press(ConfigMsg::ResetDenoiseSettings),
+            )
+            .push(
+                settings::section().title("Audio Effect").add(
+                    row()
+                        .align_y(Vertical::Center)
+                        .push(text("Audio Effect"))
+                        .push(horizontal_space())
+                        .push(pick_list(
+                            AudioEffect::VALUES,
+                            Some(&config.post_effect),
+                            ConfigMsg::PostAudioEffect,
+                        )),
+                ),
             )
             .push(
                 settings::section()
