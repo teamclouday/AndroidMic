@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
 const val CHECK_1 = "AndroidMic1"
 const val CHECK_2 = "AndroidMic2"
 
-const val DEFAULT_PORT: Int = 55555
+const val DEFAULT_PORT: Int = 54345
 
 interface Streamer {
     fun connect(): Boolean
