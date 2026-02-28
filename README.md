@@ -89,9 +89,12 @@ Follow the instructions above for your operating system to install a virtual aud
    - **USB Serial**:
      - Connect phone via USB cable
      - Set phone's USB mode to "Charging only"
-     - **Windows**: Close Android Studio and ensure ADB process is not running
+     - **Windows**:
+       - Close Android Studio and ensure ADB process is not running
+       - Your phone must use the WinUSB driver (required for all Android phones)
+       - Use [Zadig](https://zadig.akeo.ie/) to replace the current USB driver with WinUSB if needed
+       - On first connection attempt, the phone will switch to accessory mode - click Connect again to establish the connection
      - **Linux**: Configure [udev rules](https://github.com/libusb/libusb/wiki/FAQ#can-i-run-libusb-applications-on-linux-without-root-privilege) for USB permissions
-     - **Samsung phones**: You may need [Zadig](https://zadig.akeo.ie/) to change USB driver to WinUSB
 
 4. **Configure audio settings** (Advanced)
    - Click to open advanced settings
@@ -145,7 +148,7 @@ After setup, the virtual microphone will appear in your system's audio input dev
 
 ### USB connection not working
 - **USB ADB**: Ensure USB debugging is enabled and ADB is installed
-- **USB Serial (Samsung)**: May need [Zadig](https://zadig.akeo.ie/) to change USB driver to WinUSB
+- **USB Serial**: May need [Zadig](https://zadig.akeo.ie/) to change USB driver to WinUSB
 - **USB Serial (Linux)**: Configure udev rules for USB permissions
 
 ### Audio quality issues
