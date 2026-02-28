@@ -87,7 +87,7 @@ libcosmic = { git = "https://github.com/pop-os/libcosmic.git", rev = "3e78eb2381
 ] }
 notify-rust = "4"
 byteorder = "1"
-nusb = { version = "0.1", optional = true }
+nusb = { version = "0.2.2", optional = true, features = ["tokio", "smol"] }
 serde_with = "3"
 strum = { version = "0.27", features = ["derive"] }
 resvg = "0.46"

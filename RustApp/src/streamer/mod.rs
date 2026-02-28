@@ -100,26 +100,21 @@ enum ConnectError {
     WriteError(#[from] WriteError),
     #[cfg(feature = "usb")]
     #[error("no usb device found: {0}")]
-    NoUsbDevice(nusb::Error),
+    NoUsbDevice(io::Error),
     #[error("no adb device found")]
     NoAdbDevice,
     #[cfg(feature = "usb")]
     #[error("can't open usb handle: {0}")]
-    CantOpenUsbHandle(nusb::Error),
+    CantOpenUsbHandle(io::Error),
     #[cfg(feature = "usb")]
     #[error("can't load usb device config: {0}")]
-    CantLoadUsbConfig(nusb::Error),
+    CantLoadUsbConfig(io::Error),
     #[cfg(feature = "usb")]
     #[error("can't claim usb device interface: {0}")]
-    CantClaimUsbInterface(nusb::Error),
-
+    CantClaimUsbInterface(io::Error),
     #[cfg(feature = "usb")]
-    #[error("can't open usb accessory: {0}")]
-    CantOpenUsbAccessory(usb::aoa::AccessoryError),
-
-    #[cfg(feature = "usb")]
-    #[error("can't open usb accessory endpoint: {0}")]
-    CantOpenUsbAccessoryEndpoint(usb::aoa::EndpointError),
+    #[error("can't switch usb device to aoa mode: {0}")]
+    CantSwitchUsbAOAMode(io::Error),
     #[error("device disconnected")]
     Disconnected,
     #[error(transparent)]
