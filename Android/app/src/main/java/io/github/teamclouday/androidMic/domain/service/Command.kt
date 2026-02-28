@@ -90,11 +90,22 @@ data class CommandData(
 
             when (mode) {
                 Mode.WIFI, Mode.UDP -> {
-                    if (!checkIp(ip) || !checkPort(port, mode != Mode.UDP)) {
+                    if (!checkIp(ip) || !checkPort(port)) {
 
                         return Either.Right(Dialogs.IpPort)
                     }
                     data.ip = ip
+                    data.port = try {
+                        port.toInt()
+                    } catch (_: Exception) {
+                        null
+                    }
+                }
+
+                Mode.ADB -> {
+                    if (!checkPort(port)) {
+                        return Either.Right(Dialogs.Port)
+                    }
                     data.port = try {
                         port.toInt()
                     } catch (_: Exception) {

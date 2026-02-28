@@ -21,10 +21,10 @@ fun checkIp(ip: String): Boolean {
     }
 }
 
-fun checkPort(portStr: String, emptyAllowed: Boolean): Boolean {
+fun checkPort(portStr: String): Boolean {
 
     if (portStr.isEmpty()) {
-        return emptyAllowed
+        return false
     }
 
     val port = try {

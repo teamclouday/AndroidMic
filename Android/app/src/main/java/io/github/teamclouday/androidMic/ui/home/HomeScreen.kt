@@ -234,6 +234,9 @@ private fun ConnectButton(
     val dialogIpPortExpanded = rememberSaveable {
         mutableStateOf(false)
     }
+    val dialogPortExpanded = rememberSaveable {
+        mutableStateOf(false)
+    }
     val dialogPermissionRationalExpanded = rememberSaveable {
         mutableStateOf(false)
     }
@@ -259,13 +262,16 @@ private fun ConnectButton(
                 Dialogs.IpPort -> {
                     dialogIpPortExpanded.value = true
                 }
+
+                Dialogs.Port -> {
+                    dialogPortExpanded.value = true
+                }
             }
         }
     }
 
     DialogIpPort(vm = vm, expanded = dialogIpPortExpanded, portOnly = false)
-
-
+    DialogIpPort(vm = vm, expanded = dialogPortExpanded, portOnly = true)
 
     PermissionDialog(
         vm = vm,

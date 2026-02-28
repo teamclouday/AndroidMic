@@ -48,6 +48,7 @@ enum class Themes {
 
 enum class Dialogs {
     IpPort,
+    Port,
 }
 
 // well, this can go crazy: https://github.com/audiojs/sample-rate
