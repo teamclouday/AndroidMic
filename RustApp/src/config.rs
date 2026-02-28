@@ -5,7 +5,7 @@ use light_enum::Values;
 use local_ip_address::local_ip;
 use serde::{Deserialize, Serialize};
 
-use crate::fl;
+use crate::{fl, streamer::DEFAULT_PC_PORT};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
@@ -101,7 +101,7 @@ impl Default for Config {
         Self {
             connection_mode: Default::default(),
             ip: None,
-            port: 55555,
+            port: DEFAULT_PC_PORT,
             audio_format: Default::default(),
             channel_count: Default::default(),
             sample_rate: Default::default(),

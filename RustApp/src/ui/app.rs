@@ -37,7 +37,7 @@ use crate::{
         AppTheme, AudioFormat, ChannelCount, Config, ConnectionMode, NetworkAdapter, SampleRate,
     },
     fl, single_instance,
-    streamer::{self, ConnectOption, StreamerCommand, StreamerMsg},
+    streamer::{self, ConnectOption, DEFAULT_PC_PORT, StreamerCommand, StreamerMsg},
     ui::view::{SCROLLABLE_ID, about_window},
     utils::APP_ID,
     window_icon,
@@ -587,14 +587,20 @@ impl Application for AppState {
                 }
                 ConfigMsg::PortSave => {
                     let port = if self.port_input.is_empty() {
-                        55555
+                        DEFAULT_PC_PORT
                     } else {
                         match self.port_input.parse() {
                             Ok(p) => p,
                             Err(_) => {
-                                self.port_input = "55555".to_string();
-                                self.config.update(|c| c.port = 55555);
-                                return self.add_log("Invalid port number, using default 55555");
+                                self.port_input = DEFAULT_PC_PORT.to_string();
+                                self.config.update(|c| c.port = DEFAULT_PC_PORT);
+                                return self.add_log(
+                                    format!(
+                                        "Invalid port number, using default {}",
+                                        DEFAULT_PC_PORT
+                                    )
+                                    .as_str(),
+                                );
                             }
                         }
                     };
