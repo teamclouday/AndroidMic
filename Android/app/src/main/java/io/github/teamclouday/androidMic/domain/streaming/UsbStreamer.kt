@@ -18,8 +18,12 @@ import io.github.teamclouday.androidMic.domain.service.AudioPacket
 import io.github.teamclouday.androidMic.utils.toBigEndianU32
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.runInterruptible
+import kotlinx.coroutines.withTimeout
 import java.io.FileDescriptor
 import java.io.FileInputStream
 import java.io.FileOutputStream
@@ -40,6 +44,7 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
     private var accessoryFd: FileDescriptor? = null
     private var outputStream: FileOutputStream? = null
     private var inputStream: FileInputStream? = null
+    private var sequenceIdx = 0
 
     private val receiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context?, intent: Intent?) {
@@ -61,20 +66,8 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
                 val granted = intent.getBooleanExtra(UsbManager.EXTRA_PERMISSION_GRANTED, false)
                 if (granted) {
                     Log.d(TAG, "permission granted")
-
                     val usbManager = ctx.getSystemService(Context.USB_SERVICE) as UsbManager
-
-                    val pfd = usbManager.openAccessory(accessory)
-                    val fd = pfd?.fileDescriptor
-
-                    if (fd == null) {
-                        Log.d(TAG, "Failed to open USB accessory file descriptor")
-                        return
-                    }
-                    accessoryPfd = pfd
-                    accessoryFd = fd
-                    outputStream = FileOutputStream(fd)
-                    inputStream = FileInputStream(fd)
+                    openAccessory(usbManager)
                 } else {
                     Log.d(TAG, "permission denied")
                 }
@@ -113,7 +106,7 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
             "choose USB accessory: ${accessory?.manufacturer} ${accessory?.model} ${accessory?.version}"
         )
 
-        // check permission
+        // check permission and open accessory if already granted
         if (!usbManager.hasPermission(accessory)) {
             Log.d(TAG, "requesting permission")
             usbManager.requestPermission(
@@ -121,26 +114,97 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
                     ctx, 0, Intent(USB_PERMISSION), PendingIntent.FLAG_IMMUTABLE
                 )
             )
+        } else {
+            // Permission already granted, open accessory immediately
+            Log.d(TAG, "permission already granted")
+            openAccessory(usbManager)
         }
+    }
 
-        require(usbManager.hasPermission(accessory)) {
-            "Failed to get permission for USB accessory"
-        }
-
-        // open stream
+    private fun openAccessory(usbManager: UsbManager) {
         val pfd = usbManager.openAccessory(accessory)
         val fd = pfd?.fileDescriptor
-        require(fd != null) {
-            "Failed to open USB accessory file descriptor"
+
+        if (fd == null) {
+            Log.e(TAG, "Failed to open USB accessory file descriptor")
+            return
         }
+
         accessoryPfd = pfd
         accessoryFd = fd
         outputStream = FileOutputStream(fd)
         inputStream = FileInputStream(fd)
+        Log.d(TAG, "USB accessory opened successfully")
     }
 
     override fun connect(): Boolean {
-        return true
+        val outStream = outputStream
+        val inStream = inputStream
+
+        if (outStream == null || inStream == null) {
+            Log.e(TAG, "connect: streams not initialized")
+            return false
+        }
+
+        return try {
+            // Send connect message
+            val message = Messages.MessageWrapper.newBuilder()
+                .setConnect(
+                    Messages.ConnectMessage.newBuilder()
+                        .build()
+                )
+                .build()
+
+            val pack = message.toByteArray()
+
+            // Write size header and message
+            outStream.write(pack.size.toBigEndianU32())
+            outStream.write(pack)
+            outStream.flush()
+
+            Log.d(TAG, "connect: sent connect message")
+
+            // Wait for response with timeout using coroutines
+            val buff = ByteArray(CHECK_2.length)
+
+            val success = runBlocking {
+                try {
+                    withTimeout(1500L) {
+                        runInterruptible {
+                            var totalBytesRead = 0
+                            while (totalBytesRead < buff.size) {
+                                val bytesRead = inStream.read(
+                                    buff,
+                                    totalBytesRead,
+                                    buff.size - totalBytesRead
+                                )
+                                Log.d(TAG, "connect: read $bytesRead bytes from input stream")
+
+                                if (bytesRead > 0) {
+                                    totalBytesRead += bytesRead
+                                } else if (bytesRead == -1) {
+                                    throw Exception("Stream closed")
+                                }
+                            }
+
+                            buff.contentEquals(CHECK_2.toByteArray())
+                        }
+                    }
+                } catch (_: TimeoutCancellationException) {
+                    Log.e(TAG, "connect: timeout waiting for response")
+                    false
+                } catch (e: Exception) {
+                    Log.e(TAG, "connect: ${e.message}", e)
+                    false
+                }
+            }
+
+            Log.d(TAG, "connect: handshake ${if (success) "successful" else "failed"}")
+            success
+        } catch (e: Exception) {
+            Log.e(TAG, "connect: ${e.message}", e)
+            false
+        }
     }
 
     override fun disconnect(): Boolean {
@@ -151,7 +215,21 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
     }
 
     override fun shutdown() {
-        outputStream?.close()
+        try {
+            inputStream?.close()
+            inputStream = null
+
+            outputStream?.close()
+            outputStream = null
+
+            accessoryPfd?.close()
+            accessoryPfd = null
+
+            accessoryFd = null
+        } catch (e: Exception) {
+            Log.e(TAG, "shutdown: ${e.message}")
+        }
+
         disconnect()
     }
 
@@ -163,11 +241,19 @@ class UsbStreamer(ctx: Context, private val scope: CoroutineScope) : Streamer {
                 if (accessory == null || outputStream == null) return@collect
 
                 try {
-                    val message = Messages.AudioPacketMessage.newBuilder()
-                        .setBuffer(ByteString.copyFrom(data.buffer))
-                        .setSampleRate(data.sampleRate)
-                        .setAudioFormat(data.audioFormat)
-                        .setChannelCount(data.channelCount)
+                    val message = Messages.MessageWrapper.newBuilder()
+                        .setAudioPacket(
+                            Messages.AudioPacketMessageOrdered.newBuilder()
+                                .setSequenceNumber(sequenceIdx++)
+                                .setAudioPacket(
+                                    Messages.AudioPacketMessage.newBuilder()
+                                        .setBuffer(ByteString.copyFrom(data.buffer))
+                                        .setSampleRate(data.sampleRate)
+                                        .setAudioFormat(data.audioFormat)
+                                        .setChannelCount(data.channelCount)
+                                )
+                                .build()
+                        )
                         .build()
 
                     val pack = message.toByteArray()
