@@ -24,7 +24,7 @@ class TcpStreamer(
     private val scope: CoroutineScope,
     private val tag: String,
     private val ip: String,
-    private var port: Int?
+    private var port: Int
 ) : Streamer {
 
     private var socket: Socket? = null
@@ -36,7 +36,7 @@ class TcpStreamer(
             ctx: Context,
             scope: CoroutineScope,
             ip: String,
-            port: Int?
+            port: Int
         ): TcpStreamer {
 
             // check WIFI
@@ -60,7 +60,7 @@ class TcpStreamer(
 
         fun adb(
             scope: CoroutineScope,
-            port: Int?
+            port: Int
         ) = TcpStreamer(
             scope = scope,
             tag = "AdbStreamer",
@@ -73,32 +73,16 @@ class TcpStreamer(
     override fun connect(): Boolean {
 
         val p = port
-        if (p != null) {
-            val socket = createSocket(p, 1500) ?: return false
+        val socket = createSocket(p, 1500) ?: return false
 
-            if (!handShake(socket)) {
-                Log.d(tag, "connect [Socket]: handshake error")
-                socket.close()
-                return false
-            }
-            this.socket = socket
-            return true
-        } else {
-            for (p in DEFAULT_PORT..MAX_PORT) {
-                val socket = createSocket(p, 100) ?: continue
-                if (!handShake(socket)) {
-                    socket.close()
-                    continue
-                }
-                socket.soTimeout = 1500
-
-                this.socket = socket
-                this.port = p
-                return true
-            }
+        if (!handShake(socket)) {
+            Log.d(tag, "connect [Socket]: handshake error")
+            socket.close()
+            return false
         }
 
-        return false
+        this.socket = socket
+        return true
     }
 
     // stream data through socket

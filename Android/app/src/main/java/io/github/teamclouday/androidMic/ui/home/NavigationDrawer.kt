@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.DarkMode
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Verified
 import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -80,10 +81,14 @@ fun DrawerBody(vm: MainViewModel) {
             val dialogIpPortExpanded = rememberSaveable {
                 mutableStateOf(false)
             }
-            DialogIpPort(vm = vm, expanded = dialogIpPortExpanded, portOnly = mode.value == Mode.ADB)
+            DialogIpPort(
+                vm = vm,
+                expanded = dialogIpPortExpanded,
+                portOnly = mode.value == Mode.ADB
+            )
             SettingsItem(
                 title = stringResource(if (mode.value == Mode.ADB) R.string.dialog_port else R.string.drawerIpPort),
-                subTitle = (if(mode.value != Mode.ADB) (vm.prefs.ip.getAsState().value + ":") else "") + vm.prefs.port.getAsState().value,
+                subTitle = (if (mode.value != Mode.ADB) (vm.prefs.ip.getAsState().value + ":") else "") + vm.prefs.port.getAsState().value,
                 contentDescription = "set ip and port",
                 icon = Icons.Rounded.Wifi,
                 expanded = dialogIpPortExpanded
@@ -142,6 +147,12 @@ fun DrawerBody(vm: MainViewModel) {
             expanded = dialogThemesExpanded
         )
 
+        SettingsItemReadOnly(
+            title = stringResource(id = R.string.drawerVersion),
+            subTitle = vm.uiHelper.getAppVersion(),
+            contentDescription = "app version",
+            icon = Icons.Rounded.Verified
+        )
     }
 }
 
@@ -178,6 +189,44 @@ private fun SettingsItem(
             .clickable {
                 expanded.value = true
             }
+            .padding(16.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (icon != null) {
+            Icon(
+                imageVector = icon,
+                contentDescription = contentDescription,
+                tint = MaterialTheme.colorScheme.onBackground
+            )
+        }
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+
+            Text(
+                text = subTitle,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+        }
+    }
+    HorizontalDivider(color = MaterialTheme.colorScheme.onBackground)
+}
+
+@Composable
+private fun SettingsItemReadOnly(
+    title: String,
+    subTitle: String,
+    contentDescription: String,
+    icon: ImageVector? = null
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
             .padding(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

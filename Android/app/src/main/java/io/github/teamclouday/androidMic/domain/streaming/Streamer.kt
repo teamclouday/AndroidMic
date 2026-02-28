@@ -8,7 +8,6 @@ const val CHECK_1 = "AndroidMic1"
 const val CHECK_2 = "AndroidMic2"
 
 const val DEFAULT_PORT: Int = 55555
-const val MAX_PORT: Int = 55570
 
 interface Streamer {
     fun connect(): Boolean

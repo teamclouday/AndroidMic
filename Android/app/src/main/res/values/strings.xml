@@ -30,6 +30,7 @@
 
     <string name="drawerTheme">Themes</string>
     <string name="dynamic_color">Dynamic color</string>
+    <string name="drawerVersion">Version</string>
 
     <string name="reset">Reset</string>
     <string name="save">Save</string>

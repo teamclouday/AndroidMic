@@ -409,6 +409,8 @@ impl Application for AppState {
             launched_automatically: flags.launched_automatically,
         };
 
+        commands
+            .push(app.add_log(format!("app version: `{}`", env!("CARGO_PKG_VERSION")).as_str()));
         commands.push(
             app.add_log(
                 format!(
@@ -421,6 +423,7 @@ impl Application for AppState {
         commands.push(
             app.add_log(format!("log path: [{}]({LOG_PATH_WORKAROUND})", flags.log_path).as_str()),
         );
+        info!("app version: {}", env!("CARGO_PKG_VERSION"));
         info!("config path: {}", flags.config_path);
         info!("log path: {}", flags.log_path);
 
