@@ -10,7 +10,7 @@ import io.github.teamclouday.androidMic.utils.PreferencesManager
 
 object DefaultStates {
     const val IP = "192.168."
-    const val PORT = "55555"
+    const val PORT = "54345"
 }
 
 /**
