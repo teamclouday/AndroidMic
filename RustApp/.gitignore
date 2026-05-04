@@ -10,3 +10,6 @@
 /repo
 /log
 /config/
+/perf.data
+/perf.data.old
+/flamegraph.svg

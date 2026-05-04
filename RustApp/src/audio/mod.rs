@@ -8,12 +8,13 @@ use crate::{
     ui::app::{AppState, Stream},
 };
 
-mod denoise_rnnoise;
+mod chunked_ring_buffer;
+pub mod denoise_rnnoise;
 pub mod player;
 mod postprocessing;
 pub mod process;
-mod resampler;
-mod speexdsp;
+pub mod resampler;
+pub mod speexdsp;
 
 /// Audio processing parameters
 #[derive(Clone, Debug)]
@@ -285,7 +286,7 @@ impl AudioBytes for u32 {
 
 #[derive(Debug, Clone)]
 pub struct AudioPacketFormat {
-    sample_rate: SampleRate,
-    audio_format: AudioFormat,
-    channel_count: ChannelCount,
+    pub sample_rate: SampleRate,
+    pub audio_format: AudioFormat,
+    pub channel_count: ChannelCount,
 }

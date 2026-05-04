@@ -50,15 +50,15 @@ cpal = { version = "0.17", features = ["jack"] }
 rtrb = "0.3"
 local-ip-address = "0.6"
 log = "0.4"
-zconf = "0.1.3"
 serde = "1"
+zconf = "0.1.3"
 light_enum = "0.2.2"
 tokio = { version = "1", features = ["full"] }
 anyhow = { version = "1", features = ["backtrace"] }
 thiserror = "2"
 enum_dispatch = "0.3"
 futures = "0.3"
-cached = "0.56"
+cached = "0.59"
 constcat = "0.6"
 cargo-packager-resource-resolver = { version = "0.1", features = [
     "auto-detect-format",
@@ -85,11 +85,11 @@ libcosmic = { git = "https://github.com/pop-os/libcosmic.git", rev = "3e78eb2381
 ] }
 notify-rust = "4"
 byteorder = "1"
-nusb = { version = "0.2.2", optional = true, features = ["tokio", "smol"] }
+nusb = { version = "0.2", optional = true, features = ["tokio", "smol"] }
 serde_with = "3"
-strum = { version = "0.27", features = ["derive"] }
-resvg = "0.46"
-rubato = "0.16"
+strum = { version = "0.28", features = ["derive"] }
+resvg = "0.47"
+rubato = "2"
 #https://github.com/tauri-apps/fix-path-env-rs/pull/19
 fix-path-env = { git = "https://github.com/wiiznokes/fix-path-env-rs", rev = "8612a0d8590843dbe9c6326d26292963e6a97f2a" }
 env_logger = "0.11"
@@ -104,18 +104,33 @@ interprocess = { version = "2", features = ["tokio"] }
 async-stream = "0.3"
 itertools = "0.14"
 
-[build-dependencies]
-prost-build = "0.14"
-
 
 [target.'cfg(target_os = "windows")'.dependencies]
 mslnk = "0.1"
 
+[target.'cfg(not(target_os = "linux"))'.dependencies]
+tray-icon = "0.22"
+
+[build-dependencies]
+prost-build = "0.14"
+
 [target.'cfg(target_os = "windows")'.build-dependencies]
 winres = "0.1"
 
-[target.'cfg(not(target_os = "linux"))'.dependencies]
-tray-icon = "0.21.1"
+[dev-dependencies]
+criterion = "0.5"
+rand = "0.10"
+
+[target.'cfg(target_os = "linux")'.dev-dependencies]
+pprof = { version = "0.15", features = ["flamegraph", "criterion"] }
+
+[[bench]]
+name = "audio"
+harness = false
+
+[profile.bench]
+debug = true
+
 
 # [patch."https://github.com/pop-os/libcosmic.git"]
 # libcosmic = { path = "../../libcosmic" }
@@ -123,11 +138,8 @@ tray-icon = "0.21.1"
 # [patch."https://github.com/wiiznokes/speexdsp-rs-fork"]
 # speexdsp = { path = "../../speexdsp-rs-fork" }
 
+[patch."https://github.com/pop-os/cosmic-text.git"]
+cosmic-text = { git = "https://github.com/pop-os//cosmic-text.git", rev = "4fd11f0e5e076fc16f5c7c239da22ac99a3a60b9" }
 
-[dev-dependencies]
-criterion = "0.8"
-rand = "0.10"
-
-[[bench]]
-name = "audio"
-harness = false
+# [patch."crates-io"]
+# ringbuffer = { git = "https://github.com/cdellacqua/ringbuffer.rs.git", rev = "134b0641a28099df1668d5faae13773e0847b2dd" }

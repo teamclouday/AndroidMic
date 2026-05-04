@@ -2,18 +2,43 @@ use std::borrow::Cow;
 
 use crate::{
     audio::{
-        denoise_rnnoise::DENOISE_RNNOISE_SAMPLE_RATE,
+        denoise_rnnoise::{DENOISE_RNNOISE_SAMPLE_RATE, DenoiseCache},
         postprocessing::{
             post_apply_echo, post_apply_flanger, post_apply_phaser, post_apply_pitch_shift,
             post_apply_popstar, post_apply_reverb, post_apply_vocoder, post_apply_walkie_talkie,
         },
-        speexdsp::{SPEEXDSP_SAMPLE_RATE, process_speex_f32_stream},
+        resampler::{ResamplerCache, resample_f32_stream_owned},
+        speexdsp::{SPEEXDSP_SAMPLE_RATE, SpeexdspCache, process_speex_f32_stream},
     },
     config::{AudioEffect, AudioFormat, DenoiseKind},
     streamer::{AudioPacketMessage, AudioStream},
 };
 
-use super::{AudioBytes, denoise_rnnoise::denoise_f32_stream, resampler::resample_f32_stream};
+use super::{
+    AudioBytes, denoise_rnnoise::process_denoise_rnnoise_f32_stream, resampler::resample_f32_stream,
+};
+
+#[derive(Default)]
+pub struct ProcessCache {
+    resample_rnnoise_cache: Option<ResamplerCache>,
+    resample_speexdsp_cache: Option<ResamplerCache>,
+    resample_to_target: Option<ResamplerCache>,
+    speexdsp: Option<SpeexdspCache>,
+    denoise: Option<DenoiseCache>,
+}
+
+impl ProcessCache {
+    pub fn new() -> Self {
+        Self::default()
+    }
+    pub fn clear(&mut self) {
+        self.resample_rnnoise_cache = None;
+        self.resample_speexdsp_cache = None;
+        self.resample_to_target = None;
+        self.speexdsp = None;
+        self.denoise = None;
+    }
+}
 
 impl AudioStream {
     /// This function converts an audio stream from packet into producer
@@ -22,13 +47,14 @@ impl AudioStream {
     pub fn process_audio_packet(
         &mut self,
         packet: AudioPacketMessage,
+        cache: &mut ProcessCache,
     ) -> anyhow::Result<Option<Vec<f32>>> {
         match self.audio_params.target_format.audio_format {
-            AudioFormat::I16 => self.process_audio_packet_internal::<i16>(packet),
-            AudioFormat::I24 => self.process_audio_packet_internal::<f32>(packet),
-            AudioFormat::I32 => self.process_audio_packet_internal::<i32>(packet),
-            AudioFormat::U8 => self.process_audio_packet_internal::<u8>(packet),
-            AudioFormat::F32 => self.process_audio_packet_internal::<f32>(packet),
+            AudioFormat::I16 => self.process_audio_packet_internal::<i16>(packet, cache),
+            AudioFormat::I24 => self.process_audio_packet_internal::<f32>(packet, cache),
+            AudioFormat::I32 => self.process_audio_packet_internal::<i32>(packet, cache),
+            AudioFormat::U8 => self.process_audio_packet_internal::<u8>(packet, cache),
+            AudioFormat::F32 => self.process_audio_packet_internal::<f32>(packet, cache),
         }
         .map_err(|e| {
             warn!("failed to convert audio stream: {e}");
@@ -39,6 +65,7 @@ impl AudioStream {
     fn process_audio_packet_internal<F>(
         &mut self,
         packet: AudioPacketMessage,
+        cache: &mut ProcessCache,
     ) -> anyhow::Result<Option<Vec<f32>>>
     where
         F: cpal::SizedSample + AudioBytes + std::fmt::Debug + 'static,
@@ -53,87 +80,104 @@ impl AudioStream {
         if let Some(denoise) = &config.denoise {
             match denoise {
                 DenoiseKind::Rnnoise => {
-                    let prepared_buffer = if current_sample_rate == DENOISE_RNNOISE_SAMPLE_RATE {
-                        Cow::Borrowed(&buffer)
-                    } else {
-                        let tmp = resample_f32_stream(
-                            &buffer,
-                            current_sample_rate,
-                            DENOISE_RNNOISE_SAMPLE_RATE,
-                        )?;
-                        current_sample_rate = DENOISE_RNNOISE_SAMPLE_RATE;
-                        Cow::Owned(tmp)
-                    };
+                    let prepared_buffer: Cow<'_, [Vec<f32>]> =
+                        if current_sample_rate == DENOISE_RNNOISE_SAMPLE_RATE {
+                            Cow::Borrowed(&buffer)
+                        } else {
+                            let tmp = resample_f32_stream(
+                                &buffer,
+                                current_sample_rate as usize,
+                                DENOISE_RNNOISE_SAMPLE_RATE as usize,
+                                &mut cache.resample_rnnoise_cache,
+                            )?;
+                            current_sample_rate = DENOISE_RNNOISE_SAMPLE_RATE;
+                            Cow::Borrowed(tmp)
+                        };
 
                     // denoise the audio stream
-                    buffer = denoise_f32_stream(&prepared_buffer)?;
+                    buffer =
+                        process_denoise_rnnoise_f32_stream(&prepared_buffer, &mut cache.denoise)?;
                 }
                 DenoiseKind::Speexdsp => {}
             }
         }
 
         if config.is_speex_used() {
-            let prepared_buffer = if current_sample_rate == SPEEXDSP_SAMPLE_RATE {
-                Cow::Borrowed(&buffer)
-            } else {
-                let tmp = resample_f32_stream(&buffer, current_sample_rate, SPEEXDSP_SAMPLE_RATE)?;
-                current_sample_rate = SPEEXDSP_SAMPLE_RATE;
-                Cow::Owned(tmp)
-            };
+            let prepared_buffer: Cow<'_, [Vec<f32>]> =
+                if current_sample_rate == SPEEXDSP_SAMPLE_RATE {
+                    Cow::Borrowed(&buffer)
+                } else {
+                    let tmp = resample_f32_stream(
+                        &buffer,
+                        current_sample_rate as usize,
+                        SPEEXDSP_SAMPLE_RATE as usize,
+                        &mut cache.resample_speexdsp_cache,
+                    )?;
+                    current_sample_rate = SPEEXDSP_SAMPLE_RATE;
+                    Cow::Borrowed(tmp)
+                };
 
-            buffer = process_speex_f32_stream(&prepared_buffer, config)?;
+            buffer = process_speex_f32_stream(&prepared_buffer, config, &mut cache.speexdsp)?;
         }
 
         buffer = if config.target_format.sample_rate.to_number() == current_sample_rate {
             buffer
         } else {
-            resample_f32_stream(
+            resample_f32_stream_owned(
                 &buffer,
-                current_sample_rate,
-                config.target_format.sample_rate.to_number(),
+                current_sample_rate as usize,
+                config.target_format.sample_rate.to_number() as usize,
+                &mut cache.resample_to_target,
             )?
         };
 
         // inject post effect if needed
         // NOTE: one day I might add UI for users to customize these parameters, but for now just hardcode the presets
-        let sample_rate = config.target_format.sample_rate.to_number();
         match &config.post_effect {
+            AudioEffect::NoEffect => {}
             AudioEffect::Echo => {
-                post_apply_echo(&mut buffer, sample_rate, 300, 0.5, 0.3, 0.25);
+                post_apply_echo(&mut buffer, current_sample_rate, 300, 0.5, 0.3, 0.25);
             }
             AudioEffect::ReverbIntimate => {
-                post_apply_reverb(&mut buffer, sample_rate, 0.5, 0.8, 0.15);
+                post_apply_reverb(&mut buffer, current_sample_rate, 0.5, 0.8, 0.15);
             }
             AudioEffect::ReverbSpatious => {
-                post_apply_reverb(&mut buffer, sample_rate, 0.85, 0.5, 0.3);
+                post_apply_reverb(&mut buffer, current_sample_rate, 0.85, 0.5, 0.3);
             }
             AudioEffect::Spaceship => {
-                post_apply_flanger(&mut buffer, sample_rate, 0.25, 1.0, 6.0, 0.8, 0.5);
+                post_apply_flanger(&mut buffer, current_sample_rate, 0.25, 1.0, 6.0, 0.8, 0.5);
             }
             AudioEffect::Underwater => {
-                post_apply_phaser(&mut buffer, sample_rate, 1.5, 150.0, 1200.0, 0.6, 0.7);
+                post_apply_phaser(
+                    &mut buffer,
+                    current_sample_rate,
+                    1.5,
+                    150.0,
+                    1200.0,
+                    0.6,
+                    0.7,
+                );
             }
             AudioEffect::PitchUp => {
-                post_apply_pitch_shift(&mut buffer, sample_rate, 1.5, 1.0);
+                post_apply_pitch_shift(&mut buffer, current_sample_rate, 1.5, 1.0);
             }
             AudioEffect::PitchDown => {
-                post_apply_pitch_shift(&mut buffer, sample_rate, 0.75, 1.0);
+                post_apply_pitch_shift(&mut buffer, current_sample_rate, 0.75, 1.0);
             }
             AudioEffect::Demon => {
-                post_apply_pitch_shift(&mut buffer, sample_rate, 0.8, 0.65);
+                post_apply_pitch_shift(&mut buffer, current_sample_rate, 0.8, 0.65);
             }
             AudioEffect::Walkie => {
-                post_apply_walkie_talkie(&mut buffer, sample_rate, 1200.0, 1.5, 5.0, 1.0);
+                post_apply_walkie_talkie(&mut buffer, current_sample_rate, 1200.0, 1.5, 5.0, 1.0);
             }
             AudioEffect::Popstar => {
-                post_apply_popstar(&mut buffer, sample_rate, 0.02, 0.8);
+                post_apply_popstar(&mut buffer, current_sample_rate, 0.02, 0.8);
             }
             AudioEffect::Robot => {
                 // NOTE: this vocoder preset does not sound great, but I have no idea how to improve it further
                 // Leave it here for now and maybe one day there will be a better solution
-                post_apply_vocoder(&mut buffer, sample_rate, 4, 120.0, 2.8, 0.9);
+                post_apply_vocoder(&mut buffer, current_sample_rate, 4, 120.0, 2.8, 0.9);
             }
-            AudioEffect::NoEffect => {}
         }
 
         if let Some(amplify) = config.amplify {
@@ -201,7 +245,7 @@ impl AudioStream {
     }
 }
 
-fn convert_packet_to_f32(packet: &AudioPacketMessage) -> anyhow::Result<Vec<Vec<f32>>> {
+pub fn convert_packet_to_f32(packet: &AudioPacketMessage) -> anyhow::Result<Vec<Vec<f32>>> {
     let audio_format = AudioFormat::from_android_format(packet.audio_format).unwrap();
     match audio_format {
         AudioFormat::U8 => convert_packet_to_f32_internal::<u8>(packet),
@@ -223,15 +267,10 @@ where
     // Initialize a vector to hold the results for each channel
     let mut result = vec![Vec::with_capacity(samples_per_channel); channel_count];
 
-    for buf in packet
-        .buffer
-        .chunks_exact(audio_format.sample_size() * channel_count)
-    {
-        for channel in 0..channel_count {
-            let start = channel * audio_format.sample_size();
-            let end = start + audio_format.sample_size();
-            let sample = F::from_bytes(&buf[start..end]).to_f32();
-            result[channel].push(sample);
+    for buf in packet.buffer.chunks_exact(audio_format.sample_size()) {
+        for result in &mut result {
+            let sample = F::from_bytes(buf).to_f32();
+            result.push(sample);
         }
     }
 

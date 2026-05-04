@@ -6,6 +6,7 @@ use tokio::net::UdpSocket;
 use tokio_util::{codec::LengthDelimitedCodec, udp::UdpFramed};
 
 use crate::{
+    audio::process::ProcessCache,
     config::ConnectionMode,
     streamer::{
         AudioPacketMessage, CHECK_2, WriteError,
@@ -26,6 +27,7 @@ pub struct UdpStreamer {
     framed: UdpFramed<LengthDelimitedCodec>,
     is_listening: bool,
     tracked_sequence: u32,
+    process_cache: ProcessCache,
 }
 
 pub async fn new(
@@ -46,6 +48,7 @@ pub async fn new(
         tracked_sequence: 0,
         is_listening: true,
         framed: UdpFramed::new(socket, LengthDelimitedCodec::new()),
+        process_cache: ProcessCache::new(),
     };
 
     Ok(streamer)
@@ -54,6 +57,7 @@ pub async fn new(
 impl StreamerTrait for UdpStreamer {
     fn reconfigure_stream(&mut self, stream_config: AudioStream) {
         self.stream_config = stream_config;
+        self.process_cache.clear();
     }
 
     fn status(&self) -> StreamerMsg {
@@ -103,7 +107,10 @@ impl StreamerTrait for UdpStreamer {
                                             let buffer_size = packet.buffer.len();
                                             let sample_rate = packet.sample_rate;
 
-                                            match self.stream_config.process_audio_packet(packet) {
+                                            match self.stream_config.process_audio_packet(
+                                                packet,
+                                                &mut self.process_cache,
+                                            ) {
                                                 Ok(Some(buffer)) => {
                                                     debug!(
                                                         "From {:?}, received {} bytes",

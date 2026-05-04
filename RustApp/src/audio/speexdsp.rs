@@ -1,8 +1,6 @@
-use std::sync::{LazyLock, Mutex};
-
 use speexdsp::preprocess::SpeexPreprocess;
 
-use crate::audio::AudioProcessParams;
+use crate::audio::{AudioProcessParams, chunked_ring_buffer::ChunkedRingBuffer};
 
 // xxx: do we really need to change the sample rate ?
 // apparently, speexdsp is optimized for low sample rate (8000, 16000), according to chatgpt,
@@ -10,8 +8,8 @@ use crate::audio::AudioProcessParams;
 pub const SPEEXDSP_SAMPLE_RATE: u32 = 48000;
 const FRAME_SIZE: usize = (SPEEXDSP_SAMPLE_RATE as f32 * 0.02) as usize; // 20 ms frame
 
-struct SpeexdspCache {
-    sample_buffer: Vec<Vec<i16>>,
+pub struct SpeexdspCache {
+    sample_buffer: Vec<ChunkedRingBuffer<i16>>,
     denoisers: Vec<SpeexPreprocess>,
     config_denoise_enabled: bool,
     config_noise_suppress: i32,
@@ -22,6 +20,9 @@ struct SpeexdspCache {
     config_dereverb_enabled: bool,
     config_dereverb_level: f32,
 }
+
+// safe because packets are processed in order, and not concurrently
+unsafe impl Send for SpeexdspCache {}
 
 impl SpeexdspCache {
     fn is_config_changed(&self, config: &AudioProcessParams) -> bool {
@@ -36,24 +37,26 @@ impl SpeexdspCache {
     }
 }
 
-// safe because packets are processed in order, and not concurrently
-unsafe impl Send for SpeexdspCache {}
-
-// safe because packets are processed in order, and not concurrently
-static DENOISE_CACHE: LazyLock<Mutex<Option<SpeexdspCache>>> = LazyLock::new(|| Mutex::new(None));
-
 pub fn process_speex_f32_stream(
     data: &[Vec<f32>],
     config: &AudioProcessParams,
+    cache: &mut Option<SpeexdspCache>,
 ) -> anyhow::Result<Vec<Vec<f32>>> {
-    let mut denoise_cache = DENOISE_CACHE.lock().unwrap();
+    if match cache {
+        Some(c) => {
+            if data.len() != c.denoisers.len() || c.is_config_changed(config) {
+                dbg!(data.len(), c.denoisers.len(), c.is_config_changed(config));
+            }
 
-    if denoise_cache.is_none()
-        || data.len() != denoise_cache.as_ref().unwrap().denoisers.len()
-        || denoise_cache.as_ref().unwrap().is_config_changed(config)
-    {
-        *denoise_cache = Some(SpeexdspCache {
-            sample_buffer: vec![Vec::with_capacity(FRAME_SIZE); data.len()],
+            data.len() != c.denoisers.len() || c.is_config_changed(config)
+        }
+        None => true,
+    } {
+        *cache = Some(SpeexdspCache {
+            sample_buffer: vec![
+                ChunkedRingBuffer::new((data[0].len() / FRAME_SIZE) + 1, FRAME_SIZE);
+                data.len()
+            ],
             denoisers: data
                 .iter()
                 .map(|_| {
@@ -86,8 +89,7 @@ pub fn process_speex_f32_stream(
         });
     }
 
-    let cache = denoise_cache.as_mut().unwrap();
-    let mut output: Vec<Vec<f32>> = vec![Vec::new(); data.len()];
+    let cache = cache.as_mut().unwrap();
 
     // Convert f32 to i16
     let data_i16: Vec<Vec<i16>> = data
@@ -102,33 +104,31 @@ pub fn process_speex_f32_stream(
 
     // Append new data into the cache
     for channel_idx in 0..data_i16.len() {
-        cache.sample_buffer[channel_idx].extend_from_slice(&data_i16[channel_idx]);
+        cache.sample_buffer[channel_idx].extend(&data_i16[channel_idx]);
     }
 
-    while cache.sample_buffer[0].len() >= FRAME_SIZE {
+    let mut output: Vec<Vec<f32>> =
+        vec![Vec::with_capacity(cache.sample_buffer[0].number_of_chunk() * FRAME_SIZE); data.len()];
+
+    while cache.sample_buffer[0].has_chunk_available() {
         for channel_idx in 0..data.len() {
-            match cache.denoisers[channel_idx]
-                .preprocess_run(&mut cache.sample_buffer[channel_idx][0..FRAME_SIZE])
-            {
-                0 => {
-                    cache.sample_buffer[channel_idx][0..FRAME_SIZE].fill(0);
-                }
-                1 => {}
-                _ => panic!(),
+            let ring_buffer = &mut cache.sample_buffer[channel_idx];
+
+            let chunk = ring_buffer.first_chunk_mut();
+
+            if !cache.denoisers[channel_idx].preprocess_run(chunk) {
+                chunk.fill(0);
             }
 
             // Scale back to -1.0 to 1.0 range
             output[channel_idx].extend_from_slice(
-                &cache.sample_buffer[channel_idx][0..FRAME_SIZE]
+                &chunk
                     .iter()
                     .map(|&x| x as f32 / i16::MAX as f32)
                     .collect::<Vec<f32>>(),
             );
-        }
 
-        // Clear the sample buffer for the next round
-        for channel in &mut cache.sample_buffer {
-            channel.drain(0..FRAME_SIZE);
+            ring_buffer.remove_first_chunk();
         }
     }
 

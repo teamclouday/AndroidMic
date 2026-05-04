@@ -8,6 +8,7 @@ use tokio_util::codec::{FramedRead, LengthDelimitedCodec};
 
 use super::AudioStream;
 use crate::{
+    audio::process::ProcessCache,
     config::ConnectionMode,
     streamer::{
         CHECK_2, WriteError,
@@ -28,6 +29,7 @@ pub struct UsbStreamer {
     writer: EndpointWrite<nusb::transfer::Bulk>,
     is_listening: bool,
     tracked_sequence: u32,
+    process_cache: ProcessCache,
 }
 
 // switch a USB device to accessory mode
@@ -169,6 +171,7 @@ pub async fn new(stream_config: AudioStream) -> Result<UsbStreamer, ConnectError
         writer,
         is_listening: true,
         tracked_sequence: 0,
+        process_cache: ProcessCache::new(),
     };
 
     Ok(streamer)
@@ -177,6 +180,7 @@ pub async fn new(stream_config: AudioStream) -> Result<UsbStreamer, ConnectError
 impl StreamerTrait for UsbStreamer {
     fn reconfigure_stream(&mut self, stream_config: AudioStream) {
         self.stream_config = stream_config;
+        self.process_cache.clear();
     }
 
     fn status(&self) -> StreamerMsg {
@@ -226,7 +230,10 @@ impl StreamerTrait for UsbStreamer {
                                             let buffer_size = packet.buffer.len();
                                             let sample_rate = packet.sample_rate;
 
-                                            match self.stream_config.process_audio_packet(packet) {
+                                            match self.stream_config.process_audio_packet(
+                                                packet,
+                                                &mut self.process_cache,
+                                            ) {
                                                 Ok(Some(buffer)) => {
                                                     debug!("received {} bytes", buffer_size);
                                                     Some(StreamerMsg::UpdateAudioWave {
