@@ -58,7 +58,7 @@ anyhow = { version = "1", features = ["backtrace"] }
 thiserror = "2"
 enum_dispatch = "0.3"
 futures = "0.3"
-cached = "0.59"
+cached = "1"
 constcat = "0.6"
 cargo-packager-resource-resolver = { version = "0.1", features = [
     "auto-detect-format",
@@ -89,7 +89,7 @@ nusb = { version = "0.2", optional = true, features = ["tokio", "smol"] }
 serde_with = "3"
 strum = { version = "0.28", features = ["derive"] }
 resvg = "0.47"
-rubato = "2"
+rubato = "3"
 #https://github.com/tauri-apps/fix-path-env-rs/pull/19
 fix-path-env = { git = "https://github.com/wiiznokes/fix-path-env-rs", rev = "8612a0d8590843dbe9c6326d26292963e6a97f2a" }
 env_logger = "0.11"
@@ -109,7 +109,7 @@ itertools = "0.14"
 mslnk = "0.1"
 
 [target.'cfg(not(target_os = "linux"))'.dependencies]
-tray-icon = "0.22"
+tray-icon = "0.24"
 
 [build-dependencies]
 prost-build = "0.14"

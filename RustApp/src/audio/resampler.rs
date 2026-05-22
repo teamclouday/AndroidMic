@@ -127,15 +127,6 @@ pub fn resample_f32_stream<'a>(
         }
     };
 
-    // workarround for the lifetime issue
-    // because in process_into_buffer, buffer_out and buffer_in must have the same lifetime.
-    let mut buffer_out = rubato::audioadapter_buffers::direct::SequentialSliceOfVecs::new_mut(
-        &mut cache.result,
-        nb_channel,
-        output_len,
-    )
-    .unwrap();
-
     let buffer_in = rubato::audioadapter_buffers::direct::SequentialSliceOfVecs::new(
         data, nb_channel, input_len,
     )
