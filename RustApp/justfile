@@ -1,4 +1,4 @@
-set windows-powershell := true
+set windows-powershell
 
 export ANDROID_MIC_COMMIT := `git rev-parse --short HEAD`
 rootdir := ''
