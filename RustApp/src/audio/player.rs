@@ -126,7 +126,7 @@ fn build_output_stream<F>(
     device: &cpal::Device,
     config: cpal::StreamConfig,
     mut consumer: Consumer<u8>,
-) -> anyhow::Result<cpal::Stream, cpal::BuildStreamError>
+) -> anyhow::Result<cpal::Stream, cpal::Error>
 where
     F: cpal::SizedSample + AudioBytes + 'static,
 {
@@ -135,7 +135,7 @@ where
     let frame_bytes = frame_size * channels;
 
     device.build_output_stream(
-        &config,
+        config,
         move |data: &mut [F], _| {
             process_audio(data, &mut consumer, frame_bytes);
         },
