@@ -74,6 +74,7 @@ Follow the instructions above for your operating system to install a virtual aud
    - Choose the **virtual output device** (e.g., "VB Cable Input" or "Virtual Audio Cable") from the dropdown
    - This is the playback device that's wired to your virtual microphone
    - Do NOT select your regular speakers or headphones
+   - On Linux change channel count to "Mono" when you select PipeWire or PulseAudio
 
 3. **Choose connection method**
 
