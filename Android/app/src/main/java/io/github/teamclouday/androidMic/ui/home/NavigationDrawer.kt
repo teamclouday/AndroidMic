@@ -32,6 +32,7 @@ import io.github.teamclouday.androidMic.Mode
 import io.github.teamclouday.androidMic.R
 import io.github.teamclouday.androidMic.ui.MainViewModel
 import io.github.teamclouday.androidMic.ui.home.dialog.DialogAudioFormat
+import io.github.teamclouday.androidMic.ui.home.dialog.DialogAudioSource
 import io.github.teamclouday.androidMic.ui.home.dialog.DialogChannelCount
 import io.github.teamclouday.androidMic.ui.home.dialog.DialogIpPort
 import io.github.teamclouday.androidMic.ui.home.dialog.DialogMode
@@ -130,6 +131,17 @@ fun DrawerBody(vm: MainViewModel) {
             subTitle = vm.prefs.audioFormat.getAsState().value.toString(),
             contentDescription = "set audio format",
             expanded = dialogAudioFormatExpanded
+        )
+
+        val dialogAudioSourceExpanded = rememberSaveable {
+            mutableStateOf(false)
+        }
+        DialogAudioSource(vm = vm, expanded = dialogAudioSourceExpanded)
+        SettingsItem(
+            title = stringResource(id = R.string.audio_source),
+            subTitle = vm.prefs.audioSource.getAsState().value.toString(),
+            contentDescription = "set audio source",
+            expanded = dialogAudioSourceExpanded
         )
 
         // Other

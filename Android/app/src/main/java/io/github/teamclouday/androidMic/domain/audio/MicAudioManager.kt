@@ -5,7 +5,6 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioFormat
 import android.media.AudioRecord
-import android.media.MediaRecorder
 import android.util.Log
 import androidx.core.content.ContextCompat
 import io.github.teamclouday.androidMic.domain.service.AudioPacket
@@ -28,8 +27,8 @@ class MicAudioManager(
     val scope: CoroutineScope,
     val sampleRate: Int,
     val audioFormat: Int,
-    val channelCount: Int
-
+    val channelCount: Int,
+    val audioSource: Int,
 ) {
 
     companion object {
@@ -74,7 +73,7 @@ class MicAudioManager(
 
         // init recorder
         recorder = AudioRecord(
-            MediaRecorder.AudioSource.MIC,
+            audioSource,
             sampleRate,
             channelConfig,
             audioFormat,
