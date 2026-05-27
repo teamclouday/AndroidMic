@@ -4,12 +4,15 @@ import Message.Messages
 import android.os.Messenger
 import android.util.Log
 import com.google.protobuf.ByteString
+import com.google.protobuf.CodedOutputStream
 import io.github.teamclouday.androidMic.domain.service.AudioPacket
 import io.github.teamclouday.androidMic.utils.toBigEndianU32
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.net.InetAddress
@@ -97,19 +100,27 @@ class UdpStreamer(private val scope: CoroutineScope, val ip: String, var port: I
                         )
                         .build()
 
+                    val size = message.serializedSize
+                    val prefix = size.toBigEndianU32()
+                    val out = ByteArray(4 + size)
+                    System.arraycopy(prefix, 0, out, 0, 4)
 
-                    val pack = message.toByteArray()
-                    val combined = pack.size.toBigEndianU32() + pack
+                    val outputStream = CodedOutputStream.newInstance(out, 4, message.serializedSize)
+
+                    message.writeTo(outputStream)
+                    outputStream.flush()
 
                     val packet = DatagramPacket(
-                        combined,
+                        out,
                         0,
-                        combined.size,
+                        out.size,
                         address,
                         port
                     )
 
-                    socket.send(packet)
+                    withContext(Dispatchers.IO) {
+                        socket.send(packet)
+                    }
                 } catch (e: Exception) {
                     Log.d(TAG, "stream: ${e.message}")
                 }

@@ -122,7 +122,7 @@ class MicAudioManager(
                         packetBuffer = ByteArray(0)
                     }
                 } else {
-                    readCount = recorder.read(buffer, 0, buffer.size)
+                    readCount = recorder.read(buffer, 0, buffer.size, AudioRecord.READ_BLOCKING)
 
                     if (readCount > 0) {
                         packetBuffer = ByteArray(readCount)
