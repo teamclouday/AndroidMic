@@ -14,6 +14,8 @@ pub enum AppMsg {
     ChangeConnectionMode(ConnectionMode),
     Streamer(StreamerMsg),
     Device(AudioDevice),
+    #[cfg(target_os = "linux")]
+    SelectedHost(HostId),
     Adapter(NetworkAdapter),
     Connect,
     Stop,
@@ -64,6 +66,8 @@ pub enum MenuMsg {
 }
 
 use cosmic::widget::menu::action::MenuAction;
+#[cfg(target_os = "linux")]
+use cpal::HostId;
 
 impl MenuAction for MenuMsg {
     type Message = AppMsg;

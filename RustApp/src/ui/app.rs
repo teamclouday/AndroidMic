@@ -4,8 +4,7 @@ use std::{
 };
 
 use cpal::{
-    Device, Host,
-    traits::{DeviceTrait, HostTrait, StreamTrait},
+    Device, Host, HostId, traits::{DeviceTrait, HostTrait, StreamTrait}
 };
 use local_ip_address::list_afinet_netifas;
 use notify_rust::Notification;
@@ -87,10 +86,10 @@ impl AudioDevice {
         Ok(Self {
             name: desc
                 .extended()
-                .first()
-                .cloned()
+                .next()
+                .map(String::from)
                 .unwrap_or(desc.name().to_owned()),
-            id: id.1,
+            id: id.to_string(),
             device,
         })
     }
@@ -124,6 +123,8 @@ pub struct AppState {
     core: Core,
     pub streamer: Option<Sender<StreamerCommand>>,
     pub config: ConfigManager<Config>,
+    #[cfg(target_os = "linux")]
+    pub available_hosts: Vec<HostId>,
     pub audio_host: Host,
     pub audio_devices: Vec<AudioDevice>,
     pub audio_device: Option<cpal::Device>,
@@ -328,7 +329,9 @@ impl Application for AppState {
         flags: Self::Flags,
     ) -> (Self, cosmic::app::Task<Self::Message>) {
         // initialize audio device
+        let available_hosts = cpal::available_hosts();
         let audio_host = cpal::default_host();
+
         let audio_devices = get_audio_devices(&audio_host);
         let audio_device = match &flags.config.data().device_id {
             Some(id) => {
@@ -389,6 +392,8 @@ impl Application for AppState {
             streamer: None,
             config: flags.config,
             audio_device,
+            #[cfg(target_os = "linux")]
+            available_hosts,
             audio_host,
             audio_devices,
             audio_wave: AudioWave::new(),
@@ -459,7 +464,12 @@ impl Application for AppState {
                 });
             }
             AppMsg::RefreshAudioDevices => {
+                #[cfg(not(target_os = "linux"))]
                 let audio_host = cpal::default_host();
+
+                #[cfg(target_os = "linux")]
+                let audio_host = cpal::host_from_id(self.audio_host.id()).unwrap_or(cpal::default_host());
+
                 self.audio_devices = get_audio_devices(&audio_host);
             }
             AppMsg::RefreshNetworkAdapters => {
@@ -547,6 +557,11 @@ impl Application for AppState {
                 self.config
                     .update(|c| c.device_id = Some(audio_device.id.clone()));
                 return self.update_audio_stream();
+            }
+            #[cfg(target_os = "linux")]
+            AppMsg::SelectedHost(selected_host) => {
+                self.audio_host = cpal::host_from_id(selected_host).unwrap_or(cpal::default_host());
+                self.audio_devices = get_audio_devices(&self.audio_host);
             }
             AppMsg::Adapter(adapter) => {
                 self.config.update(|c| c.ip = Some(adapter.ip));
