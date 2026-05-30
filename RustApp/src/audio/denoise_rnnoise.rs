@@ -1,12 +1,12 @@
 use crate::audio::chunked_ring_buffer::ChunkedRingBuffer;
 
-use rnnoise_rs::Denoiser;
+use rnnoise2::Denoiser;
 
 pub const DENOISE_RNNOISE_SAMPLE_RATE: u32 = 48000;
 
 pub struct DenoiseCache {
     sample_buffer: Vec<ChunkedRingBuffer<f32>>,
-    denoisers: Vec<Box<Denoiser>>,
+    denoisers: Vec<Denoiser>,
     output_buffer_i16: Vec<f32>,
 }
 
@@ -26,7 +26,7 @@ pub fn process_denoise_rnnoise_f32_stream(
                 );
                 data.len()
             ],
-            denoisers: vec![Box::new(Denoiser::new(None).unwrap()); data.len()],
+            denoisers: vec![Denoiser::new(None).unwrap(); data.len()],
             output_buffer_i16: vec![0.0; Denoiser::frame_size()],
         });
     }

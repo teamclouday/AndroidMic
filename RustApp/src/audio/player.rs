@@ -52,11 +52,11 @@ pub fn create_audio_stream(
 
     // create stream config
     let stream: cpal::Stream = match audio_format {
-        AudioFormat::I16 => build_output_stream::<i16>(device, config.clone(), consumer),
-        AudioFormat::I24 => build_output_stream::<f32>(device, config.clone(), consumer),
-        AudioFormat::I32 => build_output_stream::<i32>(device, config.clone(), consumer),
-        AudioFormat::U8 => build_output_stream::<u8>(device, config.clone(), consumer),
-        AudioFormat::F32 => build_output_stream::<f32>(device, config.clone(), consumer),
+        AudioFormat::I16 => build_output_stream::<i16>(device, config, consumer),
+        AudioFormat::I24 => build_output_stream::<f32>(device, config, consumer),
+        AudioFormat::I32 => build_output_stream::<i32>(device, config, consumer),
+        AudioFormat::U8 => build_output_stream::<u8>(device, config, consumer),
+        AudioFormat::F32 => build_output_stream::<f32>(device, config, consumer),
     }?;
 
     // convert stream config to AudioPacketFormat
