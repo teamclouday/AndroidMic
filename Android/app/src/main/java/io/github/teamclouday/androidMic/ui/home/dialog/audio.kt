@@ -3,6 +3,7 @@ package io.github.teamclouday.androidMic.ui.home.dialog
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.MutableState
 import io.github.teamclouday.androidMic.AudioFormat
+import io.github.teamclouday.androidMic.AudioSource
 import io.github.teamclouday.androidMic.ChannelCount
 import io.github.teamclouday.androidMic.SampleRates
 import io.github.teamclouday.androidMic.ui.MainViewModel
@@ -42,6 +43,19 @@ fun DialogAudioFormat(
         expanded,
         enum = AudioFormat.entries,
         onClick = { vm.setAudioFormat(it) },
+        text = { it.toString() }
+    )
+}
+
+@Composable
+fun DialogAudioSource(
+    vm: MainViewModel,
+    expanded: MutableState<Boolean>,
+) {
+    DialogList(
+        expanded,
+        enum = AudioSource.entries,
+        onClick = { vm.setAudioSource(it) },
         text = { it.toString() }
     )
 }

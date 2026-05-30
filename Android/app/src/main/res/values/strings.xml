@@ -27,6 +27,7 @@
     <string name="sample_rate">Sample Rate</string>
     <string name="channel_count">Channel Count</string>
     <string name="audio_format">Audio Format</string>
+    <string name="audio_source">Audio Source</string>
 
     <string name="drawerTheme">Themes</string>
     <string name="dynamic_color">Dynamic color</string>

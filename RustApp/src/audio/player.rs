@@ -73,6 +73,8 @@ pub fn process_audio<F>(data: &mut [F], consumer: &mut Consumer<u8>, frame_bytes
 where
     F: cpal::SizedSample + AudioBytes,
 {
+    data.fill(F::from_f32(0.0));
+
     let frame_size = std::mem::size_of::<F>();
 
     let byte_len = std::mem::size_of_val(data);
@@ -142,4 +144,39 @@ where
         |err| error!("an error occurred on audio stream: {err}"),
         None,
     )
+}
+
+#[cfg(test)]
+mod tests {
+    use std::io::Write;
+
+    use rtrb::RingBuffer;
+
+    use super::*;
+
+    fn i16_samples_to_bytes(samples: &[i16]) -> Vec<u8> {
+        samples.iter().flat_map(AudioBytes::to_bytes).collect()
+    }
+
+    #[test]
+    fn process_audio_silences_output_when_buffer_is_empty() {
+        let (_producer, mut consumer) = RingBuffer::<u8>::new(16);
+        let mut output = [123_i16, -456, 789, -111];
+
+        process_audio(&mut output, &mut consumer, std::mem::size_of::<i16>());
+
+        assert_eq!(output, [0; 4]);
+    }
+
+    #[test]
+    fn process_audio_zero_fills_after_partial_read() {
+        let (mut producer, mut consumer) = RingBuffer::<u8>::new(16);
+        let input = i16_samples_to_bytes(&[1000, -2000]);
+        producer.write_all(&input).unwrap();
+
+        let mut output = [55_i16, 55, 55, 55];
+        process_audio(&mut output, &mut consumer, std::mem::size_of::<i16>());
+
+        assert_eq!(output, [1000, -2000, 0, 0]);
+    }
 }

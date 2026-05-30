@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use cargo_packager_resource_resolver as resource_resolver;
 use log::error;
 
-use cached::proc_macro::cached;
+use cached::cached;
 use constcat::concat;
 
 pub const APP_ID: &str = concat!(QUALIFIER, ".", ORG, ".", APP);
