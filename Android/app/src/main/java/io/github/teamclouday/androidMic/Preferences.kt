@@ -1,10 +1,12 @@
 package io.github.teamclouday.androidMic
 
 import android.content.Context
+import android.media.MediaRecorder
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
+import io.github.teamclouday.androidMic.ChannelCount.Mono
 import io.github.teamclouday.androidMic.ui.utils.UiHelper
 import io.github.teamclouday.androidMic.utils.PreferencesManager
 
@@ -31,9 +33,31 @@ class AppPreferences(
     val dynamicColor = booleanPreference("dynamicColor", true)
 
     val sampleRate = enumPreference("sampleRate", SampleRates.S44100)
-    val channelCount = enumPreference("channelCount", ChannelCount.Mono)
+    val channelCount = enumPreference("channelCount", Mono)
     val audioFormat = enumPreference("audioFormat", AudioFormat.I16)
+    val audioSource = enumPreference("audioSource", AudioSource.Mic)
 
+}
+
+enum class AudioSource {
+    Mic,
+    Recognition,
+    Communication,
+    Performance;
+
+    fun getSource(): Int {
+
+        return when (this) {
+            Mic -> MediaRecorder.AudioSource.MIC
+            Recognition -> MediaRecorder.AudioSource.VOICE_RECOGNITION
+            Communication -> MediaRecorder.AudioSource.VOICE_COMMUNICATION
+            Performance -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                MediaRecorder.AudioSource.VOICE_PERFORMANCE
+            } else {
+                MediaRecorder.AudioSource.MIC
+            }
+        }
+    }
 }
 
 enum class Mode {

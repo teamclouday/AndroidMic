@@ -13,6 +13,7 @@ import androidx.lifecycle.viewModelScope
 import io.github.teamclouday.androidMic.AndroidMicApp
 import io.github.teamclouday.androidMic.AppPreferences
 import io.github.teamclouday.androidMic.AudioFormat
+import io.github.teamclouday.androidMic.AudioSource
 import io.github.teamclouday.androidMic.ChannelCount
 import io.github.teamclouday.androidMic.Dialogs
 import io.github.teamclouday.androidMic.Mode
@@ -180,6 +181,13 @@ class MainViewModel : ViewModel() {
             prefs.audioFormat.update(audioFormat)
         }
     }
+
+    fun setAudioSource(audioSource: AudioSource) {
+        viewModelScope.launch {
+            prefs.audioSource.update(audioSource)
+        }
+    }
+
 
 
     fun setTheme(theme: Themes) {

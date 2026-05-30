@@ -30,6 +30,7 @@ private const val ID_PORT: String = "ID_PORT"
 private const val ID_SAMPLE_RATE: String = "ID_SAMPLE_RATE"
 private const val ID_CHANNEL_COUNT: String = "ID_CHANNEL_COUNT"
 private const val ID_AUDIO_FORMAT: String = "ID_AUDIO_FORMAT"
+private const val ID_AUDIO_SOURCE: String = "ID_AUDIO_SOURCE"
 
 
 /**
@@ -56,6 +57,7 @@ data class CommandData(
     val sampleRate: SampleRates? = null,
     val channelCount: ChannelCount? = null,
     val audioFormat: AudioFormat? = null,
+    val audioSource: Int? = null,
 ) {
 
     companion object {
@@ -69,6 +71,7 @@ data class CommandData(
                 channelCount = msg.data.getOrdinal(ID_CHANNEL_COUNT)
                     ?.let { ChannelCount.entries[it] },
                 audioFormat = msg.data.getOrdinal(ID_AUDIO_FORMAT)?.let { AudioFormat.entries[it] },
+                audioSource = msg.data.getInt(ID_AUDIO_SOURCE).let { if (it == -1) null else it },
             )
         }
 
@@ -85,6 +88,7 @@ data class CommandData(
                 sampleRate = prefs.sampleRate.get(),
                 channelCount = prefs.channelCount.get(),
                 audioFormat = prefs.audioFormat.get(),
+                audioSource = prefs.audioSource.get().getSource(),
                 mode = mode
             )
 
@@ -132,6 +136,8 @@ data class CommandData(
         this.sampleRate?.let { data.putInt(ID_SAMPLE_RATE, it.ordinal) }
         this.channelCount?.let { data.putInt(ID_CHANNEL_COUNT, it.ordinal) }
         this.audioFormat?.let { data.putInt(ID_AUDIO_FORMAT, it.ordinal) }
+
+        data.putInt(ID_AUDIO_SOURCE, this.audioSource ?: -1)
 
         val message = Message.obtain()
         message.data = data
