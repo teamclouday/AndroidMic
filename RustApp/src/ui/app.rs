@@ -4,7 +4,8 @@ use std::{
 };
 
 use cpal::{
-    Device, Host, HostId, traits::{DeviceTrait, HostTrait, StreamTrait}
+    Device, Host,
+    traits::{DeviceTrait, HostTrait, StreamTrait},
 };
 use local_ip_address::list_afinet_netifas;
 use notify_rust::Notification;
@@ -20,6 +21,9 @@ use cosmic::{
     theme,
     widget::markdown,
 };
+
+#[cfg(target_os = "linux")]
+use cpal::HostId;
 
 use super::{
     message::{AppMsg, ConfigMsg},
@@ -329,7 +333,6 @@ impl Application for AppState {
         flags: Self::Flags,
     ) -> (Self, cosmic::app::Task<Self::Message>) {
         // initialize audio device
-        let available_hosts = cpal::available_hosts();
         let audio_host = cpal::default_host();
 
         let audio_devices = get_audio_devices(&audio_host);
@@ -393,7 +396,7 @@ impl Application for AppState {
             config: flags.config,
             audio_device,
             #[cfg(target_os = "linux")]
-            available_hosts,
+            available_hosts: cpal::available_hosts(),
             audio_host,
             audio_devices,
             audio_wave: AudioWave::new(),
@@ -468,7 +471,8 @@ impl Application for AppState {
                 let audio_host = cpal::default_host();
 
                 #[cfg(target_os = "linux")]
-                let audio_host = cpal::host_from_id(self.audio_host.id()).unwrap_or(cpal::default_host());
+                let audio_host =
+                    cpal::host_from_id(self.audio_host.id()).unwrap_or(cpal::default_host());
 
                 self.audio_devices = get_audio_devices(&audio_host);
             }
