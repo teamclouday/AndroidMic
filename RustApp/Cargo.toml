@@ -93,7 +93,7 @@ rubato = "3"
 #https://github.com/tauri-apps/fix-path-env-rs/pull/19
 fix-path-env = { git = "https://github.com/wiiznokes/fix-path-env-rs", rev = "8612a0d8590843dbe9c6326d26292963e6a97f2a" }
 env_logger = "0.11"
-nnnoiseless = "0.5"
+rnnoise-rs = { git = "https://github.com/wiiznokes/rnnoise-rs", rev = "161e3222f3fd0f571a84ded1f156d780776e2f54" }
 open = "5"
 speexdsp = { git = "https://github.com/wiiznokes/speexdsp-rs-fork", branch = "helper-for-preprocess_ctl", features = [
     "sys",
