@@ -1,4 +1,4 @@
-set windows-powershell
+set windows-shell := ["powershell.exe", "-NoLogo", "-Command"]
 
 export ANDROID_MIC_COMMIT := `git rev-parse --short HEAD`
 rootdir := ''

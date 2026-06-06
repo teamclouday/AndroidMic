@@ -105,8 +105,11 @@ fn wave(app: &AppState) -> Element<'_, AppMsg> {
 
 fn audio(app: &AppState) -> Element<'_, AppMsg> {
     #[cfg(target_os = "linux")]
-    let selected_host = app.available_hosts.iter().find(|d| **d == app.audio_host.id());
-    
+    let selected_host = app
+        .available_hosts
+        .iter()
+        .find(|d| **d == app.audio_host.id());
+
     let selected_device = app
         .audio_device
         .as_ref()
@@ -117,23 +120,28 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
         .spacing(20)
         .align_x(Horizontal::Center)
         .push(text::title4(fl!("audio_device")))
-        .push_maybe(
+        .push_maybe({
+            #[cfg(target_os = "linux")]
             {
-                    #[cfg(target_os = "linux")]{
-                    Some(tooltip(
-                        pick_list(app.available_hosts.clone(), selected_host, AppMsg::SelectedHost)
-                            .width(Length::Fill),
+                Some(
+                    tooltip(
+                        pick_list(
+                            app.available_hosts.clone(),
+                            selected_host,
+                            AppMsg::SelectedHost,
+                        )
+                        .width(Length::Fill),
                         selected_host.as_ref().map_or("None", |host| &host.name()),
                         tooltip::Position::Top,
                     )
-                    .class(cosmic::theme::Container::Tooltip))
-                }
-                #[cfg(not(target_os = "linux"))]
-                {
-                    Option::<Element<AppMsg>>::None
-                }
+                    .class(cosmic::theme::Container::Tooltip),
+                )
             }
-        )
+            #[cfg(not(target_os = "linux"))]
+            {
+                Option::<Element<AppMsg>>::None
+            }
+        })
         .push(
             row()
                 .width(Length::Fill)
@@ -142,7 +150,9 @@ fn audio(app: &AppState) -> Element<'_, AppMsg> {
                     tooltip(
                         pick_list(app.audio_devices.clone(), selected_device, AppMsg::Device)
                             .width(Length::Fill),
-                        selected_device.as_ref().map_or("None", |device| &device.name),
+                        selected_device
+                            .as_ref()
+                            .map_or("None", |device| &device.name),
                         tooltip::Position::Top,
                     )
                     .class(cosmic::theme::Container::Tooltip),
