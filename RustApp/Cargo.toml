@@ -46,8 +46,7 @@ adb = []
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 # linux: alsa will probably be included as a fallback ?
-# TODO: update cpal to 0.18 once released
-cpal = { git = "https://github.com/RustAudio/cpal.git", rev="5418f0b43786bcbb4eaf21179e8a0fac76021a58", features = ["jack", "pipewire", "pulseaudio"] }
+cpal = { version = "0.18", features = ["jack", "pipewire", "pulseaudio"] }
 rtrb = "0.3"
 local-ip-address = "0.6"
 log = "0.4"
