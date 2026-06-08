@@ -1,6 +1,6 @@
 [package]
 name = "android-mic"
-version = "2.2.7"
+version = "2.2.8"
 edition = "2024"
 authors = [
     "wiiznokes <wiiznokes2@gmail.com>",
@@ -46,7 +46,7 @@ adb = []
 [dependencies]
 clap = { version = "4", features = ["derive"] }
 # linux: alsa will probably be included as a fallback ?
-cpal = { version = "0.18", features = ["jack", "pipewire", "pulseaudio"] }
+cpal = { version = "0.18.1", features = ["jack", "pipewire", "pulseaudio"] }
 rtrb = "0.3"
 local-ip-address = "0.6"
 log = "0.4"
