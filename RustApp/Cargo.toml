@@ -31,6 +31,9 @@ installer_mode = "both"
 entitlements = "res/macos/entitlements.plist"
 info_plist_path = "res/macos/Info.plist"
 
+[package.metadata.packager.appimage]
+excluded_libraries = ["libpipewire*"]
+
 [lints.rust]
 dead_code = "allow"
 unexpected_cfgs = { level = "warn", check-cfg = [
