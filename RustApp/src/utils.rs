@@ -64,8 +64,8 @@ pub fn initialize_logfile(log_file_path: &PathBuf) -> WorkerGuard {
     // configure size limit and 2 backup for rotation
     let rotator = FileRotate::new(
         log_file_path,
-        AppendCount::new(2),                   // 2 backups
-        ContentLimit::Bytes(10 * 1024 * 1024), // 10 MB
+        AppendCount::new(2),              // 2 backups
+        ContentLimit::Bytes(1024 * 1024), // 1 MB size limit
         Compression::None,
         None,
     );
