@@ -2,13 +2,12 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use android_mic::{localize, single_instance};
-use chrono::Local;
 use std::io::Write;
 use std::{fs::File, path::Path};
 
 use android_mic::config::{Args, Config};
 use android_mic::ui::app::run_ui;
-use android_mic::utils::{self, APP, ORG, QUALIFIER};
+use android_mic::utils::{self, APP, ORG, QUALIFIER, initialize_logfile};
 use clap::Parser;
 use directories::ProjectDirs;
 use fslock::LockFile;
@@ -43,32 +42,15 @@ fn main() {
     let project_dirs = ProjectDirs::from(QUALIFIER, ORG, APP).unwrap();
 
     let log_path = if cfg!(debug_assertions) {
-        Path::new("log")
+        Path::new("log").to_path_buf()
     } else {
-        project_dirs.cache_dir()
+        project_dirs.cache_dir().to_path_buf()
     };
-    std::fs::create_dir_all(log_path).expect("Failed to create log directory");
+    std::fs::create_dir_all(&log_path).expect("Failed to create log directory");
     let log_file_path = log_path.join(format!("{}.log", APP));
 
-    // setup log file
-    let target = Box::new(File::create(log_file_path.clone()).expect("Can't create log file"));
-    env_logger::Builder::new()
-        .format(|buf, record| {
-            writeln!(
-                buf,
-                "[{} {} {}] {}",
-                Local::now().format("%Y-%m-%dT%H:%M:%S"),
-                record.level(),
-                record.target(),
-                record.args()
-            )
-        })
-        .target(env_logger::Target::Pipe(Box::new(DualWriter {
-            file: target,
-        })))
-        .filter_level(log::LevelFilter::Warn)
-        .parse_default_env()
-        .init();
+    // NOTE: log guard should be alive for entire main lifespan
+    let _log_guard = initialize_logfile(&log_file_path);
 
     // ensure single instance
     let instance_lock_path = if cfg!(debug_assertions) {
