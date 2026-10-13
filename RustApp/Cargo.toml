@@ -101,7 +101,6 @@ resvg = "0.47"
 rubato = "3"
 #https://github.com/tauri-apps/fix-path-env-rs/pull/19
 fix-path-env = { git = "https://github.com/wiiznokes/fix-path-env-rs", rev = "8612a0d8590843dbe9c6326d26292963e6a97f2a" }
-env_logger = "0.11"
 rnnoise2 = "0.1.2"
 open = "5"
 speexdsp = { git = "https://github.com/wiiznokes/speexdsp-rs-fork", branch = "helper-for-preprocess_ctl", features = [
@@ -112,6 +111,10 @@ fslock = "0.2"
 interprocess = { version = "2", features = ["tokio"] }
 async-stream = "0.3"
 itertools = "0.14"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", features = ["env-filter", "fmt", "chrono"] }
+tracing-appender = "0.2.5"
+file-rotate = "0.8.0"
 
 
 [target.'cfg(target_os = "windows")'.dependencies]
