@@ -26,7 +26,9 @@ pub fn process_denoise_rnnoise_f32_stream(
                 );
                 data.len()
             ],
-            denoisers: vec![Denoiser::new(None).unwrap(); data.len()],
+            denoisers: (0..data.len())
+                .map(|_| Denoiser::new(None).unwrap())
+                .collect(),
             output_buffer_i16: vec![0.0; Denoiser::frame_size()],
         });
     }
