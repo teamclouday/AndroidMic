@@ -541,9 +541,53 @@ struct AudioPostProcessor {
     vocoder_q_factor: f32,
     vocoder_num_bands: usize,
     noise_seed: u32,
+
+    robot_combs: Vec<CombFilter>,
+    robot_phases: Vec<f32>,
+    robot_sample_rate: u32,
 }
 
 impl AudioPostProcessor {
+    // ring modulation (keeps the original speech intact, unlike a vocoder) plus a short comb filter for a metallic tone
+    fn apply_robot(
+        &mut self,
+        buffer: &mut [Vec<f32>],
+        sample_rate: u32,
+        mod_freq: f32,
+        comb_ms: f32,
+    ) {
+        if buffer.is_empty() {
+            return;
+        }
+        if self.robot_combs.len() != buffer.len() || self.robot_sample_rate != sample_rate {
+            let delay = ((comb_ms / 1000.0) * sample_rate as f32).max(2.0) as usize;
+            self.robot_combs = (0..buffer.len())
+                .map(|_| CombFilter::new(delay, 0.7, 0.85))
+                .collect();
+            self.robot_phases = vec![0.0; buffer.len()];
+            self.robot_sample_rate = sample_rate;
+        }
+
+        let phase_inc = mod_freq / sample_rate as f32;
+        for (idx, channel) in buffer.iter_mut().enumerate() {
+            let comb = &mut self.robot_combs[idx];
+            let mut phase = self.robot_phases[idx];
+            for sample in channel.iter_mut() {
+                let dry = *sample;
+                let carrier = (phase * std::f32::consts::TAU).sin();
+                phase += phase_inc;
+                if phase >= 1.0 {
+                    phase -= 1.0;
+                }
+                // blend ring-modulated signal with dry so words stay recognizable
+                let ring = dry * (0.35 + 0.65 * carrier);
+                let metallic = ring + 0.6 * comb.process(ring);
+                *sample = (metallic * 1.6).tanh();
+            }
+            self.robot_phases[idx] = phase;
+        }
+    }
+
     fn configure_echo(
         &mut self,
         sample_rate: u32,
@@ -1095,8 +1139,8 @@ impl AudioPostProcessor {
         self.vocoder_q_factor = q_factor;
         self.vocoder_num_bands = num_bands;
 
-        let min_freq = 180.0f32;
-        let max_freq = 6000.0f32;
+        let min_freq = 150.0f32;
+        let max_freq = (sample_rate as f32 * 0.45).min(7000.0);
         let mut center_frequencies = Vec::with_capacity(num_bands);
 
         if num_bands == 1 {
@@ -1122,7 +1166,7 @@ impl AudioPostProcessor {
                 channel_bands.push(VocoderBand {
                     modulator_bpf: BiquadFilter::new_bpf(sample_rate, freq, q_factor),
                     carrier_bpf: BiquadFilter::new_bpf(sample_rate, freq, q_factor),
-                    envelope: EnvelopeFollower::new(2.0, 70.0, sample_rate),
+                    envelope: EnvelopeFollower::new(3.0, 25.0, sample_rate),
                 });
             }
             self.vocoder_bands.push(channel_bands);
@@ -1186,7 +1230,7 @@ impl AudioPostProcessor {
 
                 // normalize wet sample by number of bands and add some saturation
                 wet_sample *= 1.0 / band_count.sqrt();
-                wet_sample = (wet_sample * 1.35).tanh();
+                wet_sample = (wet_sample * 2.5).tanh();
 
                 // mix dry and wet samples
                 let output = (dry_sample * (1.0 - mix)) + (wet_sample * mix);
@@ -1303,6 +1347,12 @@ pub fn post_apply_phaser(
         mix,
     );
     processor.apply_phaser(buffer);
+}
+
+// apply robot voice effect (ring modulation + comb filter) to audio buffer in place
+pub fn post_apply_robot(buffer: &mut [Vec<f32>], sample_rate: u32, mod_freq: f32, comb_ms: f32) {
+    let mut processor = AUDIO_POST_PROCESSOR.lock().unwrap();
+    processor.apply_robot(buffer, sample_rate, mod_freq, comb_ms);
 }
 
 // apply vocoder effect to audio buffer in place

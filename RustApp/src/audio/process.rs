@@ -5,7 +5,7 @@ use crate::{
         denoise_rnnoise::{DENOISE_RNNOISE_SAMPLE_RATE, DenoiseCache},
         postprocessing::{
             post_apply_echo, post_apply_flanger, post_apply_phaser, post_apply_pitch_shift,
-            post_apply_popstar, post_apply_reverb, post_apply_vocoder, post_apply_walkie_talkie,
+            post_apply_popstar, post_apply_reverb, post_apply_robot, post_apply_walkie_talkie,
         },
         resampler::{ResamplerCache, resample_f32_stream_owned},
         speexdsp::{SPEEXDSP_SAMPLE_RATE, SpeexdspCache, process_speex_f32_stream},
@@ -174,9 +174,7 @@ impl AudioStream {
                 post_apply_popstar(&mut buffer, current_sample_rate, 0.02, 0.8);
             }
             AudioEffect::Robot => {
-                // NOTE: this vocoder preset does not sound great, but I have no idea how to improve it further
-                // Leave it here for now and maybe one day there will be a better solution
-                post_apply_vocoder(&mut buffer, current_sample_rate, 4, 120.0, 2.8, 0.9);
+                post_apply_robot(&mut buffer, current_sample_rate, 55.0, 4.0);
             }
         }
 
@@ -267,10 +265,10 @@ where
     // Initialize a vector to hold the results for each channel
     let mut result = vec![Vec::with_capacity(samples_per_channel); channel_count];
 
-    for buf in packet.buffer.chunks_exact(audio_format.sample_size()) {
-        for result in &mut result {
-            let sample = F::from_bytes(buf).to_f32();
-            result.push(sample);
+    let sample_size = audio_format.sample_size();
+    for frame in packet.buffer.chunks_exact(sample_size * channel_count) {
+        for (ch, buf) in frame.chunks_exact(sample_size).enumerate() {
+            result[ch].push(F::from_bytes(buf).to_f32());
         }
     }
 
