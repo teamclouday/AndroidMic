@@ -74,7 +74,18 @@ pub fn initialize_logfile(log_file_path: &PathBuf) -> WorkerGuard {
     let (non_blocking_file, guard) = tracing_appender::non_blocking(rotator);
 
     // set up log filter that can be overwrite by RUST_LOG
-    let filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn"));
+    let mut filter = EnvFilter::try_from_default_env().unwrap_or_else(|_| EnvFilter::new("warn"));
+
+    // turn off cosmic theme errors on non linux systems
+    if !cfg!(target_os = "linux") {
+        for directive in [
+            "cosmic::core=off",
+            "cosmic::theme=off",
+            "cosmic::app::cosmic=off",
+        ] {
+            filter = filter.add_directive(directive.parse().unwrap());
+        }
+    }
 
     // set up subscriber with dual outputs
     tracing_subscriber::registry()

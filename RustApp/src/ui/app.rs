@@ -17,7 +17,7 @@ use cosmic::{
     app::{Core, Settings, Task},
     executor,
     iced::{Size, Subscription, futures::StreamExt, window},
-    iced_widget::scrollable::{self, AbsoluteOffset},
+    iced_widget::scrollable,
     theme,
     widget::markdown,
 };
@@ -187,7 +187,7 @@ impl AppState {
 
     fn add_log(&mut self, log: &str) -> Task<AppMsg> {
         self.logs.extend(markdown::parse(log));
-        scrollable::scroll_to(SCROLLABLE_ID.clone(), AbsoluteOffset { x: 0., y: f32::MAX })
+        scrollable::snap_to(SCROLLABLE_ID.clone(), scrollable::RelativeOffset::END)
     }
 
     fn get_shared_buf_size(&self) -> usize {
