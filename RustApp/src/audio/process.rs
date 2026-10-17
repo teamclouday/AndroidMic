@@ -267,10 +267,10 @@ where
     // Initialize a vector to hold the results for each channel
     let mut result = vec![Vec::with_capacity(samples_per_channel); channel_count];
 
-    for buf in packet.buffer.chunks_exact(audio_format.sample_size()) {
-        for result in &mut result {
-            let sample = F::from_bytes(buf).to_f32();
-            result.push(sample);
+    let sample_size = audio_format.sample_size();
+    for frame in packet.buffer.chunks_exact(sample_size * channel_count) {
+        for (ch, buf) in frame.chunks_exact(sample_size).enumerate() {
+            result[ch].push(F::from_bytes(buf).to_f32());
         }
     }
 
