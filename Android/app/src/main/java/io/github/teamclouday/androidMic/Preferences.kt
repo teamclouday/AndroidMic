@@ -43,7 +43,11 @@ enum class AudioSource {
     Mic,
     Recognition,
     Communication,
-    Performance;
+    Performance,
+
+    // raw microphone signal, no gain control / noise suppression / EQ
+    // useful for measurement tools (RTA, SPL meters, ...)
+    Unprocessed;
 
     fun getSource(): Int {
 
@@ -55,6 +59,13 @@ enum class AudioSource {
                 MediaRecorder.AudioSource.VOICE_PERFORMANCE
             } else {
                 MediaRecorder.AudioSource.MIC
+            }
+            // voice recognition is required by the CDD to have AGC and noise reduction
+            // disabled, so it is the closest thing to raw audio on older devices
+            Unprocessed -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                MediaRecorder.AudioSource.UNPROCESSED
+            } else {
+                MediaRecorder.AudioSource.VOICE_RECOGNITION
             }
         }
     }

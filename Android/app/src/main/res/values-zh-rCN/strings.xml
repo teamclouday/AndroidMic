@@ -49,6 +49,7 @@
 
     <string name="connected_device">已连接设备:\n</string>
     <string name="mic_start_recording">麦克风已启动录制</string>
+    <string name="unprocessed_not_supported">此设备不支持未处理音频源，已改用语音识别</string>
 
     <string name="device_disconnected">设备已断开连接</string>
     <string name="recording_stopped">已停止录制</string>

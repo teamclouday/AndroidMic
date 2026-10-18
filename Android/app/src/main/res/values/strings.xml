@@ -54,6 +54,7 @@
 
     <string name="connected_device">Connected Device:\n</string>
     <string name="mic_start_recording">Microphone has started to record</string>
+    <string name="unprocessed_not_supported">Unprocessed audio source is not supported on this device, using voice recognition instead</string>
 
     <string name="device_disconnected">Device disconnected</string>
     <string name="recording_stopped">Recording stopped</string>

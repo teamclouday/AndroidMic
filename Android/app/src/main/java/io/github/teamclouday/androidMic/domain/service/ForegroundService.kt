@@ -359,7 +359,11 @@ class ForegroundService : Service() {
         Log.d(TAG, "startAudio [recording]")
         states.isAudioStarted = true
 
-        reply(replyTo, ResponseData(msg = application.getString(R.string.mic_start_recording)))
+        var startMsg = application.getString(R.string.mic_start_recording)
+        if (managerAudio?.isUnprocessedFallback == true) {
+            startMsg += "\n" + application.getString(R.string.unprocessed_not_supported)
+        }
+        reply(replyTo, ResponseData(msg = startMsg))
 
         return true
     }

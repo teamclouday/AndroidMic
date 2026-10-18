@@ -4,7 +4,14 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import android.media.AudioFormat
+import android.media.AudioManager
 import android.media.AudioRecord
+import android.media.MediaRecorder
+import android.media.audiofx.AcousticEchoCanceler
+import android.media.audiofx.AudioEffect
+import android.media.audiofx.AutomaticGainControl
+import android.media.audiofx.NoiseSuppressor
+import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
 import io.github.teamclouday.androidMic.domain.service.AudioPacket
@@ -36,6 +43,7 @@ class MicAudioManager(
     }
 
     private val recorder: AudioRecord
+    private val effects: List<AudioEffect>
     private val bufferSize: Int
     private val buffer: ByteArray
     private val bufferFloat: FloatArray
@@ -43,6 +51,10 @@ class MicAudioManager(
     private var streamJob: Job? = null
 
     private var isMuted = false
+
+    // true when the unprocessed source was requested but the device can't provide it
+    var isUnprocessedFallback = false
+        private set
 
     init {
         // check microphone
@@ -71,19 +83,40 @@ class MicAudioManager(
             "Microphone buffer size ($bufferSize) is invalid\nAudio format is likely not supported"
         }
 
+        val isUnprocessed = isUnprocessedSource(audioSource)
+
+        // the unprocessed source behaves like the default (processed) one when the device
+        // doesn't support it, voice recognition is a better match in that case
+        var source = audioSource
+        if (isUnprocessed && !isUnprocessedSupported(ctx)) {
+            Log.w(TAG, "unprocessed audio source not supported, using voice recognition")
+            source = MediaRecorder.AudioSource.VOICE_RECOGNITION
+            isUnprocessedFallback = true
+        }
+
         // init recorder
-        recorder = AudioRecord(
-            audioSource,
-            sampleRate,
-            channelConfig,
-            audioFormat,
-            bufferSize,
-        )
+        var rec = AudioRecord(source, sampleRate, channelConfig, audioFormat, bufferSize)
+
+        if (rec.state != AudioRecord.STATE_INITIALIZED && !isUnprocessedFallback && isUnprocessed) {
+            Log.w(TAG, "unprocessed audio source failed to initialize, using voice recognition")
+            rec.release()
+            rec = AudioRecord(
+                MediaRecorder.AudioSource.VOICE_RECOGNITION,
+                sampleRate,
+                channelConfig,
+                audioFormat,
+                bufferSize,
+            )
+            isUnprocessedFallback = true
+        }
+        recorder = rec
 
         // check if recorder is initialized
         require(recorder.state == AudioRecord.STATE_INITIALIZED) {
             "Microphone recording failed to initialize"
         }
+
+        effects = if (isUnprocessed) disablePreProcessing(recorder.audioSessionId) else emptyList()
 
         buffer = ByteArray(bufferSize)
         bufferFloat = FloatArray(bufferSize / 4) // float is 4 bytes
@@ -177,7 +210,44 @@ class MicAudioManager(
     fun shutdown() {
         recorder.stop()
         recorder.release()
+        effects.forEach { it.release() }
         streamJob?.cancel()
         Log.d(TAG, "shutdown")
+    }
+
+    private fun isUnprocessedSource(source: Int): Boolean {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && source == MediaRecorder.AudioSource.UNPROCESSED
+    }
+
+    private fun isUnprocessedSupported(ctx: Context): Boolean {
+        val audioManager = ctx.getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        return audioManager.getProperty(AudioManager.PROPERTY_SUPPORT_AUDIO_SOURCE_UNPROCESSED)
+            .toBoolean()
+    }
+
+    // some vendors attach gain control, noise suppression or echo cancellation
+    // to every input, explicitly turn them off to keep the signal raw
+    private fun disablePreProcessing(sessionId: Int): List<AudioEffect> {
+        val effects = mutableListOf<AudioEffect>()
+
+        if (AutomaticGainControl.isAvailable()) {
+            AutomaticGainControl.create(sessionId)?.let { effects.add(it) }
+        }
+        if (NoiseSuppressor.isAvailable()) {
+            NoiseSuppressor.create(sessionId)?.let { effects.add(it) }
+        }
+        if (AcousticEchoCanceler.isAvailable()) {
+            AcousticEchoCanceler.create(sessionId)?.let { effects.add(it) }
+        }
+
+        effects.forEach {
+            try {
+                it.enabled = false
+            } catch (e: IllegalStateException) {
+                Log.w(TAG, "failed to disable ${it.javaClass.simpleName}: ${e.message}")
+            }
+        }
+
+        return effects
     }
 }
