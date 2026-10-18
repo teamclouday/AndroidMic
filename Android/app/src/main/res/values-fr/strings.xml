@@ -42,6 +42,7 @@
     <string name="microphone_not_recording">Le microphone n\'enregistre pas</string>
     <string name="connected_device">Appareil connecté:\n</string>
     <string name="mic_start_recording">Le microphone a commencé à enregister</string>
+    <string name="unprocessed_not_supported">La source audio non traitée n\'est pas prise en charge par cet appareil, utilisation de la reconnaissance vocale</string>
 
     <string name="device_disconnected">Appareil déconnecté</string>
     <string name="recording_stopped">Arrêt de l\'enregistrement</string>
