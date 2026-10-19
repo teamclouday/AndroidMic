@@ -45,7 +45,8 @@ const TREND_MIN_SPAN: f64 = 4.0;
 const LATE_ARRIVAL_S: f64 = 0.05;
 /// if packets keep coming late for this long, the stream itself moved: start a new fit
 const REFIT_AFTER_S: f64 = 2.0;
-/// packets closer than this are one burst (phones often deliver mic audio 10 or 20 ms at a time)
+/// packets closer than this (or than half a packet) are one burst,
+/// phones often deliver mic audio 10 or 20 ms at a time
 const BURST_GAP_S: f64 = 0.001;
 /// the latency is locked once the fits are this old, before that they still move it around
 const SETTLE: Duration = Duration::from_secs(60);
@@ -105,8 +106,9 @@ impl PlayoutWriter {
 
         // only the last packet of a burst is fitted: the ones before it waited for it,
         // their arrival time says nothing about when they were captured
+        let packet_s = frames as f64 / self.arrivals.slope().unwrap_or(48000.0);
         if let Some((t, written)) = self.last_packet
-            && now - t > BURST_GAP_S
+            && now - t > BURST_GAP_S.max(packet_s / 2.0)
         {
             self.fit_arrival(t, written);
         }
@@ -262,6 +264,8 @@ pub struct Playout {
     min_level: i64,
     /// frames of silence still to play before reading again, to raise the margin
     hold: usize,
+    /// margin added on top of `target` by the probe
+    extra: usize,
     /// last (position - setpoint), in frames
     latency_error: f64,
     /// estimated clock drift between the phone and the sound card
@@ -326,6 +330,7 @@ impl Playout {
             probe: to_frames(PROBE),
             min_level: i64::MAX,
             hold: 0,
+            extra: 0,
             latency_error: 0.0,
             drift: 0.0,
             ratio: 1.0,
@@ -365,13 +370,15 @@ impl Playout {
             self.since_start = 0;
             self.min_level = i64::MAX;
             self.hold = 0;
+            self.extra = 0;
         }
 
         available -= self.pay_debt(available);
 
-        if available > self.target + self.max_excess {
+        let target = self.target + self.extra;
+        if available > target + self.max_excess {
             // way too much audio buffered (a backlog after a stall), jump back to the target
-            self.skip(available - self.target);
+            self.skip(available - target);
             self.setpoint = None;
             self.stats.overflows += 1;
         }
@@ -414,6 +421,7 @@ impl Playout {
                 );
                 // late audio still owed is part of the level, so this covers it too
                 self.hold = (target - self.min_level) as usize;
+                self.extra = self.hold;
             }
         }
 
@@ -525,7 +533,7 @@ impl Playout {
 
         if s.underruns > 0 || s.overflows > 0 || s.restarts > 0 {
             warn!(
-                "playout: {} underruns ({:.1} ms late audio), {} overflows, {} restarts in the last {:.0} s. increase the target latency if this keeps happening",
+                "playout: {} underruns ({:.1} ms late audio), {} overflows, {} restarts in the last {:.0} s. increase the jitter buffer in the settings if this keeps happening",
                 s.underruns,
                 ms(s.late_frames),
                 s.overflows,
