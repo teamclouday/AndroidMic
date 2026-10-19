@@ -37,6 +37,8 @@ pub struct Config {
     pub amplify: bool,
     pub amplify_value: f32,
     pub post_effect: AudioEffect,
+    /// least audio kept in the playout buffer to absorb network jitter, in ms
+    pub target_latency_ms: u32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Values, PartialEq, Eq)]
@@ -122,6 +124,7 @@ impl Default for Config {
             speex_dereverb_level: 0.5,
             post_effect: AudioEffect::NoEffect,
             start_minimized: false,
+            target_latency_ms: 30,
         }
     }
 }

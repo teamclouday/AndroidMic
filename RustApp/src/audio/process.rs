@@ -49,27 +49,32 @@ impl AudioStream {
         packet: AudioPacketMessage,
         cache: &mut ProcessCache,
     ) -> anyhow::Result<Option<Vec<f32>>> {
-        match self.audio_params.target_format.audio_format {
-            AudioFormat::I16 => self.process_audio_packet_internal::<i16>(packet, cache),
-            AudioFormat::I24 => self.process_audio_packet_internal::<f32>(packet, cache),
-            AudioFormat::I32 => self.process_audio_packet_internal::<i32>(packet, cache),
-            AudioFormat::U8 => self.process_audio_packet_internal::<u8>(packet, cache),
-            AudioFormat::F32 => self.process_audio_packet_internal::<f32>(packet, cache),
-        }
-        .map_err(|e| {
-            warn!("failed to convert audio stream: {e}");
-            e
-        })
+        self.process_audio_packet_internal(packet, cache)
+            .map_err(|e| {
+                warn!("failed to convert audio stream: {e}");
+                e
+            })
     }
 
-    fn process_audio_packet_internal<F>(
+    /// Fill the gap left by lost packets with silence, so the audio after it is
+    /// still played on time. `frames` is counted at the phone sample rate.
+    pub fn push_silence(&mut self, frames: usize, sample_rate: u32) {
+        let target_rate = self.audio_params.target_format.sample_rate.to_number();
+        let num_channels = self.audio_params.target_format.channel_count.to_number() as usize;
+        let frames = (frames as u64 * target_rate as u64 / sample_rate.max(1) as u64) as usize;
+        let frames = frames.min(self.buff.producer.slots() / num_channels);
+
+        if let Ok(chunk) = self.buff.producer.write_chunk_uninit(frames * num_channels) {
+            chunk.fill_from_iter(std::iter::repeat(0.0));
+            self.buff.commit(frames);
+        }
+    }
+
+    fn process_audio_packet_internal(
         &mut self,
         packet: AudioPacketMessage,
         cache: &mut ProcessCache,
-    ) -> anyhow::Result<Option<Vec<f32>>>
-    where
-        F: cpal::SizedSample + AudioBytes + std::fmt::Debug + 'static,
-    {
+    ) -> anyhow::Result<Option<Vec<f32>>> {
         let config = &self.audio_params;
         let mut current_sample_rate = packet.sample_rate;
 
@@ -186,39 +191,34 @@ impl AudioStream {
             }
         }
 
-        // finally convert to output format
+        // finally interleave the channels for the player
         let num_channels = config.target_format.channel_count.to_number() as usize;
-        let total_bytes: usize = buffer[0].len() * num_channels * std::mem::size_of::<F>();
-        let num_bytes = std::cmp::min(self.buff.slots(), total_bytes);
-        let num_frames = num_bytes / (num_channels * std::mem::size_of::<F>());
+        let total_frames = buffer[0].len();
+        let num_frames = std::cmp::min(self.buff.producer.slots() / num_channels, total_frames);
 
-        if num_bytes > 0 {
-            match self.buff.write_chunk_uninit(num_bytes) {
+        if num_frames > 0 {
+            match self.buff.producer.write_chunk_uninit(num_frames * num_channels) {
                 Ok(chunk) => {
                     let buffer_ref = &buffer;
 
                     chunk.fill_from_iter((0..num_frames).flat_map(|frame_idx| {
-                        (0..num_channels).flat_map(move |channel_idx| {
-                            // compute the channel index
+                        (0..num_channels).map(move |channel_idx| {
+                            // reuse the last channel if the phone sends less channels
                             let channel = std::cmp::min(channel_idx, buffer_ref.len() - 1);
-                            let sample = if frame_idx < buffer_ref[channel].len() {
-                                buffer_ref[channel][frame_idx]
-                            } else {
-                                0.0 // fill with zero if out of bounds
-                            };
-                            F::from_f32(sample).to_bytes()
+                            buffer_ref[channel].get(frame_idx).copied().unwrap_or(0.0)
                         })
                     }));
+                    self.buff.commit(num_frames);
                 }
                 Err(e) => {
                     warn!("dropped audio samples {e}");
                 }
             };
+        }
 
-            // warn about dropped samples
-            if num_bytes < total_bytes {
-                warn!("dropped {} audio bytes", total_bytes - num_bytes);
-            }
+        // the player keeps the latency in check, this only happens if it stopped reading
+        if num_frames < total_frames {
+            warn!("dropped {} audio frames", total_frames - num_frames);
         }
 
         let buffer_mono = if self.is_window_visible {

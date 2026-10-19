@@ -1,7 +1,8 @@
 #![allow(clippy::needless_range_loop)]
+use std::time::Duration;
+
 use byteorder::{ByteOrder, NativeEndian, WriteBytesExt};
 use cpal::traits::StreamTrait;
-use rtrb::Consumer;
 
 use crate::{
     config::{AudioEffect, AudioFormat, ChannelCount, Config, DenoiseKind, SampleRate},
@@ -11,6 +12,7 @@ use crate::{
 mod chunked_ring_buffer;
 pub mod denoise_rnnoise;
 pub mod player;
+pub mod playout;
 mod postprocessing;
 pub mod process;
 pub mod resampler;
@@ -66,7 +68,7 @@ impl AudioProcessParams {
 impl AppState {
     pub fn create_audio_stream(
         &mut self,
-        consumer: Consumer<u8>,
+        consumer: playout::PlayoutReader,
         auto_play: bool,
     ) -> anyhow::Result<AudioPacketFormat> {
         self.audio_stream = None;
@@ -83,8 +85,12 @@ impl AppState {
             channel_count: config.channel_count,
         };
 
-        let (stream, final_audio_config) =
-            player::create_audio_stream(device, wanted_audio_config, consumer)?;
+        let (stream, final_audio_config) = player::create_audio_stream(
+            device,
+            wanted_audio_config,
+            consumer,
+            Duration::from_millis(config.target_latency_ms as u64),
+        )?;
 
         if auto_play {
             if let Err(e) = stream.play() {

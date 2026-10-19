@@ -1,7 +1,7 @@
 use anyhow::Result;
 use enum_dispatch::enum_dispatch;
 use prost::DecodeError;
-use rtrb::{Producer, chunks::ChunkError};
+use rtrb::chunks::ChunkError;
 use std::{fmt::Debug, io};
 use tcp_streamer::TcpStreamer;
 use thiserror::Error;
@@ -27,7 +27,10 @@ use crate::streamer::usb_streamer::UsbStreamer;
 pub use message::AudioPacketMessage;
 pub use streamer_runner::{ConnectOption, StreamerCommand, StreamerMsg, sub};
 
-use crate::{audio::AudioProcessParams, config::AudioFormat};
+use crate::{
+    audio::{AudioProcessParams, playout::PlayoutWriter},
+    config::AudioFormat,
+};
 
 pub const DEFAULT_PC_PORT: u16 = 54345;
 
@@ -35,14 +38,14 @@ const CHECK_1: &str = "AndroidMic1";
 const CHECK_2: &str = "AndroidMic2";
 
 pub struct AudioStream {
-    pub buff: Producer<u8>,
+    pub buff: PlayoutWriter,
     pub audio_params: AudioProcessParams,
     pub is_window_visible: bool,
 }
 
 impl AudioStream {
     pub fn new(
-        buff: Producer<u8>,
+        buff: PlayoutWriter,
         audio_params: AudioProcessParams,
         is_window_visible: bool,
     ) -> Self {
@@ -170,8 +173,9 @@ impl AudioPacketMessage {
         const DEFAULT_WINDOW_DURATION_MS: f32 = 10.0; // 10ms window
         let window_size = ((sample_rate as f32 * DEFAULT_WINDOW_DURATION_MS) / 1000.0) as usize;
 
+        // packets can be shorter than a window
         buffer
-            .chunks_exact(window_size)
+            .chunks(window_size.max(1))
             .map(|window| {
                 let max = window.iter().fold(f32::MIN, |acc, &x| acc.max(x));
                 let min = window.iter().fold(f32::MAX, |acc, &x| acc.min(x));

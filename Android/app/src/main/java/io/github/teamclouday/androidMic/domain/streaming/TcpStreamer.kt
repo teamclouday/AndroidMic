@@ -102,8 +102,12 @@ class TcpStreamer(
                         .build()
                     val pack = message.toByteArray()
 
-                    socket!!.outputStream.write(pack.size.toBigEndianU32())
-                    socket!!.outputStream.write(pack)
+                    // one write per packet, a separate length write would wait on an ack
+                    val out = ByteArray(4 + pack.size)
+                    System.arraycopy(pack.size.toBigEndianU32(), 0, out, 0, 4)
+                    System.arraycopy(pack, 0, out, 4, pack.size)
+
+                    socket!!.outputStream.write(out)
                     socket!!.outputStream.flush()
                 } catch (e: IOException) {
                     Log.d(tag, "${e.message}")
@@ -154,6 +158,8 @@ class TcpStreamer(
     fun createSocket(p: Int, timeout: Int): Socket? {
         val socket = Socket()
         return try {
+            // send small audio packets right away instead of batching them (Nagle)
+            socket.tcpNoDelay = true
             socket.connect(InetSocketAddress(ip, p), timeout)
             socket.soTimeout = timeout
             socket

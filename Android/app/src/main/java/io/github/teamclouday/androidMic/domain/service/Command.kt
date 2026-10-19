@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.os.Message
 import io.github.teamclouday.androidMic.AppPreferences
 import io.github.teamclouday.androidMic.AudioFormat
+import io.github.teamclouday.androidMic.AudioSource
 import io.github.teamclouday.androidMic.ChannelCount
 import io.github.teamclouday.androidMic.Dialogs
 import io.github.teamclouday.androidMic.Mode
@@ -31,6 +32,7 @@ private const val ID_SAMPLE_RATE: String = "ID_SAMPLE_RATE"
 private const val ID_CHANNEL_COUNT: String = "ID_CHANNEL_COUNT"
 private const val ID_AUDIO_FORMAT: String = "ID_AUDIO_FORMAT"
 private const val ID_AUDIO_SOURCE: String = "ID_AUDIO_SOURCE"
+private const val ID_FORCE_UNPROCESSED: String = "ID_FORCE_UNPROCESSED"
 
 
 /**
@@ -58,6 +60,7 @@ data class CommandData(
     val channelCount: ChannelCount? = null,
     val audioFormat: AudioFormat? = null,
     val audioSource: Int? = null,
+    val forceUnprocessed: Boolean = false,
 ) {
 
     companion object {
@@ -72,6 +75,7 @@ data class CommandData(
                     ?.let { ChannelCount.entries[it] },
                 audioFormat = msg.data.getOrdinal(ID_AUDIO_FORMAT)?.let { AudioFormat.entries[it] },
                 audioSource = msg.data.getInt(ID_AUDIO_SOURCE).let { if (it == -1) null else it },
+                forceUnprocessed = msg.data.getBoolean(ID_FORCE_UNPROCESSED),
             )
         }
 
@@ -82,13 +86,15 @@ data class CommandData(
             val ip = prefs.ip.get()
             val port = prefs.port.get()
             val mode = prefs.mode.get()
+            val audioSource = prefs.audioSource.get()
 
             val data = CommandData(
                 command = command,
                 sampleRate = prefs.sampleRate.get(),
                 channelCount = prefs.channelCount.get(),
                 audioFormat = prefs.audioFormat.get(),
-                audioSource = prefs.audioSource.get().getSource(),
+                audioSource = audioSource.getSource(),
+                forceUnprocessed = audioSource == AudioSource.UnprocessedForced,
                 mode = mode
             )
 
@@ -138,6 +144,7 @@ data class CommandData(
         this.audioFormat?.let { data.putInt(ID_AUDIO_FORMAT, it.ordinal) }
 
         data.putInt(ID_AUDIO_SOURCE, this.audioSource ?: -1)
+        data.putBoolean(ID_FORCE_UNPROCESSED, this.forceUnprocessed)
 
         val message = Message.obtain()
         message.data = data
