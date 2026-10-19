@@ -374,6 +374,7 @@ class ForegroundService : Service() {
                 audioFormat = msg.audioFormat!!.value,
                 channelCount = msg.channelCount!!.value,
                 audioSource = msg.audioSource!!,
+                forceUnprocessed = msg.forceUnprocessed,
             )
         } catch (e: IllegalArgumentException) {
             reply(replyTo, ResponseData(msg = application.getString(R.string.error) + e.message))

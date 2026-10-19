@@ -39,6 +39,8 @@ class MicAudioManager(
     val audioFormat: Int,
     val channelCount: Int,
     val audioSource: Int,
+    // use the unprocessed source even when the device doesn't advertise support for it
+    val forceUnprocessed: Boolean = false,
 ) {
 
     companion object {
@@ -114,7 +116,7 @@ class MicAudioManager(
         // the unprocessed source behaves like the default (processed) one when the device
         // doesn't support it, voice recognition is a better match in that case
         var source = audioSource
-        if (isUnprocessed && !isUnprocessedSupported(ctx)) {
+        if (isUnprocessed && !forceUnprocessed && !isUnprocessedSupported(ctx)) {
             Log.w(TAG, "unprocessed audio source not supported, using voice recognition")
             source = MediaRecorder.AudioSource.VOICE_RECOGNITION
             isUnprocessedFallback = true

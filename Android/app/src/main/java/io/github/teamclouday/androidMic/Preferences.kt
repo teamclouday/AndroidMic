@@ -47,7 +47,11 @@ enum class AudioSource {
 
     // raw microphone signal, no gain control / noise suppression / EQ
     // useful for measurement tools (RTA, SPL meters, ...)
-    Unprocessed;
+    Unprocessed,
+
+    // some devices (e.g. Samsung) don't advertise the unprocessed source
+    // but still deliver raw audio with it, so skip the support check
+    UnprocessedForced;
 
     fun getSource(): Int {
 
@@ -62,11 +66,19 @@ enum class AudioSource {
             }
             // voice recognition is required by the CDD to have AGC and noise reduction
             // disabled, so it is the closest thing to raw audio on older devices
-            Unprocessed -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            Unprocessed, UnprocessedForced -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                 MediaRecorder.AudioSource.UNPROCESSED
             } else {
                 MediaRecorder.AudioSource.VOICE_RECOGNITION
             }
+        }
+    }
+
+    // the name is what gets saved in the preferences
+    override fun toString(): String {
+        return when (this) {
+            UnprocessedForced -> "Unprocessed (forced)"
+            else -> name
         }
     }
 }
