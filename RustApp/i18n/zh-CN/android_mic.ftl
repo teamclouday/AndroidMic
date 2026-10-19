@@ -71,3 +71,4 @@ mono = 单声道
 stereo = 立体声
 
 clear_logs = 清空日志
+target_latency = 抖动缓冲 (毫秒)

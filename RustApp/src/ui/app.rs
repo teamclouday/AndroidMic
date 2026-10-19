@@ -9,7 +9,6 @@ use cpal::{
 };
 use local_ip_address::list_afinet_netifas;
 use notify_rust::Notification;
-use rtrb::RingBuffer;
 use tokio::sync::mpsc::Sender;
 
 use cosmic::{
@@ -35,7 +34,7 @@ use super::{
 use super::tray::{SystemTray, SystemTrayMsg, SystemTrayStream};
 
 use crate::{
-    audio::{AudioPacketFormat, AudioProcessParams},
+    audio::{AudioPacketFormat, AudioProcessParams, playout},
     config::{
         AppTheme, AudioFormat, ChannelCount, Config, ConnectionMode, NetworkAdapter, SampleRate,
     },
@@ -107,7 +106,9 @@ fn get_audio_devices(audio_host: &Host) -> Vec<AudioDevice> {
         .collect()
 }
 
-const SHARED_BUF_SIZE_S: f32 = 1.; // 0.15s
+/// capacity of the buffer between the network and the player, the player keeps
+/// the actual latency at `Config::target_latency_ms`
+const SHARED_BUF_SIZE_S: f32 = 2.;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ConnectionState {
@@ -164,7 +165,7 @@ impl AppState {
         if self.connection_state != ConnectionState::Connected {
             return Task::none();
         }
-        let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
+        let (producer, consumer) = playout::channel(self.get_shared_buf_size());
         let config = self.config.data().clone();
 
         match self.create_audio_stream(consumer, true) {
@@ -191,9 +192,9 @@ impl AppState {
     }
 
     fn get_shared_buf_size(&self) -> usize {
+        // in samples, the player reads interleaved f32 frames
         let size = ((self.config.data().sample_rate.to_number() as f32
-            * self.config.data().channel_count.to_number() as f32
-            * self.config.data().audio_format.sample_size() as f32)
+            * self.config.data().channel_count.to_number() as f32)
             * SHARED_BUF_SIZE_S)
             .ceil() as usize;
         info!("shared buf size: {size}");
@@ -203,7 +204,7 @@ impl AppState {
 
     fn connect(&mut self) -> Task<AppMsg> {
         let config = self.config.data().clone();
-        let (producer, consumer) = RingBuffer::<u8>::new(self.get_shared_buf_size());
+        let (producer, consumer) = playout::channel(self.get_shared_buf_size());
 
         let audio_config = match self.create_audio_stream(consumer, false) {
             Ok(audio_config) => audio_config,
@@ -712,6 +713,14 @@ impl Application for AppState {
                 }
                 ConfigMsg::AmplifyValue(amplify_value) => {
                     self.config.update(|c| c.amplify_value = amplify_value);
+                    return self.update_audio_stream();
+                }
+                ConfigMsg::TargetLatency(target_latency_ms) => {
+                    self.config
+                        .update(|c| c.target_latency_ms = target_latency_ms);
+                }
+                // rebuilding the stream on every slider step would glitch
+                ConfigMsg::TargetLatencyApply => {
                     return self.update_audio_stream();
                 }
                 ConfigMsg::DeNoiseKind(denoise_kind) => {

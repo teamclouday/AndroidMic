@@ -6,12 +6,11 @@ use futures::{
     future::{self},
     pin_mut,
 };
-use rtrb::Producer;
 use std::fmt::Debug;
 use std::net::IpAddr;
 use tokio::sync::mpsc::{self, Sender};
 
-use crate::audio::AudioProcessParams;
+use crate::audio::{AudioProcessParams, playout::PlayoutWriter};
 use crate::config::ConnectionMode;
 use crate::streamer::{StreamerTrait, WriteError};
 
@@ -39,12 +38,12 @@ pub enum ConnectOption {
 pub enum StreamerCommand {
     Connect {
         connect_options: ConnectOption,
-        buff: Producer<u8>,
+        buff: PlayoutWriter,
         audio_params: AudioProcessParams,
         is_window_visible: bool,
     },
     ReconfigureStream {
-        buff: Producer<u8>,
+        buff: PlayoutWriter,
         audio_params: AudioProcessParams,
         is_window_visible: bool,
     },
@@ -105,6 +104,11 @@ impl StreamerMsg {
 }
 
 async fn send(sender: &mut futures::channel::mpsc::Sender<StreamerMsg>, msg: StreamerMsg) {
+    // never wait on the UI for audio wave updates, it would hold back the network reads
+    if matches!(msg, StreamerMsg::UpdateAudioWave { .. }) {
+        let _ = sender.try_send(msg);
+        return;
+    }
     sender.send(msg).await.unwrap();
 }
 

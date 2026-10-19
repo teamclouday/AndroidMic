@@ -58,6 +58,8 @@ pub enum ConfigMsg {
     PortTextInput(String),
     PortSave,
     PostAudioEffect(AudioEffect),
+    TargetLatency(u32),
+    TargetLatencyApply,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]

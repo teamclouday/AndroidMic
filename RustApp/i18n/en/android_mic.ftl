@@ -74,3 +74,4 @@ mono = Mono
 stereo = Stereo
 
 clear_logs = Clear logs
+target_latency = Jitter buffer (ms)

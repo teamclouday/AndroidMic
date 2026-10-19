@@ -1,10 +1,10 @@
-use std::io::Write;
+use std::time::Duration;
 
 use android_mic::{
     audio::{
         AudioPacketFormat, AudioProcessParams,
         denoise_rnnoise::{self},
-        player::process_audio,
+        playout::{Playout, channel},
         process::{ProcessCache, convert_packet_to_f32},
         resampler::resample_f32_stream,
         speexdsp::process_speex_f32_stream,
@@ -14,7 +14,6 @@ use android_mic::{
 };
 use criterion::{Criterion, criterion_group, criterion_main};
 
-use rtrb::RingBuffer;
 
 fn make_random(size: usize) -> Vec<u8> {
     use rand::rngs::StdRng;
@@ -32,24 +31,32 @@ fn make_random(size: usize) -> Vec<u8> {
 const SHARED_BUFFER_SIZE: usize = 48000 * 2;
 
 fn bench_player(c: &mut Criterion) {
-    let (mut producer, mut consumer) = RingBuffer::<u8>::new(SHARED_BUFFER_SIZE);
+    let (mut writer, reader) = channel(SHARED_BUFFER_SIZE);
+    let mut playout = Playout::new(reader, 2, 48000, Duration::from_millis(20));
 
-    // pre-fill fake audio buffer
     let mut output = vec![0i16; 480 * 2];
 
-    let source = make_random(48000);
+    let source: Vec<f32> = make_random(480 * 2)
+        .into_iter()
+        .map(|b| b as f32 / 255.0 - 0.5)
+        .collect();
 
     c.bench_function("bench_player", |b| {
         b.iter(|| {
-            producer.write(&source).unwrap();
+            for s in &source {
+                let _ = writer.producer.push(*s);
+            }
+            writer.commit(source.len() / 2);
 
-            process_audio::<i16>(&mut output, &mut consumer, 480);
+            playout.fill(&mut output);
         });
     });
 }
 
 fn bench_process(c: &mut Criterion) {
-    let (producer, mut consumer) = RingBuffer::<u8>::new(SHARED_BUFFER_SIZE);
+    let (producer, reader) = channel(SHARED_BUFFER_SIZE);
+    let mut playout = Playout::new(reader, 1, 48000, Duration::from_millis(20));
+    let mut drain = vec![0.0f32; 4096];
 
     let audio_params = AudioProcessParams {
         target_format: AudioPacketFormat {
@@ -88,8 +95,7 @@ fn bench_process(c: &mut Criterion) {
                 .process_audio_packet(packet, &mut cache)
                 .unwrap();
 
-            let chunk = consumer.read_chunk(consumer.slots()).unwrap();
-            chunk.commit_all();
+            playout.fill(&mut drain);
         });
     });
 }

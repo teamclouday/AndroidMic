@@ -319,20 +319,38 @@ pub fn settings_window(app: &AppState) -> Element<'_, ConfigMsg> {
                     ),
             )
             .push(
-                settings::section().title(fl!("title_connection")).add(
-                    row()
-                        .width(Length::Fill)
-                        .align_y(Vertical::Center)
-                        .spacing(5)
-                        .push(text(fl!("port")))
-                        .push(horizontal_space())
-                        .push(
-                            text_input("", &app.port_input)
-                                .on_input(ConfigMsg::PortTextInput)
-                                .width(Length::Fixed(150.0)),
-                        )
-                        .push(button::text(fl!("save")).on_press(ConfigMsg::PortSave)),
-                ),
+                settings::section()
+                    .title(fl!("title_connection"))
+                    .add(
+                        row()
+                            .width(Length::Fill)
+                            .align_y(Vertical::Center)
+                            .spacing(5)
+                            .push(text(fl!("port")))
+                            .push(horizontal_space())
+                            .push(
+                                text_input("", &app.port_input)
+                                    .on_input(ConfigMsg::PortTextInput)
+                                    .width(Length::Fixed(150.0)),
+                            )
+                            .push(button::text(fl!("save")).on_press(ConfigMsg::PortSave)),
+                    )
+                    .add(
+                        row()
+                            .align_y(Vertical::Center)
+                            .spacing(10)
+                            .push(text(fl!("target_latency")))
+                            .push(text(format!("{} ms", config.target_latency_ms)))
+                            .push(
+                                widget::slider(
+                                    5..=500,
+                                    config.target_latency_ms,
+                                    ConfigMsg::TargetLatency,
+                                )
+                                .step(5u32)
+                                .on_release(ConfigMsg::TargetLatencyApply),
+                            ),
+                    ),
             )
             .push(
                 settings::section()

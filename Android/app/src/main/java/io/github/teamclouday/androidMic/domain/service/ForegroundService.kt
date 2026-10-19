@@ -4,6 +4,7 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
 import android.content.Intent
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Handler
 import android.os.HandlerThread
@@ -91,6 +92,7 @@ class ForegroundService : Service() {
 
     private var managerAudio: MicAudioManager? = null
     private var managerStream: MicStreamManager? = null
+    private var wifiLocks: List<WifiManager.WifiLock> = emptyList()
 
 
     private val states = ServiceStates()
@@ -198,6 +200,7 @@ class ForegroundService : Service() {
         Log.d(TAG, "stopService")
         managerAudio?.shutdown()
         managerAudio = null
+        releaseWifiLocks()
         managerStream?.shutdown()
         managerStream = null
         serviceLooper.quitSafely()
@@ -281,6 +284,9 @@ class ForegroundService : Service() {
         )
 
         states.isStreamStarted = true
+        if (msg.mode == Mode.WIFI || msg.mode == Mode.UDP) {
+            acquireWifiLocks()
+        }
         Log.d(TAG, "startStream [connected]")
 
         reply(
@@ -320,6 +326,31 @@ class ForegroundService : Service() {
         managerStream?.shutdown()
         managerStream = null
         states.isStreamStarted = false
+        releaseWifiLocks()
+    }
+
+    // wifi power saving holds packets back, sometimes for hundreds of ms
+    private fun acquireWifiLocks() {
+        releaseWifiLocks()
+        val wifiManager = applicationContext.getSystemService(WIFI_SERVICE) as WifiManager
+
+        @Suppress("DEPRECATION")
+        val modes = mutableListOf(WifiManager.WIFI_MODE_FULL_HIGH_PERF)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            modes.add(WifiManager.WIFI_MODE_FULL_LOW_LATENCY)
+        }
+
+        wifiLocks = modes.map { mode ->
+            wifiManager.createWifiLock(mode, "AndroidMic:stream").apply {
+                setReferenceCounted(false)
+                acquire()
+            }
+        }
+    }
+
+    private fun releaseWifiLocks() {
+        wifiLocks.forEach { if (it.isHeld) it.release() }
+        wifiLocks = emptyList()
     }
 
 

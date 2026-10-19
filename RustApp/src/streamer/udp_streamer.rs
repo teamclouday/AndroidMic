@@ -7,7 +7,7 @@ use tokio_util::{codec::LengthDelimitedCodec, udp::UdpFramed};
 
 use crate::{
     audio::process::ProcessCache,
-    config::ConnectionMode,
+    config::{AudioFormat, ConnectionMode},
     streamer::{
         AudioPacketMessage, CHECK_2, WriteError,
         message::{MessageWrapper, message_wrapper::Payload},
@@ -20,13 +20,19 @@ const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
 
 const DISCONNECT_LOOP_DETECTER_MAX: u32 = 1000;
 
+/// a packet this far behind the expected one means the phone restarted its sequence
+const SEQUENCE_RESTART_GAP: u32 = 100;
+/// don't try to fill gaps bigger than this many packets with silence
+const MAX_LOST_PACKETS: u32 = 50;
+
 pub struct UdpStreamer {
     ip: IpAddr,
     pub port: u16,
     stream_config: AudioStream,
     framed: UdpFramed<LengthDelimitedCodec>,
     is_listening: bool,
-    tracked_sequence: u32,
+    /// sequence number of the next packet we expect
+    next_sequence: Option<u32>,
     process_cache: ProcessCache,
 }
 
@@ -45,7 +51,7 @@ pub async fn new(
         ip,
         port: addr.port(),
         stream_config,
-        tracked_sequence: 0,
+        next_sequence: None,
         is_listening: true,
         framed: UdpFramed::new(socket, LengthDelimitedCodec::new()),
         process_cache: ProcessCache::new(),
@@ -93,17 +99,42 @@ impl StreamerTrait for UdpStreamer {
                             match packet.payload {
                                 Some(payload) => {
                                     let message = match payload {
-                                        Payload::AudioPacket(packet) => {
-                                            if packet.sequence_number < self.tracked_sequence {
-                                                // drop packet
-                                                info!(
-                                                    "dropped packet: old sequence number {} < {}",
-                                                    packet.sequence_number, self.tracked_sequence
-                                                );
-                                            }
-                                            self.tracked_sequence = packet.sequence_number;
+                                        Payload::AudioPacket(packet) => 'packet: {
+                                            let sequence = packet.sequence_number;
+                                            let Some(packet) = packet.audio_packet else {
+                                                break 'packet None;
+                                            };
 
-                                            let packet = packet.audio_packet.unwrap();
+                                            if let Some(expected) = self.next_sequence {
+                                                if sequence < expected
+                                                    && expected - sequence < SEQUENCE_RESTART_GAP
+                                                {
+                                                    // its slot was already played, playing it
+                                                    // now would shift everything after it
+                                                    debug!(
+                                                        "dropped late packet {sequence} (expected {expected})"
+                                                    );
+                                                    break 'packet None;
+                                                }
+
+                                                let lost = sequence.wrapping_sub(expected);
+                                                if sequence > expected && lost <= MAX_LOST_PACKETS {
+                                                    debug!("{lost} packets lost before {sequence}");
+                                                    let frames = packet.buffer.len()
+                                                        / (packet.channel_count.max(1) as usize
+                                                            * AudioFormat::from_android_format(
+                                                                packet.audio_format,
+                                                            )
+                                                            .map(|f| f.sample_size())
+                                                            .unwrap_or(2));
+                                                    self.stream_config.push_silence(
+                                                        frames * lost as usize,
+                                                        packet.sample_rate,
+                                                    );
+                                                }
+                                            }
+                                            self.next_sequence = Some(sequence.wrapping_add(1));
+
                                             let buffer_size = packet.buffer.len();
                                             let sample_rate = packet.sample_rate;
 
@@ -170,7 +201,7 @@ impl StreamerTrait for UdpStreamer {
             },
             Err(_) => {
                 self.is_listening = true;
-                self.tracked_sequence = 0;
+                self.next_sequence = None;
                 Ok(Some(StreamerMsg::Listening {
                     ip: Some(self.ip),
                     port: Some(self.port),

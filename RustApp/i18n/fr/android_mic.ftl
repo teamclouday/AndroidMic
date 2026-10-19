@@ -24,3 +24,4 @@ mono = Mono
 stereo = Stéréo
 
 clear_logs = Supprimer les logs
+target_latency = Tampon de gigue (ms)
