@@ -129,7 +129,7 @@ mod ksni_backend {
 
     struct KsniTray {
         event_sender: mpsc::UnboundedSender<SystemTrayMsg>,
-        connected: bool,
+        disconnected: bool,
         description: String,
     }
 
@@ -141,7 +141,7 @@ mod ksni_backend {
         fn apply(&mut self, cmd: TrayCommand) {
             match cmd {
                 TrayCommand::MenuState { disconnected, status } => {
-                    self.connected = !disconnected;
+                    self.disconnected = disconnected;
                     self.description = format!("AndroidMic - {status}");
                 }
             }
@@ -223,14 +223,14 @@ mod ksni_backend {
                 .into(),
                 StandardItem {
                     label: fl!("tray_connect"),
-                    enabled: self.connected,
+                    enabled: self.disconnected,
                     activate: Box::new(|this: &mut Self| this.notify(SystemTrayMsg::Connect)),
                     ..Default::default()
                 }
                 .into(),
                 StandardItem {
                     label: fl!("tray_disconnect"),
-                    enabled: !self.connected,
+                    enabled: !self.disconnected,
                     activate: Box::new(|this: &mut Self| this.notify(SystemTrayMsg::Disconnect)),
                     ..Default::default()
                 }
@@ -274,7 +274,7 @@ mod ksni_backend {
                     rt.block_on(async move {
                         let tray = KsniTray {
                             event_sender,
-                            connected: true,
+                            disconnected: true,
                             description: "AndroidMic".into(),
                         };
 

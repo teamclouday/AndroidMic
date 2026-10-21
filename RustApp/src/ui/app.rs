@@ -428,6 +428,14 @@ impl Application for AppState {
         info!("config path: {}", flags.config_path);
         info!("log path: {}", flags.log_path);
 
+        // linux has no "launched automatically" authostart flow, so the
+        // start minimized setting always applies there
+        #[cfg(target_os = "linux")]
+        if !app.config.data().start_minimized {
+            commands.push(app.open_main_window());
+        }
+
+        #[cfg(not(target_os = "linux"))]
         if !flags.launched_automatically || !app.config.data().start_minimized {
             commands.push(app.open_main_window());
         }
