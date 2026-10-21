@@ -123,6 +123,9 @@ mslnk = "0.1"
 [target.'cfg(not(target_os = "linux"))'.dependencies]
 tray-icon = "0.24"
 
+[target.'cfg(target_os = "linux")'.dependencies]
+ksni = "0.3"
+
 [build-dependencies]
 prost-build = "0.14"
 
