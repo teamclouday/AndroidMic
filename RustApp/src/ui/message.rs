@@ -1,5 +1,4 @@
 use super::app::AudioDevice;
-#[cfg(not(target_os = "linux"))]
 use super::tray::SystemTrayMsg;
 use crate::{
     config::{
@@ -27,7 +26,6 @@ pub enum AppMsg {
     ShowWindow,
     Menu(MenuMsg),
     LinkClicked(String),
-    #[cfg(not(target_os = "linux"))]
     SystemTray(SystemTrayMsg),
     Exit,
 }
