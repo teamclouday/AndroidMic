@@ -19,6 +19,10 @@ fun getWifiPermission(): MutableList<String> {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU)
         list.add(Manifest.permission.POST_NOTIFICATIONS)
 
+    // Android 17 (API 37) gates local network access behind a runtime permission
+    if (Build.VERSION.SDK_INT >= 37)
+        list.add(Manifest.permission.ACCESS_LOCAL_NETWORK)
+
     return list
 }
 

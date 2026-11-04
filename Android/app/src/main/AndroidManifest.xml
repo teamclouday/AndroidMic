@@ -8,6 +8,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <!-- required on Android 17+ (targetSdk 37) to reach the PC over the local network -->
+    <uses-permission android:name="android.permission.ACCESS_LOCAL_NETWORK" />
     <!-- needed for the wifi low latency lock -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
 
