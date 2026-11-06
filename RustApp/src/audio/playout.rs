@@ -300,7 +300,10 @@ impl Playout {
         let capacity = consumer.buffer().capacity() / channels;
         let mut target = to_frames(target_latency).max(1);
         if target > capacity / 2 {
-            warn!("playout: target latency is too big for the buffer, using {} frames", capacity / 2);
+            warn!(
+                "playout: target latency is too big for the buffer, using {} frames",
+                capacity / 2
+            );
             target = capacity / 2;
         }
 
@@ -841,7 +844,10 @@ mod tests {
         for drift in [-200.0, -30.0, 0.0, 50.0, 300.0] {
             // pseudo random jitter up to 15 ms, with a 30 ms spike every second
             let jitter = |n: usize| {
-                let r = ((n as u64).wrapping_mul(6364136223846793005).wrapping_add(1442695040888963407) >> 40) as f64
+                let r = ((n as u64)
+                    .wrapping_mul(6364136223846793005)
+                    .wrapping_add(1442695040888963407)
+                    >> 40) as f64
                     / (1u64 << 24) as f64;
                 r * 0.015 + if n % 200 == 0 { 0.03 } else { 0.0 }
             };
@@ -859,7 +865,10 @@ mod tests {
             );
             assert!(s < 0.2, "latency moved by {s} ms with {drift} ppm drift");
             // clicks 204.53 ms apart at the mic stay 204.53 ms apart, within a sample
-            assert!(interval < 0.02, "interval off by {interval} ms with {drift} ppm drift");
+            assert!(
+                interval < 0.02,
+                "interval off by {interval} ms with {drift} ppm drift"
+            );
         }
     }
 
@@ -879,7 +888,12 @@ mod tests {
         let latencies = click_latencies(&output, &clicks, 0.0);
 
         // the clicks inside the stall are lost, all the others are played on time
-        assert!(latencies.len() + 4 >= clicks.len(), "{} {}", latencies.len(), clicks.len());
+        assert!(
+            latencies.len() + 4 >= clicks.len(),
+            "{} {}",
+            latencies.len(),
+            clicks.len()
+        );
 
         let before = &latencies[250..390];
         let after = &latencies[latencies.len() - 250..latencies.len() - 50];

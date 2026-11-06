@@ -197,7 +197,11 @@ impl AudioStream {
         let num_frames = std::cmp::min(self.buff.producer.slots() / num_channels, total_frames);
 
         if num_frames > 0 {
-            match self.buff.producer.write_chunk_uninit(num_frames * num_channels) {
+            match self
+                .buff
+                .producer
+                .write_chunk_uninit(num_frames * num_channels)
+            {
                 Ok(chunk) => {
                     let buffer_ref = &buffer;
 

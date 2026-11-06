@@ -14,7 +14,6 @@ use android_mic::{
 };
 use criterion::{Criterion, criterion_group, criterion_main};
 
-
 fn make_random(size: usize) -> Vec<u8> {
     use rand::rngs::StdRng;
     use rand::{Rng, SeedableRng};
