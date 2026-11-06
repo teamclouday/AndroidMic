@@ -18,7 +18,6 @@ pub struct SystemTrayStream {
 
 #[cfg(not(target_os = "linux"))]
 mod tray_icon_backend {
-    use futures::SinkExt;
     use std::sync::Arc;
     use tokio::sync::{Mutex, mpsc};
     use tray_icon::{
@@ -114,10 +113,10 @@ pub use tray_icon_backend::SystemTray;
 
 #[cfg(target_os = "linux")]
 mod ksni_backend {
-    use std::sync::Arc;
-    use tokio::sync::{Mutex, mpsc};
     use ksni::TrayMethods;
     use ksni::menu::{MenuItem as MenuEntry, StandardItem};
+    use std::sync::Arc;
+    use tokio::sync::{Mutex, mpsc};
 
     use crate::{fl, utils::APP_ID};
 
@@ -140,7 +139,10 @@ mod ksni_backend {
 
         fn apply(&mut self, cmd: TrayCommand) {
             match cmd {
-                TrayCommand::MenuState { disconnected, status } => {
+                TrayCommand::MenuState {
+                    disconnected,
+                    status,
+                } => {
                     self.disconnected = disconnected;
                     self.description = format!("AndroidMic - {status}");
                 }

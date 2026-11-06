@@ -57,21 +57,11 @@ pub fn create_audio_stream(
 
     // create stream config
     let stream: cpal::Stream = match audio_format {
-        AudioFormat::I16 => {
-            build_output_stream::<i16>(device, config, consumer, target_latency)
-        }
-        AudioFormat::I24 => {
-            build_output_stream::<f32>(device, config, consumer, target_latency)
-        }
-        AudioFormat::I32 => {
-            build_output_stream::<i32>(device, config, consumer, target_latency)
-        }
-        AudioFormat::U8 => {
-            build_output_stream::<u8>(device, config, consumer, target_latency)
-        }
-        AudioFormat::F32 => {
-            build_output_stream::<f32>(device, config, consumer, target_latency)
-        }
+        AudioFormat::I16 => build_output_stream::<i16>(device, config, consumer, target_latency),
+        AudioFormat::I24 => build_output_stream::<f32>(device, config, consumer, target_latency),
+        AudioFormat::I32 => build_output_stream::<i32>(device, config, consumer, target_latency),
+        AudioFormat::U8 => build_output_stream::<u8>(device, config, consumer, target_latency),
+        AudioFormat::F32 => build_output_stream::<f32>(device, config, consumer, target_latency),
     }?;
 
     // convert stream config to AudioPacketFormat
@@ -142,7 +132,11 @@ mod tests {
         // the filter delay passes first, then the signal comes through
         let mut output = [0_i16; 256];
         playout.fill(&mut output);
-        assert!(output[..filter_delay_frames() - 8].iter().all(|s| s.abs() < 1000));
+        assert!(
+            output[..filter_delay_frames() - 8]
+                .iter()
+                .all(|s| s.abs() < 1000)
+        );
         assert!(output[200..].iter().all(|s| (*s - 16383).abs() < 20));
     }
 }

@@ -9,7 +9,7 @@ pub struct ResamplerCache {
     result: Vec<Vec<f32>>,
 }
 
-const CHUNK_SIZE: usize = 1024;
+const CHUNK_SIZE: usize = 256;
 
 pub fn resample_f32_stream_owned(
     data: &[Vec<f32>],
@@ -124,6 +124,15 @@ pub fn resample_f32_stream<'a>(
                 channel.clear();
             }
             input_offset = missing;
+        } else {
+            // not enough data to fill a chunk yet, keep accumulating
+            for (data, unprocessed_buffer) in data.iter().zip(unprocessed_buffer.iter_mut()) {
+                unprocessed_buffer.extend_from_slice(data);
+            }
+            for channel in &mut cache.result {
+                channel.clear();
+            }
+            return Ok(&mut cache.result);
         }
     };
 
