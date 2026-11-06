@@ -82,7 +82,7 @@ Follow the instructions above for your operating system to install a virtual aud
 
    - **TCP/UDP (WiFi)**:
      - Connect your phone and PC to the same network
-     - No additional setup required
+     - **Windows**: When the firewall prompt appears on first launch, click **Allow access**. Otherwise the PC can't receive connections from your phone. If you dismissed the prompt, allow AndroidMic in *Windows Security → Firewall & network protection → Allow an app through firewall*
 
    - **USB ADB**:
      - Install [Android Debug Bridge (ADB)](https://developer.android.com/tools/adb)
@@ -119,6 +119,7 @@ Follow the instructions above for your operating system to install a virtual aud
    - Grant required permissions:
      - **Microphone**: To access your phone's mic
      - **Notification**: To show recording status in background
+     - **Nearby devices**: Required on Android 17 and above to connect to your PC. Approve it when prompted, or enable it in *Settings → Apps → AndroidMic → Permissions*
    - Start recording
    - Connect to PC:
      - **TCP/UDP**: Enter PC IP address and port (shown in PC app log)
@@ -153,6 +154,15 @@ After setup, the virtual microphone will appear in your system's audio input dev
 - **USB ADB**: Ensure USB debugging is enabled and ADB is installed
 - **USB Serial**: May need [Zadig](https://zadig.akeo.ie/) to change USB driver to WinUSB
 - **USB Serial (Linux)**: Configure udev rules for USB permissions
+
+### Phone can't connect to PC
+- **Android 37+**: Make sure the **Nearby devices** permission is granted to the app
+- **Windows**: Make sure AndroidMic is allowed through the firewall (see [Step 2](#step-2-pc-application-setup))
+- Confirm the phone and PC are on the same network
+
+### Audio is choppy, stuttering or glitchy
+- Increase the **jitter buffer** latency in the PC app settings. A larger buffer absorbs network delays at the cost of slightly higher latency. Raise it step by step until the audio is smooth
+- The PC app logs a warning (`playout: ... underruns ...`) when the buffer runs dry, which is a sign you should increase it
 
 ### Audio quality issues
 - Match audio settings between PC and Android app exactly
