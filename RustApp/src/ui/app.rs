@@ -243,6 +243,7 @@ impl AppState {
         };
 
         self.connection_state = ConnectionState::WaitingOnStatus;
+        self.sync_tray();
 
         self.send_command(StreamerCommand::Connect {
             connect_options,
@@ -260,11 +261,24 @@ impl AppState {
         self.audio_stream = None;
         self.audio_wave.clear();
 
-        if let Some(system_tray) = self.system_tray.as_mut() {
-            system_tray.update_menu_state(true, &fl!("state_disconnected"));
-        }
+        self.sync_tray();
 
         Task::none()
+    }
+
+    /// Sync the tray menu with `connection_state`, the single source of truth
+    /// shared with the main window.
+    fn sync_tray(&mut self) {
+        let (disconnected, status) = match self.connection_state {
+            ConnectionState::Default => (true, fl!("state_disconnected")),
+            ConnectionState::WaitingOnStatus => (true, fl!("waiting")),
+            ConnectionState::Listening => (false, fl!("state_listening")),
+            ConnectionState::Connected => (false, fl!("state_connected")),
+        };
+
+        if let Some(system_tray) = self.system_tray.as_mut() {
+            system_tray.update_menu_state(disconnected, &status);
+        }
     }
 
     fn open_main_window(&mut self) -> Task<AppMsg> {
@@ -490,6 +504,7 @@ impl Application for AppState {
                     self.connection_state = ConnectionState::Default;
                     self.audio_stream = None;
                     self.audio_wave.clear();
+                    self.sync_tray();
                     return self.add_log(&e);
                 }
                 StreamerMsg::Listening { ip, port } => {
@@ -498,11 +513,8 @@ impl Application for AppState {
                     }
                     self.audio_wave.clear();
 
-                    if let Some(system_tray) = self.system_tray.as_mut() {
-                        system_tray.update_menu_state(false, &fl!("state_listening"));
-                    }
-
                     self.connection_state = ConnectionState::Listening;
+                    self.sync_tray();
                     if let (Some(ip), Some(port)) = (ip, port) {
                         info!("listening on {ip}:{port}");
                         return self.add_log(format!("Listening on `{ip}:{port}`").as_str());
@@ -511,10 +523,6 @@ impl Application for AppState {
                 StreamerMsg::Connected { ip, port, mode: _ } => {
                     if let Err(e) = self.audio_stream.as_ref().unwrap().stream.play() {
                         error!("{e}");
-                    }
-
-                    if let Some(system_tray) = self.system_tray.as_mut() {
-                        system_tray.update_menu_state(false, &fl!("state_connected"));
                     }
 
                     if self.main_window.is_none() {
@@ -536,6 +544,7 @@ impl Application for AppState {
                     }
 
                     self.connection_state = ConnectionState::Connected;
+                    self.sync_tray();
                     if let (Some(ip), Some(port)) = (ip, port) {
                         info!("connected on {ip}:{port}");
                         return self.add_log(format!("Connected on `{ip}:{port}`").as_str());
