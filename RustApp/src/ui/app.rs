@@ -47,6 +47,11 @@ use zconf::ConfigManager;
 pub fn run_ui(flags: Flags) {
     let settings = Settings::default()
         .no_main_window(true)
+        // The app lives in the tray: closing the main window must hide it,
+        // not destroy it or exit the process. Otherwise the framework's
+        // default `exit_on_close` drops the winit window before
+        // `on_close_requested` can route the close to `HideWindow`.
+        .exit_on_close(false)
         .theme(to_cosmic_theme(&flags.config.data().theme));
 
     cosmic::app::run::<AppState>(settings, flags).unwrap();
@@ -327,6 +332,9 @@ impl AppState {
             size: Size::new(800.0, 600.0),
             position: window::Position::Centered,
             icon: window_icon!("icon"),
+            // Intercept the close request so on_close_requested can hide the
+            // window to the tray instead of letting the framework destroy it.
+            exit_on_close_request: false,
             ..Default::default()
         };
 
@@ -964,6 +972,16 @@ impl Application for AppState {
     fn subscription(&self) -> cosmic::iced::Subscription<Self::Message> {
         #[allow(unused_mut)]
         let mut subscriptions = vec![Subscription::run(|| streamer::sub().map(AppMsg::Streamer))];
+
+        // With `exit_on_close_request: false` on the main window, the platform
+        // forwards `CloseRequested` here instead of dropping the winit window.
+        // Translate it into the existing hide-to-tray message. Secondary
+        // windows keep the framework default and never forward this event.
+        let close_requested = cosmic::iced_futures::event::listen_with(|event, _, _| match event {
+            cosmic::iced::Event::Window(window::Event::CloseRequested) => Some(AppMsg::HideWindow),
+            _ => None,
+        });
+        subscriptions.push(close_requested);
 
         if let Some(system_tray_stream) = &self.system_tray_stream {
             subscriptions.push(Subscription::run_with_id(
