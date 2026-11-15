@@ -163,6 +163,7 @@ pub struct AppState {
     pub network_adapter: Option<NetworkAdapter>,
     pub port_input: String,
     pub main_window: Option<CustomWindow>,
+    main_window_hidden: bool,
     pub settings_window: Option<CustomWindow>,
     pub about_window: Option<CustomWindow>,
     pub logs: Vec<markdown::Item>,
@@ -194,7 +195,7 @@ impl AppState {
                 self.send_command(StreamerCommand::ReconfigureStream {
                     buff: producer,
                     audio_params: AudioProcessParams::new(audio_config, config),
-                    is_window_visible: self.main_window.is_some(),
+                    is_window_visible: self.main_window_visible(),
                 });
 
                 Task::none()
@@ -274,7 +275,7 @@ impl AppState {
             connect_options,
             buff: producer,
             audio_params: AudioProcessParams::new(audio_config, config),
-            is_window_visible: self.main_window.is_some(),
+            is_window_visible: self.main_window_visible(),
         });
 
         Task::none()
@@ -316,6 +317,10 @@ impl AppState {
         }
     }
 
+    fn main_window_visible(&self) -> bool {
+        self.main_window.is_some() && !self.main_window_hidden
+    }
+
     fn open_main_window(&mut self) -> Task<AppMsg> {
         let mut commands = Vec::new();
         let settings = window::Settings {
@@ -332,6 +337,7 @@ impl AppState {
         commands.push(self.set_window_title(fl!("main_window_title"), window_id));
 
         self.main_window = Some(CustomWindow { window_id });
+        self.main_window_hidden = false;
 
         Task::batch(commands)
     }
@@ -454,6 +460,7 @@ impl Application for AppState {
             network_adapter,
             port_input: config.port.to_string(),
             main_window: None,
+            main_window_hidden: false,
             settings_window: None,
             about_window: None,
             logs: Vec::new(),
@@ -565,7 +572,7 @@ impl Application for AppState {
                         error!("{e}");
                     }
 
-                    if self.main_window.is_none() {
+                    if !self.main_window_visible() {
                         let address = format!(
                             "{}:{}",
                             ip.unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
@@ -818,11 +825,12 @@ impl Application for AppState {
 
                 if let Some(main_window) = &self.main_window {
                     effects.push(cosmic::iced_runtime::task::effect(
-                        cosmic::iced::runtime::Action::Window(window::Action::Close(
+                        cosmic::iced::runtime::Action::Window(window::Action::ChangeMode(
                             main_window.window_id,
+                            window::Mode::Hidden,
                         )),
                     ));
-                    self.main_window = None;
+                    self.main_window_hidden = true;
                 }
                 if let Some(settings_window) = &self.settings_window {
                     effects.push(cosmic::iced_runtime::task::effect(
@@ -853,8 +861,6 @@ impl Application for AppState {
                     self.has_shown_minimize_notification = true;
                 }
 
-                effects.push(self.update_audio_stream());
-
                 return cosmic::iced_runtime::Task::batch(effects);
             }
             AppMsg::Menu(menu_msg) => match menu_msg {
@@ -878,16 +884,23 @@ impl Application for AppState {
             AppMsg::SystemTray(tray_msg) => match tray_msg {
                 SystemTrayMsg::Show => {
                     if let Some(main_window) = &self.main_window {
-                        // avoid duplicate window
-                        return cosmic::iced_runtime::task::effect(
-                            cosmic::iced::runtime::Action::Window(window::Action::GainFocus(
-                                main_window.window_id,
-                            )),
-                        );
-                    } else {
-                        let command = self.open_main_window();
+                        self.main_window_hidden = false;
 
-                        return Task::batch(vec![command, self.update_audio_stream()]);
+                        return Task::batch(vec![
+                            cosmic::iced_runtime::task::effect(
+                                cosmic::iced::runtime::Action::Window(window::Action::ChangeMode(
+                                    main_window.window_id,
+                                    window::Mode::Windowed,
+                                )),
+                            ),
+                            cosmic::iced_runtime::task::effect(
+                                cosmic::iced::runtime::Action::Window(window::Action::GainFocus(
+                                    main_window.window_id,
+                                )),
+                            ),
+                        ]);
+                    } else {
+                        return self.open_main_window();
                     }
                 }
                 SystemTrayMsg::Exit => {
@@ -898,16 +911,21 @@ impl Application for AppState {
             },
             AppMsg::ShowWindow => {
                 if let Some(main_window) = &self.main_window {
-                    // avoid duplicate window
-                    return cosmic::iced_runtime::task::effect(
-                        cosmic::iced::runtime::Action::Window(window::Action::GainFocus(
-                            main_window.window_id,
-                        )),
-                    );
-                } else {
-                    let command = self.open_main_window();
+                    self.main_window_hidden = false;
 
-                    return Task::batch(vec![command, self.update_audio_stream()]);
+                    return Task::batch(vec![
+                        cosmic::iced_runtime::task::effect(cosmic::iced::runtime::Action::Window(
+                            window::Action::ChangeMode(
+                                main_window.window_id,
+                                window::Mode::Windowed,
+                            ),
+                        )),
+                        cosmic::iced_runtime::task::effect(cosmic::iced::runtime::Action::Window(
+                            window::Action::GainFocus(main_window.window_id),
+                        )),
+                    ]);
+                } else {
+                    return self.open_main_window();
                 }
             }
             AppMsg::Exit => {
