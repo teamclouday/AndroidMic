@@ -24,8 +24,10 @@ const DISCONNECT_LOOP_DETECTER_MAX: u32 = 1000;
 /// idle time before the first TCP keepalive probe on an active connection
 const KEEPALIVE_TIME: Duration = Duration::from_secs(10);
 /// interval between TCP keepalive probes
-const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(3);
-/// number of unanswered probes before the connection is declared dead
+const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(2);
+/// number of unanswered probes before the connection is declared dead.
+/// Worst-case detection window: `KEEPALIVE_TIME + KEEPALIVE_INTERVAL * KEEPALIVE_RETRIES`
+/// = 10s + 2s * 5 = ~20s.
 const KEEPALIVE_RETRIES: u32 = 5;
 
 pub struct TcpStreamer {
@@ -123,14 +125,20 @@ impl StreamerTrait for TcpStreamer {
 
                 // Enable TCP keepalive so a peer that vanishes without sending
                 // FIN (e.g. Wi-Fi turned off) is detected instead of leaving the
-                // read blocked on a half-open socket.
+                // read blocked on a half-open socket. Keepalive is an optional
+                // hardening: if the platform rejects the option, warn and keep
+                // the connection going instead of turning a best-effort socket
+                // option into a fatal handshake failure.
                 let keepalive = TcpKeepalive::new()
                     .with_time(KEEPALIVE_TIME)
                     .with_interval(KEEPALIVE_INTERVAL)
                     .with_retries(KEEPALIVE_RETRIES);
-                SockRef::from(&stream)
-                    .set_tcp_keepalive(&keepalive)
-                    .map_err(|e| ConnectError::HandShakeFailed("setting keepalive", e))?;
+                if let Err(e) = SockRef::from(&stream).set_tcp_keepalive(&keepalive) {
+                    warn!(
+                        "failed to enable TCP keepalive ({e}); continuing without it, \
+                         half-open detection relies on EOF/IO errors"
+                    );
+                }
 
                 info!("connection accepted, remote address: {}", addr);
 
