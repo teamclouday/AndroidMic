@@ -2,6 +2,7 @@ use std::{io, net::IpAddr, time::Duration};
 
 use futures::StreamExt;
 use prost::Message;
+use socket2::{SockRef, TcpKeepalive};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
@@ -19,6 +20,11 @@ use super::{AudioPacketMessage, AudioStream, ConnectError, StreamerTrait};
 const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
 
 const DISCONNECT_LOOP_DETECTER_MAX: u32 = 1000;
+
+/// idle time before the first TCP keepalive probe on an active connection
+const KEEPALIVE_TIME: Duration = Duration::from_secs(10);
+/// interval between TCP keepalive probes
+const KEEPALIVE_INTERVAL: Duration = Duration::from_secs(3);
 
 pub struct TcpStreamer {
     ip: IpAddr,
@@ -112,6 +118,16 @@ impl StreamerTrait for TcpStreamer {
                     .write_all(CHECK_2.as_bytes())
                     .await
                     .map_err(|e| ConnectError::HandShakeFailed("writing", e))?;
+
+                // Enable TCP keepalive so a peer that vanishes without sending
+                // FIN (e.g. Wi-Fi turned off) is detected instead of leaving the
+                // read blocked on a half-open socket.
+                let keepalive = TcpKeepalive::new()
+                    .with_time(KEEPALIVE_TIME)
+                    .with_interval(KEEPALIVE_INTERVAL);
+                SockRef::from(&stream)
+                    .set_tcp_keepalive(&keepalive)
+                    .map_err(|e| ConnectError::HandShakeFailed("setting keepalive", e))?;
 
                 info!("connection accepted, remote address: {}", addr);
 

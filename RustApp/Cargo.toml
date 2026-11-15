@@ -63,6 +63,7 @@ serde = "1"
 zconf = "0.1.3"
 light_enum = "0.2.2"
 tokio = { version = "1", features = ["full"] }
+socket2 = "0.6"
 anyhow = { version = "1", features = ["backtrace"] }
 thiserror = "2"
 enum_dispatch = "0.3"
