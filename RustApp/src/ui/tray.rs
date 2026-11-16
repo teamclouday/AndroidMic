@@ -16,6 +16,21 @@ pub struct SystemTrayStream {
     receiver: Arc<Mutex<mpsc::UnboundedReceiver<SystemTrayMsg>>>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum TrayAction {
+    Connect,
+    StopListening,
+    Disconnect,
+    None,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TrayMenuState {
+    pub connect_enabled: bool,
+    pub stop_enabled: bool,
+    pub action: TrayAction,
+}
+
 #[cfg(not(target_os = "linux"))]
 mod tray_icon_backend {
     use std::sync::Arc;
@@ -31,6 +46,7 @@ mod tray_icon_backend {
 
     pub struct SystemTray {
         tray_icon: TrayIcon,
+        item_status: MenuItem,
         item_connect: MenuItem,
         item_disconnect: MenuItem,
     }
@@ -38,6 +54,7 @@ mod tray_icon_backend {
     impl SystemTray {
         pub fn new() -> anyhow::Result<(Self, SystemTrayStream)> {
             let item_show = MenuItem::new(fl!("tray_show_window"), true, None);
+            let item_status = MenuItem::new(fl!("state_disconnected"), false, None);
             let item_connect = MenuItem::new(fl!("tray_connect"), true, None);
             let item_disconnect = MenuItem::new(fl!("tray_disconnect"), true, None);
             let item_exit = MenuItem::new(fl!("tray_exit"), true, None);
@@ -49,6 +66,7 @@ mod tray_icon_backend {
 
             let menu = Menu::with_items(&[
                 &item_show,
+                &item_status,
                 &item_connect,
                 &item_disconnect,
                 &PredefinedMenuItem::separator(),
@@ -85,6 +103,7 @@ mod tray_icon_backend {
             Ok((
                 Self {
                     tray_icon,
+                    item_status,
                     item_connect,
                     item_disconnect,
                 },
@@ -94,10 +113,18 @@ mod tray_icon_backend {
             ))
         }
 
-        pub fn update_menu_state(&mut self, disconnected: bool, status: &str) {
-            // update menu item states
-            self.item_connect.set_enabled(disconnected);
-            self.item_disconnect.set_enabled(!disconnected);
+        pub fn update_menu_state(
+            &mut self,
+            status: &str,
+            connect_enabled: bool,
+            stop_enabled: bool,
+            stop_label: &str,
+        ) {
+            self.item_status.set_text(status);
+            self.item_status.set_enabled(false);
+            self.item_connect.set_enabled(connect_enabled);
+            self.item_disconnect.set_text(stop_label);
+            self.item_disconnect.set_enabled(stop_enabled);
             let _ = self
                 .tray_icon
                 .set_tooltip(Some(format!("AndroidMic - {}", status)))
@@ -123,13 +150,21 @@ mod ksni_backend {
     use super::{SystemTrayMsg, SystemTrayStream};
 
     enum TrayCommand {
-        MenuState { disconnected: bool, status: String },
+        MenuState {
+            status: String,
+            connect_enabled: bool,
+            stop_enabled: bool,
+            stop_label: String,
+        },
     }
 
     struct KsniTray {
         event_sender: mpsc::UnboundedSender<SystemTrayMsg>,
-        disconnected: bool,
         description: String,
+        status_label: String,
+        connect_enabled: bool,
+        stop_enabled: bool,
+        stop_label: String,
     }
 
     impl KsniTray {
@@ -140,10 +175,15 @@ mod ksni_backend {
         fn apply(&mut self, cmd: TrayCommand) {
             match cmd {
                 TrayCommand::MenuState {
-                    disconnected,
                     status,
+                    connect_enabled,
+                    stop_enabled,
+                    stop_label,
                 } => {
-                    self.disconnected = disconnected;
+                    self.status_label = status;
+                    self.connect_enabled = connect_enabled;
+                    self.stop_enabled = stop_enabled;
+                    self.stop_label = stop_label;
                     self.description = format!("AndroidMic - {status}");
                 }
             }
@@ -224,15 +264,22 @@ mod ksni_backend {
                 }
                 .into(),
                 StandardItem {
+                    label: self.status_label.clone(),
+                    enabled: false,
+                    activate: Box::new(|_this: &mut Self| {}),
+                    ..Default::default()
+                }
+                .into(),
+                StandardItem {
                     label: fl!("tray_connect"),
-                    enabled: self.disconnected,
+                    enabled: self.connect_enabled,
                     activate: Box::new(|this: &mut Self| this.notify(SystemTrayMsg::Connect)),
                     ..Default::default()
                 }
                 .into(),
                 StandardItem {
-                    label: fl!("tray_disconnect"),
-                    enabled: !self.disconnected,
+                    label: self.stop_label.clone(),
+                    enabled: self.stop_enabled,
                     activate: Box::new(|this: &mut Self| this.notify(SystemTrayMsg::Disconnect)),
                     ..Default::default()
                 }
@@ -276,8 +323,11 @@ mod ksni_backend {
                     rt.block_on(async move {
                         let tray = KsniTray {
                             event_sender,
-                            disconnected: true,
                             description: "AndroidMic".into(),
+                            status_label: fl!("state_disconnected"),
+                            connect_enabled: true,
+                            stop_enabled: false,
+                            stop_label: fl!("tray_disconnect"),
                         };
 
                         let handle = match tray.spawn().await {
@@ -305,10 +355,18 @@ mod ksni_backend {
             ))
         }
 
-        pub fn update_menu_state(&mut self, disconnected: bool, status: &str) {
+        pub fn update_menu_state(
+            &mut self,
+            status: &str,
+            connect_enabled: bool,
+            stop_enabled: bool,
+            stop_label: &str,
+        ) {
             let _ = self.state_sender.send(TrayCommand::MenuState {
-                disconnected,
                 status: status.to_string(),
+                connect_enabled,
+                stop_enabled,
+                stop_label: stop_label.to_string(),
             });
         }
     }

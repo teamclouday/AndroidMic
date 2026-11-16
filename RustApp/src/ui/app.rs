@@ -26,7 +26,7 @@ use cpal::HostId;
 
 use super::{
     message::{AppMsg, ConfigMsg},
-    tray::{SystemTray, SystemTrayMsg, SystemTrayStream},
+    tray::{SystemTray, SystemTrayMsg, SystemTrayStream, TrayAction, TrayMenuState},
     view::{main_window, settings_window},
     wave::AudioWave,
 };
@@ -108,12 +108,37 @@ fn get_audio_devices(audio_host: &Host) -> Vec<AudioDevice> {
 /// the actual latency at `Config::target_latency_ms`
 const SHARED_BUF_SIZE_S: f32 = 2.;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConnectionState {
     Default,
     WaitingOnStatus,
     Connected,
     Listening,
+}
+
+fn tray_menu_state(state: ConnectionState) -> TrayMenuState {
+    match state {
+        ConnectionState::Default => TrayMenuState {
+            connect_enabled: true,
+            stop_enabled: false,
+            action: TrayAction::Connect,
+        },
+        ConnectionState::WaitingOnStatus => TrayMenuState {
+            connect_enabled: false,
+            stop_enabled: false,
+            action: TrayAction::None,
+        },
+        ConnectionState::Listening => TrayMenuState {
+            connect_enabled: false,
+            stop_enabled: true,
+            action: TrayAction::StopListening,
+        },
+        ConnectionState::Connected => TrayMenuState {
+            connect_enabled: false,
+            stop_enabled: true,
+            action: TrayAction::Disconnect,
+        },
+    }
 }
 
 pub struct Stream {
@@ -269,15 +294,25 @@ impl AppState {
     /// Sync the tray menu with `connection_state`, the single source of truth
     /// shared with the main window.
     fn sync_tray(&mut self) {
-        let (disconnected, status) = match self.connection_state {
-            ConnectionState::Default => (true, fl!("state_disconnected")),
-            ConnectionState::WaitingOnStatus => (true, fl!("waiting")),
-            ConnectionState::Listening => (false, fl!("state_listening")),
-            ConnectionState::Connected => (false, fl!("state_connected")),
+        let menu_state = tray_menu_state(self.connection_state);
+        let status = match self.connection_state {
+            ConnectionState::Default => fl!("state_disconnected"),
+            ConnectionState::WaitingOnStatus => fl!("waiting"),
+            ConnectionState::Listening => fl!("state_listening"),
+            ConnectionState::Connected => fl!("state_connected"),
+        };
+        let stop_label = match menu_state.action {
+            TrayAction::StopListening => fl!("tray_stop_listening"),
+            _ => fl!("tray_disconnect"),
         };
 
         if let Some(system_tray) = self.system_tray.as_mut() {
-            system_tray.update_menu_state(disconnected, &status);
+            system_tray.update_menu_state(
+                &status,
+                menu_state.connect_enabled,
+                menu_state.stop_enabled,
+                &stop_label,
+            );
         }
     }
 
@@ -386,7 +421,12 @@ impl Application for AppState {
         // initialize system tray
         let (system_tray, system_tray_stream) = match SystemTray::new() {
             Ok((mut tray, stream)) => {
-                tray.update_menu_state(true, &fl!("state_disconnected"));
+                tray.update_menu_state(
+                    &fl!("state_disconnected"),
+                    true,
+                    false,
+                    &fl!("tray_disconnect"),
+                );
                 (Some(tray), Some(stream))
             }
             Err(e) => {
@@ -945,5 +985,43 @@ fn to_cosmic_theme(theme: &AppTheme) -> theme::Theme {
         AppTheme::HighContrastDark => theme::Theme::dark_hc(),
         AppTheme::HighContrastLight => theme::Theme::light_hc(),
         AppTheme::System => theme::system_preference(),
+    }
+}
+
+#[cfg(test)]
+mod tray_menu_state_tests {
+    use super::*;
+
+    #[test]
+    fn maps_all_connection_states() {
+        let cases = [
+            (ConnectionState::Default, true, false, TrayAction::Connect),
+            (
+                ConnectionState::WaitingOnStatus,
+                false,
+                false,
+                TrayAction::None,
+            ),
+            (
+                ConnectionState::Listening,
+                false,
+                true,
+                TrayAction::StopListening,
+            ),
+            (
+                ConnectionState::Connected,
+                false,
+                true,
+                TrayAction::Disconnect,
+            ),
+        ];
+
+        for (state, connect_enabled, stop_enabled, action) in cases {
+            let menu = tray_menu_state(state);
+
+            assert_eq!(menu.connect_enabled, connect_enabled);
+            assert_eq!(menu.stop_enabled, stop_enabled);
+            assert_eq!(menu.action, action);
+        }
     }
 }
