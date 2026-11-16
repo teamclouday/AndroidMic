@@ -880,6 +880,12 @@ impl Application for AppState {
                 }
             },
             AppMsg::HideWindow => {
+                // Without a tray icon the hidden window cannot be brought back,
+                // so keep the platform default: closing the main window exits.
+                if self.system_tray.is_none() {
+                    return cosmic::iced_runtime::task::effect(cosmic::iced::runtime::Action::Exit);
+                }
+
                 let mut effects = Vec::new();
 
                 if let Some(main_window) = &self.main_window {
