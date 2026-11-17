@@ -102,6 +102,10 @@ impl StreamerTrait for AdbStreamer {
         self.tcp_streamer.reconfigure_stream(config)
     }
 
+    fn set_window_visible(&mut self, visible: bool) {
+        self.tcp_streamer.set_window_visible(visible)
+    }
+
     fn status(&self) -> StreamerMsg {
         match &self.tcp_streamer.state {
             TcpStreamerState::Listening { .. } => StreamerMsg::Listening {
