@@ -32,6 +32,8 @@ channel_count = 通道数量
 audio_format = 音频格式
 use_recommended_audio_format = 使用推荐的音频格式
 
+title_connection = 建立连接
+
 denoise = 降噪
 denoise_enabled = 启用
 denoise_type = 类型
@@ -50,6 +52,7 @@ reset_denoise_settings = 重置降噪设置
 title_app = 应用程序
 
 start_at_login = 开机启动
+start_minimized = 最小化启动
 auto_connect = 自动连接
 theme = 主题
 amplify = 放大
