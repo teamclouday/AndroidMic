@@ -142,7 +142,13 @@ impl StreamerTrait for AdbStreamer {
 
         if was_streaming && matches!(msg, Some(StreamerMsg::Listening { .. })) {
             info!("rebuilding adb reverse proxy after the connection dropped");
-            rebuild_reverse_proxies(self.tcp_streamer.port).await?;
+            // The local listener is already back up. If the phone was unplugged
+            // there is nothing to rebuild yet, so keep the `Listening` message
+            // and let a later Connect (or the device watcher) restore the tunnel
+            // instead of turning the drop into a streamer error.
+            if let Err(e) = rebuild_reverse_proxies(self.tcp_streamer.port).await {
+                warn!("can't rebuild adb reverse proxy after the connection dropped: {e}");
+            }
         }
 
         Ok(msg)
