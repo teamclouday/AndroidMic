@@ -30,8 +30,8 @@ const REBIND_INITIAL_DELAY: Duration = Duration::from_millis(500);
 const REBIND_MAX_DELAY: Duration = Duration::from_secs(5);
 /// backoff multiplier applied after each failed rebind attempt
 const REBIND_BACKOFF_FACTOR: u32 = 2;
-/// maximum number of rebind attempts before surfacing the bind error
-const REBIND_MAX_ATTEMPTS: u32 = 6;
+/// number of retries after the first failed bind before surfacing the bind error
+const REBIND_MAX_RETRIES: u32 = 6;
 
 pub struct TcpStreamer {
     ip: IpAddr,
@@ -227,7 +227,7 @@ impl TcpStreamer {
                 Err(e) => {
                     let delay = rebind_delay(attempts);
 
-                    if attempts >= REBIND_MAX_ATTEMPTS {
+                    if attempts >= REBIND_MAX_RETRIES {
                         error!(
                             "can't rebind {}:{} after {} attempts: {e}",
                             self.ip,
@@ -242,7 +242,7 @@ impl TcpStreamer {
                         self.ip,
                         self.port,
                         attempts + 1,
-                        REBIND_MAX_ATTEMPTS,
+                        REBIND_MAX_RETRIES,
                         delay
                     );
                     tokio::time::sleep(delay).await;
@@ -285,6 +285,8 @@ mod tests {
             (3, 4000),
             (4, 5000),
             (5, 5000),
+            (6, 5000),
+            (7, 5000),
         ];
 
         for (attempt, expected_ms) in cases {
