@@ -375,6 +375,12 @@ impl AppState {
 
         self.main_window = Some(CustomWindow { window_id });
         self.main_window_hidden = false;
+        // `start_minimized` can open the main window after a Connect already
+        // carried `is_window_visible = false`; tell the streamer the window
+        // exists now so the waveform preview resumes without a reconnect.
+        if self.streamer.is_some() {
+            self.send_command(StreamerCommand::SetWindowVisible(true));
+        }
 
         Task::batch(commands)
     }
@@ -592,8 +598,10 @@ impl Application for AppState {
                     return self.add_log(&e);
                 }
                 StreamerMsg::Listening { ip, port } => {
-                    if let Err(e) = self.audio_stream.as_ref().unwrap().stream.pause() {
-                        error!("{e}");
+                    if let Some(audio_stream) = self.audio_stream.as_ref() {
+                        if let Err(e) = audio_stream.stream.pause() {
+                            error!("{e}");
+                        }
                     }
                     self.audio_wave.clear();
 
@@ -605,8 +613,10 @@ impl Application for AppState {
                     }
                 }
                 StreamerMsg::Connected { ip, port, mode: _ } => {
-                    if let Err(e) = self.audio_stream.as_ref().unwrap().stream.play() {
-                        error!("{e}");
+                    if let Some(audio_stream) = self.audio_stream.as_ref() {
+                        if let Err(e) = audio_stream.stream.play() {
+                            error!("{e}");
+                        }
                     }
 
                     if !self.main_window_visible() {
