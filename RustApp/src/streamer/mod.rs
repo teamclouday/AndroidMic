@@ -118,8 +118,6 @@ enum ConnectError {
     #[cfg(feature = "usb")]
     #[error("can't switch usb device to aoa mode: {0}")]
     CantSwitchUsbAOAMode(io::Error),
-    #[error("device disconnected")]
-    Disconnected,
     #[error(transparent)]
     CantJoin(#[from] tokio::task::JoinError),
     #[error("command failed: {code:?}:{stderr}")]
