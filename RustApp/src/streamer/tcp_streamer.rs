@@ -30,6 +30,8 @@ const REBIND_INITIAL_DELAY: Duration = Duration::from_millis(500);
 const REBIND_MAX_DELAY: Duration = Duration::from_secs(5);
 /// backoff multiplier applied after each failed rebind attempt
 const REBIND_BACKOFF_FACTOR: u32 = 2;
+/// maximum number of rebind attempts before surfacing the bind error
+const REBIND_MAX_ATTEMPTS: u32 = 6;
 
 pub struct TcpStreamer {
     ip: IpAddr,
@@ -37,7 +39,6 @@ pub struct TcpStreamer {
     pub state: TcpStreamerState,
     stream_config: AudioStream,
     process_cache: ProcessCache,
-    rebind_delay: Duration,
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -66,7 +67,6 @@ pub async fn new(
         stream_config,
         state: TcpStreamerState::Listening { listener },
         process_cache: ProcessCache::new(),
-        rebind_delay: REBIND_INITIAL_DELAY,
     };
 
     Ok(streamer)
@@ -212,10 +212,10 @@ impl TcpStreamer {
             self.port
         );
 
+        let mut attempts = 0u32;
         loop {
             match bind_reusable(self.ip, self.port).await {
                 Ok(listener) => {
-                    self.rebind_delay = REBIND_INITIAL_DELAY;
                     self.process_cache.clear();
                     self.state = TcpStreamerState::Listening { listener };
 
@@ -225,19 +225,43 @@ impl TcpStreamer {
                     }));
                 }
                 Err(e) => {
+                    let delay = rebind_delay(attempts);
+
+                    if attempts >= REBIND_MAX_ATTEMPTS {
+                        error!(
+                            "can't rebind {}:{} after {} attempts: {e}",
+                            self.ip,
+                            self.port,
+                            attempts + 1
+                        );
+                        return Err(e);
+                    }
+
                     warn!(
-                        "can't rebind {}:{}: {e}; retrying in {:?}",
-                        self.ip, self.port, self.rebind_delay
+                        "can't rebind {}:{}: {e}; retry {}/{} in {:?}",
+                        self.ip,
+                        self.port,
+                        attempts + 1,
+                        REBIND_MAX_ATTEMPTS,
+                        delay
                     );
-                    tokio::time::sleep(self.rebind_delay).await;
-                    self.rebind_delay = self
-                        .rebind_delay
-                        .saturating_mul(REBIND_BACKOFF_FACTOR)
-                        .min(REBIND_MAX_DELAY);
+                    tokio::time::sleep(delay).await;
+                    attempts += 1;
                 }
             }
         }
     }
+}
+
+/// Exponential backoff between rebind attempts: 500ms, 1s, 2s, 4s, capped at 5s.
+fn rebind_delay(attempt: u32) -> Duration {
+    let mut delay = REBIND_INITIAL_DELAY;
+    for _ in 0..attempt {
+        delay = delay
+            .saturating_mul(REBIND_BACKOFF_FACTOR)
+            .min(REBIND_MAX_DELAY);
+    }
+    delay
 }
 
 enum Outcome {
@@ -246,4 +270,29 @@ enum Outcome {
     Drop,
     /// unrecoverable protocol/device error, propagate to the runner
     Fatal(ConnectError),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rebind_delay_grows_then_caps() {
+        let cases = [
+            (0, 500),
+            (1, 1000),
+            (2, 2000),
+            (3, 4000),
+            (4, 5000),
+            (5, 5000),
+        ];
+
+        for (attempt, expected_ms) in cases {
+            assert_eq!(
+                rebind_delay(attempt),
+                Duration::from_millis(expected_ms),
+                "attempt {attempt}"
+            );
+        }
+    }
 }
