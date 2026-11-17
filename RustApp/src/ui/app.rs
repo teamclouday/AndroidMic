@@ -513,9 +513,36 @@ impl Application for AppState {
 
         match message {
             AppMsg::ChangeConnectionMode(connection_mode) => {
+                let previous_mode = self.config.data().connection_mode;
+
+                // Selecting the already active mode is a no-op. Rebuilding the
+                // streamer here would unnecessarily drop a live connection.
+                if previous_mode == connection_mode {
+                    return Task::none();
+                }
+
                 self.config.update(|config| {
                     config.connection_mode = connection_mode;
                 });
+
+                // A mode change while Listening/Connected/WaitingOnStatus must
+                // not leave the old streamer alive. Otherwise the old mode keeps
+                // its listener (ADB binds 127.0.0.1 and installs `adb reverse`),
+                // the UI stays in the old state, and the phone has no listener
+                // for the newly selected mode.
+                if self.connection_state != ConnectionState::Default {
+                    let auto_connect = self.config.data().auto_connect;
+                    info!(
+                        "connection mode changed from {previous_mode} to {connection_mode}; resetting active streamer"
+                    );
+                    // disconnect() only queues Stop and resets UI state; no task
+                    // needs to be polled.
+                    let _ = self.disconnect();
+
+                    if auto_connect {
+                        return self.connect();
+                    }
+                }
             }
             AppMsg::RefreshAudioDevices => {
                 #[cfg(not(target_os = "linux"))]
