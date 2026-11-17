@@ -183,6 +183,18 @@ pub struct CustomWindow {
     pub window_id: window::Id,
 }
 
+/// Forget a remembered window only when the framework reports that its id
+/// actually closed. A hidden window keeps its id, so the normal hide-to-tray
+/// path must not pass through here.
+fn clear_window(window: &mut Option<CustomWindow>, id: window::Id) -> bool {
+    if window.as_ref().is_some_and(|window| window.window_id == id) {
+        *window = None;
+        true
+    } else {
+        false
+    }
+}
+
 impl AppState {
     /// Send a command to the streamer without panicking. Returns `false` when
     /// the streamer is not ready or its channel has been closed; the caller is
@@ -959,6 +971,15 @@ impl Application for AppState {
                 SystemTrayMsg::Connect => return self.connect(),
                 SystemTrayMsg::Disconnect => return self.disconnect(),
             },
+            AppMsg::WindowClosed(id) => {
+                if clear_window(&mut self.main_window, id) {
+                    self.main_window_hidden = false;
+                    self.send_command(StreamerCommand::SetWindowVisible(false));
+                    info!("main window was closed; cleared the remembered window id");
+                }
+                clear_window(&mut self.settings_window, id);
+                clear_window(&mut self.about_window, id);
+            }
             AppMsg::ShowWindow => {
                 if let Some(main_window) = &self.main_window {
                     let window_id = main_window.window_id;
@@ -1023,6 +1044,11 @@ impl Application for AppState {
             _ => None,
         });
         subscriptions.push(close_requested);
+
+        // Hiding the main window keeps its winit surface alive, so the normal
+        // close path above does not reach this. If a surface is actually
+        // destroyed, forget its id or a later Show would target a dead window.
+        subscriptions.push(window::close_events().map(AppMsg::WindowClosed));
 
         if let Some(system_tray_stream) = &self.system_tray_stream {
             subscriptions.push(Subscription::run_with_id(
@@ -1100,5 +1126,30 @@ mod tray_menu_state_tests {
             assert_eq!(menu.stop_enabled, stop_enabled);
             assert_eq!(menu.action, action);
         }
+    }
+}
+
+#[cfg(test)]
+mod window_registry_tests {
+    use super::*;
+
+    #[test]
+    fn clears_only_the_matching_window() {
+        let id = window::Id::unique();
+        let other = window::Id::unique();
+        let mut slot = Some(CustomWindow { window_id: id });
+
+        assert!(!clear_window(&mut slot, other));
+        assert!(slot.is_some());
+
+        assert!(clear_window(&mut slot, id));
+        assert!(slot.is_none());
+    }
+
+    #[test]
+    fn clearing_an_empty_slot_is_a_noop() {
+        let mut slot = None;
+        assert!(!clear_window(&mut slot, window::Id::unique()));
+        assert!(slot.is_none());
     }
 }

@@ -7,6 +7,7 @@ use crate::{
     },
     streamer::StreamerMsg,
 };
+use cosmic::iced::window;
 
 #[derive(Debug, Clone)]
 pub enum AppMsg {
@@ -24,6 +25,7 @@ pub enum AppMsg {
     RefreshNetworkAdapters,
     HideWindow,
     ShowWindow,
+    WindowClosed(window::Id),
     Menu(MenuMsg),
     LinkClicked(String),
     SystemTray(SystemTrayMsg),
