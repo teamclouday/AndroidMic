@@ -2,7 +2,7 @@ use anyhow::Result;
 use tokio::process::Command;
 
 use crate::{
-    config::ConnectionMode,
+    config::{ConnectionMode, TcpKeepaliveConfig},
     streamer::{StreamerMsg, tcp_streamer},
 };
 
@@ -65,8 +65,13 @@ async fn exec_cmd(mut cmd: Command) -> Result<String, ConnectError> {
     Ok(stdout)
 }
 
-pub async fn new(port: u16, stream_config: AudioStream) -> Result<AdbStreamer, ConnectError> {
-    let tcp_streamer = tcp_streamer::new("127.0.0.1".parse().unwrap(), port, stream_config).await?;
+pub async fn new(
+    port: u16,
+    stream_config: AudioStream,
+    keepalive: TcpKeepaliveConfig,
+) -> Result<AdbStreamer, ConnectError> {
+    let tcp_streamer =
+        tcp_streamer::new("127.0.0.1".parse().unwrap(), port, stream_config, keepalive).await?;
 
     let devices = get_connected_devices().await?;
     if devices.is_empty() {

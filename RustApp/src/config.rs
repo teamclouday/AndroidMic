@@ -1,4 +1,4 @@
-use std::{fmt::Display, net::IpAddr};
+use std::{fmt::Display, net::IpAddr, time::Duration};
 
 use clap::Parser;
 use light_enum::Values;
@@ -39,6 +39,46 @@ pub struct Config {
     pub post_effect: AudioEffect,
     /// least audio kept in the playout buffer to absorb network jitter, in ms
     pub target_latency_ms: u32,
+    /// TCP keepalive parameters used by the TCP and ADB streamers
+    #[serde(default)]
+    pub tcp_keepalive: TcpKeepaliveConfig,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default)]
+pub struct TcpKeepaliveConfig {
+    /// idle time before the first keepalive probe, in seconds
+    pub time_secs: u64,
+    /// interval between keepalive probes, in seconds
+    pub interval_secs: u64,
+    /// number of unanswered probes before the connection is declared dead
+    pub retries: u32,
+}
+
+impl Default for TcpKeepaliveConfig {
+    fn default() -> Self {
+        Self {
+            time_secs: 10,
+            interval_secs: 2,
+            retries: 5,
+        }
+    }
+}
+
+impl TcpKeepaliveConfig {
+    /// Values below one are clamped: a zero keepalive interval is not useful
+    /// and can be rejected by the platform socket layer.
+    pub fn time_duration(&self) -> Duration {
+        Duration::from_secs(self.time_secs.max(1))
+    }
+
+    pub fn interval_duration(&self) -> Duration {
+        Duration::from_secs(self.interval_secs.max(1))
+    }
+
+    pub fn retry_count(&self) -> u32 {
+        self.retries.max(1)
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Values, PartialEq, Eq)]
@@ -125,6 +165,7 @@ impl Default for Config {
             post_effect: AudioEffect::NoEffect,
             start_minimized: false,
             target_latency_ms: 30,
+            tcp_keepalive: Default::default(),
         }
     }
 }
@@ -437,5 +478,43 @@ pub struct NetworkAdapter {
 impl Display for NetworkAdapter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{} ({})", self.name, self.ip)
+    }
+}
+
+#[cfg(test)]
+mod tcp_keepalive_tests {
+    use super::*;
+
+    #[test]
+    fn keepalive_defaults_match_legacy_values() {
+        let keepalive = TcpKeepaliveConfig::default();
+
+        assert_eq!(keepalive.time_secs, 10);
+        assert_eq!(keepalive.interval_secs, 2);
+        assert_eq!(keepalive.retries, 5);
+        assert_eq!(keepalive.time_duration(), Duration::from_secs(10));
+        assert_eq!(keepalive.interval_duration(), Duration::from_secs(2));
+        assert_eq!(keepalive.retry_count(), 5);
+    }
+
+    #[test]
+    fn keepalive_values_are_clamped_to_one() {
+        let keepalive = TcpKeepaliveConfig {
+            time_secs: 0,
+            interval_secs: 0,
+            retries: 0,
+        };
+
+        assert_eq!(keepalive.time_duration(), Duration::from_secs(1));
+        assert_eq!(keepalive.interval_duration(), Duration::from_secs(1));
+        assert_eq!(keepalive.retry_count(), 1);
+    }
+
+    #[test]
+    fn config_default_uses_keepalive_defaults() {
+        assert_eq!(
+            Config::default().tcp_keepalive,
+            TcpKeepaliveConfig::default()
+        );
     }
 }

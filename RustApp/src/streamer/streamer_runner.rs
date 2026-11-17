@@ -11,7 +11,7 @@ use std::net::IpAddr;
 use tokio::sync::mpsc::{self, Sender};
 
 use crate::audio::{AudioProcessParams, playout::PlayoutWriter};
-use crate::config::ConnectionMode;
+use crate::config::{ConnectionMode, TcpKeepaliveConfig};
 use crate::streamer::{StreamerTrait, WriteError};
 
 use super::{AudioStream, ConnectError, DummyStreamer, Streamer, tcp_streamer, udp_streamer};
@@ -21,6 +21,7 @@ pub enum ConnectOption {
     Tcp {
         ip: IpAddr,
         port: u16,
+        keepalive: TcpKeepaliveConfig,
     },
     Udp {
         ip: IpAddr,
@@ -29,6 +30,7 @@ pub enum ConnectOption {
     #[cfg(feature = "adb")]
     Adb {
         port: u16,
+        keepalive: TcpKeepaliveConfig,
     },
     #[cfg(feature = "usb")]
     Usb,
@@ -150,16 +152,22 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                                     AudioStream::new(buff, audio_params, is_window_visible);
                                 let new_streamer: Result<Streamer, ConnectError> =
                                     match connect_options {
-                                        ConnectOption::Tcp { ip, port } => {
-                                            tcp_streamer::new(ip, port, stream_config)
-                                                .await
-                                                .map(Streamer::from)
-                                        }
+                                        ConnectOption::Tcp {
+                                            ip,
+                                            port,
+                                            keepalive,
+                                        } => tcp_streamer::new(ip, port, stream_config, keepalive)
+                                            .await
+                                            .map(Streamer::from),
                                         #[cfg(feature = "adb")]
-                                        ConnectOption::Adb { port } => {
-                                            crate::streamer::adb_streamer::new(port, stream_config)
-                                                .await
-                                                .map(Streamer::from)
+                                        ConnectOption::Adb { port, keepalive } => {
+                                            crate::streamer::adb_streamer::new(
+                                                port,
+                                                stream_config,
+                                                keepalive,
+                                            )
+                                            .await
+                                            .map(Streamer::from)
                                         }
                                         ConnectOption::Udp { ip, port } => {
                                             udp_streamer::new(ip, port, stream_config)
