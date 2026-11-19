@@ -180,11 +180,11 @@ mod ksni_backend {
                     stop_enabled,
                     stop_label,
                 } => {
+                    self.description = format!("AndroidMic - {status}");
                     self.status_label = status;
                     self.connect_enabled = connect_enabled;
                     self.stop_enabled = stop_enabled;
                     self.stop_label = stop_label;
-                    self.description = format!("AndroidMic - {status}");
                 }
             }
         }
