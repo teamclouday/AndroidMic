@@ -7,6 +7,7 @@ connect = Connecter
 listening = Écoute...
 disconnect = Déconnecter
 waiting = Attente...
+tray_stop_listening = Arrêter l'écoute
 
 sample_rate = Fréquence d'échantillonnage  
 channel_count = Nombre de canaux  

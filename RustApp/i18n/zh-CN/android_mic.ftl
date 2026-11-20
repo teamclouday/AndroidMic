@@ -13,6 +13,7 @@ none = 无
 tray_show_window = 显示窗口
 tray_connect = 连接
 tray_disconnect = 断开连接
+tray_stop_listening = 停止监听
 tray_exit = 退出
 minimized_to_tray = 应用程序已最小化到系统托盘
 

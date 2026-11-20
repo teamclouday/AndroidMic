@@ -13,6 +13,7 @@ none = None
 tray_show_window = Show Window
 tray_connect = Connect
 tray_disconnect = Disconnect
+tray_stop_listening = Stop Listening
 tray_exit = Exit
 minimized_to_tray = Application is minimized to system tray
 
