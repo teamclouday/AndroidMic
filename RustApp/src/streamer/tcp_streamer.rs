@@ -1,10 +1,14 @@
-use std::{io, net::IpAddr, time::Duration};
+use std::{
+    io,
+    net::{IpAddr, SocketAddr},
+    time::Duration,
+};
 
 use futures::StreamExt;
 use prost::Message;
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
-    net::{TcpListener, TcpStream},
+    net::{TcpListener, TcpSocket, TcpStream},
 };
 use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
@@ -19,6 +23,15 @@ use super::{AudioPacketMessage, AudioStream, ConnectError, StreamerTrait};
 const MAX_WAIT_TIME: Duration = Duration::from_millis(1500);
 
 const DISCONNECT_LOOP_DETECTER_MAX: u32 = 1000;
+
+/// delay before the first rebind after a dropped connection
+const REBIND_INITIAL_DELAY: Duration = Duration::from_millis(500);
+/// maximum delay between two rebind attempts
+const REBIND_MAX_DELAY: Duration = Duration::from_secs(5);
+/// backoff multiplier applied after each failed rebind attempt
+const REBIND_BACKOFF_FACTOR: u32 = 2;
+/// number of retries after the first failed bind before surfacing the bind error
+const REBIND_MAX_RETRIES: u32 = 6;
 
 pub struct TcpStreamer {
     ip: IpAddr,
@@ -44,9 +57,7 @@ pub async fn new(
     port: u16,
     stream_config: AudioStream,
 ) -> Result<TcpStreamer, ConnectError> {
-    let listener = TcpListener::bind((ip, port))
-        .await
-        .map_err(|e| ConnectError::CantBindPort(port, e))?;
+    let listener = bind_reusable(ip, port).await?;
 
     let addr = TcpListener::local_addr(&listener).map_err(ConnectError::NoLocalAddress)?;
 
@@ -59,6 +70,26 @@ pub async fn new(
     };
 
     Ok(streamer)
+}
+
+/// Bind a listening socket with `SO_REUSEADDR` set, so a quick rebind after a
+/// dropped connection does not fail while the previous socket is in `TIME_WAIT`.
+async fn bind_reusable(ip: IpAddr, port: u16) -> Result<TcpListener, ConnectError> {
+    let socket = match ip {
+        IpAddr::V4(_) => TcpSocket::new_v4(),
+        IpAddr::V6(_) => TcpSocket::new_v6(),
+    }
+    .map_err(|e| ConnectError::CantBindPort(port, e))?;
+
+    socket
+        .set_reuseaddr(true)
+        .map_err(|e| ConnectError::CantBindPort(port, e))?;
+    socket
+        .bind(SocketAddr::from((ip, port)))
+        .map_err(|e| ConnectError::CantBindPort(port, e))?;
+    socket
+        .listen(128)
+        .map_err(|e| ConnectError::CantBindPort(port, e))
 }
 
 impl StreamerTrait for TcpStreamer {
@@ -82,7 +113,7 @@ impl StreamerTrait for TcpStreamer {
     }
 
     async fn next(&mut self) -> Result<Option<StreamerMsg>, ConnectError> {
-        match &mut self.state {
+        let outcome = match &mut self.state {
             TcpStreamerState::Listening { listener } => {
                 let addr =
                     TcpListener::local_addr(listener).map_err(ConnectError::NoLocalAddress)?;
@@ -120,7 +151,7 @@ impl StreamerTrait for TcpStreamer {
                     disconnect_loop_detecter: 0,
                 };
 
-                Ok(Some(StreamerMsg::Connected {
+                Outcome::Msg(Some(StreamerMsg::Connected {
                     ip: Some(self.ip),
                     port: Some(self.port),
                     mode: ConnectionMode::Tcp,
@@ -129,42 +160,141 @@ impl StreamerTrait for TcpStreamer {
             TcpStreamerState::Streaming {
                 framed,
                 disconnect_loop_detecter: _,
-            } => {
-                match framed.next().await {
-                    Some(Ok(frame)) => match AudioPacketMessage::decode(frame) {
-                        Ok(packet) => {
-                            let buffer_size = packet.buffer.len();
-                            let sample_rate = packet.sample_rate;
+            } => match framed.next().await {
+                Some(Ok(frame)) => match AudioPacketMessage::decode(frame) {
+                    Ok(packet) => {
+                        let buffer_size = packet.buffer.len();
+                        let sample_rate = packet.sample_rate;
 
-                            match self
-                                .stream_config
-                                .process_audio_packet(packet, &mut self.process_cache)
-                            {
-                                Ok(Some(buffer)) => {
-                                    debug!("received {} bytes", buffer_size);
-                                    Ok(Some(StreamerMsg::UpdateAudioWave {
-                                        data: AudioPacketMessage::to_wave_data(
-                                            &buffer,
-                                            sample_rate,
-                                        ),
-                                    }))
-                                }
-                                _ => Ok(None),
+                        match self
+                            .stream_config
+                            .process_audio_packet(packet, &mut self.process_cache)
+                        {
+                            Ok(Some(buffer)) => {
+                                debug!("received {} bytes", buffer_size);
+                                Outcome::Msg(Some(StreamerMsg::UpdateAudioWave {
+                                    data: AudioPacketMessage::to_wave_data(&buffer, sample_rate),
+                                }))
                             }
-                        }
-                        Err(e) => Err(ConnectError::WriteError(WriteError::Deserializer(e))),
-                    },
-
-                    Some(Err(e)) => {
-                        match e.kind() {
-                            io::ErrorKind::TimedOut => Ok(None), // timeout use to check for input on stdin
-                            io::ErrorKind::WouldBlock => Ok(None), // trigger on Linux when there is no stream input
-                            _ => Err(WriteError::Io(e))?,
+                            _ => Outcome::Msg(None),
                         }
                     }
-                    None => Err(ConnectError::Disconnected),
+                    Err(e) => Outcome::Fatal(ConnectError::WriteError(WriteError::Deserializer(e))),
+                },
+
+                Some(Err(e)) => match e.kind() {
+                    io::ErrorKind::TimedOut => Outcome::Msg(None), // timeout use to check for input on stdin
+                    io::ErrorKind::WouldBlock => Outcome::Msg(None), // trigger on Linux when there is no stream input
+                    _ => {
+                        warn!("stream error: {e}, going back to listening");
+                        Outcome::Drop
+                    }
+                },
+                None => Outcome::Drop,
+            },
+        };
+
+        match outcome {
+            Outcome::Msg(msg) => Ok(msg),
+            Outcome::Drop => self.relisten().await,
+            Outcome::Fatal(e) => Err(e),
+        }
+    }
+}
+
+impl TcpStreamer {
+    /// Drop the active connection and rebind the same port, going back to
+    /// `Listening` with a bounded exponential backoff. Used after a recoverable
+    /// drop so another phone can reconnect without a manual Connect.
+    async fn relisten(&mut self) -> Result<Option<StreamerMsg>, ConnectError> {
+        info!(
+            "connection closed, waiting to listen again on {}",
+            self.port
+        );
+
+        let mut attempts = 0u32;
+        loop {
+            match bind_reusable(self.ip, self.port).await {
+                Ok(listener) => {
+                    self.process_cache.clear();
+                    self.state = TcpStreamerState::Listening { listener };
+
+                    return Ok(Some(StreamerMsg::Listening {
+                        ip: Some(self.ip),
+                        port: Some(self.port),
+                    }));
+                }
+                Err(e) => {
+                    let delay = rebind_delay(attempts);
+
+                    if attempts >= REBIND_MAX_RETRIES {
+                        error!(
+                            "can't rebind {}:{} after {} attempts: {e}",
+                            self.ip,
+                            self.port,
+                            attempts + 1
+                        );
+                        return Err(e);
+                    }
+
+                    warn!(
+                        "can't rebind {}:{}: {e}; retry {}/{} in {:?}",
+                        self.ip,
+                        self.port,
+                        attempts + 1,
+                        REBIND_MAX_RETRIES,
+                        delay
+                    );
+                    tokio::time::sleep(delay).await;
+                    attempts += 1;
                 }
             }
+        }
+    }
+}
+
+/// Exponential backoff between rebind attempts: 500ms, 1s, 2s, 4s, capped at 5s.
+fn rebind_delay(attempt: u32) -> Duration {
+    let mut delay = REBIND_INITIAL_DELAY;
+    for _ in 0..attempt {
+        delay = delay
+            .saturating_mul(REBIND_BACKOFF_FACTOR)
+            .min(REBIND_MAX_DELAY);
+    }
+    delay
+}
+
+enum Outcome {
+    Msg(Option<StreamerMsg>),
+    /// the connection dropped; rebind the port and go back to listening
+    Drop,
+    /// unrecoverable protocol/device error, propagate to the runner
+    Fatal(ConnectError),
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn rebind_delay_grows_then_caps() {
+        let cases = [
+            (0, 500),
+            (1, 1000),
+            (2, 2000),
+            (3, 4000),
+            (4, 5000),
+            (5, 5000),
+            (6, 5000),
+            (7, 5000),
+        ];
+
+        for (attempt, expected_ms) in cases {
+            assert_eq!(
+                rebind_delay(attempt),
+                Duration::from_millis(expected_ms),
+                "attempt {attempt}"
+            );
         }
     }
 }

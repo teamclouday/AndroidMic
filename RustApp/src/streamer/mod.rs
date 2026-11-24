@@ -118,10 +118,6 @@ enum ConnectError {
     #[cfg(feature = "usb")]
     #[error("can't switch usb device to aoa mode: {0}")]
     CantSwitchUsbAOAMode(io::Error),
-    #[error("device disconnected")]
-    Disconnected,
-    #[error(transparent)]
-    CantJoin(#[from] tokio::task::JoinError),
     #[error("command failed: {code:?}:{stderr}")]
     AdbStatusCommand { code: Option<i32>, stderr: String },
     #[error("command failed: {0} make sure adb is installed and in your PATH")]
