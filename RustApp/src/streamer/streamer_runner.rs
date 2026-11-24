@@ -47,6 +47,7 @@ pub enum StreamerCommand {
         audio_params: AudioProcessParams,
         is_window_visible: bool,
     },
+    SetWindowVisible(bool),
     Stop,
 }
 
@@ -74,6 +75,7 @@ impl Debug for StreamerCommand {
                 .field("is_window_visible", is_window_visible)
                 .finish(),
             Self::Stop => write!(f, "Stop"),
+            Self::SetWindowVisible(visible) => write!(f, "SetWindowVisible({visible})"),
         }
     }
 }
@@ -199,6 +201,9 @@ pub fn sub() -> impl Stream<Item = StreamerMsg> {
                             StreamerCommand::Stop => {
                                 drop(streamer);
                                 streamer = DummyStreamer::new();
+                            }
+                            StreamerCommand::SetWindowVisible(visible) => {
+                                streamer.set_window_visible(visible);
                             }
                         }
                     }

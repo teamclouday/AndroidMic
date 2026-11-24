@@ -47,6 +47,11 @@ use zconf::ConfigManager;
 pub fn run_ui(flags: Flags) {
     let settings = Settings::default()
         .no_main_window(true)
+        // The app lives in the tray: closing the main window must hide it,
+        // not destroy it or exit the process. Otherwise the framework's
+        // default `exit_on_close` drops the winit window before
+        // `on_close_requested` can route the close to `HideWindow`.
+        .exit_on_close(false)
         .theme(to_cosmic_theme(&flags.config.data().theme));
 
     cosmic::app::run::<AppState>(settings, flags).unwrap();
@@ -163,6 +168,7 @@ pub struct AppState {
     pub network_adapter: Option<NetworkAdapter>,
     pub port_input: String,
     pub main_window: Option<CustomWindow>,
+    main_window_hidden: bool,
     pub settings_window: Option<CustomWindow>,
     pub about_window: Option<CustomWindow>,
     pub logs: Vec<markdown::Item>,
@@ -177,9 +183,44 @@ pub struct CustomWindow {
     pub window_id: window::Id,
 }
 
+/// Forget a remembered window only when the framework reports that its id
+/// actually closed. A hidden window keeps its id, so the normal hide-to-tray
+/// path must not pass through here.
+fn clear_window(window: &mut Option<CustomWindow>, id: window::Id) -> bool {
+    if window.as_ref().is_some_and(|window| window.window_id == id) {
+        *window = None;
+        true
+    } else {
+        false
+    }
+}
+
 impl AppState {
-    fn send_command(&self, cmd: StreamerCommand) {
-        self.streamer.as_ref().unwrap().blocking_send(cmd).unwrap();
+    /// Send a command to the streamer without panicking. Returns `false` when
+    /// the streamer is not ready or its channel has been closed; the caller is
+    /// responsible for resetting the UI state in that case.
+    fn send_command(&mut self, cmd: StreamerCommand) -> bool {
+        let Some(streamer) = self.streamer.as_ref() else {
+            warn!("streamer command dropped, streamer is not ready");
+            return false;
+        };
+
+        match streamer.blocking_send(cmd) {
+            Ok(()) => true,
+            Err(e) => {
+                warn!("failed to send streamer command: {e}");
+                false
+            }
+        }
+    }
+
+    /// Bring the UI back to the disconnected state after the streamer task is
+    /// gone or its command channel broke.
+    fn reset_stream_state(&mut self) {
+        self.connection_state = ConnectionState::Default;
+        self.audio_stream = None;
+        self.audio_wave.clear();
+        self.sync_tray();
     }
 
     fn update_audio_stream(&mut self) -> Task<AppMsg> {
@@ -191,11 +232,14 @@ impl AppState {
 
         match self.create_audio_stream(consumer, true) {
             Ok(audio_config) => {
-                self.send_command(StreamerCommand::ReconfigureStream {
+                if !self.send_command(StreamerCommand::ReconfigureStream {
                     buff: producer,
                     audio_params: AudioProcessParams::new(audio_config, config),
-                    is_window_visible: self.main_window.is_some(),
-                });
+                    is_window_visible: self.main_window_visible(),
+                }) {
+                    self.reset_stream_state();
+                    return self.add_log("streamer is not available; connection reset");
+                }
 
                 Task::none()
             }
@@ -270,18 +314,21 @@ impl AppState {
         self.connection_state = ConnectionState::WaitingOnStatus;
         self.sync_tray();
 
-        self.send_command(StreamerCommand::Connect {
+        if !self.send_command(StreamerCommand::Connect {
             connect_options,
             buff: producer,
             audio_params: AudioProcessParams::new(audio_config, config),
-            is_window_visible: self.main_window.is_some(),
-        });
+            is_window_visible: self.main_window_visible(),
+        }) {
+            self.reset_stream_state();
+            return self.add_log("streamer is not available; connection reset");
+        }
 
         Task::none()
     }
 
     fn disconnect(&mut self) -> Task<AppMsg> {
-        self.send_command(StreamerCommand::Stop);
+        let _ = self.send_command(StreamerCommand::Stop);
         self.connection_state = ConnectionState::Default;
         self.audio_stream = None;
         self.audio_wave.clear();
@@ -316,12 +363,19 @@ impl AppState {
         }
     }
 
+    fn main_window_visible(&self) -> bool {
+        self.main_window.is_some() && !self.main_window_hidden
+    }
+
     fn open_main_window(&mut self) -> Task<AppMsg> {
         let mut commands = Vec::new();
         let settings = window::Settings {
             size: Size::new(800.0, 600.0),
             position: window::Position::Centered,
             icon: window_icon!("icon"),
+            // Intercept the close request so on_close_requested can hide the
+            // window to the tray instead of letting the framework destroy it.
+            exit_on_close_request: false,
             ..Default::default()
         };
 
@@ -332,6 +386,13 @@ impl AppState {
         commands.push(self.set_window_title(fl!("main_window_title"), window_id));
 
         self.main_window = Some(CustomWindow { window_id });
+        self.main_window_hidden = false;
+        // `start_minimized` can open the main window after a Connect already
+        // carried `is_window_visible = false`; tell the streamer the window
+        // exists now so the waveform preview resumes without a reconnect.
+        if self.streamer.is_some() {
+            self.send_command(StreamerCommand::SetWindowVisible(true));
+        }
 
         Task::batch(commands)
     }
@@ -454,6 +515,7 @@ impl Application for AppState {
             network_adapter,
             port_input: config.port.to_string(),
             main_window: None,
+            main_window_hidden: false,
             settings_window: None,
             about_window: None,
             logs: Vec::new(),
@@ -548,8 +610,10 @@ impl Application for AppState {
                     return self.add_log(&e);
                 }
                 StreamerMsg::Listening { ip, port } => {
-                    if let Err(e) = self.audio_stream.as_ref().unwrap().stream.pause() {
-                        error!("{e}");
+                    if let Some(audio_stream) = self.audio_stream.as_ref() {
+                        if let Err(e) = audio_stream.stream.pause() {
+                            error!("{e}");
+                        }
                     }
                     self.audio_wave.clear();
 
@@ -561,11 +625,13 @@ impl Application for AppState {
                     }
                 }
                 StreamerMsg::Connected { ip, port, mode: _ } => {
-                    if let Err(e) = self.audio_stream.as_ref().unwrap().stream.play() {
-                        error!("{e}");
+                    if let Some(audio_stream) = self.audio_stream.as_ref() {
+                        if let Err(e) = audio_stream.stream.play() {
+                            error!("{e}");
+                        }
                     }
 
-                    if self.main_window.is_none() {
+                    if !self.main_window_visible() {
                         let address = format!(
                             "{}:{}",
                             ip.unwrap_or(IpAddr::V4(Ipv4Addr::UNSPECIFIED)),
@@ -814,16 +880,24 @@ impl Application for AppState {
                 }
             },
             AppMsg::HideWindow => {
+                // Without a tray icon the hidden window cannot be brought back,
+                // so keep the platform default: closing the main window exits.
+                if self.system_tray.is_none() {
+                    return cosmic::iced_runtime::task::effect(cosmic::iced::runtime::Action::Exit);
+                }
+
                 let mut effects = Vec::new();
 
                 if let Some(main_window) = &self.main_window {
                     effects.push(cosmic::iced_runtime::task::effect(
-                        cosmic::iced::runtime::Action::Window(window::Action::Close(
+                        cosmic::iced::runtime::Action::Window(window::Action::ChangeMode(
                             main_window.window_id,
+                            window::Mode::Hidden,
                         )),
                     ));
-                    self.main_window = None;
+                    self.main_window_hidden = true;
                 }
+                self.send_command(StreamerCommand::SetWindowVisible(false));
                 if let Some(settings_window) = &self.settings_window {
                     effects.push(cosmic::iced_runtime::task::effect(
                         cosmic::iced::runtime::Action::Window(window::Action::Close(
@@ -853,8 +927,6 @@ impl Application for AppState {
                     self.has_shown_minimize_notification = true;
                 }
 
-                effects.push(self.update_audio_stream());
-
                 return cosmic::iced_runtime::Task::batch(effects);
             }
             AppMsg::Menu(menu_msg) => match menu_msg {
@@ -878,16 +950,25 @@ impl Application for AppState {
             AppMsg::SystemTray(tray_msg) => match tray_msg {
                 SystemTrayMsg::Show => {
                     if let Some(main_window) = &self.main_window {
-                        // avoid duplicate window
-                        return cosmic::iced_runtime::task::effect(
-                            cosmic::iced::runtime::Action::Window(window::Action::GainFocus(
-                                main_window.window_id,
-                            )),
-                        );
-                    } else {
-                        let command = self.open_main_window();
+                        let window_id = main_window.window_id;
+                        self.main_window_hidden = false;
+                        self.send_command(StreamerCommand::SetWindowVisible(true));
 
-                        return Task::batch(vec![command, self.update_audio_stream()]);
+                        return Task::batch(vec![
+                            cosmic::iced_runtime::task::effect(
+                                cosmic::iced::runtime::Action::Window(window::Action::ChangeMode(
+                                    window_id,
+                                    window::Mode::Windowed,
+                                )),
+                            ),
+                            cosmic::iced_runtime::task::effect(
+                                cosmic::iced::runtime::Action::Window(window::Action::GainFocus(
+                                    window_id,
+                                )),
+                            ),
+                        ]);
+                    } else {
+                        return self.open_main_window();
                     }
                 }
                 SystemTrayMsg::Exit => {
@@ -896,18 +977,31 @@ impl Application for AppState {
                 SystemTrayMsg::Connect => return self.connect(),
                 SystemTrayMsg::Disconnect => return self.disconnect(),
             },
+            AppMsg::WindowClosed(id) => {
+                if clear_window(&mut self.main_window, id) {
+                    self.main_window_hidden = false;
+                    self.send_command(StreamerCommand::SetWindowVisible(false));
+                    info!("main window was closed; cleared the remembered window id");
+                }
+                clear_window(&mut self.settings_window, id);
+                clear_window(&mut self.about_window, id);
+            }
             AppMsg::ShowWindow => {
                 if let Some(main_window) = &self.main_window {
-                    // avoid duplicate window
-                    return cosmic::iced_runtime::task::effect(
-                        cosmic::iced::runtime::Action::Window(window::Action::GainFocus(
-                            main_window.window_id,
-                        )),
-                    );
-                } else {
-                    let command = self.open_main_window();
+                    let window_id = main_window.window_id;
+                    self.main_window_hidden = false;
+                    self.send_command(StreamerCommand::SetWindowVisible(true));
 
-                    return Task::batch(vec![command, self.update_audio_stream()]);
+                    return Task::batch(vec![
+                        cosmic::iced_runtime::task::effect(cosmic::iced::runtime::Action::Window(
+                            window::Action::ChangeMode(window_id, window::Mode::Windowed),
+                        )),
+                        cosmic::iced_runtime::task::effect(cosmic::iced::runtime::Action::Window(
+                            window::Action::GainFocus(window_id),
+                        )),
+                    ]);
+                } else {
+                    return self.open_main_window();
                 }
             }
             AppMsg::Exit => {
@@ -946,6 +1040,21 @@ impl Application for AppState {
     fn subscription(&self) -> cosmic::iced::Subscription<Self::Message> {
         #[allow(unused_mut)]
         let mut subscriptions = vec![Subscription::run(|| streamer::sub().map(AppMsg::Streamer))];
+
+        // With `exit_on_close_request: false` on the main window, the platform
+        // forwards `CloseRequested` here instead of dropping the winit window.
+        // Translate it into the existing hide-to-tray message. Secondary
+        // windows keep the framework default and never forward this event.
+        let close_requested = cosmic::iced_futures::event::listen_with(|event, _, _| match event {
+            cosmic::iced::Event::Window(window::Event::CloseRequested) => Some(AppMsg::HideWindow),
+            _ => None,
+        });
+        subscriptions.push(close_requested);
+
+        // Hiding the main window keeps its winit surface alive, so the normal
+        // close path above does not reach this. If a surface is actually
+        // destroyed, forget its id or a later Show would target a dead window.
+        subscriptions.push(window::close_events().map(AppMsg::WindowClosed));
 
         if let Some(system_tray_stream) = &self.system_tray_stream {
             subscriptions.push(Subscription::run_with_id(
@@ -1023,5 +1132,30 @@ mod tray_menu_state_tests {
             assert_eq!(menu.stop_enabled, stop_enabled);
             assert_eq!(menu.action, action);
         }
+    }
+}
+
+#[cfg(test)]
+mod window_registry_tests {
+    use super::*;
+
+    #[test]
+    fn clears_only_the_matching_window() {
+        let id = window::Id::unique();
+        let other = window::Id::unique();
+        let mut slot = Some(CustomWindow { window_id: id });
+
+        assert!(!clear_window(&mut slot, other));
+        assert!(slot.is_some());
+
+        assert!(clear_window(&mut slot, id));
+        assert!(slot.is_none());
+    }
+
+    #[test]
+    fn clearing_an_empty_slot_is_a_noop() {
+        let mut slot = None;
+        assert!(!clear_window(&mut slot, window::Id::unique()));
+        assert!(slot.is_none());
     }
 }

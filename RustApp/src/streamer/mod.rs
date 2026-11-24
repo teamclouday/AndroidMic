@@ -77,6 +77,10 @@ trait StreamerTrait {
 
     fn reconfigure_stream(&mut self, stream_config: AudioStream);
 
+    /// Update only the window-visibility flag used by the waveform preview,
+    /// without rebuilding the audio stream or clearing the process cache.
+    fn set_window_visible(&mut self, visible: bool);
+
     fn status(&self) -> StreamerMsg;
 }
 #[allow(clippy::enum_variant_names)]
@@ -162,6 +166,8 @@ impl StreamerTrait for DummyStreamer {
     }
 
     fn reconfigure_stream(&mut self, _config: AudioStream) {}
+
+    fn set_window_visible(&mut self, _visible: bool) {}
 
     fn status(&self) -> StreamerMsg {
         unreachable!()

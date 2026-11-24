@@ -67,6 +67,13 @@ impl StreamerTrait for TcpStreamer {
         self.process_cache.clear();
     }
 
+    fn set_window_visible(&mut self, visible: bool) {
+        if self.stream_config.is_window_visible != visible {
+            info!("window visibility changed: {visible}");
+            self.stream_config.is_window_visible = visible;
+        }
+    }
+
     fn status(&self) -> StreamerMsg {
         match &self.state {
             TcpStreamerState::Listening { .. } => StreamerMsg::Listening {
