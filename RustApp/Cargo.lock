@@ -248,6 +248,7 @@ dependencies = [
  "rust-embed",
  "serde",
  "serde_with",
+ "socket2 0.6.5",
  "speexdsp",
  "strum",
  "thiserror 2.0.21",

@@ -2,6 +2,7 @@ use std::{io, net::IpAddr, time::Duration};
 
 use futures::StreamExt;
 use prost::Message;
+use socket2::{SockRef, TcpKeepalive};
 use tokio::{
     io::{AsyncReadExt, AsyncWriteExt},
     net::{TcpListener, TcpStream},
@@ -10,7 +11,7 @@ use tokio_util::codec::{Framed, LengthDelimitedCodec};
 
 use crate::{
     audio::process::ProcessCache,
-    config::ConnectionMode,
+    config::{ConnectionMode, TcpKeepaliveConfig},
     streamer::{CHECK_1, CHECK_2, StreamerMsg, WriteError},
 };
 
@@ -26,6 +27,7 @@ pub struct TcpStreamer {
     pub state: TcpStreamerState,
     stream_config: AudioStream,
     process_cache: ProcessCache,
+    keepalive: TcpKeepaliveConfig,
 }
 
 #[allow(clippy::large_enum_variant)]
@@ -43,6 +45,7 @@ pub async fn new(
     ip: IpAddr,
     port: u16,
     stream_config: AudioStream,
+    keepalive: TcpKeepaliveConfig,
 ) -> Result<TcpStreamer, ConnectError> {
     let listener = TcpListener::bind((ip, port))
         .await
@@ -50,12 +53,20 @@ pub async fn new(
 
     let addr = TcpListener::local_addr(&listener).map_err(ConnectError::NoLocalAddress)?;
 
+    info!(
+        "tcp keepalive configured: time={}s interval={}s retries={}",
+        keepalive.time_duration().as_secs(),
+        keepalive.interval_duration().as_secs(),
+        keepalive.retry_count()
+    );
+
     let streamer = TcpStreamer {
         ip,
         port: addr.port(),
         stream_config,
         state: TcpStreamerState::Listening { listener },
         process_cache: ProcessCache::new(),
+        keepalive,
     };
 
     Ok(streamer)
@@ -112,6 +123,23 @@ impl StreamerTrait for TcpStreamer {
                     .write_all(CHECK_2.as_bytes())
                     .await
                     .map_err(|e| ConnectError::HandShakeFailed("writing", e))?;
+
+                // Enable TCP keepalive so a peer that vanishes without sending
+                // FIN (e.g. Wi-Fi turned off) is detected instead of leaving the
+                // read blocked on a half-open socket. Keepalive is an optional
+                // hardening: if the platform rejects the option, warn and keep
+                // the connection going instead of turning a best-effort socket
+                // option into a fatal handshake failure.
+                let keepalive = TcpKeepalive::new()
+                    .with_time(self.keepalive.time_duration())
+                    .with_interval(self.keepalive.interval_duration())
+                    .with_retries(self.keepalive.retry_count());
+                if let Err(e) = SockRef::from(&stream).set_tcp_keepalive(&keepalive) {
+                    warn!(
+                        "failed to enable TCP keepalive ({e}); continuing without it, \
+                         half-open detection relies on EOF/IO errors"
+                    );
+                }
 
                 info!("connection accepted, remote address: {}", addr);
 
